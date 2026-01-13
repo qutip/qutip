@@ -105,6 +105,7 @@ jobs:
             python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.25,<1.26"
+            scipy-requirement: "==1.16.*"
             condaforge: 1
             nomkl: 1
             coveralls: 1

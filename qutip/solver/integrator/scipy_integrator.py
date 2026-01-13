@@ -242,6 +242,8 @@ class IntegratorScipyDop853(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
+        # scipy 1.17 does not convert automatically anymore
+        self.options["nsteps"] = int(self.options["nsteps"])
         self._ode_solver.set_integrator('dop853', **self.options)
         self.name = "scipy ode dop853"
 
@@ -284,15 +286,14 @@ class IntegratorScipyDop853(Integrator):
         if self._mat_state:
             state = _data.column_unstack_dense(
                 _data.dense.fast_from_numpy(
-                    self._ode_solver._y.view(np.complex128)
+                    self._ode_solver._y.view(np.complex128).copy()
                 ),
                 self._size,
                 inplace=True)
         else:
             state = _data.dense.fast_from_numpy(
-                self._ode_solver._y.view(np.complex128)
+                self._ode_solver._y.view(np.complex128).copy()
             )
-            state = state.copy() if copy else state
         return t, state
 
     def set_state(self, t, state0):
