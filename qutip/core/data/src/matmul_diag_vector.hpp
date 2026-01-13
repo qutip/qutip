@@ -22,5 +22,25 @@ void _matmul_diag_block(
         const std::complex<double> * _RESTRICT vec,
         std::complex<double> * _RESTRICT out,
         const IntT length,
-        const IntT width
+        const IntT width,
+        const std::complex<double> scale
+);
+
+template <typename IntT>
+void _matmul_dag_diag_vector(
+        const std::complex<double> * _RESTRICT data,
+        const std::complex<double> * _RESTRICT vec,
+        std::complex<double> * _RESTRICT out,
+        const IntT length,
+        const std::complex<double> scale
+);
+
+template <typename IntT>
+void _matmul_dag_diag_block(
+        const std::complex<double> * _RESTRICT data,
+        const std::complex<double> * _RESTRICT vec,
+        std::complex<double> * _RESTRICT out,
+        const IntT length,
+        const IntT width,
+        const std::complex<double> scale
 );

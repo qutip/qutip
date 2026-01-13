@@ -507,6 +507,58 @@ class BinaryOpMixin(_GenericOpMixin):
             op(data_l(), data_r())
 
 
+class ScaledBinaryOpMixin(BinaryOpMixin):
+    """
+    Mix-in for binary mathematical operations that support a scale parameter.
+    
+    Subclasses should define op_numpy(left, right, scale=1) that returns
+    the expected result with scaling applied.
+    
+    If supports_out is True, also tests with an explicit out argument
+    for Dense output types, testing both C and Fortran orderings,
+    and testing accumulation into non-zero buffers.
+    """
+    supports_out = False
+
+    @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
+                             ids=['unscaled', 'scale[real]', 'scale[complex]'])
+    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale):
+        """
+        Test that the binary operation is mathematically correct for all the
+        known type specialisations, including with scaling and optional out.
+        """
+        left, right = data_l(), data_r()
+        if scale is not None:
+            expected = self.op_numpy(left.to_array(), right.to_array(), scale)
+            test = op(left, right, scale)
+        else:
+            expected = self.op_numpy(left.to_array(), right.to_array())
+            test = op(left, right)
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+            # Also test with explicit out argument if supported
+            if self.supports_out and out_type is Dense:
+                for fortran in [False, True]:
+                    # Test accumulation into non-zero buffer
+                    initial = np.ones(expected.shape, dtype=complex)
+                    if fortran:
+                        initial = np.asfortranarray(initial)
+                    out = Dense(initial.copy(), copy=False)
+                    if scale is not None:
+                        test_out = op(left, right, scale, out=out)
+                    else:
+                        test_out = op(left, right, out=out)
+                    assert test_out is out
+                    np.testing.assert_allclose(test_out.to_array(), initial + expected,
+                                               atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+
+
 class TernaryOpMixin(_GenericOpMixin):
     """
     Mix-in for ternary mathematical operations on Data instances (e.g. inner
@@ -544,8 +596,8 @@ class TernaryOpMixin(_GenericOpMixin):
 
 # And now finally we get into the meat of the actual mathematical tests.
 
-class TestAdd(BinaryOpMixin):
-    def op_numpy(self, left, right, scale):
+class TestAdd(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
         return np.add(left, scale * right)
 
     shapes = shapes_binary_identical()
@@ -558,32 +610,6 @@ class TestAdd(BinaryOpMixin):
         pytest.param(data.iadd_dense_data_dense, Dense, Dia, Dense),
         pytest.param(data.iadd_data, CSR, Dia, Data),
     ]
-
-    # `add` has an additional scalar parameter, because the operation is
-    # actually more like `A + c*B`.  We just parametrise that scalar
-    # separately.
-    @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
-                             ids=['unscaled', 'scale[real]', 'scale[complex]'])
-    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale):
-        """
-        Test that the binary operation is mathematically correct for all the
-        known type specialisations.
-        """
-        left, right = data_l(), data_r()
-        if scale is not None:
-            expected = self.op_numpy(left.to_array(), right.to_array(), scale)
-            test = op(left, right, scale)
-        else:
-            expected = self.op_numpy(left.to_array(), right.to_array(), 1)
-            test = op(left, right)
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
 
 
 class TestAdjoint(UnaryOpMixin):
@@ -785,12 +811,13 @@ class TestKronT(BinaryOpMixin):
     ]
 
 
-class TestMatmul(BinaryOpMixin):
-    def op_numpy(self, left, right):
-        return np.matmul(left, right)
+class TestMatmul(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right)
 
     shapes = shapes_binary_matmul()
     bad_shapes = shapes_binary_bad_matmul()
+    supports_out = True
     specialisations = [
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
@@ -801,23 +828,28 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
-class TestMatmulDag(BinaryOpMixin):
-    def op_numpy(self, left, right):
-        return np.matmul(left, right)
+class TestMatmulDag(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right)
 
     shapes = shapes_binary_matmul()
     bad_shapes = shapes_binary_bad_matmul()
+    supports_out = True
     specialisations = [
         pytest.param(
-            lambda l, r: data.matmul_dag_data(l, r.adjoint()),
+            lambda l, r, scale=1, out=None: data.matmul_dag_data(l, r.adjoint(), scale),
             CSR, CSR, CSR
         ),
         pytest.param(
-            lambda l, r: data.matmul_dag_dense_csr_dense(l, r.adjoint()),
+            lambda l, r, scale=1, out=None: data.matmul_dag_dense_csr_dense(l, r.adjoint(), scale, out),
             Dense, CSR, Dense
         ),
         pytest.param(
-            lambda l, r: data.matmul_dag_dense(l, r.adjoint()),
+            lambda l, r, scale=1, out=None: data.matmul_dag_dense_dia_dense(l, r.adjoint(), scale, out),
+            Dense, Dia, Dense
+        ),
+        pytest.param(
+            lambda l, r, scale=1, out=None: data.matmul_dag_dense(l, r.adjoint(), scale, out),
             Dense, Dense, Dense
         ),
     ]
