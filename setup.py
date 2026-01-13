@@ -216,6 +216,7 @@ def _extension_extra_sources():
             'qutip/core/data/src/matmul_csr_vector.cpp',
             'qutip/core/data/src/matmul_csr_dense.cpp',
             'qutip/core/data/src/matmul_diag_vector.cpp',
+            'qutip/core/data/src/matmul_csr_dense.cpp',
         ],
     }
     out = collections.defaultdict(list)
