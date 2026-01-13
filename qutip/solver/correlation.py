@@ -515,12 +515,18 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
             (t_idx, rho, tlist, taulist, solver, A, B, C) 
             for t_idx, rho in enumerate(rho_t)
         ]
-
         # 3. Choose the right map function (serial, parallel, or mpi)
-        # We use the helper to support different backend types
-        parallel_options = solver.options.get('parallel_options', {'map': 'serial'})
-        p_map, map_kw = _get_map(parallel_options)
+        # Fix: Access 'map' directly from the flat solver.options dict.
+        map_type = solver.options.get('map', 'serial')
         
+        # We construct a clean dictionary for _get_map to avoid passing 
+        # unrelated ODE options to the map getter.
+        parallel_args = {'map': map_type}
+        
+        if 'num_cpus' in solver.options:
+            parallel_args['num_cpus'] = solver.options['num_cpus']
+
+        p_map, map_kw = _get_map(parallel_args)
         # Pass the progress bar and cpu count from the original options
         map_kw['progress_bar'] = old_opt['progress_bar']
         if 'num_cpus' in old_opt:
