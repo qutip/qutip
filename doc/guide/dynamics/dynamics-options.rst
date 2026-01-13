@@ -49,3 +49,20 @@ the :func:`.mesolve` and :func:`.mcsolve` function::
 or::
 
     >>> MCSolver(H0, c_op_list, options=options)
+
+
+Matrix-form solver option
+=========================
+
+The :func:`.mesolve` function supports a special ``matrix_form`` option that
+selects between the superoperator-based solver (:class:`.MESolver`) and the
+matrix-form solver (:class:`.MESolverMatrixForm`):
+
+.. code-block:: python
+
+    >>> # Use the matrix-form Lindblad solver
+    >>> result = mesolve(H, rho0, tlist, c_ops, options={"matrix_form": True})
+
+This option is handled by :func:`.mesolve` itself and is not passed to the
+underlying solver. See :ref:`master-matrix-form` for more details on when to
+use the matrix-form solver.

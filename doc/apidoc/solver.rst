@@ -29,6 +29,12 @@ Master Equation
     :show-inheritance:
     :exclude-members: add_integrator
 
+.. autoclass:: qutip.solver.mesolve.MESolverMatrixForm
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
+
 .. autoclass:: qutip.solver.result.Result
     :members:
     :inherited-members:
