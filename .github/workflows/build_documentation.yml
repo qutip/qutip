@@ -1,0 +1,69 @@
+name: Build documentation
+
+on:
+  [push, pull_request]
+concurrency:
+  group: doc_${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.11'
+
+      - name: Install documentation dependencies
+        run: |
+          pip install pip --upgrade
+          python -mpip install -r doc/requirements.txt
+          sudo apt-get update
+          sudo apt-get install texlive-full
+
+      - name: Install QuTiP from GitHub
+        run: |
+          # Build without build isolation so that we use the build
+          # dependencies already installed from doc/requirements.txt.
+          python -m pip install -e .[full] --no-build-isolation --config-settings editable_mode=compat
+          # Install in editable mode so it doesn't matter if we import from
+          # inside the installation directory, otherwise we can get some errors
+          # because we're importing from the wrong location.
+          python -c 'import qutip; qutip.about()'
+
+      - name: Build PDF documentation
+        working-directory: doc
+        run: |
+          make latexpdf SPHINXOPTS="-W --keep-going -T"
+          # Above flags are:
+          #   -W : turn warnings into errors
+          #   --keep-going : do not stop after the first error
+          #   -T : display a full traceback if a Python exception occurs
+
+      - name: Upload built PDF files
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutip_pdf_docs
+          path: doc/_build/latex/*
+          if-no-files-found: error
+
+      - name: Build HTML documentation
+        working-directory: doc
+        run: |
+          make html SPHINXOPTS="-W --keep-going -T"
+          # Above flags are:
+          #   -W : turn warnings into errors
+          #   --keep-going : do not stop after the first error
+          #   -T : display a full traceback if a Python exception occurs
+
+      - name: Upload built HTML files
+        uses: actions/upload-artifact@v4
+        with:
+          name: qutip_html_docs
+          path: doc/_build/html/*
+          if-no-files-found: error
