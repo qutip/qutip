@@ -6,12 +6,13 @@ equation.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['mesolve', 'MESolver']
+__all__ = ['mesolve', 'MESolver', 'MESolverMatrixForm']
 
+import warnings
 from numpy.typing import ArrayLike
-from typing import Any, Callable
+from typing import Any
 from time import time
-from .. import (Qobj, QobjEvo, liouvillian, lindblad_dissipator)
+from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator, ket2dm
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation, _kwargs_migration
@@ -127,8 +128,11 @@ def mesolve(
           | Maximum number of (internally defined) steps allowed in one ``tlist``
             step.
         - | max_step : float
-          | Maximum lenght of one internal step. When using pulses, it should be
+          | Maximum length of one internal step. When using pulses, it should be
             less than half the width of the thinnest pulse.
+        - | matrix_form : bool
+          | Use matrix-form Lindblad solver instead of superoperator form.
+            The matrix-form solver can be faster for denser systems. Default: False.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -157,11 +161,19 @@ def mesolve(
 
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
+    # Extract matrix_form option (not a solver option, it's a solver selection option)
+    if options is None:
+        options = {}
+    use_matrix_form = options.pop('matrix_form', False)
+
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
                        options=options)
 
-    solver = MESolver(H, c_ops, options=options)
+    if use_matrix_form:
+        solver = MESolverMatrixForm(H, c_ops, options=options)
+    else:
+        solver = MESolver(H, c_ops, options=options)
 
     return solver.run(rho0, tlist, e_ops=e_ops)
 
@@ -276,6 +288,203 @@ class MESolver(SESolver):
             If True, the raw matrix will be passed instead of a Qobj.
             For density matrices, the matrices can be column stacked or square
             depending on the integration method.
+        """
+        if raw_data:
+            return _DataFeedback(default, open=True, prop=prop)
+        return _QobjFeedback(default, open=True, prop=prop)
+
+
+class MESolverMatrixForm(Solver):
+    """
+    Master equation solver using matrix form of Lindblad equation.
+
+    Instead of building an n²×n² Liouvillian superoperator and vectorizing
+    the density matrix, this solver keeps ρ as an n×n matrix and computes
+    the RHS using matrix-matrix products:
+
+        dρ/dt = -i[H,ρ] + Σᵢ(cᵢρcᵢ† - ½{cᵢ†cᵢ,ρ})
+
+    This approach can be more memory-efficient for large systems and avoids
+    building the full superoperator. For dense operators, the time complexity
+    also scales better with system size (n³ versus n⁴).
+    However, it requires more matrix multiplications per RHS evaluation.
+
+    **Note:**
+    - State must be kept as dense n×n matrix (no vectorization)
+    - Works with all integrators (scipy and Cython-based)
+
+    Parameters
+    ----------
+    H : Qobj or QobjEvo
+        Hamiltonian of the system (n×n operator).
+
+    c_ops : list of Qobj or QobjEvo, optional
+        List of collapse operators (each n×n operator).
+
+    options : dict, optional
+        Options for the solver. See :obj:`MESolverMatrixForm.options` for
+        available options.
+
+    Attributes
+    ----------
+    stats : dict
+        Diagnostic statistics of the evolution.
+
+    Examples
+    --------
+    >>> import qutip as qt
+    >>> import numpy as np
+    >>> N = 10
+    >>> H = qt.num(N)
+    >>> c_ops = [np.sqrt(0.1) * qt.destroy(N)]
+    >>> rho0 = qt.fock_dm(N, 5)
+    >>> tlist = np.linspace(0, 10, 100)
+    >>> solver = qt.MESolverMatrixForm(H, c_ops, options={'method': 'vern7'})
+    >>> result = solver.run(rho0, tlist)
+    """
+    name = "mesolve_matrix"
+    _avail_integrators: dict[str, object] = {}
+    solver_options = {
+        "progress_bar": "",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": True,
+        'method': 'adams',
+    }
+
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
+        *,
+        options: dict = None,
+    ):
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
+        c_ops = c_ops or []
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
+        self._num_collapse = len(c_ops)
+
+        # Convert to QobjEvo if needed
+        H = QobjEvo(H) if isinstance(H, Qobj) else H
+        c_ops = [QobjEvo(c) if isinstance(c, Qobj) else c for c in c_ops]
+
+        # Create matrix-form RHS (not a QobjEvo, but has compatible interface)
+        from qutip.core.cy.lindblad_matrix_form import LindbladMatrixForm
+        self.rhs = LindbladMatrixForm(H, c_ops)
+
+        # Initialize solver state (not calling super().__init__ since rhs is not QobjEvo)
+        self.options = options
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
+        self.rhs._register_feedback({}, solver=self.name)
+
+    def _initialize_stats(self):
+        """ Return the initial values for the solver stats. """
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Master Equation Evolution (Matrix Form)",
+            "num_collapse": self._num_collapse,
+        })
+        return stats
+
+    def _prepare_state(self, state):
+        """
+        Prepare state for integration - keep as n×n matrix.
+
+        Unlike the superoperator form, we do NOT vectorize the state.
+        The density matrix is kept as an n×n matrix throughout integration.
+        """
+        if self.rhs.issuper:
+            raise TypeError(
+                "MESolverMatrixForm cannot handle superoperator RHS. "
+                "Use standard MESolver instead."
+            )
+
+        if state.isket:
+            state = ket2dm(state)
+
+        if not state.dtype.sparcity() == "dense":
+            dtype = _data._parse_default_dtype(None, "dense")
+            state = state.to(dtype)
+
+        if self.rhs._dims[0] != state._dims[0]:
+            raise TypeError(
+                f"incompatible dimensions {self.rhs._dims} and {state.dims}"
+            )
+
+        self._state_metadata = {
+            'dims': state._dims,
+            'isherm': state._isherm,
+        }
+
+        # Determine if normalization should be applied
+        if state.isket:
+            norm = state.norm()
+        elif state._dims.issquare:
+            norm = state.tr()
+        else:
+            norm = -1
+
+        self._normalize_output = (
+            self._options.get("normalize_output", False)
+            and abs(norm - 1) <= 1e-12
+            and state.isoper
+        )
+
+        # Return n×n matrix directly - NO vectorization!
+        return state.data
+
+    def _restore_state(self, data, *, copy=True):
+        """
+        Restore Qobj from Data - no unstacking needed.
+
+        Since we keep the state as n×n throughout, just wrap in Qobj.
+        """
+        state = Qobj(data, **self._state_metadata, copy=copy)
+
+        if self._normalize_output:
+            state = state * (1 / state.tr())
+
+        return state
+
+    @classmethod
+    def StateFeedback(
+        cls,
+        default: Qobj | _data.Data = None,
+        raw_data: bool = False,
+        prop: bool = False
+    ):
+        """
+        State of the evolution to be used in a time-dependent operator.
+
+        When used as an args:
+
+            ``QobjEvo([op, func], args={"state": MESolverMatrixForm.StateFeedback()})``
+
+        The ``func`` will receive the density matrix as ``state`` during the
+        evolution.
+
+        Parameters
+        ----------
+        default : Qobj or qutip.core.data.Data, default : None
+            Initial value to be used at setup of the system.
+
+        prop : bool, default : False
+            Set to True when computing propagators.
+            The default will take the shape of the propagator instead of a
+            state.
+
+        raw_data : bool, default : False
+            If True, the raw matrix will be passed instead of a Qobj.
+            For the matrix form solver, this will be an n×n dense matrix.
         """
         if raw_data:
             return _DataFeedback(default, open=True, prop=prop)
