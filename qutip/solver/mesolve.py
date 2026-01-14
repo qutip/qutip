@@ -26,9 +26,9 @@ def mesolve(
     rho0: Qobj,
     tlist: ArrayLike,
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
-    _e_ops = None,
-    _args = None,
-    _options = None,
+    _e_ops=None,
+    _args=None,
+    _options=None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
@@ -40,9 +40,10 @@ def mesolve(
     set of collapse operators, or a Liouvillian.
 
     Evolve the state vector or density matrix (``rho0``) using a given
-    Hamiltonian or Liouvillian (``H``) and an optional set of collapse operators
-    (``c_ops``), by integrating the set of ordinary differential equations
-    that define the system. In the absence of collapse operators the system is
+    Hamiltonian or Liouvillian (``H``) and an optional set of collapse
+    operators (``c_ops``), by integrating the set of ordinary differential
+    equations that define the system. In the absence of collapse operators
+    the system is
     evolved according to the unitary evolution of the Hamiltonian.
 
     The output is either the state vector at arbitrary points in time
@@ -125,14 +126,16 @@ def mesolve(
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
         - | max_step : float
-          | Maximum length of one internal step. When using pulses, it should be
+          | Maximum length of one internal step. When using pulses, it
+            should be
             less than half the width of the thinnest pulse.
         - | matrix_form : bool
           | Use matrix-form Lindblad solver instead of superoperator form.
-            The matrix-form solver can be faster for denser systems. Default: False.
+            The matrix-form solver can be faster for denser systems.
+            Default: False.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -161,7 +164,8 @@ def mesolve(
 
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
-    # Extract matrix_form option (not a solver option, it's a solver selection option)
+    # Extract matrix_form option (not a solver option, it's a solver
+    # selection option)
     if options is None:
         options = {}
     use_matrix_form = options.pop('matrix_form', False)
@@ -217,7 +221,7 @@ class MESolver(SESolver):
     _avail_integrators: dict[str, object] = {}
     solver_options = {
         "progress_bar": "",
-        "progress_kwargs": {"chunk_size":10},
+        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
         "normalize_output": True,
@@ -375,11 +379,13 @@ class MESolverMatrixForm(Solver):
         H = QobjEvo(H) if isinstance(H, Qobj) else H
         c_ops = [QobjEvo(c) if isinstance(c, Qobj) else c for c in c_ops]
 
-        # Create matrix-form RHS (not a QobjEvo, but has compatible interface)
+        # Create matrix-form RHS (not a QobjEvo, but has compatible
+        # interface)
         from qutip.core.cy.lindblad_matrix_form import LindbladMatrixForm
         self.rhs = LindbladMatrixForm(H, c_ops)
 
-        # Initialize solver state (not calling super().__init__ since rhs is not QobjEvo)
+        # Initialize solver state (not calling super().__init__ since rhs
+        # is not QobjEvo)
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -467,10 +473,11 @@ class MESolverMatrixForm(Solver):
 
         When used as an args:
 
-            ``QobjEvo([op, func], args={"state": MESolverMatrixForm.StateFeedback()})``
+            ``QobjEvo([op, func], args={"state":
+            MESolverMatrixForm.StateFeedback()})``
 
-        The ``func`` will receive the density matrix as ``state`` during the
-        evolution.
+        The ``func`` will receive the density matrix as ``state`` during
+        the evolution.
 
         Parameters
         ----------
