@@ -226,21 +226,19 @@ def _steadystate_direct(A, weight, **kw):
         weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
-    # A[:, 0] = vectorized(eye * weight)
-    # We don't have a function to overwrite part of an array, so
+    # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
+    # L[:, 1:] = A[:, 1:]
     N = A.shape[0]
     n = int(N**0.5)
     dtype = type(A.data)
     if dtype == _data.Dia:
-        # Dia is bad at vector, the following matmul is 10x slower with Dia
-        # than CSR and Dia is missing optimization such as `use_wbm`.
+        # Dia is bad at vector and missing optimization such as `use_wbm`.
         dtype = _data.CSR
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    weight_mat = _data.matmul(
-        _data.one_element[dtype]((N, 1), (0, 0), 1),
-        weight_vec.transpose()
+    first_row = _data.block_extract(A.data, 0, 1, 0, N, dtype=dtype)
+    L = _data.block_overwrite(
+        A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
     )
-    L = _data.add(weight_mat, A.data)
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
     # Permutation are part of scipy.sparse, thus only supported for CSR.

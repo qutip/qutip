@@ -16,14 +16,112 @@ from .solver_base import Solver
 from .multitraj import MultiTrajSolver
 from numbers import Number
 from typing import Any
+from qutip.settings import settings
+
+
+def propagator_piecewise(
+    H: QobjEvo,
+    tlist: list[Number],
+    piecewise_t: list[Number],
+    c_ops: list[QobjEvo] = None,
+    args: dict[str, Any] = None,
+) -> Qobj | list[Qobj]:
+    r"""
+    Calculate propagators for piecewise constant Hamiltonians or
+    Liouvillians.
+
+    This function efficiently computes propagators when the Hamiltonian or
+    Liouvillian is piecewise constant, i.e., it remains constant over
+    certain time intervals and changes discontinuously at specified times.
+    By exponentiating the generator directly on each constant interval,
+    this approach is significantly faster than numerically integrating the
+    differential equation.
+
+    Parameters
+    ----------
+    H : :obj:`.QobjEvo`
+        Time-dependent Hamiltonian or Liouvillian. Must be callable with
+        signature ``H(t, args)`` that returns the constant operator valid at
+        time ``t``.
+
+    tlist : list of float
+        List of times at which to evaluate the propagator.
+
+    piecewise_t : list of float
+        Times where the Hamiltonian or Liouvillian or collapse operators change
+        discontinuously.  These times define the boundaries between constant
+        intervals.
+        Times outside the range ``(tlist[0], tlist[-1]]`` are ignored.
+
+    c_ops : list of :obj:`.QobjEvo`, optional
+        List of collapse operators for open quantum systems.
+        Can be piecewise constant.
+
+    args : dict, optional
+        Dictionary of parameters to pass to the Hamiltonian and collapse
+        operator functions.
+
+    Returns
+    -------
+    propagators : list of :obj:`.Qobj`
+        List of propagators :math:`U(t)` evaluated at each time in ``tlist``,
+        such that :math:`\psi(t) = U(t)\psi(t_0)` for state vectors or
+        :math:`\rho_{\mathrm{vec}}(t) = U(t)\rho_{\mathrm{vec}}(t_0)` for
+        vectorized density matrices.
+    """
+
+    piecewise_times = {tt for tt in piecewise_t if tlist[0] < tt <= tlist[-1]}
+    eval_times = set(tlist)
+    times = sorted(eval_times | piecewise_times)
+    atol = settings.core["atol"]
+
+    out = []
+    prev = times[0]
+    prev_dt = None
+    dU = None
+
+    for nxt in times[1:]:
+        dt = nxt - prev
+
+        # Evaluate at midpoint to avoid discontinuities at boundaries
+        t_eval = (prev + nxt) / 2
+        H_step = H(t_eval, args)
+        if c_ops:
+            c_ops_q = [op(t_eval, args) for op in c_ops]
+            gen = liouvillian(H_step, c_ops_q)
+        else:
+            gen = H_step if H_step.issuper else -1j * H_step
+
+        if prev == times[0]:
+            U = qeye_like(gen)
+            if prev in eval_times:
+                out.append(U)
+
+        cannot_reuse = (
+            dU is None
+            or prev_dt is None
+            or abs(dt - prev_dt) > atol
+            or prev in piecewise_times  # Moved past a switching point
+        )
+
+        if cannot_reuse:
+            dU = (gen * dt).expm()
+        U = dU @ U
+        prev_dt = dt
+
+        if nxt in eval_times:
+            out.append(U)
+        prev = nxt
+    return out
 
 
 def propagator(
     H: QobjEvoLike,
-    t: Number,
+    t: Number | list[Number],
     c_ops: QobjEvoLike | list[QobjEvoLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
+    piecewise_t: list[Number] | None = None,
     **kwargs,
 ) -> Qobj | list[Qobj]:
     r"""
@@ -58,6 +156,12 @@ def propagator(
     options : dict, optional
         Options for the solver.
 
+    piecewise_t : list, optional
+        Times where the Hamiltonian or Liouvillian change values when
+        they are piecewise constant. Providing these allows for a faster
+        computation by exponentiating the Liouvillian or Hamiltonian directly
+        on each interval.
+
     **kwargs :
         Extra parameters to use when creating the
         :obj:`.QobjEvo` from a list format ``H``. The most common are ``tlist``
@@ -90,6 +194,12 @@ def propagator(
 
     if isinstance(c_ops, list):
         c_ops = [QobjEvo(op, args=args, **kwargs) for op in c_ops]
+    elif c_ops is not None:
+        c_ops = [QobjEvo(c_ops, args=args, **kwargs)]
+
+    if piecewise_t is not None:
+        out = propagator_piecewise(H, tlist, piecewise_t, c_ops, args)
+        return out if list_output else out[-1]
 
     if c_ops:
         H = liouvillian(H, c_ops)
