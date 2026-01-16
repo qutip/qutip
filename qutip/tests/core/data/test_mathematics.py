@@ -510,10 +510,10 @@ class BinaryOpMixin(_GenericOpMixin):
 class ScaledBinaryOpMixin(BinaryOpMixin):
     """
     Mix-in for binary mathematical operations that support a scale parameter.
-    
+
     Subclasses should define op_numpy(left, right, scale=1) that returns
     the expected result with scaling applied.
-    
+
     If supports_out is True, also tests with an explicit out argument
     for Dense output types, testing both C and Fortran orderings,
     and testing accumulation into non-zero buffers.
@@ -837,19 +837,25 @@ class TestMatmulDag(ScaledBinaryOpMixin):
     supports_out = True
     specialisations = [
         pytest.param(
-            lambda l, r, scale=1, out=None: data.matmul_dag_data(l, r.adjoint(), scale),
+            lambda left, right, scale=1, out=None: data.matmul_dag_data(
+                left, right.adjoint(), scale),
             CSR, CSR, CSR
         ),
         pytest.param(
-            lambda l, r, scale=1, out=None: data.matmul_dag_dense_csr_dense(l, r.adjoint(), scale, out),
+            lambda left, right, scale=1, out=None: (
+                data.matmul_dag_dense_csr_dense(
+                    left, right.adjoint(), scale, out)),
             Dense, CSR, Dense
         ),
         pytest.param(
-            lambda l, r, scale=1, out=None: data.matmul_dag_dense_dia_dense(l, r.adjoint(), scale, out),
+            lambda left, right, scale=1, out=None: (
+                data.matmul_dag_dense_dia_dense(
+                    left, right.adjoint(), scale, out)),
             Dense, Dia, Dense
         ),
         pytest.param(
-            lambda l, r, scale=1, out=None: data.matmul_dag_dense(l, r.adjoint(), scale, out),
+            lambda left, right, scale=1, out=None: (
+                data.matmul_dag_dense(left, right.adjoint(), scale, out)),
             Dense, Dense, Dense
         ),
     ]

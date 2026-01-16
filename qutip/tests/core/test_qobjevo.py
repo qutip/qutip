@@ -421,7 +421,6 @@ def test_matmul(all_qevo):
                         op.matmul(t, matCSR).full(), atol=1e-14)
 
 
-
 def test_adjoint_rmatmul_data(all_qevo):
     """
     Test that QobjEvo.adjoint_rmatmul_data(t, state, out) correctly computes
@@ -448,7 +447,8 @@ def test_adjoint_rmatmul_data(all_qevo):
         out_buffer = Qobj(initial_out).to(_data.Dense)
         expected_accum = Qobj(initial_out).full() + expected
 
-        result_data = op.adjoint_rmatmul_data(t, matDense.data, out_buffer.data)
+        result_data = op.adjoint_rmatmul_data(
+            t, matDense.data, out_buffer.data)
         result = Qobj(result_data).full()
         assert_allclose(expected_accum, result, atol=1e-14)
 
@@ -460,8 +460,10 @@ def test_adjoint_rmatmul_data_mixed_representations():
     """
     # Mixed representation QobjEvo with non-hermitian time-dependent terms
     H_dia = destroy(N)  # Non-hermitian annihilation operator
-    H_csr = Qobj((rand_dm(N, seed=42) + 1j * rand_dm(N, seed=41)).full()).to('csr')  # Non-hermitian
-    H_dense = (rand_dm(N, seed=43) + 1j * rand_dm(N, seed=44)).to('dense')  # Non-hermitian
+    H_csr = Qobj((rand_dm(N, seed=42) + 1j * rand_dm(N, seed=41)).full()
+                 ).to('csr')  # Non-hermitian
+    H_dense = (rand_dm(N, seed=43) + 1j * rand_dm(N, seed=44)
+               ).to('dense')  # Non-hermitian
 
     op = QobjEvo([
         H_dia,
