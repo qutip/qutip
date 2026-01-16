@@ -78,7 +78,13 @@ def expm_dia(matrix: Dia) -> Dia:
 def expm_csr_dense(matrix: CSR) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only exponentiate square matrix")
-    return Dense(scipy.sparse.linalg.expm(matrix.to_array()))
+    return Dense(scipy.linalg.expm(matrix.to_array()))
+
+
+def expm_dia_dense(matrix: Dia) -> Dense:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("can only exponentiate square matrix")
+    return Dense(scipy.linalg.expm(matrix.to_array()))
 
 
 def expm_dense(matrix: Dense) -> Dense:
@@ -104,6 +110,7 @@ expm.__doc__ = """Matrix exponential `e**A` for a matrix `A`."""
 expm.add_specialisations([
     (CSR, CSR, expm_csr),
     (CSR, Dense, expm_csr_dense),
+    (Dia, Dense, expm_dia_dense),
     (Dense, Dense, expm_dense),
     (Dia, Dia, expm_dia),
 ], _defer=True)

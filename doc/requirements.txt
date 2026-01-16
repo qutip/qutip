@@ -7,7 +7,7 @@ cycler==0.12.1
 Cython==3.0.11
 decorator==5.1.1
 docutils==0.20.1
-filelock==3.20.1
+filelock==3.20.3
 idna==3.8
 imagesize==1.4.1
 ipython==8.11.0
@@ -46,6 +46,6 @@ sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==1.1.10
 traitlets==5.14.3
-urllib3==2.6.0
+urllib3==2.6.3
 wcwidth==0.2.13
 wheel==0.44.0
