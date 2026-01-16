@@ -269,6 +269,23 @@ def cases_type_shape_product(cases_lookup, op, types, shapes, out_type=None):
         return pytest.param(func, id=id_)
 
     cases = []
+
+    # Check if op supports out parameter and out_type is Dense.
+    # If so, we will add in-place test variants for both C and F ordered
+    # output arrays.
+    import inspect
+    supports_out = False
+    if out_type is Dense:
+        try:
+            sig = inspect.signature(op)
+            supports_out = 'out' in sig.parameters
+        except (ValueError, TypeError):
+            # Can't introspect (e.g., built-in function), assume no out support
+            pass
+
+    # Determine out_prealloc values
+    out_prealloc_values = [None, "C", "F"] if supports_out else [None]
+
     for shapes_ in shapes:
         # Convert the list of types into a list of lists of the special cases
         # needed for each type.
@@ -280,12 +297,22 @@ def cases_type_shape_product(cases_lookup, op, types, shapes, out_type=None):
         # Now Cartesian product all the special cases together to make the full
         # set of parametrisations.
         for matrices in itertools.product(*matrix_cases):
-            id_ = ",".join(m.id for m in matrices)
-            args = [m for p_m in matrices for m in p_m.values]
-            if out_type is not None:
-                id_ += "->" + out_type.__name__
-                args += [out_type]
-            cases.append(pytest.param(op, *args, id=id_))
+            for out_prealloc in out_prealloc_values:
+                # Start with operation name
+                op_name = getattr(op, '__name__', str(op))
+                id_ = op_name + ":" + ",".join(m.id for m in matrices)
+                args = [m for p_m in matrices for m in p_m.values]
+                if out_type is not None:
+                    id_ += "->" + out_type.__name__
+                    args += [out_type]
+                    # Add out_prealloc when out_type is specified
+                    args += [out_prealloc]
+                    # Add descriptive suffix for in-place operations
+                    if out_prealloc == "C":
+                        id_ += "[in-place,C]"
+                    elif out_prealloc == "F":
+                        id_ += "[in-place,F]"
+                cases.append(pytest.param(op, *args, id=id_))
     return cases
 
 
@@ -361,13 +388,15 @@ class _GenericOpMixin:
             ['op']
             + [x for x in metafunc.fixturenames
                if x.startswith("data_")]
-            + ['out_type']
+            + ['out_type', 'out_prealloc']
         )
+
         cases = []
         for p_op in self.specialisations:
             op, *types, out_type = p_op.values
             args = (op, types, self.shapes, out_type)
             cases.extend(cases_type_shape_product(_ALL_CASES, *args))
+
         metafunc.parametrize(parameters, cases)
 
     def generate_incorrect_shape_raises(self, metafunc):
@@ -421,7 +450,9 @@ class UnaryOpMixin(_GenericOpMixin):
     shapes = [(x,) for x in shapes_unary()]
     bad_shapes = []
 
-    def test_mathematically_correct(self, op, data_m, out_type):
+    def test_mathematically_correct(self, op, data_m, out_type, out_prealloc):
+        assert out_prealloc is None, \
+            "Unary operations do not support out parameter"
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array())
         test = op(matrix)
@@ -483,11 +514,14 @@ class BinaryOpMixin(_GenericOpMixin):
     Mix-in for binary mathematical operations on Data instances (e.g. binary
     addition).
     """
-    def test_mathematically_correct(self, op, data_l, data_r, out_type):
+    def test_mathematically_correct(self, op, data_l, data_r, out_type,
+                                    out_prealloc):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.
         """
+        assert out_prealloc is None, \
+            "Binary operations do not support out parameter"
         left, right = data_l(), data_r()
         expected = self.op_numpy(left.to_array(), right.to_array())
         test = op(left, right)
@@ -515,56 +549,64 @@ class ScaledBinaryOpMixin(BinaryOpMixin):
 
     Subclasses should define op_numpy(left, right, scale=1) that returns
     the expected result with scaling applied.
-
-    If supports_out is True, also tests with an explicit out argument
-    for Dense output types, testing both C and Fortran orderings,
-    and testing accumulation into non-zero buffers.
     """
-    supports_out = False
 
     @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
-                             ids=['unscaled', 'scale[real]', 'scale[complex]'])
-    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale):
+                             ids=['unscaled', 'scale[real]',
+                                  'scale[complex]'])
+    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale,
+                                    out_prealloc):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations, including with scaling and optional out.
+
+        Parameters
+        ----------
+        out_prealloc : None, "C", or "F"
+            If None, test out-of-place operation.
+            If "C" or "F", test in-place operation with C or Fortran-ordered
+            output buffer.
         """
+        import warnings
         left, right = data_l(), data_r()
         if scale is not None:
             expected = self.op_numpy(left.to_array(), right.to_array(), scale)
-            test = op(left, right, scale)
         else:
             expected = self.op_numpy(left.to_array(), right.to_array())
-            test = op(left, right)
+
+        # Prepare output buffer if testing in-place operation
+        if out_prealloc is not None:
+            # Test accumulation into non-zero buffer
+            initial = np.ones(expected.shape, dtype=complex)
+            if out_prealloc == "F":
+                initial = np.asfortranarray(initial)
+            out = Dense(initial.copy(), copy=False)
+            expected_result = initial + expected
+        else:
+            out = None
+            expected_result = expected
+
+        # Suppress OrderEfficiencyWarning since it's expected behavior
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", OrderEfficiencyWarning)
+
+            if scale is not None:
+                test = (op(left, right, scale, out=out) if out is not None
+                        else op(left, right, scale))
+            else:
+                test = (op(left, right, out=out) if out is not None
+                        else op(left, right))
+
+        if out is not None:
+            assert test is out
+
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
+            assert test.shape == expected_result.shape
+            np.testing.assert_allclose(test.to_array(), expected_result,
                                        atol=self.atol, rtol=self.rtol)
-            # Also test with explicit out argument if supported
-            if self.supports_out and out_type is Dense:
-                for fortran in [False, True]:
-                    # Test accumulation into non-zero buffer
-                    initial = np.ones(expected.shape, dtype=complex)
-                    if fortran:
-                        initial = np.asfortranarray(initial)
-                    out = Dense(initial.copy(), copy=False)
-
-                    # Suppress OrderEfficiencyWarning since it's expected behavior
-                    # in some cases.
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore", OrderEfficiencyWarning)
-
-                        if scale is not None:
-                            test_out = op(left, right, scale, out=out)
-                        else:
-                            test_out = op(left, right, out=out)
-
-                    assert test_out is out
-                    np.testing.assert_allclose(test_out.to_array(), initial + expected,
-                                               atol=self.atol, rtol=self.rtol)
         else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
+            np.testing.assert_allclose(test, expected_result, atol=self.atol,
                                        rtol=self.rtol)
 
 
@@ -844,29 +886,31 @@ class TestMatmulDag(ScaledBinaryOpMixin):
     shapes = shapes_binary_matmul()
     bad_shapes = shapes_binary_bad_matmul()
     supports_out = True
+
+    # Define named wrapper functions for better test names
+    @staticmethod
+    def matmul_dag_data(left, right, scale=1, out=None):
+        return data.matmul_dag_data(left, right.adjoint(), scale)
+
+    @staticmethod
+    def matmul_dag_dense_csr_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense_csr_dense(
+            left, right.adjoint(), scale, out)
+
+    @staticmethod
+    def matmul_dag_dense_dia_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense_dia_dense(
+            left, right.adjoint(), scale, out)
+
+    @staticmethod
+    def matmul_dag_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense(left, right.adjoint(), scale, out)
+
     specialisations = [
-        pytest.param(
-            lambda left, right, scale=1, out=None: data.matmul_dag_data(
-                left, right.adjoint(), scale),
-            CSR, CSR, CSR
-        ),
-        pytest.param(
-            lambda left, right, scale=1, out=None: (
-                data.matmul_dag_dense_csr_dense(
-                    left, right.adjoint(), scale, out)),
-            Dense, CSR, Dense
-        ),
-        pytest.param(
-            lambda left, right, scale=1, out=None: (
-                data.matmul_dag_dense_dia_dense(
-                    left, right.adjoint(), scale, out)),
-            Dense, Dia, Dense
-        ),
-        pytest.param(
-            lambda left, right, scale=1, out=None: (
-                data.matmul_dag_dense(left, right.adjoint(), scale, out)),
-            Dense, Dense, Dense
-        ),
+        pytest.param(matmul_dag_data, CSR, CSR, CSR),
+        pytest.param(matmul_dag_dense_csr_dense, Dense, CSR, Dense),
+        pytest.param(matmul_dag_dense_dia_dense, Dense, Dia, Dense),
+        pytest.param(matmul_dag_dense, Dense, Dense, Dense),
     ]
 
 
