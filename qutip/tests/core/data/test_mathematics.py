@@ -1,10 +1,12 @@
 import itertools
 import numpy as np
-import scipy
 import pytest
+import scipy
+import warnings
 
 from qutip.core import data
 from qutip.core.data import Data, Dense, CSR, Dia
+from qutip.core.data.dense import OrderEfficiencyWarning
 
 from . import conftest
 
@@ -547,10 +549,17 @@ class ScaledBinaryOpMixin(BinaryOpMixin):
                     if fortran:
                         initial = np.asfortranarray(initial)
                     out = Dense(initial.copy(), copy=False)
-                    if scale is not None:
-                        test_out = op(left, right, scale, out=out)
-                    else:
-                        test_out = op(left, right, out=out)
+
+                    # Suppress OrderEfficiencyWarning since it's expected behavior
+                    # in some cases.
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", OrderEfficiencyWarning)
+
+                        if scale is not None:
+                            test_out = op(left, right, scale, out=out)
+                        else:
+                            test_out = op(left, right, out=out)
+
                     assert test_out is out
                     np.testing.assert_allclose(test_out.to_array(), initial + expected,
                                                atol=self.atol, rtol=self.rtol)
