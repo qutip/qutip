@@ -1089,6 +1089,7 @@ matmul_dag.__doc__ =\
 
 matmul_dag.add_specialisations([
     (Dense, CSR, Dense, matmul_dag_dense_csr_dense),
+    (Dense, Dia, Dense, matmul_dag_dense_dia_dense),
     (Dense, Dense, Dense, matmul_dag_dense),
     (Data, Data, Data, matmul_dag_data),
 ], _defer=True)

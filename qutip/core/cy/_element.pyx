@@ -220,20 +220,21 @@ cdef class _BaseElement:
         cdef Data data_t
         cdef Data data_adj
         
-        # Use optimized Dense path when both state and out are Dense
-        if type(state) is Dense and out is not None and type(out) is Dense:
-            data_t = self.data(t)
-            imatmul_dag_dense_data(<Dense>state, data_t, total_scale, <Dense>out)
+        data_t = self.data(t)
+        if out is None:
+            return _data.matmul_dag[type(state), type(data_t), type(state)](
+                state, data_t, total_scale
+            )
+        elif type(state) is Dense and type(out) is Dense:
+            imatmul_dag_dense_data(state, data_t, total_scale, out)
             return out
         else:
-            # General case for non-Dense matrices
-            data_t = self.data(t)
-            data_adj = data_t.adjoint()
-            
-            if out is None:
-                return _data.matmul(state, data_adj, total_scale)
-            else:
-                return _data.add(out, _data.matmul(state, data_adj, total_scale))
+            return _data.add[type(out), type(state), type(out)](
+                out,
+                _data.matmul_dag[type(state), type(data_t), type(state)](
+                    state, data_t, total_scale
+                )
+            )
 
     def linear_map(self, f, anti=False):
         """
