@@ -189,7 +189,7 @@ cdef class _BaseElement:
         by the adjoint of the element's value at time ``t`` from the right and adds the result to ``out``.
         Equivalent to::
 
-          out += scale * state @ (self.coeff(t) * self.qobj(t))†
+          out += scale * state @ dag(self.coeff(t) * self.qobj(t))
 
         For Dense state and out, uses optimized in-place multiplication.
         Otherwise falls back to explicit adjoint computation.
@@ -213,7 +213,7 @@ cdef class _BaseElement:
         Returns
         -------
         data
-          The result of ``scale * state @ (self.coeff(t) * self.qobj(t))† + out``, with
+          The result of ``scale * state @ dag(self.coeff(t) * self.qobj(t)) + out``, with
           the addition possibly having been performed in-place on ``out``.
         """
         cdef double complex total_scale = scale * conj(self.coeff(t))
