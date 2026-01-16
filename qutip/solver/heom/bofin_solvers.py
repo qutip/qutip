@@ -676,8 +676,8 @@ class HEOMSolver(Solver):
             self._n_ados = len(self.ados.labels)
             self._n_exponents = len(self.ados.exponents)
 
-            self.stats["init_ados_time"] += time() - _time_start
-            self.stats["init_time"] += time() - _time_start
+            self.stats["init ados time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
             self.stats["max_depth"] = self.ados.max_depth
             _time_start = time()
 
@@ -707,14 +707,14 @@ class HEOMSolver(Solver):
                 for k in range(self._n_exponents)
             ]
 
-            self.stats["init_superop_cache_time"] += time() - _time_start
-            self.stats["init_time"] += time() - _time_start
+            self.stats["init superop cache time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
             _time_start = time()
 
             self._rhs = self._calculate_rhs()
 
-            self.stats["init_rhs_time"] += time() - _time_start
-            self.stats["init_time"] += time() - _time_start
+            self.stats["init rhs time"] += time() - _time_start
+            self.stats["init time"] += time() - _time_start
         return self._rhs
 
     @property
