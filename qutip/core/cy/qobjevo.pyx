@@ -1143,7 +1143,7 @@ cdef class QobjEvo:
         return out
 
     cpdef Data adjoint_rmatmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
-        """Compute ``out += scale * (state @ self(t)†)``"""
+        """Compute ``out += scale * (state @ dag(self(t)))``"""
         cdef _BaseElement part
         t = self._prepare(t, state)
         if out is None and type(state) is Dense:

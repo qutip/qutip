@@ -854,9 +854,9 @@ cpdef Dense matmul_dag_dense_dia_dense(
     double complex scale=1, Dense out=None
 ):
     """
-    Compute out = scale * (left @ right†) where right is DIA.
+    Compute out = scale * (left @ dag(right)) where right is DIA.
     
-    right† is the conjugate transpose (adjoint) of right.
+    dag(right) is the conjugate transpose (adjoint) of right.
     For DIA matrices, the adjoint operation conjugates the data and negates the offsets.
     
     Parameters
@@ -864,7 +864,7 @@ cpdef Dense matmul_dag_dense_dia_dense(
     left : Dense
         Dense matrix (m × k)
     right : Dia
-        Diagonal matrix (n × k), so right† is (k × n)
+        Diagonal matrix (n × k), so dag(right) is (k × n)
     scale : complex, optional
         Scalar multiplier
     out : Dense, optional
@@ -873,11 +873,11 @@ cpdef Dense matmul_dag_dense_dia_dense(
     Returns
     -------
     out : Dense
-        Result matrix with out += scale * (left @ right†)
+        Result matrix with out += scale * (left @ dag(right))
     """
     cdef idxint m = left.shape[0]
     cdef idxint k_dim = left.shape[1]
-    cdef idxint n = right.shape[0]  # rows of right, cols of right†
+    cdef idxint n = right.shape[0]  # rows of right, cols of dag(right)
     
     if right.shape[1] != k_dim:
         raise ValueError(
@@ -1191,9 +1191,9 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
 
 cdef void imatmul_dag_dense_data(Dense state, Data data, double complex scale, Dense out):
     """
-    In-place Dense @ Data† multiplication with data-type-specific optimizations.
+    In-place Dense @ dag(Data) multiplication with data-type-specific optimizations.
     
-    Computes out += scale * (state @ data†) efficiently by using specialized
+    Computes out += scale * (state @ dag(data)) efficiently by using specialized
     implementations for different data types:
     - CSR: Uses matmul_dag_dense_csr_dense for on-the-fly adjoint computation
     - DIA: Uses matmul_dag_dense_dia_dense for efficient diagonal adjoint operations

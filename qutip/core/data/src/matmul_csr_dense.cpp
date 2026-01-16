@@ -70,13 +70,13 @@ void _matmul_csr_dense_c_order(
 }
 
 /**
- * Dense @ CSR† multiplication for F-ordered (column-major) dense matrices.
+ * Dense @ dag(CSR) multiplication for F-ordered (column-major) dense matrices.
  * 
  * Computes: out += scale * (dense @ conj(csr.T))
  * 
  * Where:
  *   dense is F-ordered (nrows × K)
- *   csr is (ncols × K), so csr† is (K × ncols)
+ *   csr is (ncols × K), so dag(csr) is (K × ncols)
  *   out is F-ordered (nrows × ncols)
  * 
  * Loop structure:
