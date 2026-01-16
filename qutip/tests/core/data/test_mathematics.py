@@ -494,7 +494,10 @@ class UnaryScalarOpMixin(_GenericOpMixin):
         pytest.param(4.5, id='real'),
         pytest.param(3j, id='complex'),
     ])
-    def test_mathematically_correct(self, op, data_m, scalar, out_type):
+    def test_mathematically_correct(self, op, data_m, scalar, out_type,
+                                    out_prealloc):
+        assert out_prealloc is None, \
+            "Unary scalar operations do not support out parameter"
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array(), scalar)
         test = op(matrix, scalar)
@@ -617,11 +620,13 @@ class TernaryOpMixin(_GenericOpMixin):
     """
     def test_mathematically_correct(self, op,
                                     data_l, data_m, data_r,
-                                    out_type):
+                                    out_type, out_prealloc):
         """
-        Test that the binary operation is mathematically correct for all the
+        Test that the ternary operation is mathematically correct for all the
         known type specialisations.
         """
+        assert out_prealloc is None, \
+            "Ternary operations do not support out parameter"
         left, mid, right = data_l(), data_m(), data_r()
         expected = self.op_numpy(left.to_array(),
                                  mid.to_array(),
@@ -732,7 +737,7 @@ class TestInner(BinaryOpMixin):
             ['op']
             + [x for x in metafunc.fixturenames
                if x.startswith("data_")]
-            + ['out_type']
+            + ['out_type', 'out_prealloc']
         )
         cases = []
         for p_op in self.specialisations:
@@ -744,7 +749,10 @@ class TestInner(BinaryOpMixin):
                              [True, False],
                              ids=["ket", "bra"])
 
-    def test_scalar_is_ket(self, op, data_l, data_r, out_type, scalar_is_ket):
+    def test_scalar_is_ket(self, op, data_l, data_r, out_type, out_prealloc,
+                           scalar_is_ket):
+        assert out_prealloc is None, \
+            "Inner product operations do not support out parameter"
         left, right = data_l(), data_r()
         expected = self.op_numpy(left.to_array(), right.to_array(),
                                  scalar_is_ket)
@@ -801,7 +809,7 @@ class TestInnerOp(TernaryOpMixin):
             ['op']
             + [x for x in metafunc.fixturenames
                if x.startswith("data_")]
-            + ['out_type']
+            + ['out_type', 'out_prealloc']
         )
         cases = []
         for p_op in self.specialisations:
@@ -813,7 +821,9 @@ class TestInnerOp(TernaryOpMixin):
                              [True, False], ids=["ket", "bra"])
 
     def test_scalar_is_ket(self, op, data_l, data_m, data_r, out_type,
-                           scalar_is_ket):
+                           out_prealloc, scalar_is_ket):
+        assert out_prealloc is None, \
+            "Inner op operations do not support out parameter"
         left, mid, right = data_l(), data_m(), data_r()
         expected = self.op_numpy(left.to_array(),
                                  mid.to_array(),
@@ -1031,7 +1041,10 @@ class TestPow(UnaryOpMixin):
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
-    def test_mathematically_correct(self, op, data_m, out_type, n):
+    def test_mathematically_correct(self, op, data_m, out_type, out_prealloc,
+                                    n):
+        assert out_prealloc is None, \
+            "Pow operation does not support out parameter"
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array(), n)
         test = op(matrix, n)
@@ -1198,11 +1211,14 @@ class TestWRMN_error(BinaryOpMixin):
                              ids=['atol[small]', 'atol[large]'])
     @pytest.mark.parametrize('rtol', [0, 1e-10, 0.5],
                              ids=['rtol[0]', 'rtol[small]', 'rtol[large]'])
-    def test_mathematically_correct(self, op, data_l, data_r, out_type, atol, rtol):
+    def test_mathematically_correct(self, op, data_l, data_r, out_type,
+                                    out_prealloc, atol, rtol):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.
         """
+        assert out_prealloc is None, \
+            "WRMN error operation does not support out parameter"
         left, right = data_l(), data_r()
         expected = self.op_numpy(left.to_array(), right.to_array(), atol, rtol)
         test = op(left, right, atol, rtol)
