@@ -225,7 +225,7 @@ class TestMESolveDecay:
             if state_type == "dm":
                 psi0 = qutip.ket2dm(psi0)
             if not use_matrix_form:
-                # -i(H ρ - ρ H†) matches matrix form evolution
+                # -i(H ρ - ρ dag(H)) matches matrix form evolution
                 H = -1j * qutip.spre(H) + 1j * qutip.spost(H.dag())
             output = mesolve(H, psi0, self.tlist, e_ops=[], options=options)
             # density matrices are normalized by trace

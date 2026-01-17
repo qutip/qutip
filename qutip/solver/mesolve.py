@@ -302,28 +302,27 @@ class MESolverMatrixForm(Solver):
     """
     Master equation solver using matrix form of Lindblad equation.
 
-    Instead of building an n²×n² Liouvillian superoperator and vectorizing
-    the density matrix, this solver keeps ρ as an n×n matrix and computes
+    Instead of building an n^2 x n^2 Liouvillian superoperator and vectorizing
+    the density matrix, this solver keeps rho as an n x n matrix and computes
     the RHS using matrix-matrix products:
 
-        dρ/dt = -i[H,ρ] + Σᵢ(cᵢρcᵢ† - ½{cᵢ†cᵢ,ρ})
+    .. math::
+
+        \\frac{d\\rho}{dt} = -i[H,\\rho] + \\sum_i \\left(c_i \\rho c_i^\\dagger 
+        - \\frac{1}{2}\\{c_i^\\dagger c_i, \\rho\\}\\right)
 
     This approach can be more memory-efficient for large systems and avoids
     building the full superoperator. For dense operators, the time complexity
     also scales better with system size (n³ versus n⁴).
     However, it requires more matrix multiplications per RHS evaluation.
 
-    **Note:**
-    - State must be kept as dense n×n matrix (no vectorization)
-    - Works with all integrators (scipy and Cython-based)
-
     Parameters
     ----------
     H : Qobj or QobjEvo
-        Hamiltonian of the system (n×n operator).
+        Hamiltonian of the system (n x n operator).
 
     c_ops : list of Qobj or QobjEvo, optional
-        List of collapse operators (each n×n operator).
+        List of collapse operators (each n x n operator).
 
     options : dict, optional
         Options for the solver. See :obj:`MESolverMatrixForm.options` for
@@ -403,10 +402,10 @@ class MESolverMatrixForm(Solver):
 
     def _prepare_state(self, state):
         """
-        Prepare state for integration - keep as n×n matrix.
+        Prepare state for integration.
 
         Unlike the superoperator form, we do NOT vectorize the state.
-        The density matrix is kept as an n×n matrix throughout integration.
+        The density matrix is kept as an n x n matrix throughout integration.
         """
         if self.rhs.issuper:
             raise TypeError(
@@ -445,14 +444,13 @@ class MESolverMatrixForm(Solver):
             and state.isoper
         )
 
-        # Return n×n matrix directly - NO vectorization!
         return state.data
 
     def _restore_state(self, data, *, copy=True):
         """
         Restore Qobj from Data - no unstacking needed.
 
-        Since we keep the state as n×n throughout, just wrap in Qobj.
+        Since we keep the state as n x n throughout, just wrap in Qobj.
         """
         state = Qobj(data, **self._state_metadata, copy=copy)
 
@@ -491,7 +489,7 @@ class MESolverMatrixForm(Solver):
 
         raw_data : bool, default : False
             If True, the raw matrix will be passed instead of a Qobj.
-            For the matrix form solver, this will be an n×n dense matrix.
+            For the matrix form solver, this will be an n x n dense matrix.
         """
         if raw_data:
             return _DataFeedback(default, open=True, prop=prop)

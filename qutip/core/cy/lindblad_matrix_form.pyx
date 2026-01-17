@@ -4,8 +4,13 @@
 """
 Matrix-form Lindblad master equation integrand.
 
-Computes dρ/dt = -i[H,ρ] + Σᵢ(cᵢρcᵢ† - ½{cᵢ†cᵢ,ρ}) using matrix-matrix
-multiplications instead of superoperator-vector multiplication.
+Computes the Lindblad master equation using matrix-matrix multiplications
+instead of superoperator-vector multiplication.
+
+.. math::
+
+    \\frac{d\\rho}{dt} = -i[H,\\rho] + \\sum_i \\left(c_i \\rho c_i^\\dagger 
+    - \\frac{1}{2}\\{c_i^\\dagger c_i, \\rho\\}\\right)
 """
 
 from functools import partial
@@ -23,11 +28,14 @@ cdef class LindbladMatrixForm:
     """
     Computes the Lindblad master equation RHS in matrix form.
 
-    Instead of building an n²×n² superoperator and vectorizing the density
-    matrix, this class keeps ρ as an n×n matrix and computes the RHS using
+    Instead of building an n^2 x n^2 superoperator and vectorizing the density
+    matrix, this class keeps rho as an n x n matrix and computes the RHS using
     matrix-matrix products:
 
-        dρ/dt = -i[H,ρ] + Σᵢ(cᵢρcᵢ† - ½{cᵢ†cᵢ,ρ})
+    .. math::
+
+        \\frac{d\\rho}{dt} = -i[H,\\rho] + \\sum_i \\left(c_i \\rho c_i^\\dagger 
+        - \\frac{1}{2}\\{c_i^\\dagger c_i, \\rho\\}\\right)
 
     This class mimics the QobjEvo interface (specifically the matmul_data
     method) so it can be used as a drop-in replacement in solvers.
@@ -35,16 +43,16 @@ cdef class LindbladMatrixForm:
     Parameters
     ----------
     H : QobjEvo
-        Hamiltonian (n×n operator)
+        Hamiltonian (n x n operator)
     c_ops : list of QobjEvo
-        Collapse operators (each n×n operator)
+        Collapse operators (each n x n operator)
 
     Attributes
     ----------
     c_ops : list of QobjEvo
         The collapse operators
     H_nh : QobjEvo
-        Non-Hermitian Hamiltonian H - (i/2)Σᵢ(cᵢ†cᵢ)
+        Non-Hermitian Hamiltonian: ``H - (i/2) * sum(dag(c_i) * c_i)``
     num_collapse : int
         Number of collapse operators
     shape : tuple
@@ -73,8 +81,8 @@ cdef class LindbladMatrixForm:
         # Use pre-computed H_nh if provided (e.g., from unpickling)
         if _H_nh is not None:
             self.H_nh = _H_nh
-        # Construct non-Hermitian Hamiltonian: H_nh = H - (i/2)Σᵢ(cᵢ†cᵢ)
-        # This allows us to write: dρ/dt = -i(H_nh ρ - ρ H_nh†) + Σᵢ(cᵢρcᵢ†)
+        # Construct non-Hermitian Hamiltonian: H_nh = H - (i/2) * sum(dag(c_i) * c_i)
+        # This allows us to write: drho/dt = -i(H_nh * rho - rho * dag(H_nh)) + sum(c_i * rho * dag(c_i))
         elif len(c_ops) > 0:
             H_nh = H.copy()
             for c_op in self.c_ops:
@@ -102,11 +110,20 @@ cdef class LindbladMatrixForm:
 
     cpdef Data matmul_data(LindbladMatrixForm self, object t, Data rho, Data out=None):
         """
-        Compute dρ/dt using matrix form of Lindblad equation.
+        Compute drho/dt using matrix form of Lindblad equation.
 
         Uses non-Hermitian Hamiltonian formulation:
-            dρ/dt = -i(H_nh ρ - ρ H_nh†) + Σᵢ(cᵢρcᵢ†)
-        where H_nh = H - (i/2)Σᵢ(cᵢ†cᵢ)
+
+        .. math::
+
+            \\frac{d\\rho}{dt} = -i(H_{nh} \\rho - \\rho H_{nh}^\\dagger) 
+            + \\sum_i c_i \\rho c_i^\\dagger
+
+        where:
+
+        .. math::
+
+            H_{nh} = H - \\frac{i}{2}\\sum_i c_i^\\dagger c_i
 
         This reduces operations from 6 per collapse op to 2 + 1 per collapse op.
 
@@ -115,14 +132,14 @@ cdef class LindbladMatrixForm:
         t : float
             Time
         rho : Dense
-            Density matrix (n×n dense matrix, not vectorized)
+            Density matrix (n x n dense matrix, not vectorized)
         out : Dense, optional
             Output buffer. If None, allocates new Dense object.
 
         Returns
         -------
         drho_dt : Dense
-            Time derivative dρ/dt as n×n dense matrix
+            Time derivative drho/dt as n x n dense matrix
         """
         cdef Dense rho_dense, out_dense, temp_dense
         cdef int i
@@ -152,22 +169,22 @@ cdef class LindbladMatrixForm:
                                           fortran=rho_dense.fortran)
         temp_dense = <Dense>self._temp_buffer
 
-        # Compute non-Hermitian commutator: -i(H_nh ρ - ρ H_nh†)
+        # Compute non-Hermitian commutator: -i(H_nh * rho - rho * dag(H_nh))
         # Use scale parameters for efficient accumulation
         
-        # H_nh @ ρ with scale -1j (accumulate directly into out)
+        # H_nh @ rho with scale -1j (accumulate directly into out)
         self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
         
-        # ρ @ H_nh† with scale +1j (accumulate directly into out)
+        # rho @ dag(H_nh) with scale +1j (accumulate directly into out)
         self.H_nh.adjoint_rmatmul_data(t, rho_dense, out_dense, 1j)
 
-        # Lindblad jump terms: Σᵢ(cᵢρcᵢ†)
+        # Lindblad jump terms: sum(c_i * rho * dag(c_i))
         # Use adjoint_rmatmul_data for efficient on-the-fly adjoint operations
         for i in range(self.num_collapse):
-            # Step 1: temp = c @ ρ
+            # Step 1: temp = c @ rho
             temp_dense = <Dense>imul(temp_dense, 0)  # Zero out temp
             self.c_ops[i].matmul_data(t, rho_dense, temp_dense)
-            # Step 2: out += temp @ c†
+            # Step 2: out += temp @ dag(c)
             self.c_ops[i].adjoint_rmatmul_data(t, temp_dense, out_dense)
 
         return out_dense

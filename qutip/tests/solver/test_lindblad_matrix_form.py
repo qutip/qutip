@@ -61,9 +61,8 @@ class TestLindbladMatrixFormInit:
 
         rhs = LindbladMatrixForm(QobjEvo(H), [QobjEvo(c) for c in c_ops])
 
-        # H_nh should be H - (i/2) * c†c
         H_nh_expected = H - 0.5j * (c.dag() * c)
-        H_nh_actual = rhs.H_nh(0.0)  # Get H_nh at t=0
+        H_nh_actual = rhs.H_nh(0.0)
 
         diff = (H_nh_actual - H_nh_expected).norm()
         assert diff < 1e-12
