@@ -9,13 +9,14 @@ from scipy.integrate import quad
 
 from qutip import (
     basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz, sigmay,
-    tensor, Qobj, QobjEvo, fidelity, fdestroy
+    tensor, Qobj, QobjEvo, fidelity, fdestroy, mesolve
 )
 from qutip.core import data as _data
 from qutip.solver.heom.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,
+    InputOutputBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
     UnderDampedBath,
@@ -348,9 +349,9 @@ class BosonicMode:
 
     def bath_coefficients(self):
         ck_real = [0.5 * self.Lambda**2, 0.5 * self.Lambda**2]
-        vk_real = [0.5 * 1.0j * self.Lambda**2, -0.5 * 1.0j * self.Lambda**2]
+        ck_imag = [0.5 * 1.0j * self.Lambda**2, -0.5 * 1.0j * self.Lambda**2]
 
-        ck_imag = [
+        vk_real = [
             -1.0j * self.Omega + self.gamma_b / 2,
             1.0j * self.Omega + self.gamma_b / 2,
         ]
@@ -358,7 +359,7 @@ class BosonicMode:
             -1.0j * self.Omega + self.gamma_b / 2,
             1.0j * self.Omega + self.gamma_b / 2,
         ]
-        return ck_real, ck_imag, vk_real, vk_imag
+        return ck_real, vk_real, ck_imag, vk_imag
 
 
 class DiscreteLevelCurrentModel:
@@ -1193,6 +1194,173 @@ class TestHEOMSolver:
         expected = np.diag([0.10623, 0.39376, 0.39376, 0.10623])
         np.testing.assert_allclose(rhoss, expected, atol=1e-5)
 
+    def test_InputOutput_single_mode_input(self):
+        # Defining the system Hamiltonian
+
+        Del = 2 * np.pi * 1.0
+        Hsys = 0.5 * Del * sigmaz()  # system Hamiltonian
+        # Initial state of the system.
+        rho0 = basis(2, 0) * basis(2, 0).dag()
+        tlist = np.linspace(0, 20/Del, 100)
+
+        # System-bath coupling (underdamed spectral density)
+        Q = sigmax()  # coupling operator
+
+        # Bath properties:
+        Gamma = .1 * Del  # cut off frequency
+        lam = .1 * Del  # coupling strength
+        Om = .2 * Del  # resonance frequency
+        NC = 12
+        bosonic_mode = BosonicMode(
+            N=4, Omega=Om, Lambda=lam, gamma_b=2*Gamma,
+        )
+
+        bath = BosonicBath(
+            Q, *bosonic_mode.bath_coefficients(),
+            tag="SHO"
+        )
+
+        ck_in = [lambda t: lam * np.exp(-1.0j*Om*t - Gamma*t),
+                 lambda t: lam * np.exp(1.0j*Om*t - Gamma*t)]
+        
+        def input1(t):
+            return lam * np.exp(-1.0j*Om*t - Gamma*t)
+
+        def input2(t):
+            return lam * np.exp(1.0j*Om*t - Gamma*t)
+
+        ck_in = [input1, input2]
+        bath_input = InputOutputBath(Q, ck_input=ck_in, tag="input")
+        
+        options = {
+            "store_ados": True,
+        }
+        SHO_model = HEOMSolver(Hsys, [bath, bath_input], NC, options=options)
+
+        resultSHO = SHO_model.run(rho0, tlist)
+        result_input = []
+
+        for t in range(len(tlist)):
+            label = resultSHO.ado_states[t].filter(level=2, tags=["input",
+                                                                  "input"])
+
+            state = (resultSHO.ado_states[t].extract(label[0]))
+
+            result_input.append(expect(resultSHO.states[t], sigmaz()) -
+                                expect(state, sigmaz()))
+
+        Nbos = 12
+        a = qeye(2) & destroy(Nbos)
+        H = Hsys & qeye(Nbos)
+
+        H = H + lam * tensor(Q,qeye(Nbos)) * (a+a.dag()) + Om * a.dag() * a
+
+        # one photon initial condition with mesolve()
+        resultME1 = mesolve(H, rho0 & (basis(Nbos, 1)*basis(Nbos, 1).dag()),
+                            tlist, [np.sqrt(Gamma*2)*a])
+        np.testing.assert_allclose(result_input,
+                                   expect(resultME1.states,
+                                          sigmaz() & qeye(Nbos)),
+                                   atol=1e-5)
+
+    def test_InputOutput_single_mode_input_output_spectral_decomp(self):
+        # Defining the system Hamiltonian
+
+        Del = 2 * np.pi * 1.0    
+        Hsys = 0.5 * Del * sigmaz()  # system Hamiltonian
+        # Initial state of the system.
+        rho0 = basis(2, 0) * basis(2, 0).dag() 
+        tlist = np.linspace(0, 20/Del, 100)
+
+        # System-bath coupling (underdamed spectral density)
+        Q = sigmax()  # coupling operator
+
+        # Bath properties:
+        Gamma = .1 * Del  # cut off frequency
+        lam = .1 * Del  # coupling strength
+        Om = .2 * Del  # resonance frequency
+        NC = 12
+        bosonic_mode = BosonicMode(
+            N=4, Omega=Om, Lambda=lam, gamma_b=2*Gamma,
+        )
+
+        bath = BosonicBath(
+            Q, *bosonic_mode.bath_coefficients(),
+            tag="SHO"
+        )
+
+        ck_in_1 = [lambda t: lam * np.exp(-1.0j*Om*t - Gamma*t)]
+        ck_in_2 = [lambda t: lam * np.exp(1.0j*Om*t - Gamma*t)]
+        
+        bath_input_1 = InputOutputBath(Q, ck_input=ck_in_1, tag="input1")
+        bath_input_2 = InputOutputBath(Q, ck_input=ck_in_2, tag="input2")
+
+        ck_output_L = [lam]
+        ck_output_R = [lam]
+        vk_output_L = [1.0j*Om+Gamma]
+        vk_output_R = [-1.0j*Om+Gamma]
+        bath_output_1R = InputOutputBath(Q,
+                                         ck_output_R=ck_output_R,
+                                         vk_output_R=vk_output_R,
+                                         tag="output1")
+        bath_output_2L = InputOutputBath(Q, 
+                                         ck_output_L=ck_output_L,
+                                         vk_output_L=vk_output_L,
+                                         tag="output2")
+        options = {
+            "store_ados": True,  
+        }
+        SHO_model = HEOMSolver(Hsys, [bath, bath_output_1R, bath_output_2L,
+                                      bath_input_1, bath_input_2], 
+                               NC, options=options)
+
+        resultSHO = SHO_model.run(rho0, tlist)
+
+        result_output = []
+
+        for t in range(len(tlist)):
+            label = resultSHO.ado_states[t].filter(level=2, 
+                                                  tags=["output2",
+                                                        "input1"])
+            s0110 = (np.exp(1.0j*Om*tlist[t] - Gamma*tlist[t]) *
+                     resultSHO.ado_states[t].extract(label[0]).tr())
+                    
+            label = resultSHO.ado_states[t].filter(level=2, 
+                                                   tags=["output1",
+                                                         "input2"])
+            s1001 = (np.exp(-1.0j*Om*tlist[t] - Gamma*tlist[t]) *
+                     resultSHO.ado_states[t].extract(label[0]).tr())
+
+            label = resultSHO.ado_states[t].filter(level=2,
+                                                   tags=["output1",
+                                                         "output2"])
+            s1100 = (resultSHO.ado_states[t].extract(label[0]).tr())
+
+            label = resultSHO.ado_states[t].filter(level=4,
+                                                   tags=["output1",
+                                                         "output2",
+                                                         "input1",
+                                                         "input2"])
+            s1111 = (resultSHO.ado_states[t].extract(label[0]).tr())
+
+            result_output.append(resultSHO.states[t].tr() *
+                                 np.exp(-2.0*Gamma*tlist[t]) -
+                                 s0110-s1001-s1100+s1111)
+            
+        Nbos = 12
+        a = qeye(2) & destroy(Nbos)
+        H = Hsys & qeye(Nbos)
+
+        H = H + lam * tensor(Q,qeye(Nbos)) * (a+a.dag()) + Om * a.dag() * a
+
+        #one photon initial condition:
+        resultME1 = mesolve(H, rho0 & (basis(Nbos, 1)*basis(Nbos, 1).dag()),
+                            tlist, [np.sqrt(Gamma*2)*a])
+        
+        np.testing.assert_allclose(result_output,
+                                   expect(resultME1.states, a.dag()*a),
+                                   atol=1e-5)
+
 
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
@@ -1869,7 +2037,7 @@ class Test_GatherHEOMRHS:
         def f(label):
             return int(label.lstrip("o"))
 
-        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3)
+        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3, rhs_dims=[2, 2])
 
         for i in range(3):
             for j in range(3):
@@ -1892,3 +2060,39 @@ class Test_GatherHEOMRHS:
 
         np.testing.assert_array_equal(op.to_array(), expected_op)
         assert isinstance(op, _data.CSR)
+
+    def test_simple_gather_td(self):
+        def f(label):
+            return int(label.lstrip("o"))
+
+        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3, rhs_dims=[2*3, 2*3])
+
+        for i in range(3):
+            for j in range(3):
+                base = 10 * (j * 2) + (i * 2)
+                block_op = _data.to(
+                    _data.CSR,
+                    _data.create(np.array([
+                        [base, base + 10],
+                        [base + 1, base + 11],
+                    ]))
+                )
+                gather_heoms.add_op(f"o{i}", f"o{j}", block_op,
+                                    ck_td_factor=lambda t: np.exp(1.0j * t
+                                                                  - 0.5 * t),
+                                    ado_pos=j)
+
+        op = gather_heoms.gather_td()
+
+        expected_op = QobjEvo([Qobj(_data.to(
+                    _data.CSR,
+                    _data.create(
+                        np.array([
+                            [10 * i + j for i in range(2 * 3)]
+                            for j in range(2 * 3)
+                        ], dtype=np.complex128))),
+                        dims=[6, 6]),
+                        lambda t: np.exp(1.0j * t - 0.5 * t)])
+
+        np.testing.assert_array_equal(op(0.4), expected_op(0.4))
+        assert isinstance(op, QobjEvo)

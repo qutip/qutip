@@ -6,6 +6,7 @@ from qutip.solver.heom import (
     BathExponent,
     Bath,
     BosonicBath,
+    InputOutputBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
     UnderDampedBath,
@@ -26,6 +27,7 @@ class TestBathAPI:
         assert BathExponent
         assert Bath
         assert BosonicBath
+        assert InputOutputBath
         assert DrudeLorentzBath
         assert DrudeLorentzPadeBath
         assert UnderDampedBath
