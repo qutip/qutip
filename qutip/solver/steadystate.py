@@ -221,7 +221,7 @@ def _steadystate_direct(A: _data.Data, weight: float, **kw):
     # Find the weight, no good dispatched function available...
     if weight:
         pass
-    # Calculate the weight for data of sparse (CSR, Dia) or dense (Dense) types 
+    # Calculate the weight for sparse or dense matrices
     if hasattr(data, "as_scipy") and callable(data.as_scipy):
         weight = np.mean(np.abs(data.as_scipy().data))
     else:
