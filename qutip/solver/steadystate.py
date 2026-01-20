@@ -535,9 +535,9 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         method = "splu" if sparse else "pinv"
     sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
     dense_solvers = ["solve", "lstsq", "pinv"]
-    if isinstance(L.data, (_data.CSR, _data.Dia)) and method in dense_solvers: # if method is dense solver -> try to convert to dense matrix
+    if isinstance(L.data, (_data.CSR, _data.Dia)) and method in dense_solvers:
         L = L.to("dense")
-    elif isinstance(L.data, _data.Dense) and method in sparse_solvers: # if method is sparse solver -> try to convert to csr
+    elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
         L = L.to("csr")
 
     dtype = type(L.data)
