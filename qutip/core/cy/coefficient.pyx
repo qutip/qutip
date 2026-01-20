@@ -198,6 +198,22 @@ cdef class FunctionCoefficient(Coefficient):
                 )
             _f_pythonic, _f_parameters = coefficient_function_parameters(
                 func, style=style)
+
+            # Detect common mistake: pythonic style but has 'args' parameter
+            # Only flag if EXACTLY 2 params - the classic mistake pattern
+            if _f_pythonic and _f_parameters is not None and 'args' in _f_parameters:
+                sig = inspect.signature(func)
+                param_names = list(sig.parameters.keys())
+                if len(param_names) == 2 and param_names[0] != 't':
+                    raise TypeError(
+                        f"Coefficient function '{func.__name__}' has signature "
+                        f"({', '.join(param_names)}). When using 'args' as a "
+                        f"parameter name, the first parameter must be named 't' "
+                        f"for dict-style: def {func.__name__}(t, args). "
+                        f"Or use pythonic style with different parameter names: "
+                        f"def {func.__name__}(t, {', '.join(p for p in param_names[1:] if p != 'args')})."
+                    )
+
             if _f_parameters is not None:
                 args = {k: args[k] for k in _f_parameters & args.keys()}
             else:
