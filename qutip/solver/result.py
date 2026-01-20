@@ -8,6 +8,12 @@ from ..core.numpy_backend import np
 from numpy.typing import ArrayLike
 from ..core import Qobj, QobjEvo, expect
 
+try:
+    import matplotlib.pyplot as plt
+    mpl_available = True
+except:
+    mpl_available = False
+
 __all__ = ["Result"]
 
 
@@ -367,6 +373,47 @@ class Result(_BaseResult):
     @property
     def expect(self) -> list[ArrayLike]:
         return [np.array(e_op) for e_op in self.e_data.values()]
+
+    def plot_expect(self):
+        """
+        Plot the expectation values from the evolution of quantum states.
+
+        This method generates a plot for the expectation values of each 
+        operator over time, based on the results of an evolution. It returns a 
+        Matplotlib Figure instance along with a numpy array of Axes instances, 
+        one for each operator's expectation value. 
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            A Matplotlib Figure instance containing the plots of expectation 
+        values.
+        axes : numpy.ndarray
+            An array of Axes instances corresponding to each operator's 
+        expectation value.
+
+        Notes
+        -----
+        The ``matplotlib`` library is required to use this method. Ensure it is 
+        installed in your environment to visualize the plots.
+        """
+        if not self.times:
+            raise ValueError("This is not a result after evolution.")
+        if not mpl_available:
+            raise ImportError(
+                "matplotlib is required for plot_expect.")
+        labels = list(self.e_data.keys())
+        if len(labels) > 10:
+            raise ValueError("Too many ops to be plotted.")
+        
+        fig, axes = plt.subplots(len(labels), 1, figsize=(10, 6 * len(labels)))
+        if len(labels) == 1:
+            axes = np.array([axes])
+        for i, (label, values) in enumerate(zip(labels, self.expect)):
+            axes[i].plot(self.times, values)
+            axes[i].set_xlabel('Time')
+            axes[i].set_ylabel('Exp. Val.: ' + str(label))
+        return fig, axes
 
     @property
     def final_state(self) -> Qobj:
