@@ -237,7 +237,6 @@ def _steadystate_direct(A: _data.Data, weight: float, **kw):
     if dtype == _data.Dia:
         # Dia is bad at vector and missing optimization such as `use_wbm`.
         dtype = _data.CSR
-
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
     first_row = _data.block_extract(data, 0, 1, 0, N, dtype=dtype)
     L = _data.block_overwrite(
