@@ -12,6 +12,7 @@ from .scattering import *
 from .correlation import *
 from .spectrum import *
 from .floquet import *
+from .flimesolve import *
 from .floquet_bwcomp import *
 from .steadystate import *
 from .countstat import *
