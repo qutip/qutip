@@ -10,6 +10,8 @@ void _matmul_diag_vector(
         const IntT length,
         const std::complex<double> scale
 ){
+    // We cast to double because this appears to improve the compiler's
+    // ability to vectorize.
     const double * data_dbl = reinterpret_cast<const double *>(data);
     const double * vec_dbl = reinterpret_cast<const double *>(vec);
     double * out_dbl = reinterpret_cast<double *>(out);
@@ -179,6 +181,8 @@ void _matmul_dag_diag_block(
         const IntT width,
         const std::complex<double> scale
 ){
+    // We cast to double because this appears to improve the compiler's
+    // ability to vectorize.
     const double * data_dbl = reinterpret_cast<const double *>(data);
     const double * vec_dbl = reinterpret_cast<const double *>(vec);
     double * out_dbl = reinterpret_cast<double *>(out);
