@@ -15,5 +15,6 @@ from .blochredfield import *
 from .energy_restricted import *
 from .properties import *
 from . import gates
+from .local_matmul import *
 
 del cy  # File in cy are not public facing
