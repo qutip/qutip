@@ -1,0 +1,1 @@
+Enables performing computations on sparse matrices of high dimensionalities in the "direct" method of the steady-state solver without running into out-of-memory allocation problems. Fixes issue #2747.
