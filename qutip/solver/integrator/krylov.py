@@ -39,10 +39,7 @@ class IntegratorKrylov(Integrator):
         if krylov_dim < 0:
             raise ValueError("The options 'krylov_dim', must be an integer "
                              "greater or equal zero.")
-        if krylov_dim == 0:
-            krylov_dim = self._max_krylov_dim()
-            self.options["krylov_dim"] = krylov_dim
-        
+
         if self.options['algorithm'] == 'lanczos_fro':
             self._algorithm = self._lanczos_full_reorth_algorithm
         elif self.options['algorithm'] == 'arnoldi':
@@ -68,8 +65,8 @@ class IntegratorKrylov(Integrator):
         psi: np.ndarray
             State used to calculate Krylov subspace (= first basis state).
         """
-        krylov_dim = self.options['krylov_dim']
-        H = self.system(0).data
+        krylov_dim = self._krylov_dim
+        H = (1j * self.system(0)).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -121,8 +118,8 @@ class IntegratorKrylov(Integrator):
         t: float, default: 0
             Time at which to evaluate the Hamiltonian.
         """
-        krylov_dim = self.options['krylov_dim']
-        H = self.system(0).data
+        krylov_dim = self._krylov_dim
+        H = (1j * self.system(0)).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -169,8 +166,8 @@ class IntegratorKrylov(Integrator):
         t: float, default: 0
             Time at which to evaluate the Hamiltonian.
         """
-        krylov_dim = self.options['krylov_dim']
-        H = self.system(0).data
+        krylov_dim = self._krylov_dim
+        H = (1j * self.system(0)).data
         p0 = _data.inner(psi, psi) # purity
         sp0 = np.sqrt(p0)
 
@@ -272,9 +269,16 @@ class IntegratorKrylov(Integrator):
         self._t_0 = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+
         if self._mat_state:
             state0 = _data.column_stack(state0)
-            if not self.system.issuper: self.system = liouvillian(self.system)
+            if not self.system.issuper: self.system = -1j * liouvillian(self.system)
+
+        if self.options["krylov_dim"] == 0:
+            d = self.system.shape[0]
+            self._krylov_dim = d**2 - d + 1 if self._mat_state else d
+        else:
+            self._krylov_dim = self.options["krylov_dim"]
 
         krylov_tridiag, krylov_basis = self._algorithm(state0)
         self._krylov_state = \
@@ -295,7 +299,8 @@ class IntegratorKrylov(Integrator):
             self._max_step = self._compute_max_step(krylov_tridiag, krylov_basis)
 
     def get_state(self, copy=True):
-        return self._t_0, self._compute_psi(0, *self._krylov_state)
+        state = self._compute_psi(0, *self._krylov_state)
+        return self._t_0, state.copy() if copy else state
 
     def integrate(self, t, copy=True):
         step = 0
@@ -313,7 +318,7 @@ class IntegratorKrylov(Integrator):
 
         delta_t = t - self._t_0
         out = self._compute_psi(delta_t, *self._krylov_state)
-        return t, out
+        return t, out.copy() if copy else out
 
     @property
     def options(self):

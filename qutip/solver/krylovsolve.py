@@ -4,8 +4,7 @@ from __future__ import annotations
 __all__ = ['krylovsolve']
 
 from .. import QobjEvo, Qobj
-from .sesolve import sesolve
-from .mesolve import MESolver
+from .mesolve import mesolve
 from .result import Result
 from .solver_base import _kwargs_migration
 from numpy.typing import ArrayLike
@@ -120,4 +119,4 @@ def krylovsolve(
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
 
-    return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
+    return mesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
