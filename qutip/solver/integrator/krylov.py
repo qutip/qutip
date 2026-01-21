@@ -229,6 +229,9 @@ class IntegratorKrylov(Integrator):
             krylov_state = \
                 self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
+        if krylov_tridiag.shape[0] <= 1:
+            return np.inf
+
         small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
         small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
         reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
@@ -358,4 +361,4 @@ class IntegratorKrylov(Integrator):
 
 
 SESolver.add_integrator(IntegratorKrylov, 'krylov')
-MESolver.add_integrator(IntegratorKrylov, 'krylov')
+#MESolver.add_integrator(IntegratorKrylov, 'krylov')
