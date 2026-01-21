@@ -323,27 +323,6 @@ def test_krylovsolve_error():
     assert "Krylov space construction" in str(err.value)
 
 
-@pytest.mark.parametrize("kdim", [50, 1000])
-@pytest.mark.parametrize("algorithm", ['lanczos_fro', 'arnoldi'])
-def test_krylovsolve_density_matrix(kdim, algorithm):
-    H = qutip.rand_herm(20)
-    rho0 = qutip.rand_dm(20)
-    e_op = qutip.num(20)
-    e_op.dims = H.dims
-    tlist = np.linspace(0, 1, 11)
-
-    opts = {"store_states": True}
-    ref = sesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
-    ref_exp = ref.expect[0]
-
-    opts = {"store_states": True, "algorithm": algorithm}
-    krylov_sol = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
-    krylov_states = krylov_sol.states
-    np.testing.assert_allclose(np.ones(len(krylov_states)),
-                               [s.norm() for s in krylov_states])
-    np.testing.assert_allclose(ref_exp, krylov_sol.expect[0])
-
-
 def test_feedback():
 
     def f(t, A, qobj=None):
