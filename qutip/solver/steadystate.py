@@ -222,10 +222,10 @@ def _steadystate_direct(A: _data.Data, weight: float, **kw):
     if weight:
         pass
     # Calculate the weight for sparse or dense matrices
-    if hasattr(data, "as_scipy") and callable(data.as_scipy):
-        weight = np.mean(np.abs(data.as_scipy().data))
+    if isinstance(data, _data.CSR) or isinstance(data, _data.Dia):
+        weight = np.mean(np.abs(data.as_scipy()))
     else:
-        A_np = np.abs(data.as_ndarray())
+        A_np = np.abs(A.full())
         weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
