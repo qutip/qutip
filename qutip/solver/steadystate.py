@@ -215,17 +215,15 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     return rho_ss
 
 
-def _steadystate_direct(A: _data.Data, weight: float, **kw):
-    # Operate on the data's copy to avoid accidental in-place modifications
-    data = A.data.copy()
+def _steadystate_direct(A: Qobj, weight: float, **kw):
     # Find the weight, no good dispatched function available...
     if weight:
         pass
     # Calculate the weight for sparse or dense matrices
-    if isinstance(data, _data.CSR) or isinstance(data, _data.Dia):
-        weight = np.mean(np.abs(data.as_scipy().data))
+    if isinstance(A.data, _data.CSR) or isinstance(A.data, _data.Dia):
+        weight = np.mean(np.abs(A.data.as_scipy().data))
     else:
-        A_np = np.abs(data.to_array())
+        A_np = np.abs(A.data.to_array())
         weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
@@ -233,14 +231,14 @@ def _steadystate_direct(A: _data.Data, weight: float, **kw):
     # L[:, 1:] = A[:, 1:]
     N = A.shape[0]
     n = int(N**0.5)
-    dtype = type(data)
+    dtype = type(A.data)
     if dtype == _data.Dia:
         # Dia is bad at vector and missing optimization such as `use_wbm`.
         dtype = _data.CSR
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    first_row = _data.block_extract(data, 0, 1, 0, N, dtype=dtype)
+    first_row = _data.block_extract(A.data, 0, 1, 0, N, dtype=dtype)
     L = _data.block_overwrite(
-       data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
+       A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
     )
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
