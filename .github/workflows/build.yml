@@ -105,8 +105,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # between 13 and 14, mac changed from intel chip to apple silicon
-        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
+        # mac has 2 chipsets that need different build.
+        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-latest]
     env:
       # Set up wheels matrix.  This is CPython 3.10--3.14 for all OS targets.
       CIBW_BUILD: "cp3{10,11,12,13,14}-*"

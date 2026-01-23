@@ -231,7 +231,7 @@ After installing QuTiP, leave the installation directory and call:
 
 .. code-block:: bash
 
-   pytest qutip/qutip/tests
+   python -c "import qutip.testing; qutip.testing.run()"
 
 This will take between 10 and 30 minutes, depending on your computer.
 At the end, the testing report should report a success; it is normal for some tests to be skipped, and for some to be marked "xfail" in yellow.
