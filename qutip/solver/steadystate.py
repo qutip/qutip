@@ -223,7 +223,8 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     if isinstance(A.data, _data.CSR) or isinstance(A.data, _data.Dia):
         weight = np.mean(np.abs(A.data.as_scipy().data))
     else:
-        A_np = np.abs(A.data.to_array())
+        #A_np = np.abs(A.data.to_array())
+        A_np = np.abs(A.full())
         weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
