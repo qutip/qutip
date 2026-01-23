@@ -113,6 +113,9 @@ jobs:
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
+      # Force recent version of manylinux
+      # manylinux2014 no longer supported by scipy and numpy
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
