@@ -223,7 +223,7 @@ def _steadystate_direct(A: _data.Data, weight: float, **kw):
         pass
     # Calculate the weight for sparse or dense matrices
     if isinstance(data, _data.CSR) or isinstance(data, _data.Dia):
-        weight = np.mean(np.abs(data.as_scipy()))
+        weight = np.mean(np.abs(data.as_scipy().data))
     else:
         A_np = np.abs(A.full())
         weight = np.mean(A_np[A_np > 0])
