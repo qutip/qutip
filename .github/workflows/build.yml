@@ -131,7 +131,7 @@ jobs:
         run: |
           # cibuildwheel does the heavy lifting for us. >=3 is needed for
           # python 3.14.
-          python -m pip install 'cibuildwheel==3.2.*'
+          python -m pip install 'cibuildwheel==3.3.*'
 
       - name: Build wheels
         shell: bash
