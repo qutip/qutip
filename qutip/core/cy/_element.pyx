@@ -134,8 +134,8 @@ cdef class _BaseElement:
         state : :obj:`~Data`
           The state to multiply by the element term.
 
-        out : :obj:`~Data` or ``NULL``
-          The output to add the result of the multiplication to. If ``NULL``,
+        out : :obj:`~Data` or ``None``
+          The output to add the result of the multiplication to. If ``None``,
           the result of the multiplication is returned directly (i.e. ``out``
           is assumed to be the zero matrix).
 
@@ -202,8 +202,8 @@ cdef class _BaseElement:
         state : :obj:`~Data`
           The state to multiply by the adjoint of the element term from the right.
 
-        out : :obj:`~Data` or ``NULL``
-          The output to add the result of the multiplication to. If ``NULL``,
+        out : :obj:`~Data` or ``None``
+          The output to add the result of the multiplication to. If ``None``,
           the result of the multiplication is returned directly (i.e. ``out``
           is assumed to be the zero matrix).
 
