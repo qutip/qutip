@@ -165,7 +165,8 @@ cdef class _BaseElement:
           this method should be updated to use the new support.
         """
         cdef Data data_t = self.data(t)
-        cdef double complex total_scale = scale * self.coeff(t)
+        cdef double complex coeff_val = <double complex>self.coeff(t)
+        cdef double complex total_scale = scale * coeff_val
         if out is None:
             return _data.matmul[type(data_t), type(state), type(state)](
                 data_t, state, total_scale
@@ -216,7 +217,8 @@ cdef class _BaseElement:
           The result of ``scale * state @ dag(self.coeff(t) * self.qobj(t)) + out``, with
           the addition possibly having been performed in-place on ``out``.
         """
-        cdef double complex total_scale = scale * conj(self.coeff(t))
+        cdef double complex coeff_val = <double complex>self.coeff(t)
+        cdef double complex total_scale = scale * conj(coeff_val)
         cdef Data data_t
         cdef Data data_adj
         
