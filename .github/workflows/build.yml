@@ -113,6 +113,9 @@ jobs:
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
+      # Force recent version of manylinux
+      # manylinux2014 no longer supported by scipy and numpy
+      CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
@@ -128,7 +131,7 @@ jobs:
         run: |
           # cibuildwheel does the heavy lifting for us. >=3 is needed for
           # python 3.14.
-          python -m pip install 'cibuildwheel==3.2.*'
+          python -m pip install 'cibuildwheel==3.3.*'
 
       - name: Build wheels
         shell: bash
