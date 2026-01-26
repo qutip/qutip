@@ -428,8 +428,13 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
 
 cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    if out is None:
-        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+    # Use tmp buffer: compute with scale=1, apply scale at end
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], right.fortran)
 
     cdef idxint start_left, end_left, start_out, end_out, length, i, start_right
     cdef idxint col, strideR_in, strideC_in, strideR_out, strideC_out
@@ -438,8 +443,8 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
     with nogil:
       strideR_in = right.shape[1] if not right.fortran else 1
       strideC_in = right.shape[0] if right.fortran else 1
-      strideR_out = out.shape[1] if not out.fortran else 1
-      strideC_out = out.shape[0] if out.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
 
       if (
         (left.shape[0] == left.shape[1])
@@ -451,10 +456,10 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
               _matmul_diag_block(
                   right.data + max(0, left.offsets[diag]) * strideR_in,
                   left.data + diag * left.shape[1] + max(0, left.offsets[diag]),
-                  out.data + max(0, -left.offsets[diag]) * strideR_out,
+                  tmp.data + max(0, -left.offsets[diag]) * strideR_out,
                   left.shape[1] - abs(left.offsets[diag]),
                   right.shape[1],
-                  scale
+                  1.
               )
 
       elif (strideR_in == 1) and (strideR_out == 1):
@@ -471,9 +476,9 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
             _matmul_diag_vector(
                 left.data + start_left,
                 right.data + start_right,
-                out.data + start_out,
+                tmp.data + start_out,
                 length,
-                scale
+                1.
             )
 
       else:
@@ -485,19 +490,31 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
             end_out = min(left.shape[0], left.shape[1] - left.offsets[diag])
             length = min(end_left - start_left, end_out - start_out)
             for i in range(length):
-              out.data[(start_out + i) * strideR_out + col * strideC_out] += (
-                scale
-                * left.data[diag * left.shape[1] + i + start_left]
+              tmp.data[(start_out + i) * strideR_out + col * strideC_out] += (
+                left.data[diag * left.shape[1] + i + start_left]
                 * right.data[(start_left + i) * strideR_in + col * strideC_in]
               )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
 
     return out
 
 
 cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    if out is None:
-        out = dense.zeros(left.shape[0], right.shape[1], left.fortran)
+    # Use tmp buffer: compute with scale=1, apply scale at end
+    cdef Dense tmp
+    if out is not None and scale == 1.:
+        tmp = out
+        out = None
+    else:
+        tmp = dense.zeros(left.shape[0], right.shape[1], left.fortran)
 
     cdef idxint start_left, end_right, start_out, end_out, length, i, start_right
     cdef idxint row, strideR_in, strideC_in, strideR_out, strideC_out
@@ -506,8 +523,8 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
     with nogil:
       strideR_in = left.shape[1] if not left.fortran else 1
       strideC_in = left.shape[0] if left.fortran else 1
-      strideR_out = out.shape[1] if not out.fortran else 1
-      strideC_out = out.shape[0] if out.fortran else 1
+      strideR_out = tmp.shape[1] if not tmp.fortran else 1
+      strideC_out = tmp.shape[0] if tmp.fortran else 1
 
       if (
         (right.shape[0] == right.shape[1])
@@ -519,10 +536,10 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
               _matmul_diag_block(
                   left.data + max(0, -right.offsets[diag]) * strideC_in,
                   right.data + diag * right.shape[1] + max(0, right.offsets[diag]),
-                  out.data + max(0, right.offsets[diag]) * strideC_out,
+                  tmp.data + max(0, right.offsets[diag]) * strideC_out,
                   right.shape[1] - abs(right.offsets[diag]),
                   left.shape[0],
-                  scale
+                  1.
               )
 
       elif (strideC_in == 1) and (strideC_out == 1):
@@ -538,9 +555,9 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
             _matmul_diag_vector(
                 right.data + start_right,
                 left.data + start_left,
-                out.data + start_out,
+                tmp.data + start_out,
                 length,
-                scale
+                1.
             )
 
       else:
@@ -551,11 +568,18 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
             start_left = max(0, -right.offsets[diag])
             length = end_right - start_right
             for i in range(length):
-              out.data[(start_right + i) * strideC_out + row * strideR_out] += (
-                scale
-                * right.data[diag * right.shape[1] + i + start_right]
+              tmp.data[(start_right + i) * strideC_out + row * strideR_out] += (
+                right.data[diag * right.shape[1] + i + start_right]
                 * left.data[(start_left + i) * strideC_in + row * strideR_in]
               )
+
+    if out is None and scale == 1.:
+        out = tmp
+    elif out is None:
+        imul_dense(tmp, scale)
+        out = tmp
+    else:
+        iadd_dense(out, tmp, scale)
 
     return out
 
