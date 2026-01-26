@@ -514,7 +514,6 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
     # scale-free inner loop vectorizes better. The extra allocation required is
     # worth it, accoinding to benchmarks.
     cdef Dense tmp
-    cdef Dense tmp
     if out is not None and scale == 1.:
         tmp = out
         out = None
