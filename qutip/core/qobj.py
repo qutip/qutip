@@ -837,6 +837,9 @@ class Qobj:
             return _data.norm.l2(self._data)**2
         return _data.trace(_data.matmul(self._data, self._data)).real
 
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        return np.asarray(self.data.to_array(), dtype=dtype)
+
     def full(
         self,
         order: Literal['C', 'F'] = 'C',
