@@ -54,10 +54,10 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
 cdef extern from "src/matmul_diag_vector.hpp" nogil:
     void _matmul_diag_vector[T](
         double complex *data, double complex *vec, double complex *out,
-        T length, double complex scale)
+        T length)
     void _matmul_diag_block[T](
         double complex *data, double complex *vec, double complex *out,
-        T length, T width, double complex scale)
+        T length, T width)
     void _matmul_dag_diag_vector[T](
         double complex *data, double complex *vec, double complex *out,
         T length, double complex scale)
@@ -428,7 +428,10 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
 
 cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    # Use tmp buffer: compute with scale=1, apply scale at end
+    # Use tmp buffer when scaling, applying the scaling in a separate pass.
+    # This is faster than applying scaling on the fly, likely because the simpler
+    # scale-free inner loop vectorizes better. The extra allocation required is
+    # worth it, accoinding to benchmarks.
     cdef Dense tmp
     if out is not None and scale == 1.:
         tmp = out
@@ -458,8 +461,7 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
                   left.data + diag * left.shape[1] + max(0, left.offsets[diag]),
                   tmp.data + max(0, -left.offsets[diag]) * strideR_out,
                   left.shape[1] - abs(left.offsets[diag]),
-                  right.shape[1],
-                  1.
+                  right.shape[1]
               )
 
       elif (strideR_in == 1) and (strideR_out == 1):
@@ -477,8 +479,7 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
                 left.data + start_left,
                 right.data + start_right,
                 tmp.data + start_out,
-                length,
-                1.
+                length
             )
 
       else:
@@ -508,7 +509,11 @@ cpdef Dense matmul_dia_dense_dense(Dia left, Dense right, double complex scale=1
 
 cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1, Dense out=None):
     _check_shape(left, right, out)
-    # Use tmp buffer: compute with scale=1, apply scale at end
+    # Use tmp buffer when scaling, applying the scaling in a separate pass.
+    # This is faster than applying scaling on the fly, likely because the simpler
+    # scale-free inner loop vectorizes better. The extra allocation required is
+    # worth it, accoinding to benchmarks.
+    cdef Dense tmp
     cdef Dense tmp
     if out is not None and scale == 1.:
         tmp = out
@@ -538,8 +543,7 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
                   right.data + diag * right.shape[1] + max(0, right.offsets[diag]),
                   tmp.data + max(0, right.offsets[diag]) * strideC_out,
                   right.shape[1] - abs(right.offsets[diag]),
-                  left.shape[0],
-                  1.
+                  left.shape[0]
               )
 
       elif (strideC_in == 1) and (strideC_out == 1):
@@ -556,8 +560,7 @@ cpdef Dense matmul_dense_dia_dense(Dense left, Dia right, double complex scale=1
                 right.data + start_right,
                 left.data + start_left,
                 tmp.data + start_out,
-                length,
-                1.
+                length
             )
 
       else:
