@@ -219,8 +219,10 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     # Find the weight, no good dispatched function available...
     if weight:
         pass
+    if isinstance(A.data, _data.Dia):
+      A = A.to("csr")
     # Calculate the weight for sparse or dense matrices
-    if isinstance(A.data, _data.CSR) or isinstance(A.data, _data.Dia):
+    if isinstance(A.data, _data.CSR):
         weight = np.mean(np.abs(A.data.as_scipy().data))
     else:
         A_np = np.abs(A.data.to_array())
@@ -238,7 +240,7 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
     first_row = _data.block_extract(A.data, 0, 1, 0, N, dtype=dtype)
     L = _data.block_overwrite(
-       A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
+        A.data, _data.add(first_row, weight_vec.transpose()), 0, 0, dtype=dtype
     )
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
