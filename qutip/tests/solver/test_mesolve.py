@@ -2,7 +2,7 @@ import numpy as np
 from types import FunctionType
 
 import qutip
-from qutip.solver.mesolve import mesolve, MESolver, MESolverMatrixForm
+from qutip.solver.mesolve import mesolve, MESolver
 from qutip.solver.solver_base import Solver
 import pickle
 import pytest
@@ -241,11 +241,11 @@ class TestMESolveDecay:
             norms = [state.norm() for state in output.states]
             assert all(norm > 4 for norm in norms[1:])
 
-    @pytest.mark.parametrize('solver_cls', [MESolver, MESolverMatrixForm],
-                             ids=['MESolver', 'MESolverMatrixForm'])
-    def test_mesolver_pickling(self, solver_cls):
-        options = {"progress_bar": None}
-        solver_obj = solver_cls(self.ada, c_ops=[self.a], options=options)
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_pickling(self, matrix_form):
+        options = {"progress_bar": None, "matrix_form": matrix_form}
+        solver_obj = MESolver(self.ada, c_ops=[self.a], options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
                             e_ops=[self.ada]).expect[0]
@@ -253,12 +253,12 @@ class TestMESolveDecay:
                              e_ops=[self.ada]).expect[0]
         np.testing.assert_allclose(e1, e2)
 
-    @pytest.mark.parametrize('solver_cls', [MESolver, MESolverMatrixForm],
-                             ids=['MESolver', 'MESolverMatrixForm'])
-    def test_mesolver_pickling_after_use(self, solver_cls):
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_pickling_after_use(self, matrix_form):
         """Test that solvers can be pickled after being used."""
-        options = {"progress_bar": None}
-        solver_obj = solver_cls(self.ada, c_ops=[self.a], options=options)
+        options = {"progress_bar": None, "matrix_form": matrix_form}
+        solver_obj = MESolver(self.ada, c_ops=[self.a], options=options)
         # Run solver first to populate any internal buffers
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
                             e_ops=[self.ada]).expect[0]
@@ -271,11 +271,12 @@ class TestMESolveDecay:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    @pytest.mark.parametrize('solver_cls', [MESolver, MESolverMatrixForm],
-                             ids=['MESolver', 'MESolverMatrixForm'])
-    def test_mesolver_stepping(self, method, solver_cls):
-        options = {"method": method, "progress_bar": None}
-        solver_obj = solver_cls(
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_stepping(self, method, matrix_form):
+        options = {"method": method, "progress_bar": None,
+                   "matrix_form": matrix_form}
+        solver_obj = MESolver(
             self.ada,
             c_ops=qutip.QobjEvo(
                 [self.a, lambda t, kappa: np.sqrt(kappa * np.exp(-t))],
@@ -737,8 +738,8 @@ def test_mesolve_bad_options():
         MESolver(qutip.qeye(4), [], options=False)
 
 
-@pytest.mark.parametrize('solver_cls', [MESolver, MESolverMatrixForm])
-def test_feedback(solver_cls):
+@pytest.mark.parametrize('matrix_form', [False, True])
+def test_feedback(matrix_form):
 
     def f(t, A):
         return (A-4.)
@@ -746,17 +747,17 @@ def test_feedback(solver_cls):
     N = 10
     tol = 1e-14
     psi0 = qutip.basis(N, 7)
-    # MESolverMatrixForm uses operators, MESolver uses superoperators
-    if solver_cls is MESolverMatrixForm:
+    # matrix_form uses operators, superop uses superoperators
+    if matrix_form:
         feedback_op = qutip.num(N)
     else:
         feedback_op = qutip.spre(qutip.num(N))
     a = qutip.QobjEvo(
         [qutip.destroy(N), f],
-        args={"A": solver_cls.ExpectFeedback(feedback_op)}
+        args={"A": MESolver.ExpectFeedback(feedback_op)}
     )
     H = qutip.QobjEvo(qutip.num(N))
-    solver = solver_cls(H, c_ops=[a])
+    solver = MESolver(H, c_ops=[a], options={"matrix_form": matrix_form})
     result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
     assert np.all(result.expect[0] > 4. - tol)
 
@@ -766,10 +767,11 @@ def test_feedback(solver_cls):
     [qutip.sigmax(), qutip.sigmaz(), qutip.qeye(2)],
     ids=["sigmax", "sigmaz", "tr=2"]
 )
-@pytest.mark.parametrize('solver_cls', [MESolver, MESolverMatrixForm])
-def test_non_normalized_dm(rho0, solver_cls):
+@pytest.mark.parametrize('matrix_form', [False, True])
+def test_non_normalized_dm(rho0, matrix_form):
     H = qutip.QobjEvo(qutip.num(2))
-    solver = solver_cls(H, c_ops=[qutip.sigmaz()])
+    solver = MESolver(H, c_ops=[qutip.sigmaz()],
+                      options={"matrix_form": matrix_form})
     result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
     np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
 

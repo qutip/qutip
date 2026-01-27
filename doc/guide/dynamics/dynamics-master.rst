@@ -337,11 +337,11 @@ To use the matrix-form solver, pass ``matrix_form=True`` in the options:
     >>> result = mesolve(H, rho0, tlist, c_ops, e_ops=[op],
     ...                  options={"matrix_form": True})
 
-Alternatively, you can use the :class:`.MESolverMatrixForm` class directly:
+Or when using :class:`.MESolver` directly:
 
 .. code-block:: python
 
-    >>> solver = MESolverMatrixForm(H, c_ops)
+    >>> solver = MESolver(H, c_ops, options={"matrix_form": True})
     >>> result = solver.run(rho0, tlist, e_ops=[op])
 
 The matrix-form solver supports all the same features as the standard solver,
