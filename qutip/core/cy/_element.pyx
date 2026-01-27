@@ -183,7 +183,6 @@ cdef class _BaseElement:
             )
 
 
-
     cdef Data adjoint_rmatmul_data_t(_BaseElement self, t, Data state, Data out=None, double complex scale=1):
         """
         Possibly in-place adjoint right multiplication and addition. Multiplies a given state
