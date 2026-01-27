@@ -24,6 +24,23 @@ from qutip.core.cy.qobjevo cimport QobjEvo
 __all__ = ['LindbladMatrixForm']
 
 
+cdef void iadd_dense_adj(Dense mat):
+    """Add Hermitian conjugate in-place: mat += mat.dag()"""
+    cdef int n = mat.shape[0]
+    cdef int i, j
+    cdef double complex val, val_conj
+    cdef double complex[:, :] arr = mat.as_ndarray()
+    
+    for i in range(n):
+        # Diagonal: real part doubles, imag cancels
+        arr[i, i] = 2 * arr[i, i].real
+        for j in range(i + 1, n):
+            val = arr[i, j]
+            val_conj = arr[j, i].conjugate()
+            arr[i, j] = val + val_conj
+            arr[j, i] = arr[i, j].conjugate()
+
+
 cdef class LindbladMatrixForm:
     """
     Computes the Lindblad master equation RHS in matrix form.
@@ -112,20 +129,13 @@ cdef class LindbladMatrixForm:
         """
         Compute drho/dt using matrix form of Lindblad equation.
 
-        Uses non-Hermitian Hamiltonian formulation:
+        Exploits Hermiticity of rho to compute A + A.dag() where:
 
         .. math::
 
-            \\frac{d\\rho}{dt} = -i(H_{nh} \\rho - \\rho H_{nh}^\\dagger) 
-            + \\sum_i c_i \\rho c_i^\\dagger
+            A = -i H_{nh} \\rho + \\frac{1}{2} \\sum_i c_i \\rho c_i^\\dagger
 
-        where:
-
-        .. math::
-
-            H_{nh} = H - \\frac{i}{2}\\sum_i c_i^\\dagger c_i
-
-        This reduces operations from 6 per collapse op to 2 + 1 per collapse op.
+        and H_nh = H - (i/2) sum(c_i^dag c_i).
 
         Parameters
         ----------
@@ -145,12 +155,10 @@ cdef class LindbladMatrixForm:
         cdef int i
         cdef int n = rho.shape[0]
 
-        # Check that rho is Dense - LindbladMatrixForm requires dense matrices
         if type(rho) is not Dense:
             raise TypeError(
                 f"LindbladMatrixForm.matmul_data() requires Dense input, "
-                f"got {type(rho).__name__}. Convert to dense first or use "
-                f"MESolverMatrixForm which handles conversion automatically."
+                f"got {type(rho).__name__}."
             )
 
         rho_dense = <Dense>rho
@@ -162,30 +170,27 @@ cdef class LindbladMatrixForm:
             out_dense = <Dense>out
             out_dense = <Dense>imul(out_dense, 0)
 
-        # Use pre-allocated temporary buffer for intermediate results
-        # Allocate on first use to match input memory ordering
+        # Use pre-allocated temporary buffer
         if self._temp_buffer is None:
-            self._temp_buffer = dense.zeros(self._temp_buffer_size, self._temp_buffer_size, 
-                                          fortran=rho_dense.fortran)
+            self._temp_buffer = dense.zeros(self._temp_buffer_size, 
+                                            self._temp_buffer_size, 
+                                            fortran=rho_dense.fortran)
         temp_dense = <Dense>self._temp_buffer
 
-        # Compute non-Hermitian commutator: -i(H_nh * rho - rho * dag(H_nh))
-        # Use scale parameters for efficient accumulation
-        
-        # H_nh @ rho with scale -1j (accumulate directly into out)
-        self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
-        
-        # rho @ dag(H_nh) with scale +1j (accumulate directly into out)
-        self.H_nh.adjoint_rmatmul_data(t, rho_dense, out_dense, 1j)
+        # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
+        # Then drho/dt = A + A.dag()
 
-        # Lindblad jump terms: sum(c_i * rho * dag(c_i))
-        # Use adjoint_rmatmul_data for efficient on-the-fly adjoint operations
+        # -i H_nh @ rho
+        self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
+
+        # +0.5 sum(L @ rho @ Ld)
         for i in range(self.num_collapse):
-            # Step 1: temp = c @ rho
-            temp_dense = <Dense>imul(temp_dense, 0)  # Zero out temp
-            self.c_ops[i].matmul_data(t, rho_dense, temp_dense)
-            # Step 2: out += temp @ dag(c)
+            temp_dense = <Dense>imul(temp_dense, 0)
+            self.c_ops[i].matmul_data(t, rho_dense, temp_dense, 0.5)
             self.c_ops[i].adjoint_rmatmul_data(t, temp_dense, out_dense)
+
+        # Add Hermitian conjugate: out = out + out.dag()
+        iadd_dense_adj(out_dense)
 
         return out_dense
 
