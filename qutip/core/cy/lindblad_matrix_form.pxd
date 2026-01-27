@@ -13,8 +13,8 @@ cdef class LindbladMatrixForm:
     cdef public str type
     cdef public bint issuper
     
-    # Pre-allocated temporary buffer for intermediate calculations
+    # Pre-allocated temporary buffer
     cdef public Data _temp_buffer
-    cdef public int _temp_buffer_size
+    cdef public int _buffer_size
 
     cpdef Data matmul_data(self, object t, Data rho, Data out=*)

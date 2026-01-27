@@ -14,31 +14,16 @@ instead of superoperator-vector multiplication.
 """
 
 from functools import partial
+from libc.string cimport memcpy
 
 from qutip.core.data cimport Data, Dense
-from qutip.core.data.add import iadd
-from qutip.core.data.mul import imul
+from qutip.core.data.adjoint cimport iconj_dense
+from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.mul cimport imul_dense
 from qutip.core.data import dense
 from qutip.core.cy.qobjevo cimport QobjEvo
 
 __all__ = ['LindbladMatrixForm']
-
-
-cdef void iadd_dense_adj(Dense mat):
-    """Add Hermitian conjugate in-place: mat += mat.dag()"""
-    cdef int n = mat.shape[0]
-    cdef int i, j
-    cdef double complex val, val_conj
-    cdef double complex[:, :] arr = mat.as_ndarray()
-    
-    for i in range(n):
-        # Diagonal: real part doubles, imag cancels
-        arr[i, i] = 2 * arr[i, i].real
-        for j in range(i + 1, n):
-            val = arr[i, j]
-            val_conj = arr[j, i].conjugate()
-            arr[i, j] = val + val_conj
-            arr[j, i] = arr[i, j].conjugate()
 
 
 cdef class LindbladMatrixForm:
@@ -119,11 +104,9 @@ cdef class LindbladMatrixForm:
                           all(c.isconstant for c in self.c_ops))
         
         # Pre-allocate temporary buffer for intermediate calculations
-        # This avoids allocation in the hot path
-        # Note: We'll set the memory ordering dynamically on first use
         n = self.shape[0]
         self._temp_buffer = None
-        self._temp_buffer_size = n
+        self._buffer_size = n
 
     cpdef Data matmul_data(LindbladMatrixForm self, object t, Data rho, Data out=None):
         """
@@ -168,12 +151,12 @@ cdef class LindbladMatrixForm:
             out_dense = dense.zeros(n, n, rho_dense.fortran)
         else:
             out_dense = <Dense>out
-            out_dense = <Dense>imul(out_dense, 0)
+            imul_dense(out_dense, 0)
 
-        # Use pre-allocated temporary buffer
+        # Allocate temp buffer on first use
         if self._temp_buffer is None:
-            self._temp_buffer = dense.zeros(self._temp_buffer_size, 
-                                            self._temp_buffer_size, 
+            self._temp_buffer = dense.zeros(self._buffer_size, 
+                                            self._buffer_size, 
                                             fortran=rho_dense.fortran)
         temp_dense = <Dense>self._temp_buffer
 
@@ -185,12 +168,19 @@ cdef class LindbladMatrixForm:
 
         # +0.5 sum(L @ rho @ Ld)
         for i in range(self.num_collapse):
-            temp_dense = <Dense>imul(temp_dense, 0)
+            imul_dense(temp_dense, 0)
             self.c_ops[i].matmul_data(t, rho_dense, temp_dense, 0.5)
             self.c_ops[i].adjoint_rmatmul_data(t, temp_dense, out_dense)
 
-        # Add Hermitian conjugate: out = out + out.dag()
-        iadd_dense_adj(out_dense)
+        # Add Hermitian conjugate: out += out.dag()
+        # Copy out to temp, conjugate temp in-place, then add with transpose
+        # (transpose is achieved by flipping fortran flag for iadd_dense)
+        cdef size_t nbytes = n * n * sizeof(double complex)
+        memcpy(temp_dense.data, out_dense.data, nbytes)
+        iconj_dense(temp_dense)                   # temp = conj(out)
+        temp_dense.fortran = not temp_dense.fortran  # transpose via flag
+        iadd_dense(out_dense, temp_dense, 1)      # out += temp.T = out.dag()
+        temp_dense.fortran = not temp_dense.fortran  # restore flag
 
         return out_dense
 
