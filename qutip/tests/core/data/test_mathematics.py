@@ -901,9 +901,6 @@ class InPlaceMatmulMixin(_GenericOpMixin):
 class TestMatmulInPlace(InPlaceMatmulMixin):
     """Test in-place matmul operations that support out parameter."""
 
-    def op_numpy(self, left, right, out):
-        return np.matmul(left, right)
-
     shapes = shapes_ternary_matmul_inplace()
     bad_shapes = []
     specialisations = [
@@ -916,9 +913,6 @@ class TestMatmulInPlace(InPlaceMatmulMixin):
 
 class TestMatmulDagInPlace(InPlaceMatmulMixin):
     """Test in-place matmul_dag operations that support out parameter."""
-
-    def op_numpy(self, left, right, out):
-        return np.matmul(left, right)
 
     shapes = shapes_ternary_matmul_inplace()
     bad_shapes = []
