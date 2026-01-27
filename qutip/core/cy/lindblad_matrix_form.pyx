@@ -95,7 +95,7 @@ cdef class LindbladMatrixForm:
         self._dims = H._dims
         self.shape = H.shape
         self.type = 'oper'
-        self.issuper = False
+        self.issuper = True
 
         # Check if all operators are time-independent
         self.isconstant = (H.isconstant and

@@ -271,12 +271,6 @@ class MESolver(SESolver):
         })
         return stats
 
-    def _prepare_state(self, state):
-        """Prepare state, converting ket to dm for matrix_form."""
-        if not self._vectorize_state and state.isket:
-            state = ket2dm(state)
-        return super()._prepare_state(state)
-
     @classmethod
     def StateFeedback(
         cls,
