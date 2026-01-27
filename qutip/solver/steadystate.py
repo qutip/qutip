@@ -219,9 +219,12 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     # Find the weight, no good dispatched function available...
     if weight:
         pass
+    # Convert Dia to CSR for cleaner diagonal matrix representation:
+    # without zeros or uninitialised padded elements, which is especially
+    # relevant for multi-diagonal cases
     if isinstance(A.data, _data.Dia):
-      A = A.to("csr")
-    # Calculate the weight for sparse or dense matrices
+        A = A.to("csr")
+    # Compute the weight for sparse or other matrices
     if isinstance(A.data, _data.CSR):
         weight = np.mean(np.abs(A.data.as_scipy().data))
     else:
