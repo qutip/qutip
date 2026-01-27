@@ -8,11 +8,10 @@ from __future__ import annotations
 
 __all__ = ['mesolve', 'MESolver']
 
-import warnings
 from numpy.typing import ArrayLike
 from typing import Any
 from time import time
-from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator, ket2dm
+from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
 from .solver_base import Solver, _solver_deprecation, _kwargs_migration
