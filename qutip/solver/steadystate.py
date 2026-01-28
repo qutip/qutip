@@ -216,20 +216,20 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
 
 def _steadystate_direct(A: Qobj, weight: float, **kw):
-    # Find the weight, no good dispatched function available...
-    if weight:
-        pass
     # Convert Dia to CSR for cleaner diagonal matrix representation:
     # without zeros or uninitialised padded elements, which is especially
     # relevant for multi-diagonal cases
     if isinstance(A.data, _data.Dia):
         A = A.to("csr")
-    # Compute the weight for sparse or other matrices
-    if isinstance(A.data, _data.CSR):
-        weight = np.mean(np.abs(A.data.as_scipy().data))
-    else:
-        A_np = np.abs(A.data.to_array())
-        weight = np.mean(A_np[A_np > 0])
+
+    if not weight:
+      # Calculate weight if not provided by user
+      # (currently, no good dispatched function is available)
+      if isinstance(A.data, _data.CSR):
+          weight = np.mean(np.abs(A.data.as_scipy().data))
+      else:
+          A_np = np.abs(A.data.to_array())
+          weight = np.mean(A_np[A_np > 0])
 
     # Add weight to the Liouvillian
     # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
