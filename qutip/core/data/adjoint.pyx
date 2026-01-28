@@ -17,7 +17,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 __all__ = [
     'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
-    'conj', 'conj_csr', 'conj_dense', 'conj_dia',
+    'conj', 'conj_csr', 'conj_dense', 'conj_dia', 'iconj_dense',
     'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
 
@@ -108,6 +108,15 @@ cpdef Dense conj_dense(Dense matrix):
         for ptr in range(matrix.shape[0] * matrix.shape[1]):
             out.data[ptr] = _conj(matrix.data[ptr])
     return out
+
+
+cpdef Dense iconj_dense(Dense matrix):
+    """In-place conjugate: matrix = conj(matrix)"""
+    cdef size_t ptr
+    with nogil:
+        for ptr in range(matrix.shape[0] * matrix.shape[1]):
+            matrix.data[ptr] = _conj(matrix.data[ptr])
+    return matrix
 
 
 cpdef Dia adjoint_dia(Dia matrix):
