@@ -262,6 +262,13 @@ class MESolver(SESolver):
 
         Solver.__init__(self, rhs, options=options)
 
+    def _prepare_state(self, state):
+        if not self._vectorize_state and state.isoper and not state.isherm:
+            raise ValueError(
+                "matrix_form=True requires a Hermitian density matrix"
+            )
+        return super()._prepare_state(state)
+
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
