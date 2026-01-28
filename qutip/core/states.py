@@ -21,7 +21,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
-from .dimensions import Space
+from .dimensions import Space, _homtuple
 from .. import settings
 from ..typing import SpaceLike, LayerType
 
@@ -58,7 +58,7 @@ def _to_space(dimensions):
     """
     if isinstance(dimensions, Space):
         return dimensions
-    elif isinstance(dimensions, list):
+    elif isinstance(dimensions, (list, tuple, _homtuple)):
         return Space(dimensions)
     else:
         return Space([dimensions])
@@ -72,6 +72,9 @@ def basis(
     dtype: LayerType = None,
 ) -> Qobj:
     """Generates the vector representation of a Fock state.
+
+    Note that the Fock index ``n`` starts from zero. Therefore, ``basis(N, 0)``
+    is the ground state of an N-dimensional system.
 
     Parameters
     ----------
@@ -119,18 +122,28 @@ def basis(
      [0.]
      [0.]
      [0.]]
-
+    >>> basis(([2], [3]), [1, [0]]) # doctest: +SKIP
+    Quantum object: dims=[([2], [3]), [1]], shape=(5, 1), type='ket', dtype=Dense
+    Qobj data =
+    [[0.]
+     [0.]
+     [1.]
+     [0.]
+     [0.]]
 
     Notes
     -----
-    A subtle incompatibility with the quantum optics toolbox: In QuTiP::
+    *Advanced usage:* This function can be used to create basis vectors in a
+    summed Hilbert space. For the ``dimensions`` parameter, pass a tuple whose
+    entries are the dimension specifications for the components of the direct
+    sum. For ``n``, pass a list where the first entry is an integer indicating
+    the component and the second entry describes the basis state inside the
+    component. The ``offset`` parameter is not allowed in this case.
 
-        basis(N, 0) = ground state
-
-    but in the qotoolbox::
-
-        basis(N, 1) = ground state
-
+    For example, the tuple ``([M], [N])`` denotes an ``(M+N)``-dimensional
+    space. Its basis vectors are ``basis(([M], [N]), [0, [m]])`` for
+    :math:`0 \\leq m < M` and ``basis(([M], [N]), [1, [n]])`` for
+    :math:`0 \\leq n < N`.
     """
     dtype = _data._parse_default_dtype(dtype, "dense")
     # Promote all parameters to Space to simplify later logic.
@@ -140,6 +153,7 @@ def basis(
     if n is None:
         location = 0
     elif offset:
+        dimensions._require_pure_dims("basis with offset")
         if not isinstance(offset, list):
             offset = [offset]
         if not isinstance(n, list):
@@ -156,7 +170,7 @@ def basis(
     else:
         if not isinstance(n, list):
             n = [n]
-        if len(n) != len(dimensions.as_list()):
+        if dimensions._pure_dims and len(n) != len(dimensions.as_list()):
             raise ValueError("All list inputs must be the same length.")
         try:
             location = dimensions.dims2idx(n)
