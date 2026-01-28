@@ -1,10 +1,12 @@
 import itertools
 import numpy as np
-import scipy
 import pytest
+import scipy
+import warnings
 
 from qutip.core import data
 from qutip.core.data import Data, Dense, CSR, Dia
+from qutip.core.data.dense import OrderEfficiencyWarning
 
 from . import conftest
 
@@ -92,6 +94,21 @@ def shapes_binary_bad_matmul(dim=100):
         for x, y in itertools.product(shapes_unary(dim), repeat=2)
         if x.values[0][1] != y.values[0][0]
     ]
+
+
+def shapes_ternary_matmul_inplace(dim=100):
+    """
+    Shapes for in-place matmul: (left, right, out) where out.shape ==
+    (left.rows, right.cols) and left.cols == right.rows.
+    """
+    shapes = []
+    for left, right in shapes_binary_matmul(dim):
+        left_shape = left.values[0]
+        right_shape = right.values[0]
+        out_shape = (left_shape[0], right_shape[1])
+        out = pytest.param(out_shape, id=f"{out_shape[0]}x{out_shape[1]}")
+        shapes.append((left, right, out))
+    return shapes
 
 
 def shapes_square(dim=100):
@@ -278,7 +295,8 @@ def cases_type_shape_product(cases_lookup, op, types, shapes, out_type=None):
         # Now Cartesian product all the special cases together to make the full
         # set of parametrisations.
         for matrices in itertools.product(*matrix_cases):
-            id_ = ",".join(m.id for m in matrices)
+            op_name = getattr(op, '__name__', str(op))
+            id_ = op_name + ":" + ",".join(m.id for m in matrices)
             args = [m for p_m in matrices for m in p_m.values]
             if out_type is not None:
                 id_ += "->" + out_type.__name__
@@ -361,11 +379,13 @@ class _GenericOpMixin:
                if x.startswith("data_")]
             + ['out_type']
         )
+
         cases = []
         for p_op in self.specialisations:
             op, *types, out_type = p_op.values
             args = (op, types, self.shapes, out_type)
             cases.extend(cases_type_shape_product(_ALL_CASES, *args))
+
         metafunc.parametrize(parameters, cases)
 
     def generate_incorrect_shape_raises(self, metafunc):
@@ -507,6 +527,40 @@ class BinaryOpMixin(_GenericOpMixin):
             op(data_l(), data_r())
 
 
+class ScaledBinaryOpMixin(BinaryOpMixin):
+    """
+    Mix-in for binary mathematical operations that support a scale parameter.
+
+    Subclasses should define op_numpy(left, right, scale=1) that returns
+    the expected result with scaling applied.
+    """
+
+    @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
+                             ids=['unscaled', 'scale[real]',
+                                  'scale[complex]'])
+    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale):
+        """
+        Test that the binary operation is mathematically correct for all the
+        known type specialisations, including with scaling.
+        """
+        left, right = data_l(), data_r()
+        if scale is not None:
+            expected = self.op_numpy(left.to_array(), right.to_array(), scale)
+            test = op(left, right, scale)
+        else:
+            expected = self.op_numpy(left.to_array(), right.to_array())
+            test = op(left, right)
+
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+
+
 class TernaryOpMixin(_GenericOpMixin):
     """
     Mix-in for ternary mathematical operations on Data instances (e.g. inner
@@ -516,7 +570,7 @@ class TernaryOpMixin(_GenericOpMixin):
                                     data_l, data_m, data_r,
                                     out_type):
         """
-        Test that the binary operation is mathematically correct for all the
+        Test that the ternary operation is mathematically correct for all the
         known type specialisations.
         """
         left, mid, right = data_l(), data_m(), data_r()
@@ -544,8 +598,8 @@ class TernaryOpMixin(_GenericOpMixin):
 
 # And now finally we get into the meat of the actual mathematical tests.
 
-class TestAdd(BinaryOpMixin):
-    def op_numpy(self, left, right, scale):
+class TestAdd(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
         return np.add(left, scale * right)
 
     shapes = shapes_binary_identical()
@@ -558,32 +612,6 @@ class TestAdd(BinaryOpMixin):
         pytest.param(data.iadd_dense_data_dense, Dense, Dia, Dense),
         pytest.param(data.iadd_data, CSR, Dia, Data),
     ]
-
-    # `add` has an additional scalar parameter, because the operation is
-    # actually more like `A + c*B`.  We just parametrise that scalar
-    # separately.
-    @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
-                             ids=['unscaled', 'scale[real]', 'scale[complex]'])
-    def test_mathematically_correct(self, op, data_l, data_r, out_type, scale):
-        """
-        Test that the binary operation is mathematically correct for all the
-        known type specialisations.
-        """
-        left, right = data_l(), data_r()
-        if scale is not None:
-            expected = self.op_numpy(left.to_array(), right.to_array(), scale)
-            test = op(left, right, scale)
-        else:
-            expected = self.op_numpy(left.to_array(), right.to_array(), 1)
-            test = op(left, right)
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
 
 
 class TestAdjoint(UnaryOpMixin):
@@ -785,9 +813,9 @@ class TestKronT(BinaryOpMixin):
     ]
 
 
-class TestMatmul(BinaryOpMixin):
-    def op_numpy(self, left, right):
-        return np.matmul(left, right)
+class TestMatmul(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right)
 
     shapes = shapes_binary_matmul()
     bad_shapes = shapes_binary_bad_matmul()
@@ -801,25 +829,112 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
-class TestMatmulDag(BinaryOpMixin):
-    def op_numpy(self, left, right):
-        return np.matmul(left, right)
+class TestMatmulDag(ScaledBinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right)
 
     shapes = shapes_binary_matmul()
     bad_shapes = shapes_binary_bad_matmul()
+
+    # Wrapper functions that apply adjoint to right operand
+    @staticmethod
+    def matmul_dag_data(left, right, scale=1):
+        return data.matmul_dag_data(left, right.adjoint(), scale)
+
+    @staticmethod
+    def matmul_dag_dense_csr_dense(left, right, scale=1):
+        return data.matmul_dag_dense_csr_dense(left, right.adjoint(), scale)
+
+    @staticmethod
+    def matmul_dag_dense_dia_dense(left, right, scale=1):
+        return data.matmul_dag_dense_dia_dense(left, right.adjoint(), scale)
+
+    @staticmethod
+    def matmul_dag_dense(left, right, scale=1):
+        return data.matmul_dag_dense(left, right.adjoint(), scale)
+
     specialisations = [
-        pytest.param(
-            lambda l, r: data.matmul_dag_data(l, r.adjoint()),
-            CSR, CSR, CSR
-        ),
-        pytest.param(
-            lambda l, r: data.matmul_dag_dense_csr_dense(l, r.adjoint()),
-            Dense, CSR, Dense
-        ),
-        pytest.param(
-            lambda l, r: data.matmul_dag_dense(l, r.adjoint()),
-            Dense, Dense, Dense
-        ),
+        pytest.param(matmul_dag_data, CSR, CSR, CSR),
+        pytest.param(matmul_dag_dense_csr_dense, Dense, CSR, Dense),
+        pytest.param(matmul_dag_dense_dia_dense, Dense, Dia, Dense),
+        pytest.param(matmul_dag_dense, Dense, Dense, Dense),
+    ]
+
+
+class InPlaceMatmulMixin(_GenericOpMixin):
+    """
+    Mix-in for in-place matmul operations: op(left, right, scale, out) -> out.
+    Treats the operation as ternary with (left, right, out) as the three data
+    arguments, where out is a pre-allocated Dense buffer.
+    """
+
+    @pytest.mark.parametrize('scale', [1, 0.5, 0.5j],
+                             ids=['scale[1]', 'scale[real]', 'scale[complex]'])
+    @pytest.mark.parametrize('out_order', ['C', 'F'], ids=['out[C]', 'out[F]'])
+    def test_mathematically_correct(self, op, data_l, data_r, data_out,
+                                    out_type, scale, out_order):
+        """
+        Test in-place matmul accumulates correctly into pre-allocated buffer.
+        """
+        left, right = data_l(), data_r()
+        out_shape = data_out().shape
+        expected_product = scale * np.matmul(left.to_array(), right.to_array())
+
+        # Create output buffer with non-zero initial values
+        initial = np.ones(out_shape, dtype=complex)
+        if out_order == 'F':
+            initial = np.asfortranarray(initial)
+        out = Dense(initial.copy(), copy=False)
+        expected = initial + expected_product
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", OrderEfficiencyWarning)
+            result = op(left, right, scale, out)
+
+        assert result is out
+        assert isinstance(result, out_type)
+        assert result.shape == expected.shape
+        np.testing.assert_allclose(result.to_array(), expected,
+                                   atol=self.atol, rtol=self.rtol)
+
+
+class TestMatmulInPlace(InPlaceMatmulMixin):
+    """Test in-place matmul operations that support out parameter."""
+
+    shapes = shapes_ternary_matmul_inplace()
+    bad_shapes = []
+    specialisations = [
+        pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense, Dense),
+        pytest.param(data.matmul_dense, Dense, Dense, Dense, Dense),
+        pytest.param(data.matmul_dia_dense_dense, Dia, Dense, Dense, Dense),
+        pytest.param(data.matmul_dense_dia_dense, Dense, Dia, Dense, Dense),
+    ]
+
+
+class TestMatmulDagInPlace(InPlaceMatmulMixin):
+    """Test in-place matmul_dag operations that support out parameter."""
+
+    shapes = shapes_ternary_matmul_inplace()
+    bad_shapes = []
+
+    @staticmethod
+    def matmul_dag_dense_csr_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense_csr_dense(left, right.adjoint(), scale,
+                                               out)
+
+    @staticmethod
+    def matmul_dag_dense_dia_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense_dia_dense(left, right.adjoint(), scale,
+                                               out)
+
+    @staticmethod
+    def matmul_dag_dense(left, right, scale=1, out=None):
+        return data.matmul_dag_dense(left, right.adjoint(), scale, out)
+
+    specialisations = [
+        pytest.param(matmul_dag_dense_csr_dense, Dense, CSR, Dense, Dense),
+        pytest.param(matmul_dag_dense_dia_dense, Dense, Dia, Dense, Dense),
+        pytest.param(matmul_dag_dense, Dense, Dense, Dense, Dense),
     ]
 
 
@@ -1107,7 +1222,8 @@ class TestWRMN_error(BinaryOpMixin):
                              ids=['atol[small]', 'atol[large]'])
     @pytest.mark.parametrize('rtol', [0, 1e-10, 0.5],
                              ids=['rtol[0]', 'rtol[small]', 'rtol[large]'])
-    def test_mathematically_correct(self, op, data_l, data_r, out_type, atol, rtol):
+    def test_mathematically_correct(self, op, data_l, data_r, out_type,
+                                    atol, rtol):
         """
         Test that the binary operation is mathematically correct for all the
         known type specialisations.

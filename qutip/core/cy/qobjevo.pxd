@@ -21,4 +21,5 @@ cdef class QobjEvo:
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *
 
-    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=*)
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=*, double complex scale=*)
+    cpdef Data adjoint_rmatmul_data(QobjEvo self, object t, Data state, Data out=*, double complex scale=*)
