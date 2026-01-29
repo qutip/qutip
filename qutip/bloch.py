@@ -719,6 +719,10 @@ class Bloch:
 
         if self.axes is None:
             self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+        else:
+            current_azim, current_elev = self.axes.azim, self.axes.elev        
+            if current_azim != self.view[0] or current_elev != self.view[1]:   
+                self.axes.view_init(azim=self.view[0], elev=self.view[1])
 
         # Clearing the axes is horrifically slow and loses a lot of the
         # axes state, but matplotlib doesn't seem to provide a better way
