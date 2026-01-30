@@ -33,7 +33,8 @@ class IntegratorKrylov(Integrator):
     def _prepare(self):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
-        # TODO currenlty only supports hermitian, add warning? thorw error?
+        #if not self.system(0).isherm:
+            #raise ValueError("Krylov method only supports hermitian systems.")
         self._max_step = -np.inf
         krylov_dim = self.options["krylov_dim"]
         if krylov_dim < 0:
@@ -48,7 +49,7 @@ class IntegratorKrylov(Integrator):
             self._algorithm = self._lanczos_algorithm
         else:
             raise ValueError("The requested algorithm "
-                             f"{self.options['algorithm']}"
+                             f"{self.options['algorithm']} "
                              "for Krylov space construction is not available. "
                              "Possible options are: \'lanczos\', "
                              "\'lanczos_fro\', \'arnoldi\'.")
@@ -230,6 +231,7 @@ class IntegratorKrylov(Integrator):
                 self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if krylov_tridiag.shape[0] <= 1:
+            # No need for max. time step if eigenbasis is known
             return np.inf
 
         small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
@@ -289,7 +291,7 @@ class IntegratorKrylov(Integrator):
 
         if (
             krylov_tridiag.shape[0] < self.options['krylov_dim']
-            or krylov_tridiag.shape == self.system.shape
+            or krylov_tridiag.shape <= self.system.shape
         ):
             # happy_breakdown
             self._max_step = np.inf
@@ -361,4 +363,4 @@ class IntegratorKrylov(Integrator):
 
 
 SESolver.add_integrator(IntegratorKrylov, 'krylov')
-#MESolver.add_integrator(IntegratorKrylov, 'krylov')
+MESolver.add_integrator(IntegratorKrylov, 'krylov')
