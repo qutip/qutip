@@ -48,7 +48,7 @@ def krylovsolve(
         that can be made into :obj:`.QobjEvo` are also accepted.
 
     rho0 : :class:`.Qobj`
-        Initial density matric or state vector (ket).
+        Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
