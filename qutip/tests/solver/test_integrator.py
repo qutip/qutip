@@ -14,22 +14,27 @@ WARN_MISSING_MODULE[0] = 0
 
 
 class TestIntegratorCte():
+    se_integrators = list(SESolver.avail_integrators().keys())
+    me_integrators = list(MESolver.avail_integrators().keys())
+    me_integrators.remove("krylov") # since krylovsolve does not supports c_ops
+    mc_integrators = list(MCSolver.avail_integrators().keys())
+
     _analytical_se = lambda _, t: np.cos(t * np.pi)
     se_system = qutip.QobjEvo(-1j * qutip.sigmax() * np.pi)
     _analytical_me = lambda _, t: 1 - np.exp(-t)
     me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
                                   c_ops=[qutip.destroy(2)])
 
-    @pytest.fixture(params=list(SESolver.avail_integrators().keys()))
+    @pytest.fixture(params=se_integrators)
     def se_method(self, request):
         return request.param
 
-    @pytest.fixture(params=list(MESolver.avail_integrators().keys()))
+    @pytest.fixture(params=me_integrators)
     def me_method(self, request):
         return request.param
 
     # TODO: Change when the MCSolver is added
-    @pytest.fixture(params=list(MCSolver.avail_integrators().keys()))
+    @pytest.fixture(params=mc_integrators)
     def mc_method(self, request):
         return request.param
 
