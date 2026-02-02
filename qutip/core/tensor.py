@@ -455,19 +455,20 @@ def expand_operator(
     targets: int,
     dtype: LayerType = None
 ) -> QobjOrQobjEvo:
-    """
-    Expand an operator to one that acts on a system with desired dimensions.
-    e.g.
-    ```
-    expand_operator(oper, [2, 3, 4, 5], 2) ==
-        tensor(qeye(2), qeye(3), oper, qeye(5))
-    expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
-        tensor(oper2, qeye(3), oper1, qeye(5))
-    ```
+    """Expand an operator to one that acts on a system with desired dimensions.
+
+    Example
+
+    .. code-block:: python
+
+        expand_operator(oper, [2, 3, 4, 5], 2) ==
+            tensor(qeye(2), qeye(3), oper, qeye(5))
+        expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
+            tensor(oper2, qeye(3), oper1, qeye(5))
 
     Parameters
     ----------
-    oper : :class:`.Qobj`
+    oper : Qobj
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
@@ -477,13 +478,13 @@ def expand_operator(
     targets : int or list of int
         The indices of subspace that are acted on.
     dtype : str, optional
-        Data type of the output :class:`.Qobj`. By default it uses the data
+        Data type of the output Qobj. By default it uses the data
         type specified in settings. If no data type is specified
         in settings it uses the ``CSR`` data type.
 
     Returns
     -------
-    expanded_oper : :class:`.Qobj`
+    expanded_oper : Qobj
         The expanded operator acting on a system with the desired dimension.
     """
     oper._dims._require_pure_dims("expand operator")

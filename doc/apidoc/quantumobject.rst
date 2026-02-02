@@ -71,7 +71,7 @@ Tensor
 ------
 
 .. automodule:: qutip.core.tensor
-    :members: tensor, super_tensor, composite, tensor_contract
+    :members: tensor, super_tensor, composite, tensor_swap, tensor_contract, expand_operator
 
 .. automodule:: qutip.core.qobj
     :members: ptrace
