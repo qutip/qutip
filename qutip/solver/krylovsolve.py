@@ -8,6 +8,7 @@ from .mesolve import mesolve
 from .result import Result
 from .solver_base import _kwargs_migration
 from numpy.typing import ArrayLike
+from qutip.typing import QobjEvoLike
 from typing import Any, Callable
 
 
@@ -16,6 +17,7 @@ def krylovsolve(
     rho0: Qobj,
     tlist: ArrayLike,
     krylov_dim: int=0,
+    c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
     _e_ops=None,
     _args=None,
     _options=None,
@@ -119,4 +121,4 @@ def krylovsolve(
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
 
-    return mesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
+    return mesolve(H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options)

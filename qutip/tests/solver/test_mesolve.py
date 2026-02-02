@@ -731,8 +731,26 @@ def test_krylovsolve_mixed_state(kdim, algorithm):
     ref_exp = ref.expect[0]
 
     opts = {"store_states": True, "algorithm": algorithm}
-    krylov_sol = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
-    krylov_states = krylov_sol.states
-    np.testing.assert_allclose(np.ones(len(krylov_states)),
-                               [s.norm() for s in krylov_states])
-    np.testing.assert_allclose(ref_exp, krylov_sol.expect[0])
+    kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    np.testing.assert_allclose(ref_exp, kout.expect[0])
+
+
+def test_krylovsolve_decay():
+    a = qutip.destroy(10)
+    H = a.dag() * a
+    kappa = 0.2
+    c_op = np.sqrt(kappa) * a
+    tlist = np.linspace(0, 10, 201)
+    psi0 = qutip.basis(10, 9)
+
+    opts = {"store_states": True}
+    kout = krylovsolve(H, psi0, tlist, c_ops=[c_op], e_ops=[H], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    expt = kout.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    np.testing.assert_allclose(actual_answer, expt, atol=1e-6)

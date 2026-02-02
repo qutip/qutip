@@ -13,9 +13,10 @@ __all__ = ["IntegratorKrylov"]
 class IntegratorKrylov(Integrator):
     """
     Evolve the state ("rho0") finding an approximation for the time evolution
-    operator of a hermitian Hamiltonian ("H") by obtaining the projection of the
-    time evolution operator on a set of small dimensional Krylov subspaces (m <=
-    dim(H)).
+    operator of a Hamiltonian ("H") by obtaining the projection of the time
+    evolution operator on a set of small dimensional Krylov subspaces (m <=
+    dim(H)). The construction of this subspace is performed by the Lanczos,
+    fully-reorthogonalized Lanczos or Arnoldi algorithm.
     """
     integrator_options = {
         'atol': 1e-7,
@@ -35,16 +36,19 @@ class IntegratorKrylov(Integrator):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
 
+        self._hermitian = (1j*self.system(0)).isherm
+
         self._max_step = -np.inf
 
         if self.options["krylov_dim"] < 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
                              "greater or equal zero.")
 
-        if self.options['algorithm'] == 'lanczos_fro':
-            self._algorithm = self._lanczos_full_reorth_algorithm
-        elif self.options['algorithm'] == 'arnoldi':
+        if self.options['algorithm'] == 'arnoldi' or not self._hermitian:
+            # Arnoldi is the only algorithm supporting open systems so far
             self._algorithm = self._arnoldi_algorithm
+        elif self.options['algorithm'] == 'lanczos_fro':
+            self._algorithm = self._lanczos_full_reorth_algorithm
         elif self.options['algorithm'] == 'lanczos':
             self._algorithm = self._lanczos_algorithm
         else:
@@ -193,10 +197,16 @@ class IntegratorKrylov(Integrator):
         """
         Compute the eigen energies, basis transformation operator (U) and e0.
         """
-        evals, evecs = _data.eigs(krylov_tridiag, True)
+        evals, evecs = _data.eigs(krylov_tridiag, self._hermitian)
         N = evals.shape[0]
         U = _data.matmul(krylov_basis, evecs)
-        e0 = evecs.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
+
+        e0 =  _data.one_element_dense((N, 1), (0, 0), 1.0)
+        if self._hermitian:
+            e0 = evecs.adjoint() @ e0
+        else:
+            e0 = _data.inv(evecs) @ e0
+
         return evals, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
