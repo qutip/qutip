@@ -21,7 +21,7 @@ class IntegratorKrylov(Integrator):
         'atol': 1e-7,
         'nsteps': 100,
         'max_step': 1e5,
-        'min_step': 1e-5,
+        'min_step': 1e-14,
         'always_compute_step': False,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
@@ -37,9 +37,8 @@ class IntegratorKrylov(Integrator):
 
         self._max_step = -np.inf
 
-        krylov_dim = self.options["krylov_dim"]
-        if krylov_dim < 0:
-            raise ValueError("The options 'krylov_dim', must be an integer "
+        if self.options["krylov_dim"] < 0:
+            raise ValueError("The option 'krylov_dim', must be an integer "
                              "greater or equal zero.")
 
         if self.options['algorithm'] == 'lanczos_fro':
@@ -247,7 +246,7 @@ class IntegratorKrylov(Integrator):
         err = krylov_error(dt)
         if err > 0:
             raise ValueError(
-                f"With the krylov dim of {self.options['krylov_dim']}, the "
+                f"With the krylov dim of {self._krylov_dim}, the "
                 f"error with the minimum step {dt} is {err}, higher than the "
                 f"desired tolerance of {self.options['atol']}."
             )
@@ -286,7 +285,7 @@ class IntegratorKrylov(Integrator):
 
         if (
             krylov_tridiag.shape <= self.system.shape and
-            krylov_tridiag.shape[0] < self.options['krylov_dim']
+            krylov_tridiag.shape[0] <= self._krylov_dim
         ):
             # happy_breakdown
             self._max_step = np.inf
