@@ -1,2 +1,4 @@
-Enables Krylov subspace method for density matrices.
-Applies the Lanczos algorithm on the vectorized density matrix for basis construction.
+Enables Krylov subspace method for density matrices in closed and open
+(Lindblad-like) systems.
+Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis
+construction.

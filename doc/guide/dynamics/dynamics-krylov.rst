@@ -6,10 +6,12 @@ Krylov Solver
 
 .. _krylov-intro:
 
-Introduction
-=============
+The Krylov Subspace Method
+==========================
 
-The Krylov-subspace method is a standard method to approximate quantum dynamics.
+To approximate quantum dynamics in systems with a high number of degrees of
+freedom, the Krylov-subspace method is a standard method for efficient
+calculation.
 Let :math:`\left|\psi\right\rangle` be a state in a :math:`D`-dimensional
 complex Hilbert space that evolves under a time-independent Hamiltonian :math:`H`.
 Then, the :math:`N`-dimensional Krylov subspace associated with that state and
@@ -47,15 +49,54 @@ After a short time, the error starts to grow exponentially. However, this can be
 easily corrected by restarting the subspace when the error reaches a certain
 threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions
 provides accurate solutions for the complete time evolution. Within this scheme,
-the magic of Krylov resides not only in its ability to capture complex time evolutions
-from very large Hilbert spaces with very small dimenions :math:`M`, but also in
-the computing speed-up it presents.
+the magic of Krylov resides not only in its ability to capture complex time
+evolutions from very large Hilbert spaces with very small dimenions :math:`M`,
+but also in the computing speed-up it presents.
 
 For exceptional cases, the Lanczos algorithm might arrive at the exact evolution
 of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy
 breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`,
 then the algorithm will optimize using the value math:`M_{hb}<M`:, at which the
 evolution is not only exact but also cheap.
+
+Krylov for Mixed States
+-----------------------
+
+In a similar manner, the Liouvillian of a system can be taken as in input for
+the construction of the Kyrlov basis.
+This extends the applicability of this method to density operator dyanmics in
+both closed and open systems.
+In these cases, the subspace is spanned by repeated application of the
+Liouvillian onto the vectorized form of the density operator, thereby forming
+
+.. math::
+	:label: krylovsubspace_mixed
+
+	\mathcal{K}_{N}=\operatorname{span}\left\{|\rho), H|\psi\rangle, \ldots, \mathcal{L}^{N-1}|\psi\rangle\right\}.
+
+Same as for the pure states mentioned above, the Krylov basis vectors are
+calculated using the Lanczos algorithm (or alternative - see below).
+
+Alternative Algorithms for Kyrlov Construction
+----------------------------------------------
+
+As the number of degrees of freedom grow, the standard Lanczos algorithm shows
+significant errors due to numerical inaccuracies.
+This is why the *default* algorithm in QuTiP to construct the Krylov basis is
+the *fully-reorthogonalized* Lanczos algorithm (FRO).
+It orthogonalizes new basis vectors in respect to all previously created vectors
+to greatly limit the accumulation of errors.
+However, by specifically setting ``options["algorithm"]="lanczos"``, the original
+version is still accessible.
+
+In addition, QuTiP supports the Arnoldi iteration.
+This is necessary to correctly calculate open system dynamics.
+Contrary to the standard Lanczos and FRO Lanczos which produce a tri-diagonal
+matrix, the Arnoldi interation provides an upper-Hessenberg form.
+If :func:`.krylovsolve` is provided with collapse operators ``c_ops`` or a
+non-Hermitian Liouvillian, the Arnoldi algorithm will be enforced automatically
+for accurate results.
+
 
 .. _krylov-qutip:
 
