@@ -9,7 +9,7 @@ import numpy as np
 import numbers
 from operator import getitem
 from functools import partial
-from typing import Literal
+from typing import Any, Literal
 from qutip.settings import settings
 from qutip.typing import SpaceLike, DimensionLike
 
@@ -323,107 +323,76 @@ def einsum(subscripts, *operands):
     return from_tensor_rep(result, dims)
 
 
-class MetaSpace(type):
-    def __call__(cls, *args: SpaceLike,
-                 rep: str = None, repeat: int = None) -> "Space":
-        """
-        Select which subclass is instantiated.
-        """
+class DimensionsMeta(type):
+    """Caching and type resolution for Space and Dimensions types."""
+
+    def __init__(cls, name, bases, attrs):
+        cls._stored_dims = {}
+
+    def __call__(cls, *args: SpaceLike, **kwargs: Any) -> "Space":
+        proc_cls, proc_args, proc_kwargs = cls._process_args(*args, **kwargs)
+        if proc_cls is not cls:
+            # _process_args has detected that another type is better
+            # start over with the new type
+            return proc_cls(*proc_args, **proc_kwargs)
+
         if (
-            cls is Space
-            and len(args) == 1
-            and isinstance(args[0], (list, tuple, _homtuple))
+            len(proc_args) == 1
+            and isinstance(proc_args[0], (Space, Dimensions))
         ):
-            # From a list (or tuple) of int
-            return cls.from_list(args[0], rep=rep)
-        elif len(args) == 1 and isinstance(args[0], Space):
-            # Already a Space
-            if cls is SumSpace:
-                # Will be handled separately below
-                pass
+            # Already a Space / Dimensions
+            rep = proc_kwargs.pop('rep', None)
+            if rep:
+                return proc_args[0].replace_superrep(rep)
             else:
-                return args[0]
+                return proc_args[0]
 
-        if cls is Space:
-            if len(args) == 0:
-                # Empty space: a Field.
-                cls = Field
-            elif len(args) == 1 and args[0] == 1:
-                # Space(1): a Field.
-                cls = Field
-            elif len(args) == 1 and isinstance(args[0], Dimensions):
-                # Making a Space out of a Dimensions object: Super Operator.
-                cls = SuperSpace
-            elif len(args) > 1 and all(isinstance(arg, Space) for arg in args):
-                # list of space: tensor product space.
-                cls = Compound
-
-        if settings.core['auto_tidyup_dims']:
-            if cls is Compound and all(arg.size == 1 for arg in args):
-                cls = Field
-            elif cls is SuperSpace and args[0].type == 'scalar':
-                cls = Field
-
-        args = tuple([
+        proc_args = tuple([
             tuple(arg) if isinstance(arg, list) else arg
-            for arg in args
+            for arg in proc_args
         ])
-
-        if cls is Field:
-            return cls.field_instance
-
-        if cls is SuperSpace:
-            args = (*args, rep or 'super')
-
-        if cls is SumSpace:
-            if repeat is not None and repeat == 1:
-                repeat = None
-            if repeat is not None and (
-                not isinstance(repeat, numbers.Integral) or repeat <= 0
-            ):
-                raise ValueError("Repeat must be a positive integer")
-
-            # Spaces provided as list / tuple / _homtuple instead of varargs
-            if len(args) == 1 and not isinstance(args[0], Space):
-                args = args[0]
-
-            if len(args) == 0:
-                raise ValueError("Need at least one space for direct sum.")
-
-            elif len(args) == 1:
-                if repeat is not None:
-                    args = (_homtuple(args[0], repeat),)
-                elif not isinstance(args[0], SumSpace):
-                    # see SumSpace implementation note
-                    return args[0]
-                else:
-                    args = (tuple(args),)
-
-            else:
-                if repeat is not None:
-                    raise ValueError("Invalid arguments for sum space")
-                elif type(args) is _homtuple:
-                    args = (args,)
-                elif all(arg == args[0] for arg in args):
-                    args = (_homtuple(args[0], len(args)),)
-                else:
-                    args = (tuple(args),)
-
-        if args not in cls._stored_dims:
+        if proc_args not in cls._stored_dims:
             instance = cls.__new__(cls)
-            instance.__init__(*args)
-            cls._stored_dims[args] = instance
-        return cls._stored_dims[args]
+            instance.__init__(*proc_args)
+            cls._stored_dims[proc_args] = instance
+        return cls._stored_dims[proc_args]
 
-    def from_list(
+
+class Space(metaclass=DimensionsMeta):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], (list, tuple, _homtuple)):
+            # From a list (or tuple) of int
+            rep = kwargs.pop("rep", None)
+            return cls._process_list(args[0], rep=rep)
+
+        if len(args) == 0:
+            # Empty space: a Field
+            return Field, (), {}
+        if len(args) == 1 and args[0] == 1:
+            # Space(1): a Field
+            return Field, (), {}
+        if len(args) == 1 and isinstance(args[0], Dimensions):
+            # Making a Space out of a Dimensions object: Super Operator
+            return SuperSpace, args, kwargs
+        if len(args) > 1 and all(isinstance(arg, Space) for arg in args):
+            # list of space: tensor product space
+            return Compound, args, kwargs
+
+        return cls, args, kwargs
+
+    @classmethod
+    def _process_list(
         cls,
         list_dims: list[int] | list[list[int]] | tuple[SpaceLike, ...],
         rep: str = None
     ) -> "Space":
         if isinstance(list_dims, (tuple, _homtuple)):
             # direct sum
-            return SumSpace(
-                _map_tuple(lambda dim: Space(dim, rep=rep), list_dims)
+            return (
+                SumSpace,
+                _map_tuple(lambda dim: Space(dim, rep=rep), list_dims),
+                {}
             )
         if len(list_dims) == 0:
             raise ValueError("Empty list can't be used as dims.")
@@ -450,16 +419,10 @@ class MetaSpace(type):
         else:
             raise ValueError(f'Format not understood {list_dims}')
 
-        if len(spaces) == 1:
-            return spaces[0]
-        elif len(spaces) >= 2:
-            return Space(*spaces)
-        else:
+        if not spaces:
             raise ValueError(f'Format not understood {list_dims}')
 
-
-class Space(metaclass=MetaSpace):
-    _stored_dims = {}
+        return Compound, spaces, {}
 
     def __init__(self, dims):
         idims = int(dims)
@@ -572,7 +535,9 @@ class Space(metaclass=MetaSpace):
 
 
 class Field(Space):
-    field_instance = None
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        return Field, (), {}
 
     def __init__(self):
         self.size = 1
@@ -600,12 +565,15 @@ class Field(Space):
         return [1]
 
 
-Field.field_instance = Field.__new__(Field)
-Field.field_instance.__init__()
-
-
 class Compound(Space):
-    _stored_dims = {}
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if (
+            settings.core['auto_tidyup_dims']
+            and all(arg.size == 1 for arg in args)
+        ):
+                return Field, (), {}
+        return cls, args, kwargs
 
     def __init__(self, *spaces: Space):
         spaces_ = []
@@ -764,7 +732,43 @@ class SumSpace(Space):
     # Simplifying if x is not a SumSpace itself allows the maximum flexibility
     # while still allowing direct_component to function.
 
-    _stored_dims = {}
+    @classmethod
+    def _process_args(cls, *args, repeat=None, **kwargs):
+        if repeat is not None and repeat == 1:
+            repeat = None
+        if repeat is not None and (
+            not isinstance(repeat, numbers.Integral) or repeat <= 0
+        ):
+            raise ValueError("Repeat must be a positive integer")
+
+        # Spaces provided as list / tuple / _homtuple instead of varargs
+        if len(args) == 1 and not isinstance(args[0], Space):
+            args = args[0]
+
+        if len(args) == 0:
+            raise ValueError("Need at least one space for direct sum.")
+
+        if len(args) == 1:
+            if repeat is not None:
+                proc_args = (_homtuple(args[0], repeat),)
+            elif isinstance(args[0], SumSpace):
+                # prevent simplification (see implementation note above)
+                proc_args = (tuple(args),)
+            else:
+                # simplify
+                proc_args = args
+
+        else:
+            if repeat is not None:
+                raise ValueError("Invalid arguments for sum space")
+            elif type(args) is _homtuple:
+                proc_args = (args,)
+            elif all(arg == args[0] for arg in args):
+                proc_args = (_homtuple(args[0], len(args)),)
+            else:
+                proc_args = (tuple(args),)
+
+        return cls, proc_args, kwargs
 
     def _check_super(self):
         spaces = [self.spaces[0]] if self._repeat else self.spaces
@@ -870,7 +874,11 @@ class SumSpace(Space):
 
 
 class SuperSpace(Space):
-    _stored_dims = {}
+    @classmethod
+    def _process_args(cls, *args, rep='super', **kwargs):
+        if settings.core['auto_tidyup_dims'] and args[0].type == 'scalar':
+            return Field, (), {}
+        return cls, (*args, rep or 'super'), kwargs
 
     def __init__(self, oper: "Dimensions", rep: str = 'super'):
         self.oper = oper
@@ -930,31 +938,21 @@ class SuperSpace(Space):
         return SuperSpace(self.oper.scalar_like(), rep=self.superrep)
 
 
-class MetaDims(type):
-    def __call__(cls, *args: DimensionLike, rep: str = None) -> "Dimensions":
-        if len(args) == 1 and isinstance(args[0], Dimensions):
-            if rep:
-                return args[0].replace_superrep(rep)
-            else:
-                return args[0]
-        elif len(args) == 1 and len(args[0]) == 2:
+class Dimensions(metaclass=DimensionsMeta):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], list):
+            # from list representation
+            if len(args[0]) != 2:
+                raise ValueError(f"Format dims not understood {args[0]}.")
             args = (
-                Space(args[0][1], rep=rep),
-                Space(args[0][0], rep=rep)
+                Space(args[0][1], **kwargs),
+                Space(args[0][0], **kwargs)
             )
-        elif len(args) != 2:
+
+        if len(args) != 1 and len(args) != 2:
             raise NotImplementedError('No Dual, Ket, Bra...', args)
-
-        if args not in cls._stored_dims:
-            instance = cls.__new__(cls)
-            instance.__init__(*args)
-            cls._stored_dims[args] = instance
-        return cls._stored_dims[args]
-
-
-class Dimensions(metaclass=MetaDims):
-    _stored_dims = {}
-    _type: str = None
+        return cls, args, kwargs
 
     def __init__(self, from_: Space, to_: Space):
         self.from_ = from_
