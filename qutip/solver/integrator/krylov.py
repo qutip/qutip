@@ -21,6 +21,7 @@ class IntegratorKrylov(Integrator):
         'atol': 1e-7,
         'nsteps': 100,
         'max_step': 1e5,
+        'min_step': 1e-5,
         'always_compute_step': False,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
@@ -33,9 +34,9 @@ class IntegratorKrylov(Integrator):
     def _prepare(self):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
-        #if not self.system(0).isherm:
-            #raise ValueError("Krylov method only supports hermitian systems.")
+
         self._max_step = -np.inf
+
         krylov_dim = self.options["krylov_dim"]
         if krylov_dim < 0:
             raise ValueError("The options 'krylov_dim', must be an integer "
@@ -115,9 +116,6 @@ class IntegratorKrylov(Integrator):
         ------------
         psi: np.ndarray
             State used to calculation Krylov subspace (= first basis state).
-
-        t: float, default: 0
-            Time at which to evaluate the Hamiltonian.
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
@@ -163,9 +161,6 @@ class IntegratorKrylov(Integrator):
         ------------
         psi: np.ndarray
             State used to calculation Krylov subspace (= first basis state).
-
-        t: float, default: 0
-            Time at which to evaluate the Hamiltonian.
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
@@ -247,7 +242,7 @@ class IntegratorKrylov(Integrator):
             ) / self.options["atol"])
 
         # Under 0 will cause an infinite loop in the while loop bellow.
-        dt = 1e-10
+        dt = self.options["min_step"]
         max_step = max(self.options["max_step"], dt)
         err = krylov_error(dt)
         if err > 0:
@@ -290,8 +285,8 @@ class IntegratorKrylov(Integrator):
             self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
+            krylov_tridiag.shape <= self.system.shape and
             krylov_tridiag.shape[0] < self.options['krylov_dim']
-            or krylov_tridiag.shape <= self.system.shape
         ):
             # happy_breakdown
             self._max_step = np.inf
@@ -341,9 +336,8 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation. If the defaut 0 is given, the dimension
-            is calculated from the system size N, using
-            `min(int((N + 100)**0.5), N-1)`.
+            evolution approximation. If the defaut 0 is given, the full Krylov
+            space is calculated.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs

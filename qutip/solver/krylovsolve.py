@@ -25,8 +25,8 @@ def krylovsolve(
     options: dict[str, Any] = None,
 ) -> Result:
     """
-    Master equation evolution of a density for time independent Hamiltonians
-    using the Krylov method.
+    Master equation evolution of a (density) operator or pure state for time
+    independent Hamiltonians using the Krylov method.
 
     Evolve the state vector or density matrix ("rho0") finding an
     approximation for the time evolution operator of Hamiltonian ("H") by
