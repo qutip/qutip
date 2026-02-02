@@ -1,1 +1,0 @@
-Enables discovery of declaration files (`.pxd`) by Cython's compiler during the runtime compilation in `qutip/core/coefficient.py` under editable installs. Fixes issue #2770. 

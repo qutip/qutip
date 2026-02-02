@@ -2,7 +2,7 @@ import operator
 
 import pytest
 from qutip import (
-    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, rand_stochastic,
+    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, destroy, rand_stochastic,
     rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
     rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, CoreOptions
 )
@@ -419,6 +419,67 @@ def test_matmul(all_qevo):
                         op.matmul(t, matDense).full(), atol=1e-14)
         assert_allclose((Qo1 @ mat).full(),
                         op.matmul(t, matCSR).full(), atol=1e-14)
+
+
+def test_adjoint_rmatmul_data(all_qevo):
+    """
+    Test that QobjEvo.adjoint_rmatmul_data(t, state, out) correctly computes
+    state @ QobjEvo(t).dag() and accumulates into the output buffer.
+    """
+    mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    matDense = Qobj(mat).to(_data.Dense)
+    matF = Qobj(np.asfortranarray(mat)).to(_data.Dense)
+    op = all_qevo
+
+    for t in TESTTIMES:
+        Qo1 = op(t)
+        expected = (matDense @ Qo1.dag()).full()
+
+        # Test with Dense matrices (both C and Fortran order)
+        result_dense = Qobj(op.adjoint_rmatmul_data(t, matDense.data)).full()
+        assert_allclose(expected, result_dense, atol=1e-14)
+
+        result_f = Qobj(op.adjoint_rmatmul_data(t, matF.data)).full()
+        assert_allclose(expected, result_f, atol=1e-14)
+
+        # Test accumulation into output buffer
+        initial_out = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+        out_buffer = Qobj(initial_out).to(_data.Dense)
+        expected_accum = Qobj(initial_out).full() + expected
+
+        result_data = op.adjoint_rmatmul_data(
+            t, matDense.data, out_buffer.data)
+        result = Qobj(result_data).full()
+        assert_allclose(expected_accum, result, atol=1e-14)
+
+
+def test_adjoint_rmatmul_data_mixed_representations():
+    """
+    Test adjoint_rmatmul_data with mixed data representations (Dia, CSR, Dense)
+    and time-dependent coefficients using non-hermitian operators.
+    """
+    # Mixed representation QobjEvo with non-hermitian time-dependent terms
+    H_dia = destroy(N)  # Non-hermitian annihilation operator
+    H_csr = Qobj((rand_dm(N, seed=42) + 1j * rand_dm(N, seed=41)).full()
+                 ).to('csr')  # Non-hermitian
+    H_dense = (rand_dm(N, seed=43) + 1j * rand_dm(N, seed=44)
+               ).to('dense')  # Non-hermitian
+
+    op = QobjEvo([
+        H_dia,
+        [H_csr, '0.1 * cos(t)'],
+        [H_dense, '0.05 * sin(2*t)'],
+    ])
+
+    mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    matDense = Qobj(mat).to(_data.Dense)
+
+    for t in TESTTIMES:
+        Qo1 = op(t)
+        expected = (matDense @ Qo1.dag()).full()
+
+        result = Qobj(op.adjoint_rmatmul_data(t, matDense.data)).full()
+        assert_allclose(expected, result, atol=1e-14)
 
 
 def test_expect_psi(all_qevo):

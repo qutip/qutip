@@ -282,7 +282,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             return BR_eig
         return self.H.from_eigbasis(t, BR_eig)
 
-    cdef Data matmul_data_t(self, t, Data state, Data out=None):
+    cdef Data matmul_data_t(self, t, Data state, Data out=None, double complex scale=1):
         cdef size_t i
         cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
         cdef Data A_eig, BR_eig
@@ -293,7 +293,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             out = self.H.to_eigbasis(t, out)
         A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
         BR_eig = self._br_term(A_eig, cutoff)
-        out = _data.add(_data.matmul(BR_eig, state, dtype=type(state)), out, dtype=type(state))
+        out = _data.add(_data.matmul(BR_eig, state, scale, dtype=type(state)), out, dtype=type(state))
         if not self.eig_basis:
             out = self.H.from_eigbasis(t, out)
         return out
@@ -578,7 +578,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
             return BR_eig
         return self.H.from_eigbasis(t, BR_eig)
 
-    cdef Data matmul_data_t(self, t, Data state, Data out=None):
+    cdef Data matmul_data_t(self, t, Data state, Data out=None, double complex scale=1):
         cdef size_t i
         cdef double cutoff = self.sec_cutoff * self._compute_spectrum(t)
         cdef Data A_eig, B_eig, BR_eig
@@ -590,7 +590,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
         A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
         B_eig = self.H.to_eigbasis(t, self.a_op._call(t))
         BR_eig = self._br_cterm(A_eig, B_eig, cutoff)
-        out = _data.add(_data.matmul(BR_eig, state), out)
+        out = _data.add(_data.matmul(BR_eig, state, scale), out)
         if not self.eig_basis:
             out = self.H.from_eigbasis(t, out)
         return out

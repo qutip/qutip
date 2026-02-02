@@ -65,17 +65,6 @@ All back releases are also available for download in the [releases section of th
 For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.readthedocs.io/en/stable/changelog.html) section in the documentation.
 
 
-The pre-release of QuTiP 5.0 is available on PyPI and can be installed using pip:
-
-```bash
-pip install --pre qutip
-```
-
-This version breaks compatibility with QuTiP 4.7 in many small ways.
-Please see the [changelog](https://github.com/qutip/qutip/blob/master/doc/changelog.rst) for a list of changes, new features and deprecations.
-This version should be fully working. If you find any bugs, confusing documentation or missing features, please create a GitHub issue.
-
-
 Documentation
 -------------
 
