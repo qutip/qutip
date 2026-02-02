@@ -143,7 +143,8 @@ class MultiTrajSolver(Solver):
         return self._restore_state(state, copy=copy)
 
     def _initialize_run(self, state, ntraj=1, args=None, e_ops=(),
-                        timeout=None, target_tol=None, seeds=None):
+                        timeout=None, target_tol=None, seeds=None,
+                        prepared_state=None):
         start_time = time()
         self._argument(args)
         stats = self._initialize_stats()
@@ -159,7 +160,9 @@ class MultiTrajSolver(Solver):
             'timeout': timeout,
             'num_cpus': self.options['num_cpus'],
         })
-        if isinstance(state, (list, tuple)):  # mixed initial conditions
+        if prepared_state is not None:
+            state0 = prepared_state
+        elif isinstance(state, (list, tuple)):  # mixed initial conditions
             state0 = [(self._prepare_state(psi), p) for psi, p in state]
         else:
             state0 = self._prepare_state(state)
@@ -333,13 +336,18 @@ class MultiTrajSolver(Solver):
             between ``ntraj`` and ``timeout``. Setting a target tolerance is
             not supported with mixed initial conditions.
         """
-        seeds, result, map_func, map_kw, prepared_ics = self._initialize_run(
-            initial_conditions, np.sum(ntraj), args=args, e_ops=e_ops,
-            timeout=timeout, seeds=seeds)
+        prepared_ics = [(self._prepare_state(psi), p)
+                        for psi, p in initial_conditions]
         ics_info = _InitialConditions(prepared_ics, ntraj)
+        ntraj_total = ics_info.ntraj_total
+
+        seeds, result, map_func, map_kw, _ = self._initialize_run(
+            initial_conditions, ntraj_total, args=args, e_ops=e_ops,
+            timeout=timeout, seeds=seeds, prepared_state=prepared_ics)
+
         start_time = time()
         map_func(
-            self._run_one_traj_mixed, range(len(seeds)),
+            self._run_one_traj_mixed, range(ntraj_total),
             (seeds, ics_info, tlist, e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
