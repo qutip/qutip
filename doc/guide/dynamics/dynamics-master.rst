@@ -302,3 +302,48 @@ calculated with the lines following code
     :context: reset
     :include-source: false
     :nofigs:
+
+.. _master-matrix-form:
+
+Matrix-form Lindblad solver
+===========================
+
+By default, :func:`.mesolve` uses the superoperator formulation of the Lindblad
+master equation. This approach vectorizes the density matrix :math:`\rho` into
+a column vector of length :math:`n^2` and constructs an :math:`n^2 \times n^2`
+Liouvillian superoperator. While this is efficient for sparse systems, it can
+become memory-intensive and slower for larger or denser systems.
+
+QuTiP provides an alternative **matrix-form solver** that keeps the density
+matrix as an :math:`n \times n` matrix throughout the integration. Instead of
+building the full Liouvillian, it computes the right-hand side of the master
+equation using matrix-matrix products:
+
+.. math::
+
+   \dot\rho = -i[H,\rho] + \sum_n \left( C_n \rho C_n^\dagger
+              - \frac{1}{2}\{C_n^\dagger C_n, \rho\} \right)
+
+This approach can be more memory-efficient and faster for systems where:
+
+- The Hilbert space dimension is moderate to large
+- The operators are relatively dense
+- Memory is a constraint (avoids :math:`n^4` Liouvillian storage)
+
+To use the matrix-form solver, pass ``matrix_form=True`` in the options:
+
+.. code-block:: python
+
+    >>> result = mesolve(H, rho0, tlist, c_ops, e_ops=[op],
+    ...                  options={"matrix_form": True})
+
+Or when using :class:`.MESolver` directly:
+
+.. code-block:: python
+
+    >>> solver = MESolver(H, c_ops, options={"matrix_form": True})
+    >>> result = solver.run(rho0, tlist, e_ops=[op])
+
+The matrix-form solver supports all the same features as the standard solver,
+including time-dependent Hamiltonians and collapse operators, expectation value
+feedback, and all available ODE integrators.
