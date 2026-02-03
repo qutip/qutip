@@ -72,30 +72,30 @@ class IntegratorKrylov(Integrator):
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
-        p0 = _data.inner(psi, psi) # purity
+        p0 = _data.inner(psi, psi)  # purity
         sp0 = np.sqrt(p0)
 
-        T_diag = np.zeros(krylov_dim, dtype=complex)
-        T_subdiag = np.zeros(krylov_dim, dtype=complex)
+        diag = np.zeros(krylov_dim, dtype=complex)
+        subdiag = np.zeros(krylov_dim, dtype=complex)
         v = [psi]
 
         w_prime = _data.matmul(H, v[-1])
-        T_diag[0] = _data.inner(w_prime, v[-1]) / p0
-        w = _data.add(w_prime, v[-1], -T_diag[0])
-        T_subdiag[0] = _data.norm.l2(w) / sp0
+        diag[0] = _data.inner(w_prime, v[-1]) / p0
+        w = _data.add(w_prime, v[-1], -diag[0])
+        subdiag[0] = _data.norm.l2(w) / sp0
         j = 1
 
-        while j < krylov_dim and T_subdiag[j-1] > self.options['sub_system_tol']:
-            v.append(_data.mul(w, 1 / T_subdiag[j-1]))
+        while j < krylov_dim and subdiag[j-1] > self.options['sub_system_tol']:
+            v.append(_data.mul(w, 1 / subdiag[j-1]))
             w_prime = _data.matmul(H, v[-1])
-            T_diag[j] = _data.inner(w_prime, v[-1]) / p0
-            w = _data.add(w_prime, v[-1], -T_diag[j])
-            w = _data.add(w, v[-2], -T_subdiag[j-1])
-            T_subdiag[j] = _data.norm.l2(w) / sp0
+            diag[j] = _data.inner(w_prime, v[-1]) / p0
+            w = _data.add(w_prime, v[-1], -diag[j])
+            w = _data.add(w, v[-2], -subdiag[j-1])
+            subdiag[j] = _data.norm.l2(w) / sp0
             j += 1
 
         krylov_tridiag = _data.diag["dense"](
-            [T_subdiag[:j-1], T_diag[:j], T_subdiag[:j-1]],
+            [subdiag[:j-1], diag[:j], subdiag[:j-1]],
             [-1, 0, 1]
         )
         krylov_basis = _data.Dense(np.hstack([p.to_array() for p in v]))
@@ -122,30 +122,30 @@ class IntegratorKrylov(Integrator):
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
-        p0 = _data.inner(psi, psi) # purity
+        p0 = _data.inner(psi, psi)  # purity
         sp0 = np.sqrt(p0)
 
-        h_diag = np.zeros(krylov_dim, dtype=complex)
-        h_subdiag = np.zeros(krylov_dim, dtype=complex)
+        diag = np.zeros(krylov_dim, dtype=complex)
+        subdiag = np.zeros(krylov_dim, dtype=complex)
         Q = [psi]
 
         k = 1
         v = _data.matmul(H, Q[-1])
-        h_diag[0] = _data.inner(Q[-1], v) / p0
-        v = _data.add(v, Q[-1], -h_diag[0])
-        h_subdiag[0] = _data.norm.l2(v) / sp0
-        while k < krylov_dim and h_subdiag[k-1] > self.options['sub_system_tol']:
-            Q.append(_data.mul(v, 1 / h_subdiag[k-1]))
+        diag[0] = _data.inner(Q[-1], v) / p0
+        v = _data.add(v, Q[-1], -diag[0])
+        subdiag[0] = _data.norm.l2(v) / sp0
+        while k < krylov_dim and subdiag[k-1] > self.options['sub_system_tol']:
+            Q.append(_data.mul(v, 1 / subdiag[k-1]))
             v = _data.matmul(H, Q[-1])
             k += 1
             for j in range(k):  # removes projections
                 ol = _data.inner(Q[j], v) / p0
                 v = _data.add(v, Q[j], -ol)
-            h_diag[k-1] = ol
-            h_subdiag[k-1] = _data.norm.l2(v) / sp0
+            diag[k-1] = ol
+            subdiag[k-1] = _data.norm.l2(v) / sp0
 
         krylov_trid = _data.diag["dense"](
-            [h_subdiag[:k-1], h_diag[:k], h_subdiag[:k-1]],
+            [subdiag[:k-1], diag[:k], subdiag[:k-1]],
             [-1, 0, 1]
         )
         krylov_basis = _data.Dense(np.hstack([p.to_array() for p in Q]))
@@ -156,8 +156,8 @@ class IntegratorKrylov(Integrator):
         """
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
         state 'psi' and Krylov dimension 'krylov_dim' using the Arnoldi
-        interation. This results in an upper Hessenberg matrix. The space is
-        spanned by
+        interation. This results in an upper Hessenberg matrix that in general
+        is non-Hermitian. The space is spanned by
         {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
@@ -167,7 +167,7 @@ class IntegratorKrylov(Integrator):
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
-        p0 = _data.inner(psi, psi) # purity
+        p0 = _data.inner(psi, psi)  # purity
         sp0 = np.sqrt(p0)
 
         h = np.zeros((krylov_dim + 1, krylov_dim), dtype=complex)
@@ -201,7 +201,7 @@ class IntegratorKrylov(Integrator):
         N = evals.shape[0]
         U = _data.matmul(krylov_basis, evecs)
 
-        e0 =  _data.one_element_dense((N, 1), (0, 0), 1.0)
+        e0 = _data.one_element_dense((N, 1), (0, 0), 1.0)
         if self._hermitian:
             e0 = evecs.adjoint() @ e0
         else:
@@ -281,7 +281,8 @@ class IntegratorKrylov(Integrator):
 
         if self._mat_state:
             state0 = _data.column_stack(state0)
-            if not self.system.issuper: self.system = -1j * liouvillian(self.system)
+            if not self.system.issuper:
+                self.system = -1j * liouvillian(self.system)
 
         if self.options["krylov_dim"] == 0:
             d = self.system.shape[0]

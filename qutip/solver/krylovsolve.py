@@ -16,7 +16,7 @@ def krylovsolve(
     H: Qobj,
     rho0: Qobj,
     tlist: ArrayLike,
-    krylov_dim: int=0,
+    krylov_dim: int = 0,
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
     _e_ops=None,
     _args=None,
