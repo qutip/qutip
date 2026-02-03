@@ -21,7 +21,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
-from .dimensions import Space
+from .dimensions import Space, _homtuple
 from .. import settings
 from ..typing import SpaceLike, LayerType
 
@@ -58,7 +58,7 @@ def _to_space(dimensions):
     """
     if isinstance(dimensions, Space):
         return dimensions
-    elif isinstance(dimensions, list):
+    elif isinstance(dimensions, (list, tuple, _homtuple)):
         return Space(dimensions)
     else:
         return Space([dimensions])
@@ -72,6 +72,9 @@ def basis(
     dtype: LayerType = None,
 ) -> Qobj:
     """Generates the vector representation of a Fock state.
+
+    Note that the Fock index ``n`` starts from zero. Therefore, ``basis(N, 0)``
+    is the ground state of an N-dimensional system.
 
     Parameters
     ----------
@@ -120,7 +123,6 @@ def basis(
      [0.]
      [0.]]
 
-
     Notes
     -----
     A subtle incompatibility with the quantum optics toolbox: In QuTiP::
@@ -140,6 +142,7 @@ def basis(
     if n is None:
         location = 0
     elif offset:
+        dimensions._require_pure_dims("basis with offset")
         if not isinstance(offset, list):
             offset = [offset]
         if not isinstance(n, list):
@@ -156,7 +159,7 @@ def basis(
     else:
         if not isinstance(n, list):
             n = [n]
-        if len(n) != len(dimensions.as_list()):
+        if dimensions._pure_dims and len(n) != len(dimensions.as_list()):
             raise ValueError("All list inputs must be the same length.")
         try:
             location = dimensions.dims2idx(n)
