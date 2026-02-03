@@ -24,9 +24,8 @@ Hamiltonian is given by
 
 where the dimension :math:`N<D` is a parameter of choice. To construct an
 orthonormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithm
-is the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure
-that harnesses the fact that orthonormalization needs to be imposed only for the last
-two vectors in the basis. Written in this basis the time-evolved state can be approximated as
+is the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure.
+Written in this basis the time-evolved state can be approximated as
 
 .. math::
 	:label: lanczoskrylov
@@ -62,7 +61,7 @@ evolution is not only exact but also cheap.
 Krylov for Mixed States
 -----------------------
 
-In a similar manner, the Liouvillian of a system can be taken as in input for
+In a similar manner, the Liouvillian :math:`\mathcal{L}` of a system can be taken as in input for
 the construction of the Kyrlov basis.
 This extends the applicability of this method to density operator dyanmics in
 both closed and open systems.
@@ -84,18 +83,18 @@ As the number of degrees of freedom grow, the standard Lanczos algorithm shows
 significant errors due to numerical inaccuracies.
 This is why the *default* algorithm in QuTiP to construct the Krylov basis is
 the *fully-reorthogonalized* Lanczos algorithm (FRO).
-It orthogonalizes new basis vectors in respect to all previously created vectors
-to greatly limit the accumulation of errors.
-However, by specifically setting ``options["algorithm"]="lanczos"``, the original
-version is still accessible.
+It orthogonalizes new basis vectors in respect to *all* (contrary to just the
+last two) previously created vectors to greatly limit the accumulation of
+numerical errors.  However, by specifically setting
+``options["algorithm"]="lanczos"``, the standard Lanczos algorithm is still
+available.
 
 In addition, QuTiP supports the Arnoldi iteration.
-This is necessary to correctly calculate open system dynamics.
+It is necessary to correctly calculate open system dynamics.
 Contrary to the standard Lanczos and FRO Lanczos which produce a tri-diagonal
 matrix, the Arnoldi interation provides an upper-Hessenberg form.
 If :func:`.krylovsolve` is provided with collapse operators ``c_ops`` or a
-non-Hermitian Liouvillian, the Arnoldi algorithm will be enforced automatically
-for accurate results.
+non-Hermitian Liouvillian, the Arnoldi algorithm will be enforced automatically.
 
 
 .. _krylov-qutip:
