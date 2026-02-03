@@ -4,34 +4,36 @@ from __future__ import annotations
 __all__ = ['krylovsolve']
 
 from .. import QobjEvo, Qobj
-from .sesolve import SESolver
+from .mesolve import mesolve
 from .result import Result
 from .solver_base import _kwargs_migration
 from numpy.typing import ArrayLike
+from qutip.typing import QobjEvoLike
 from typing import Any, Callable
 
 
 def krylovsolve(
     H: Qobj,
-    psi0: Qobj,
+    rho0: Qobj,
     tlist: ArrayLike,
-    krylov_dim: int,
-    _e_ops = None,
-    _args = None,
-    _options = None,
+    krylov_dim: int = 0,
+    c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
+    _e_ops=None,
+    _args=None,
+    _options=None,
     *,
     e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
 ) -> Result:
     """
-    Schrodinger equation evolution of a state vector for time independent
-    Hamiltonians using Krylov method.
+    Master equation evolution of a (density) operator or pure state for time
+    independent Hamiltonians using the Krylov method.
 
-    Evolve the state vector ("psi0") finding an approximation for the time
-    evolution operator of Hamiltonian ("H") by obtaining the projection of
-    the time evolution operator on a set of small dimensional Krylov
-    subspaces (m << dim(H)).
+    Evolve the state vector or density matrix ("rho0") finding an
+    approximation for the time evolution operator of Hamiltonian ("H") by
+    obtaining the projection of the time evolution operator on a set of small
+    dimensional Krylov subspaces (m << dim(H)).
 
     The output is either the state vector or unitary matrix at arbitrary points
     in time (`tlist`), or the expectation values of the supplied operators
@@ -47,8 +49,8 @@ def krylovsolve(
         Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
         that can be made into :obj:`.QobjEvo` are also accepted.
 
-    psi0 : :class:`.Qobj`
-        Initial state vector (ket)
+    rho0 : :class:`.Qobj`
+        Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -115,9 +117,8 @@ def krylovsolve(
     e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
     args = _kwargs_migration(_args, args, "args")
     options = _kwargs_migration(_options, options, "options")
-    H = QobjEvo(H, args=args, tlist=tlist)
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
-    solver = SESolver(H, options=options)
-    return solver.run(psi0, tlist, e_ops=e_ops)
+
+    return mesolve(H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options)

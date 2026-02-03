@@ -34,7 +34,7 @@ quantum systems and indicates the type of object returned by the solver:
      - :func:`~qutip.solver.floquet.fsesolve`
      - None
      - :obj:`~qutip.solver.result.Result`
-   * - Schrödinger equation using Krylov method
+   * - Schrödinger eq. or Von Neumann using Krylov method
      - :func:`~qutip.solver.krylovsolve.krylovsolve`
      - None
      - :obj:`~qutip.solver.result.Result`

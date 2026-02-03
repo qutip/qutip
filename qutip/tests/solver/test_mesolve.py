@@ -3,6 +3,7 @@ from types import FunctionType
 
 import qutip
 from qutip.solver.mesolve import mesolve, MESolver
+from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 import pickle
 import pytest
@@ -711,3 +712,45 @@ def test_non_normalized_dm(rho0):
     solver = qutip.MESolver(H, c_ops=[qutip.sigmaz()])
     result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
     np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
+
+
+@pytest.mark.parametrize("kdim", [50, 1000])
+@pytest.mark.parametrize("algorithm", ['lanczos_fro', 'arnoldi'])
+def test_krylovsolve_mixed_state(kdim, algorithm):
+    # Kyrlov method works best with dense Hamiltonians.
+    # Since rand_herm(.) usually provides sparse matrices, we are summing
+    # multiple samplings.
+    H = np.sum([qutip.rand_herm(20) for _ in range(30)]) / 30
+    rho0 = qutip.rand_dm(20)
+    e_op = qutip.num(20)
+    e_op.dims = H.dims
+    tlist = np.linspace(0, 1, 11)
+
+    opts = {"store_states": True}
+    ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
+    ref_exp = ref.expect[0]
+
+    opts = {"store_states": True, "algorithm": algorithm}
+    kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    np.testing.assert_allclose(ref_exp, kout.expect[0])
+
+
+def test_krylovsolve_decay():
+    a = qutip.destroy(10)
+    H = a.dag() * a
+    kappa = 0.2
+    c_op = np.sqrt(kappa) * a
+    tlist = np.linspace(0, 10, 201)
+    psi0 = qutip.basis(10, 9)
+
+    opts = {"store_states": True}
+    kout = krylovsolve(H, psi0, tlist, c_ops=[c_op], e_ops=[H], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    expt = kout.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    np.testing.assert_allclose(actual_answer, expt, atol=1e-6)
