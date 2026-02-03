@@ -122,28 +122,17 @@ def basis(
      [0.]
      [0.]
      [0.]]
-    >>> basis(([2], [3]), [1, [0]]) # doctest: +SKIP
-    Quantum object: dims=[([2], [3]), [1]], shape=(5, 1), type='ket', dtype=Dense
-    Qobj data =
-    [[0.]
-     [0.]
-     [1.]
-     [0.]
-     [0.]]
 
     Notes
     -----
-    *Advanced usage:* This function can be used to create basis vectors in a
-    summed Hilbert space. For the ``dimensions`` parameter, pass a tuple whose
-    entries are the dimension specifications for the components of the direct
-    sum. For ``n``, pass a list where the first entry is an integer indicating
-    the component and the second entry describes the basis state inside the
-    component. The ``offset`` parameter is not allowed in this case.
+    A subtle incompatibility with the quantum optics toolbox: In QuTiP::
 
-    For example, the tuple ``([M], [N])`` denotes an ``(M+N)``-dimensional
-    space. Its basis vectors are ``basis(([M], [N]), [0, [m]])`` for
-    :math:`0 \\leq m < M` and ``basis(([M], [N]), [1, [n]])`` for
-    :math:`0 \\leq n < N`.
+        basis(N, 0) = ground state
+
+    but in the qotoolbox::
+
+        basis(N, 1) = ground state
+
     """
     dtype = _data._parse_default_dtype(dtype, "dense")
     # Promote all parameters to Space to simplify later logic.

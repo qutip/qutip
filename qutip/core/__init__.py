@@ -2,7 +2,6 @@ from .options import *
 from .coefficient import *
 from .qobj import *
 from .cy.qobjevo import *
-from .direct_sum import *
 from .environment import *
 from .expect import *
 from .tensor import *
