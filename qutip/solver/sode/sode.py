@@ -85,14 +85,13 @@ class SIntegrator(Integrator):
         elif isinstance(generator, Wiener):
             self.wiener = generator
         else:
-            num_collapse = len(self.rhs.sc_ops)
+            num_collapse = len(self.rhs.c_ops)
             self.wiener = Wiener(
                 t, self.options["dt"], generator,
                 (self.N_dw, num_collapse)
             )
         self.rhs._register_feedback(self.wiener)
-        rhs = self.rhs(self.options)
-        self.step_func = self.stepper(rhs, **stepper_opt).run
+        self.step_func = self.stepper(self.rhs, **stepper_opt).run
         self._is_set = True
 
     def get_state(self, copy=True):
@@ -146,10 +145,10 @@ class _Explicit_Simple_Integrator(SIntegrator):
     stepper = None
     N_dw = 0
 
-    def __init__(self, rhs, options):
+    def __init__(self, solver):
         self._options = self.integrator_options.copy()
-        self.options = options
-        self.rhs = rhs
+        self.options = solver.options
+        self.rhs = solver.rhs
 
     def integrate(self, t, copy=True):
         delta_t = t - self.t

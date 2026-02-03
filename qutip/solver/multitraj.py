@@ -19,27 +19,6 @@ from operator import itemgetter
 __all__ = ["MultiTrajSolver"]
 
 
-class _MultiTrajRHS:
-    """
-    Container for the operators of the solver.
-    """
-    def __init__(self, rhs):
-        self.rhs = rhs
-
-    def arguments(self, args):
-        self.rhs.arguments(args)
-
-    def _register_feedback(self, type, val):
-        pass
-
-    def __getattr__(self, attr):
-        if attr == "rhs":
-            raise AttributeError
-        if hasattr(self.rhs, attr):
-            return getattr(self.rhs, attr)
-        raise AttributeError
-
-
 class MultiTrajSolver(Solver):
     """
     Basic class for multi-trajectory evolutions.
@@ -80,17 +59,14 @@ class MultiTrajSolver(Solver):
     }
 
     def __init__(self, rhs, *, options=None):
-        if isinstance(rhs, QobjEvo):
-            self.rhs = _MultiTrajRHS(rhs)
-        elif isinstance(rhs, _MultiTrajRHS):
-            self.rhs = rhs
+        if isinstance(rhs, (Qobj, QobjEvo)):
+            self._rhs = QobjEvo(rhs)
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
+        self._dims = self.rhs._dims
         self.seed_sequence = SeedSequence()
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
+        self._post_init(options)
 
     def start(self, state0: Qobj, t0: float, seed: int | SeedSequence = None):
         """

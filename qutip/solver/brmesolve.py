@@ -17,6 +17,7 @@ from .. import Qobj, QobjEvo, coefficient, Coefficient
 from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
+from ..core.dimensions import Dimensions
 from .solver_base import Solver, _solver_deprecation
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
@@ -65,7 +66,7 @@ def brmesolve(
 
         spectra : :obj:`.Coefficient`, str, func, Environment
             The corresponding bath spectra.
-            Bath can be provided as :class:`.BosonicEnvironment`, 
+            Bath can be provided as :class:`.BosonicEnvironment`,
             :class:`.FermionicEnvironment` or power spectra function.  These
             can be a :obj:`.Coefficient`, function or string. For coefficient,
             the frequency is passed as the 'w' args. The
@@ -303,9 +304,7 @@ class BRSolver(Solver):
     ):
         _time_start = time()
 
-        self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
@@ -316,6 +315,8 @@ class BRSolver(Solver):
         for c_op in c_ops:
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
+        self._dims = Dimensions([H._dims, H._dims])
 
         a_ops = a_ops or []
         if not hasattr(a_ops, "__iter__"):
@@ -333,33 +334,46 @@ class BRSolver(Solver):
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
-        self.rhs = self._prepare_rhs()
-        self._integrator = self._get_integrator()
-        self._state_metadata = {}
-        self.stats = self._initialize_stats()
-        self.rhs._register_feedback({}, solver=self.name)
+        self._post_init(options)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
             "solver": "Bloch Redfield Equation Evolution",
-            "init time": stats["init time"] + self._init_rhs_time,
+            "rhs_build_time": 0,
             "num_collapse": self._num_collapse,
             "num_a_ops": self._num_a_ops,
         })
         return stats
 
-    def _prepare_rhs(self):
-        _time_start = time()
-        rhs = bloch_redfield_tensor(
-            *self._system,
-            fock_basis=True,
-            sec_cutoff=self.sec_cutoff,
-            sparse_eigensolver=False,
-            br_computation_method=self.options['tensor_type']
-        )
-        self._init_rhs_time = time() - _time_start
-        return rhs
+    @property
+    def rhs(self):
+        if not self._rhs:
+            _time_start = time()
+            rhs = bloch_redfield_tensor(
+                *self._system,
+                fock_basis=True,
+                sec_cutoff=self.sec_cutoff,
+                br_computation_method=self.options['tensor_type']
+            )
+            self._rhs = QobjEvo(rhs)
+            self.stats["rhs_build_time"] += time() - _time_start
+        return self._rhs
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            H, a_ops, c_ops = self._system
+            H.arguments(args)
+            for c_op in c_ops:
+                c_op.arguments(args)
+            new_a_ops = []
+            for a_op, spectra in a_ops:
+                if isinstance(a_op, QobjEvo):
+                    a_op.arguments(args)
+                new_a_ops.append((a_op, spectra))
+            self._integrator.arguments(args)
+            self._system = H, new_a_ops, c_ops
 
     @property
     def options(self):
@@ -401,16 +415,17 @@ class BRSolver(Solver):
         Solver.options.fset(self, new_options)
 
     def _apply_options(self, keys):
-        need_new_rhs = self.rhs is not None and not self.rhs.isconstant
+        need_new_rhs = self._rhs is not None and not self._rhs.isconstant
         need_new_rhs &= 'tensor_type' in keys
         if need_new_rhs:
-            self.rhs = self._prepare_rhs()
+            self._rhs = None
+            self._integrator_instance = None
 
-        if self._integrator is None or not keys:
+        if self._integrator_instance is None or not keys:
             pass
         elif 'method' in keys or need_new_rhs:
             state = self._integrator.get_state()
-            self._integrator = self._get_integrator()
+            self._integrator_instance = None
             self._integrator.set_state(*state)
         else:
             self._integrator.options = self._options

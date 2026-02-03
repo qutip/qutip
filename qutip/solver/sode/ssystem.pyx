@@ -115,6 +115,9 @@ cdef class _StochasticSystem:
         """
         raise NotImplementedError
 
+    def _register_feedback(self, val):
+        raise NotImplementedError
+
 
 cdef class StochasticClosedSystem(_StochasticSystem):
     """
@@ -128,6 +131,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         diffusion = (c_i - e_i / 2) * psi
     """
     cdef readonly list cpcd_ops
+    cdef readonly object _dims
 
     def __init__(self, H, sc_ops):
         self.L = -1j * H
@@ -137,6 +141,8 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
+
+        self._dims = self.L._dims
 
     cpdef Data drift(self, t, Data state):
         cdef int i
@@ -189,6 +195,17 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         out.num_collapse = len(c_ops)
         return out
 
+    def _register_feedback(self, val):
+        self.L._register_feedback({"WienerFeedback": val}, "stochatic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WeinerFeedback": val}, "stochatic solver"
+            )
+        for sc_op in self.cpcd_ops:
+            sc_op._register_feedback(
+                {"WeinerFeedback": val}, "stochatic solver"
+            )
+
 
 cdef class StochasticOpenSystem(_StochasticSystem):
     """
@@ -202,6 +219,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef double dt
     cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
+    cdef readonly object _dims
 
     cdef Dense _a, temp, _L0a
     cdef complex[::1] expect_Cv
@@ -223,6 +241,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self._is_set = 0
         self.N_root = int(self.state_size**0.5)
         self.dt = derr_dt
+        self._dims = self.L._dims
 
     cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)
@@ -522,6 +541,13 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         out.dt = derr_dt
         return out
 
+    def _register_feedback(self, val):
+        self.L._register_feedback({"WienerFeedback": val}, "stochatic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WienerFeedback": val}, "stochatic solver"
+            )
+
 
 cdef class SimpleStochasticSystem(_StochasticSystem):
     """
@@ -615,3 +641,10 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
                 lambda t: self.c_ops[i](t) @ self.c_ops[i](t), t
             ) * t
         return out.expm().data
+
+    def _register_feedback(self, val):
+        self.L._register_feedback({"wiener_process": val}, "stochatic solver")
+        for c_op in self.c_ops:
+            c_op._register_feedback(
+                {"WeinerFeedback": val}, "stochatic solver"
+            )

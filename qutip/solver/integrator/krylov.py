@@ -28,7 +28,11 @@ class IntegratorKrylov(Integrator):
     supports_blackbox = False
     method = 'krylov'
 
-    def _prepare(self):
+    def __init__(self, solver):
+        self.system = solver.H
+        self._options = self.integrator_options.copy()
+        self.options = solver.options
+
         if not self.system.isconstant:
             raise ValueError("krylov method only support constant system.")
         self._max_step = -np.inf
@@ -71,7 +75,7 @@ class IntegratorKrylov(Integrator):
             State used to calculate Krylov subspace.
         """
         krylov_dim = self.options['krylov_dim']
-        H = (1j * self.system(0)).data
+        H = self.system(0).data
 
         v = []
         T_diag = np.zeros(krylov_dim + 1, dtype=complex)
@@ -108,7 +112,8 @@ class IntegratorKrylov(Integrator):
         eigenvalues, eigenvectors = _data.eigs(krylov_tridiag, True)
         N = eigenvalues.shape[0]
         U = _data.matmul(krylov_basis, eigenvectors)
-        e0 = eigenvectors.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
+        eigenvectors_dag = eigenvectors.adjoint()
+        e0 = eigenvectors_dag @ _data.one_element_dense((N, 1), (0, 0), 1.0)
         return eigenvalues, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
@@ -119,20 +124,24 @@ class IntegratorKrylov(Integrator):
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step(self, krylov_tridiag, krylov_basis, krylov_state=None):
+    def _compute_max_step(
+        self, krylov_tridiag, krylov_basis, krylov_state=None
+    ):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
         if not krylov_state:
-            krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
+            krylov_state = self._compute_krylov_set(
+                krylov_tridiag, krylov_basis
+            )
 
         small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
         small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
         reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
-            # we divide by atol and take the log so that the error returned is 0
-            # at atol, which is convenient for calling root_scalar with.
+            # we divide by atol and take the log so that the error returned is
+            # 0 at atol, which is convenient for calling root_scalar with.
             return np.log(_data.norm.l2(
                 self._compute_psi(t, *krylov_state) -
                 self._compute_psi(t, *reduced_state)
@@ -165,7 +174,9 @@ class IntegratorKrylov(Integrator):
     def set_state(self, t, state0):
         self._t_0 = t
         krylov_tridiag, krylov_basis = self._lanczos_algorithm(state0)
-        self._krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
+        self._krylov_state = self._compute_krylov_set(
+            krylov_tridiag, krylov_basis
+        )
 
         if (
             krylov_tridiag.shape[0] <= self.options['krylov_dim']
@@ -193,7 +204,10 @@ class IntegratorKrylov(Integrator):
             # If outside, advance the range
             step += 1
             if step >= self.options["nsteps"]:
-                raise IntegratorException(f"Maximum number of integration steps ({self.options['nsteps']}) exceeded")
+                raise IntegratorException(
+                    f"Maximum number of integration steps "
+                    f"({self.options['nsteps']}) exceeded"
+                )
             new_psi = self._compute_psi(self._max_step, *self._krylov_state)
             self.set_state(self._t_0 + self._max_step, new_psi)
 
@@ -217,8 +231,9 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation. If the defaut 0 is given, the dimension is calculated
-            from the system size N, using `min(int((N + 100)**0.5), N-1)`.
+            evolution approximation. If the defaut 0 is given, the dimension is
+            calculated from the system size N, using
+            `min(int((N + 100)**0.5), N-1)`.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs

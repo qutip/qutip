@@ -197,15 +197,12 @@ class IntegratorDiag(Integrator):
     supports_blackbox = False
     method = 'diag'
 
-    def __init__(self, system, options):
-        if not system.isconstant:
-            raise ValueError("Hamiltonian system must be constant to use "
-                             "diagonalized method")
-        super().__init__(system, options)
-
     def _prepare(self):
         self._dt = 0.
         self._expH = None
+        if not self.system.isconstant:
+            raise ValueError("Hamiltonian system must be constant to use "
+                             "diagonalized method")
         H0 = self.system(0).to(self.options["eigensolver_dtype"])
         self.diag, self.U = _data.eigs(H0.data, False)
         self.diag = self.diag.reshape((-1, 1))

@@ -67,12 +67,12 @@ class Integrator:
     name = None
     method = ""
 
-    def __init__(self, system, options):
-        self.system = system
+    def __init__(self, solver):
+        self.system = solver.rhs
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._options = self.integrator_options.copy()
-        self.options = options
+        self.options = solver.options
         self._prepare()
 
     def _prepare(self):

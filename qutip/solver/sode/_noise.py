@@ -76,7 +76,7 @@ class PreSetWiener(Wiener):
         self.t0 = tlist[0]
         self.dt = tlist[1] - tlist[0]
         self.shape = noise.shape[1:]
-        self.noise = noise.T[:, np.newaxis, :].copy()
+        self.noise = noise.T[:, np.newaxis, :].copy().real.astype(np.double)
         self.last_W = np.zeros(self.shape[-1], dtype=float)
         self.idx_last_0 = 0
         self.is_measurement = is_measurement
