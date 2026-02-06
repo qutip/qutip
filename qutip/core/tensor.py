@@ -9,7 +9,7 @@ __all__ = [
 
 import numpy as np
 from functools import partial
-from typing import TypeVar, overload
+from typing import TypeVar, overload, List, Union
 
 from .operators import qeye
 from .qobj import Qobj
@@ -32,15 +32,19 @@ class _reverse_partial_tensor:
     def __call__(self, op):
         return tensor(op, self.right)
 
-
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
 
 @overload
-def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+def tensor(args: List[Qobj]) -> Qobj: ...
 
-def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
-    """Calculates the tensor product of input operators.
+@overload
+def tensor(*args: Union[Qobj, QobjEvo]) -> Union[Qobj, QobjEvo]: ...
+
+@overload
+def tensor(args: List[Union[Qobj, QobjEvo]]) -> Union[Qobj, QobjEvo]: ...
+    """
+    Calculates the tensor product of input operators.
 
     Parameters
     ----------
