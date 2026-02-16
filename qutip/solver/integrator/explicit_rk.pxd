@@ -12,7 +12,7 @@ cpdef enum Status:
     NOT_INITIATED = -4
 
 cdef class Explicit_RungeKutta:
-    cdef object qevo  # Changed from QobjEvo to support duck-typed RHS
+    cdef QobjEvo qevo
 
     # Ode state data, set in set_initial_value
     cdef list k

@@ -24,7 +24,7 @@ from qutip.core.cy.qobjevo cimport QobjEvo
 __all__ = ['LindbladMatrixForm']
 
 
-cdef class LindbladMatrixForm:
+cdef class LindbladMatrixForm(QobjEvo):
     """
     Computes the Lindblad master equation RHS in matrix form.
 
@@ -36,9 +36,6 @@ cdef class LindbladMatrixForm:
 
         \\frac{d\\rho}{dt} = -i[H,\\rho] + \\sum_i \\left(c_i \\rho c_i^\\dagger 
         - \\frac{1}{2}\\{c_i^\\dagger c_i, \\rho\\}\\right)
-
-    This class mimics the QobjEvo interface (specifically the matmul_data
-    method) so it can be used as a drop-in replacement in solvers.
 
     Parameters
     ----------
@@ -57,8 +54,6 @@ cdef class LindbladMatrixForm:
         Number of collapse operators
     shape : tuple
         Shape of operators (n, n)
-    isconstant : bool
-        Whether all operators are time-independent
     """
 
     def __init__(self, H, c_ops, *, _H_nh=None):
@@ -75,15 +70,20 @@ cdef class LindbladMatrixForm:
             Pre-computed non-Hermitian Hamiltonian. If provided, skips the
             H_nh computation. This is used internally for pickling.
         """
+        # Bypass QobjEvo.__init__ — set base class fields directly
+        self.elements = []
+        self._feedback_functions = {}
+        self._solver_only_feedback = {}
+        self._dims = H._dims
+        self.shape = H.shape
+
         self.c_ops = list(c_ops) if c_ops else []
         self.num_collapse = len(self.c_ops)
 
         # Use pre-computed H_nh if provided (e.g., from unpickling)
         if _H_nh is not None:
             self.H_nh = _H_nh
-        # Construct non-Hermitian Hamiltonian: H_nh = H - (i/2) * sum(dag(c_i) * c_i)
-        # This allows us to write: drho/dt = -i(H_nh * rho - rho * dag(H_nh)) + sum(c_i * rho * dag(c_i))
-        elif len(c_ops) > 0:
+        elif len(self.c_ops) > 0:
             H_nh = H
             for c_op in self.c_ops:
                 H_nh = H_nh - (0.5j) * (c_op.dag() * c_op)
@@ -92,22 +92,14 @@ cdef class LindbladMatrixForm:
         else:
             self.H_nh = H
 
-        self._dims = H._dims
-        self.shape = H.shape
-        self.type = 'oper'
-        self.issuper = True
-
-        # Check if all operators are time-independent
-        self.isconstant = self.H_nh.isconstant
-        
         # Pre-allocate temporary buffer for intermediate calculations
-        n = self.shape[0]
         self._temp_buffer = None
-        self._buffer_size = n
+        self._buffer_size = self.shape[0]
 
-    cpdef Data matmul_data(LindbladMatrixForm self, object t, Data rho, Data out=None):
+    cpdef Data matmul_data(LindbladMatrixForm self, object t, Data rho,
+                           Data out=None, double complex scale=1):
         """
-        Compute drho/dt using matrix form of Lindblad equation.
+        Compute ``out += scale * L[rho]`` where L is the Lindblad superoperator.
 
         Exploits Hermiticity of rho to compute A + A.dag() where:
 
@@ -125,11 +117,13 @@ cdef class LindbladMatrixForm:
             Density matrix (n x n dense matrix, not vectorized)
         out : Dense, optional
             Output buffer. If None, allocates new Dense object.
+        scale : complex, optional
+            Scale factor applied to the result. Default: 1.
 
         Returns
         -------
         drho_dt : Dense
-            Time derivative drho/dt as n x n dense matrix
+            ``out + scale * L[rho]`` as n x n dense matrix
         """
         cdef Dense rho_dense, out_dense, temp_dense
         cdef int i
@@ -152,29 +146,41 @@ cdef class LindbladMatrixForm:
 
         # Allocate temp buffer on first use
         if self._temp_buffer is None:
-            self._temp_buffer = dense.zeros(self._buffer_size, 
-                                            self._buffer_size, 
+            self._temp_buffer = dense.zeros(self._buffer_size,
+                                            self._buffer_size,
                                             fortran=rho_dense.fortran)
         temp_dense = <Dense>self._temp_buffer
 
         # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
         # Then drho/dt = A + A.dag()
 
-        # -i H_nh @ rho
-        out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
+        # -i * scale * H_nh @ rho
+        out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense, -1j * scale)
 
-        # +0.5 sum(L @ rho @ Ld)
+        # +0.5 * scale * sum(L @ rho @ Ld)
         cdef QobjEvo c_op
         for i in range(self.num_collapse):
             c_op = <QobjEvo>self.c_ops[i]
             temp_dense = imul_dense(temp_dense, 0)
-            temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, 0.5)
+            temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, 0.5 * scale)
             out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
 
         # Add Hermitian conjugate: out += out.dag()
         out_dense = iadjoint_dense(out_dense, temp_dense)
 
         return out_dense
+
+    @property
+    def isconstant(self):
+        return self.H_nh.isconstant
+
+    @property
+    def issuper(self):
+        return True
+
+    @property
+    def isoper(self):
+        return True
 
     def __call__(LindbladMatrixForm self, double t, dict _args=None, **kwargs):
         """Not implemented - this class doesn't produce operators at time t."""
@@ -208,7 +214,7 @@ cdef class LindbladMatrixForm:
     def __reduce__(self):
         """
         Support pickling by excluding temporary buffers.
-        
+
         The _temp_buffer is a workspace that will be lazily recreated on first
         use, so we don't need to pickle it. We pass H_nh via _H_nh to avoid
         recomputing it on unpickle.

@@ -11,26 +11,9 @@ from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from qutip.core.data.ode cimport cy_wrmn_error
 from qutip.core.cy.qobjevo cimport QobjEvo
-from qutip.core.cy.lindblad_matrix_form cimport LindbladMatrixForm
 from cpython.exc cimport PyErr_CheckSignals
 cimport cython
 import numpy as np
-
-# Fast dispatch function for matmul_data calls
-cdef inline Data _fast_matmul_data(object qevo, double t, Data state, Data out=None):
-    """
-    Fast dispatch for matmul_data calls avoiding object protocol overhead.
-    
-    This function provides compile-time specialization for QobjEvo and 
-    LindbladMatrixForm, avoiding the performance penalty of object calls.
-    """
-    if type(qevo) is QobjEvo:
-        return (<QobjEvo>qevo).matmul_data(t, state, out)
-    elif type(qevo) is LindbladMatrixForm:
-        return (<LindbladMatrixForm>qevo).matmul_data(t, state, out)
-    else:
-        # Fallback for other objects that implement matmul_data interface
-        return qevo.matmul_data(t, state, out)
 
 
 __all__ = ["Explicit_RungeKutta"]
@@ -68,9 +51,8 @@ cdef class Explicit_RungeKutta:
 
     Parameters
     ----------
-    qevo : QobjEvo or object with matmul_data method
+    qevo : QobjEvo
         The system to integrate: ```dX = qevo.matmul_data(t, X)``
-        Can be any object implementing the matmul_data(t, state) interface.
 
     butcher_tableau : dict
         The coefficients as butcher tableau:
@@ -106,7 +88,7 @@ cdef class Explicit_RungeKutta:
     """
     def __init__(
             self,
-            object qevo,  # Changed from QobjEvo to support duck-typed RHS
+            QobjEvo qevo,
             dict butcher_tableau,
             double rtol=1e-6,
             double atol=1e-8,
@@ -237,7 +219,7 @@ cdef class Explicit_RungeKutta:
         if self.first_same_as_last:
             self._k_fsal = self._y.copy()
             self._k_fsal = imul_data(<Data> self._k_fsal, 0)
-            self._k_fsal = _fast_matmul_data(self.qevo, t, y0, <Data> self._k_fsal)
+            self._k_fsal = self.qevo.matmul_data(t, y0, <Data> self._k_fsal)
 
         if not self.first_step:
             self._dt_safe = self._estimate_first_step(t, self._y)
@@ -256,7 +238,7 @@ cdef class Explicit_RungeKutta:
             self.k[0] = copy_to(self._k_fsal, self.k[0])
         else:
             self.k[0] = imul_data(<Data> self.k[0], 0)
-            self.k[0] = _fast_matmul_data(self.qevo, t, y0, <Data> self.k[0])
+            self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
 
         # Ok approximation for linear system. But not in a general case.
         if norm <= self.atol:
@@ -275,7 +257,7 @@ cdef class Explicit_RungeKutta:
         # below dt1 / 100 is an arbitrary small fraction of dt1:
         self._y_temp = iadd_data(self._y_temp, <Data> self.k[0], dt1 / 100)
         self.k[1] = imul_data(<Data> self.k[1], 0)
-        self.k[1] = _fast_matmul_data(self.qevo, t1, self._y_temp, <Data> self.k[1])
+        self.k[1] = self.qevo.matmul_data(t1, self._y_temp, <Data> self.k[1])
         tmp_norm = frobenius_data(<Data> self.k[1])
         if tmp_norm >= (self.atol * 1e-6):
             dt2 = ((tol * factorial * norm**self.order)**(1 / (self.order+1))
@@ -381,14 +363,14 @@ cdef class Explicit_RungeKutta:
             self.k[0] = copy_to(self._k_fsal, self.k[0])
         else:
             self.k[0] = imul_data(<Data> self.k[0], 0.)
-            self.k[0] = _fast_matmul_data(self.qevo, self._t_prev, self._y_prev,
+            self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
                                               <Data> self.k[0])
 
         for i in range(1, self.rk_step):
             self.k[i] = imul_data(<Data> self.k[i], 0.)
             self._y_temp = copy_to(self._y_prev, self._y_temp)
             self._y_temp = self._accumulate(self._y_temp, self.a[i,:], dt, i)
-            self.k[i] = _fast_matmul_data(self.qevo, self._t_prev + self.c[i]*dt,
+            self.k[i] = self.qevo.matmul_data(self._t_prev + self.c[i]*dt,
                                               self._y_temp, <Data> self.k[i])
 
         # Compute the state
@@ -421,7 +403,7 @@ cdef class Explicit_RungeKutta:
             self.k[i] = imul_data(<Data> self.k[i], 0.)
             self._y_temp = copy_to(self._y_prev, self._y_temp)
             self._y_temp = self._accumulate(self._y_temp, self.a[i,:], dt, i)
-            self.k[i] = _fast_matmul_data(self.qevo, self._t_prev + self.c[i]*dt,
+            self.k[i] = self.qevo.matmul_data(self._t_prev + self.c[i]*dt,
                                               self._y_temp, <Data> self.k[i])
 
     cdef Data _interpolate_step(self, double t, Data out):
