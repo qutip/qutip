@@ -1,7 +1,7 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
-from libc.string cimport memset
+from libc.string cimport memset, memcpy
 
 cimport cython
 
@@ -10,6 +10,7 @@ from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.dia cimport Dia
 from qutip.core.data cimport csr, dense, dia
+from qutip.core.data.add cimport iadd_dense
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
@@ -17,7 +18,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 __all__ = [
     'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
-    'conj', 'conj_csr', 'conj_dense', 'conj_dia', 'iconj_dense',
+    'conj', 'conj_csr', 'conj_dense', 'conj_dia', 'iadjoint_dense',
     'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
 
@@ -110,12 +111,20 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
-cpdef Dense iconj_dense(Dense matrix):
-    """In-place conjugate: matrix = conj(matrix)"""
+cpdef Dense iadjoint_dense(Dense matrix, Dense tmp):
+    """Add the adjoint to matrix in-place: matrix += matrix.dag()
+
+    Uses tmp as scratch space. Both must be square with the same shape.
+    """
+    cdef size_t nbytes = matrix.shape[0] * matrix.shape[1] * sizeof(double complex)
+    memcpy(tmp.data, matrix.data, nbytes)
     cdef size_t ptr
     with nogil:
         for ptr in range(matrix.shape[0] * matrix.shape[1]):
-            matrix.data[ptr] = _conj(matrix.data[ptr])
+            tmp.data[ptr] = _conj(tmp.data[ptr])
+    tmp.fortran = not tmp.fortran
+    iadd_dense(matrix, tmp, 1)
+    tmp.fortran = not tmp.fortran
     return matrix
 
 

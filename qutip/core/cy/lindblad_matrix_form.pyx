@@ -14,11 +14,9 @@ instead of superoperator-vector multiplication.
 """
 
 from functools import partial
-from libc.string cimport memcpy
 
 from qutip.core.data cimport Data, Dense
-from qutip.core.data.adjoint cimport iconj_dense
-from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.adjoint cimport iadjoint_dense
 from qutip.core.data.mul cimport imul_dense
 from qutip.core.data import dense
 from qutip.core.cy.qobjevo cimport QobjEvo
@@ -86,7 +84,7 @@ cdef class LindbladMatrixForm:
         # Construct non-Hermitian Hamiltonian: H_nh = H - (i/2) * sum(dag(c_i) * c_i)
         # This allows us to write: drho/dt = -i(H_nh * rho - rho * dag(H_nh)) + sum(c_i * rho * dag(c_i))
         elif len(c_ops) > 0:
-            H_nh = H.copy()
+            H_nh = H
             for c_op in self.c_ops:
                 H_nh = H_nh - (0.5j) * (c_op.dag() * c_op)
             H_nh.compress()
@@ -100,8 +98,7 @@ cdef class LindbladMatrixForm:
         self.issuper = True
 
         # Check if all operators are time-independent
-        self.isconstant = (H.isconstant and
-                          all(c.isconstant for c in self.c_ops))
+        self.isconstant = self.H_nh.isconstant
         
         # Pre-allocate temporary buffer for intermediate calculations
         n = self.shape[0]
@@ -151,7 +148,7 @@ cdef class LindbladMatrixForm:
             out_dense = dense.zeros(n, n, rho_dense.fortran)
         else:
             out_dense = <Dense>out
-            imul_dense(out_dense, 0)
+            out_dense = imul_dense(out_dense, 0)
 
         # Allocate temp buffer on first use
         if self._temp_buffer is None:
@@ -164,25 +161,18 @@ cdef class LindbladMatrixForm:
         # Then drho/dt = A + A.dag()
 
         # -i H_nh @ rho
-        self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
+        out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense, -1j)
 
         # +0.5 sum(L @ rho @ Ld)
         cdef QobjEvo c_op
         for i in range(self.num_collapse):
             c_op = <QobjEvo>self.c_ops[i]
-            imul_dense(temp_dense, 0)
-            c_op.matmul_data(t, rho_dense, temp_dense, 0.5)
-            c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
+            temp_dense = imul_dense(temp_dense, 0)
+            temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, 0.5)
+            out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
 
         # Add Hermitian conjugate: out += out.dag()
-        # Copy out to temp, conjugate temp in-place, then add with transpose
-        # (transpose is achieved by flipping fortran flag for iadd_dense)
-        cdef size_t nbytes = n * n * sizeof(double complex)
-        memcpy(temp_dense.data, out_dense.data, nbytes)
-        iconj_dense(temp_dense)
-        temp_dense.fortran = not temp_dense.fortran  # transpose via flag
-        iadd_dense(out_dense, temp_dense, 1)         # out += temp.T = out.dag()
-        temp_dense.fortran = not temp_dense.fortran  # restore flag
+        out_dense = iadjoint_dense(out_dense, temp_dense)
 
         return out_dense
 
