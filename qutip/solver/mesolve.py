@@ -42,8 +42,7 @@ def mesolve(
     Hamiltonian or Liouvillian (``H``) and an optional set of collapse
     operators (``c_ops``), by integrating the set of ordinary differential
     equations that define the system. In the absence of collapse operators
-    the system is
-    evolved according to the unitary evolution of the Hamiltonian.
+    the system is evolved according to the unitary evolution of the Hamiltonian.
 
     The output is either the state vector at arbitrary points in time
     (``tlist``), or the expectation values of the supplied operators
@@ -129,8 +128,7 @@ def mesolve(
             ``tlist`` step.
         - | max_step : float
           | Maximum length of one internal step. When using pulses, it
-            should be
-            less than half the width of the thinnest pulse.
+            should be less than half the width of the thinnest pulse.
         - | matrix_form : bool
           | Use matrix-form Lindblad solver instead of superoperator form.
             The matrix-form solver can be faster for denser systems.
