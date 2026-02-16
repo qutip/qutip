@@ -346,4 +346,4 @@ Or when using :class:`.MESolver` directly:
 
 The matrix-form solver supports all the same features as the standard solver,
 including time-dependent Hamiltonians and collapse operators, expectation value
-feedback, and all available ODE integrators.
+feedback, and most available ODE integrators.
