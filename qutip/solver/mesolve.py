@@ -250,9 +250,8 @@ class MESolver(SESolver):
                     "matrix_form=True cannot be used with superoperator H"
                 )
             self._vectorize_state = False
-            H = QobjEvo(H) if isinstance(H, Qobj) else H
-            c_ops_qevo = [QobjEvo(c) if isinstance(c, Qobj) else c
-                         for c in c_ops]
+            H = QobjEvo(H)
+            c_ops_qevo = [QobjEvo(c) for c in c_ops]
             from qutip.core.cy.lindblad_matrix_form import LindbladMatrixForm
             rhs = LindbladMatrixForm(H, c_ops_qevo)
         else:
