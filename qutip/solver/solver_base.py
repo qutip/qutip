@@ -57,13 +57,11 @@ class Solver:
     _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
-        if isinstance(rhs, (QobjEvo, Qobj)):
-            self.rhs = QobjEvo(rhs)
-        elif hasattr(rhs, 'matmul_data') and hasattr(rhs, '_register_feedback'):
-            # Duck-typed RHS (e.g., LindbladMatrixForm)
-            self.rhs = rhs
-        else:
-            raise TypeError("The rhs must be a QobjEvo or compatible object")
+        if isinstance(rhs, Qobj):
+            rhs = QobjEvo(rhs)
+        if not isinstance(rhs, QobjEvo):
+            raise TypeError("The rhs must be a Qobj or QobjEvo")
+        self.rhs = rhs
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
