@@ -1,8 +1,9 @@
-from ..integrator import IntegratorException, Integrator
 import numpy as np
+import warnings
 from qutip.core import data as _data
 from qutip.core import liouvillian
 from scipy.optimize import root_scalar
+from ..integrator import IntegratorException, Integrator
 from ..sesolve import SESolver
 from ..mesolve import MESolver
 
@@ -36,16 +37,13 @@ class IntegratorKrylov(Integrator):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
 
-        self._hermitian = (1j*self.system(0)).isherm
-
         self._max_step = -np.inf
 
         if self.options["krylov_dim"] < 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
                              "greater or equal zero.")
 
-        if self.options['algorithm'] == 'arnoldi' or not self._hermitian:
-            # Arnoldi is the only algorithm supporting open systems so far
+        if self.options['algorithm'] == 'arnoldi':
             self._algorithm = self._arnoldi_algorithm
         elif self.options['algorithm'] == 'lanczos_fro':
             self._algorithm = self._lanczos_full_reorth_algorithm
@@ -57,6 +55,13 @@ class IntegratorKrylov(Integrator):
                              "for Krylov space construction is not available. "
                              "Possible options are: \'lanczos\', "
                              "\'lanczos_fro\', \'arnoldi\'.")
+
+        self._hermitian = (1j*self.system(0)).isherm
+        if not self._hermitian and self.options['algorithm'] != 'arnoldi':
+            # Arnoldi is the only algorithm for open systems in QuTiP atm
+            self._algorithm = self._arnoldi_algorithm
+            warnings.warn("The requested Krylov algorithm is not supported for "
+                          "non-Hermitian systems. Using Arnoldi instead.")
 
     def _lanczos_algorithm(self, psi):
         """
