@@ -22,7 +22,7 @@ class IntegratorKrylov(Integrator):
         'atol': 1e-7,
         'nsteps': 100,
         'max_step': 1e5,
-        'min_step': 1e-14,
+        'min_step': 1e-5,
         'always_compute_step': False,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
@@ -251,14 +251,15 @@ class IntegratorKrylov(Integrator):
             ) / self.options["atol"])
 
         # Under 0 will cause an infinite loop in the while loop bellow.
-        dt = self.options["min_step"]
+        dt = max(self.options["min_step"], 1e-14)
         max_step = max(self.options["max_step"], dt)
         err = krylov_error(dt)
         if err > 0:
             raise ValueError(
-                f"With the krylov dim of {self._krylov_dim}, the "
-                f"error with the minimum step {dt} is {err}, higher than the "
-                f"desired tolerance of {self.options['atol']}."
+                f"With the krylov dim of {self._krylov_dim} for a system of "
+                f"dimension {self.system.shape[0]}, the error with minimum "
+                f"step {dt} is {err}, higher than the desired tolerance of "
+                f"{self.options['atol']}."
             )
 
         while krylov_error(dt * 10) < 0 and dt < max_step:
@@ -295,8 +296,8 @@ class IntegratorKrylov(Integrator):
             self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
-            krylov_tridiag.shape <= self.system.shape and
-            krylov_tridiag.shape[0] <= self._krylov_dim
+            krylov_tridiag.shape[0] < self._krylov_dim
+            or krylov_tridiag.shape == self.system.shape
         ):
             # happy_breakdown
             self._max_step = np.inf
@@ -321,7 +322,9 @@ class IntegratorKrylov(Integrator):
             if step >= self.options["nsteps"]:
                 raise IntegratorException(
                     "Maximum number of integration steps "
-                    f"({self.options['nsteps']}) exceeded"
+                    f"({self.options['nsteps']}) exceeded. "
+                    "Increase the number of steps or krylov dimension or "
+                    "reduce tolerance."
                 )
             new_psi = self._compute_psi(self._max_step, *self._krylov_state)
             self.set_state(self._t_0 + self._max_step, new_psi)
