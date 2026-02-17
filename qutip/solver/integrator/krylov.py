@@ -315,8 +315,7 @@ class IntegratorKrylov(Integrator):
             self._max_step = self._compute_max_step(krylov_tridiag, krylov_basis)
 
     def get_state(self, copy=True):
-        state = self._compute_psi(0, *self._krylov_state)
-        return self._t_0, state.copy() if copy else state
+        return self._t_0, self._compute_psi(0, *self._krylov_state)
 
     def integrate(self, t, copy=True):
         step = 0
@@ -335,8 +334,7 @@ class IntegratorKrylov(Integrator):
             self.set_state(self._t_0 + self._max_step, new_psi)
 
         delta_t = t - self._t_0
-        out = self._compute_psi(delta_t, *self._krylov_state)
-        return t, out.copy() if copy else out
+        return t, self._compute_psi(delta_t, *self._krylov_state)
 
     @property
     def options(self):
