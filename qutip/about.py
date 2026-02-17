@@ -74,9 +74,18 @@ def about():
 
     if not entrypoints:
         print("No QuTiP family packages installed.")
+    import warnings
 
     for ep in entrypoints:
-        family_mod = ep.load()
+        try:
+            family_mod = ep.load()
+        except Exception as exc:
+            warnings.warn(
+                f"Skipping QuTiP family package '{ep.name}' "
+                f"due to import error: {exc}"
+            )
+            continue
+
         try:
             pkg, version = family_mod.version()
         except Exception as exc:
