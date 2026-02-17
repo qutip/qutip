@@ -11,6 +11,8 @@ import numpy
 import scipy
 import inspect
 import qutip
+import warnings
+
 from qutip.settings import _blas_info, settings
 
 
@@ -74,7 +76,7 @@ def about():
 
     if not entrypoints:
         print("No QuTiP family packages installed.")
-    import warnings
+
 
     for ep in entrypoints:
         try:
