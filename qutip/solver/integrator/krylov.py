@@ -227,10 +227,10 @@ class IntegratorKrylov(Integrator):
             return statet
 
     def _compute_max_step(
-            self,
-            krylov_tridiag,
-            krylov_basis,
-            krylov_state=None
+        self,
+        krylov_tridiag,
+        krylov_basis,
+        krylov_state=None
     ):
         """
         Compute the maximum step length to stay under the desired tolerance.
