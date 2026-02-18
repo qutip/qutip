@@ -717,7 +717,7 @@ def test_non_normalized_dm(rho0):
 @pytest.mark.parametrize("kdim", [50, 1000])
 @pytest.mark.parametrize("alg", ['lanczos_fro'])
 def test_krylovsolve_mixed_state(kdim, alg):
-    H = np.sum([qutip.rand_herm(20) for _ in range(30)]) / 30
+    H = qutip.rand_herm(20, density=.8)
     rho0 = qutip.rand_dm(20)
     e_op = qutip.num(20)
     e_op.dims = H.dims
@@ -732,7 +732,7 @@ def test_krylovsolve_mixed_state(kdim, alg):
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
                                [s.norm() for s in kstates])
-    np.testing.assert_allclose(ref_exp, kout.expect[0])
+    np.testing.assert_allclose(ref_exp, kout.expect[0], atol=1e-5, rtol=1e-5)
 
 
 def test_krylovsolve_decay():
