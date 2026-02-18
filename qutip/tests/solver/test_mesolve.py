@@ -715,11 +715,8 @@ def test_non_normalized_dm(rho0):
 
 
 @pytest.mark.parametrize("kdim", [50, 1000])
-@pytest.mark.parametrize("algorithm", ['lanczos_fro', 'arnoldi'])
-def test_krylovsolve_mixed_state(kdim, algorithm):
-    # Kyrlov method works best with dense Hamiltonians.
-    # Since rand_herm(.) usually provides sparse matrices, we are summing
-    # multiple samplings.
+@pytest.mark.parametrize("alg", ['lanczos_fro'])
+def test_krylovsolve_mixed_state(kdim, alg):
     H = np.sum([qutip.rand_herm(20) for _ in range(30)]) / 30
     rho0 = qutip.rand_dm(20)
     e_op = qutip.num(20)
@@ -730,7 +727,7 @@ def test_krylovsolve_mixed_state(kdim, algorithm):
     ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
     ref_exp = ref.expect[0]
 
-    opts = {"store_states": True, "algorithm": algorithm}
+    opts = {"store_states": True, "algorithm": alg, "always_compute_step": True}
     kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
@@ -746,7 +743,7 @@ def test_krylovsolve_decay():
     tlist = np.linspace(0, 10, 201)
     psi0 = qutip.basis(10, 9)
 
-    opts = {"store_states": True}
+    opts = {"store_states": True, "algorithm": "arnoldi"}
     kout = krylovsolve(H, psi0, tlist, c_ops=[c_op], e_ops=[H], options=opts)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
