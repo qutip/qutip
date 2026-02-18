@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+from math import factorial
 from qutip.core import data as _data
 from qutip.core import liouvillian
 from scipy.optimize import root_scalar
@@ -27,7 +28,7 @@ class IntegratorKrylov(Integrator):
         'always_compute_step': False,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
-        'algorithm': 'lanczos_fro',
+        'algorithm': 'auto',
     }
     support_time_dependant = False
     supports_blackbox = False
@@ -43,7 +44,13 @@ class IntegratorKrylov(Integrator):
             raise ValueError("The option 'krylov_dim', must be an integer "
                              "greater or equal zero.")
 
-        if self.options['algorithm'] == 'arnoldi':
+        self._hermitian = (1j*self.system(0)).isherm
+        if self.options['algorithm'] == 'auto':
+            if self._hermitian:
+                self._algorithm = self._lanczos_full_reorth_algorithm
+            else:
+                self._algorithm = self._arnoldi_algorithm
+        elif self.options['algorithm'] == 'arnoldi':
             self._algorithm = self._arnoldi_algorithm
         elif self.options['algorithm'] == 'lanczos_fro':
             self._algorithm = self._lanczos_full_reorth_algorithm
@@ -56,12 +63,11 @@ class IntegratorKrylov(Integrator):
                              "Possible options are: \'lanczos\', "
                              "\'lanczos_fro\', \'arnoldi\'.")
 
-        self._hermitian = (1j*self.system(0)).isherm
-        if not self._hermitian and self.options['algorithm'] != 'arnoldi':
+        if not self._hermitian and self._algorithm != self._arnoldi_algorithm:
             # Arnoldi is the only algorithm for open systems in QuTiP atm
-            self._algorithm = self._arnoldi_algorithm
-            warnings.warn("The requested Krylov algorithm is not supported for "
-                          "non-Hermitian systems. Using Arnoldi instead.")
+            raise ValueError(f"The requested Krylov algorithm "
+                             f"{self.options['algorithm']} "
+                             "is not supported for non-Hermitian systems.")
 
     def _lanczos_algorithm(self, psi):
         """
@@ -216,15 +222,11 @@ class IntegratorKrylov(Integrator):
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
         """
-        compute the state at time ``t``.
+        Compute the state at time ``t``.
         """
         phases = _data.Dense(np.exp(-1j * dt * eigenvalues))
         aux = _data.multiply(phases, e0)
-        statet = _data.matmul(U, aux)
-        if self._mat_state:
-            return _data.column_unstack_dense(statet, self._size, inplace=True)
-        else:
-            return statet
+        return _data.matmul(U, aux)
 
     def _compute_max_step(
         self,
@@ -239,12 +241,13 @@ class IntegratorKrylov(Integrator):
             krylov_state = \
                 self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
-        if krylov_tridiag.shape[0] <= 1:
-            # No need for max. time step if eigenbasis is known
-            return np.inf
-
-        small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
-        small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
+        bsprod = np.prod(np.diag(krylov_tridiag.as_ndarray(), k=-1))
+        num = self.options["atol"] * factorial(krylov_tridiag.shape[0])
+        dt = np.power(num / bsprod, 1 / krylov_tridiag.shape[0])
+        return np.real(dt)
+        
+        small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-5, :-5])
+        small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-5])
         reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
@@ -282,17 +285,12 @@ class IntegratorKrylov(Integrator):
 
     def set_state(self, t, state0):
         self._t_0 = t
-        self._mat_state = state0.shape[1] > 1
-        self._size = state0.shape[0]
 
-        if self._mat_state:
-            state0 = _data.column_stack(state0)
-            if not self.system.issuper:
-                self.system = -1j * liouvillian(self.system)
+        if state0.shape[1] > 1 and not self.system.issuper:
+            self.system = -1j * liouvillian(self.system)
 
         if self.options["krylov_dim"] == 0:
-            d = self.system.shape[0]
-            self._krylov_dim = d**2 - d + 1 if self._mat_state else d
+            self._krylov_dim = self.system.shape[0]
         else:
             self._krylov_dim = self.options["krylov_dim"]
 
