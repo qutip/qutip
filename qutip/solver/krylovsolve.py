@@ -58,6 +58,8 @@ def krylovsolve(
 
     krylov_dim: int
         Dimension of Krylov subspaces used for the time evolution approximation.
+        Note that for mixed states, the Krylov dimension can be larger than the
+        dimension of the Hamltonian since we are computing the Liouvillian.
 
     algorithm: str
         The algorithm to use for Krylov space construction. Options are:
