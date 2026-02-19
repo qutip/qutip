@@ -16,7 +16,8 @@ def krylovsolve(
     H: Qobj,
     rho0: Qobj,
     tlist: ArrayLike,
-    krylov_dim: int = 0,
+    krylov_dim: int,
+    algorithm: str = "auto",
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
     _e_ops=None,
     _args=None,
@@ -56,8 +57,14 @@ def krylovsolve(
         list of times for :math:`t`.
 
     krylov_dim: int
-        Dimension of Krylov approximation subspaces used for the time
-        evolution approximation.
+        Dimension of Krylov subspaces used for the time evolution approximation.
+
+    algorithm: str
+        The algorithm to use for Krylov space construction. Options are:
+        - "auto": automatically choose the best algorithm.
+        - "lanczos": use the Lanczos algorithm.
+        - "lanczos_fro": use the fully reorthogonalized Lanczos algorithm.
+        - "arnoldi": use the Arnoldi iteration.
 
     e_ops : :class:`.Qobj`, callable, or list, optional
         Single operator or list of operators for which to evaluate
@@ -67,7 +74,7 @@ def krylovsolve(
         expectation.
 
     args : dict, optional
-        dictionary of parameters for time-dependent Hamiltonians
+        Dictionary of parameters for Hamiltonian.
 
     options : dict, optional
         Dictionary of options for the solver.
@@ -120,5 +127,6 @@ def krylovsolve(
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
+    options["algorithm"] = algorithm
 
     return mesolve(H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options)
