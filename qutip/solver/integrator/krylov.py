@@ -37,13 +37,14 @@ class IntegratorKrylov(Integrator):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
 
-        if self.options["krylov_dim"] < 0:
+        if self.options["krylov_dim"] <= 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
-                             "greater or equal zero.")
+                             "greater zero.")
 
         self._max_step = -np.inf
-
+        self._krylov_dim = self.options["krylov_dim"]
         self._hermitian = (1j*self.system(0)).isherm
+
         if self.options['algorithm'] == 'auto':
             if self._hermitian:
                 self._algorithm = self._lanczos_full_reorth_algorithm
@@ -253,11 +254,6 @@ class IntegratorKrylov(Integrator):
 
         if state0.shape[1] > 1 and not self.system.issuper:
             self.system = -1j * liouvillian(self.system)
-
-        if self.options["krylov_dim"] == 0:
-            self._krylov_dim = self.system.shape[0]
-        else:
-            self._krylov_dim = self.options["krylov_dim"]
 
         krylov_tridiag, krylov_basis = self._algorithm(state0)
         self._krylov_state = \

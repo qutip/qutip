@@ -314,13 +314,12 @@ def test_krylovsolve_pure_state(algorithm):
 
 
 def test_krylovsolve_error():
-    H = qutip.rand_herm(256, density=0.2)
-    psi0 = qutip.basis([256], [255])
+    H = qutip.rand_herm(10, density=0.2)
+    psi0 = qutip.basis([10], [9])
     tlist = np.linspace(0, 1, 11)
-    options = {"algorithm": 'foo_bar'}
     with pytest.raises(ValueError) as err:
-        krylovsolve(H, psi0, tlist, 20, options=options)
-    assert "Krylov space construction" in str(err.value)
+        krylovsolve(H, psi0, tlist, 8, algorithm="foo_bar")
+    assert "The requested algorithm" in str(err.value)
 
 
 def test_feedback():

@@ -743,8 +743,8 @@ def test_krylovsolve_decay():
     tlist = np.linspace(0, 10, 201)
     psi0 = qutip.basis(10, 9)
 
-    opts = {"store_states": True, "algorithm": "arnoldi"}
-    kout = krylovsolve(H, psi0, tlist, c_ops=[c_op], e_ops=[H], options=opts)
+    opt = {"store_states": True}
+    kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H], options=opt)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
                                [s.norm() for s in kstates])
