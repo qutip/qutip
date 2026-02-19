@@ -3,7 +3,6 @@ import warnings
 from math import factorial
 from qutip.core import data as _data
 from qutip.core import liouvillian
-from scipy.optimize import root_scalar
 from ..integrator import IntegratorException, Integrator
 from ..sesolve import SESolver
 from ..mesolve import MESolver
@@ -15,10 +14,10 @@ __all__ = ["IntegratorKrylov"]
 class IntegratorKrylov(Integrator):
     """
     Evolve the state ("rho0") finding an approximation for the time evolution
-    operator of a Hamiltonian ("H") by obtaining the projection of the time
-    evolution operator on a set of small dimensional Krylov subspaces (m <=
-    dim(H)). The construction of this subspace is performed by the Lanczos,
-    fully-reorthogonalized Lanczos or Arnoldi algorithm.
+    operator of a Hamiltonian ("H") by obtaining the projection on a set of
+    small dimensional Krylov subspaces (m <= dim(H)). The construction of this
+    subspace is performed by the Lanczos, fully-reorthogonalized Lanczos or
+    Arnoldi algorithm.
     """
     integrator_options = {
         'atol': 1e-7,
@@ -38,11 +37,11 @@ class IntegratorKrylov(Integrator):
         if not self.system.isconstant:
             raise ValueError("Krylov method only supports constant systems.")
 
-        self._max_step = -np.inf
-
         if self.options["krylov_dim"] < 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
                              "greater or equal zero.")
+
+        self._max_step = -np.inf
 
         self._hermitian = (1j*self.system(0)).isherm
         if self.options['algorithm'] == 'auto':
@@ -118,10 +117,8 @@ class IntegratorKrylov(Integrator):
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
         state 'psi' and Krylov dimension 'krylov_dim' using the Lanczos
         algorithm and reorthogonalising the basis vectors with respect to all
-        previous ones. This can drastically reduce numerical errors. The
-        difference to the Arnoldi algorithm is that the upper triangular values
-        are discarded since they originate from numerical errors and not
-        physical properties. The result is a tridiagonal matrix.
+        previous ones (= full reorthogonalization). This can drastically reduce
+        numerical errors. The result is a tridiagonal matrix.
 
         The space is spanned by
         {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
@@ -246,43 +243,6 @@ class IntegratorKrylov(Integrator):
         dt = np.power(num / bsprod, 1 / krylov_tridiag.shape[0])
         return np.real(dt)
         
-        small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-5, :-5])
-        small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-5])
-        reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
-
-        def krylov_error(t):
-            # we divide by atol and take the log so the error returned is 0
-            # at atol, which is convenient for calling root_scalar with.
-            return np.log(_data.norm.l2(
-                _data.column_stack(self._compute_psi(t, *krylov_state)) -
-                _data.column_stack(self._compute_psi(t, *reduced_state))
-            ) / self.options["atol"])
-
-        # Under 0 will cause an infinite loop in the while loop bellow.
-        dt = max(self.options["min_step"], 1e-14)
-        max_step = max(self.options["max_step"], dt)
-        err = krylov_error(dt)
-        if err > 0:
-            raise ValueError(
-                f"With the krylov dim of {self._krylov_dim} for a system of "
-                f"dimension {self.system.shape[0]}, the error with minimum "
-                f"step {dt} is {err}, higher than the desired tolerance of "
-                f"{self.options['atol']}."
-            )
-
-        while krylov_error(dt * 10) < 0 and dt < max_step:
-            dt *= 10
-
-        if dt > max_step:
-            return max_step
-
-        sol = root_scalar(f=krylov_error, bracket=[dt, dt * 10],
-                          method="brentq", xtol=self.options['atol'])
-        if sol.converged:
-            return sol.root
-        else:
-            return dt
-
     def set_state(self, t, state0):
         self._t_0 = t
 
@@ -352,6 +312,12 @@ class IntegratorKrylov(Integrator):
             Dimension of Krylov approximation subspaces used for the time
             evolution approximation. If the defaut 0 is given, the full Krylov
             space is calculated.
+
+        algorithm: str, default: "auto"
+            Algorithm for Krylov space constructions. The default ``auto`` will
+            choose ``lanczos_fro`` for Hermitian and ``arnoldi`` for
+            non-Hermitian systems. Alternatively the standard ``lanczos`` can be
+            set.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs
