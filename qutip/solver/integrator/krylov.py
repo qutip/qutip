@@ -69,64 +69,32 @@ class IntegratorKrylov(Integrator):
                              "is not supported for non-Hermitian systems.")
 
     def _lanczos_algorithm(self, psi):
+        return self._lanczos_core(psi, max_orthog_steps=2)
+
+    def _lanczos_full_reorth_algorithm(self, psi):
+        return self._lanczos_core(psi)
+
+    def _lanczos_core(self, psi , max_orthog_steps=0):
         """
         Computes a basis of the Krylov subspace for the time independent
         Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
-        using the Lanczos algorithm. The space is spanned by
-        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
-
-        Parameters
-        ------------
-        psi: np.ndarray
-            State used to calculate Krylov subspace (= first basis state).
-        """
-        krylov_dim = self._krylov_dim
-        H = (1j * self.system(0)).data
-        p0 = _data.inner(psi, psi)  # purity
-        sp0 = np.sqrt(p0)
-
-        diag = np.zeros(krylov_dim, dtype=complex)
-        subdiag = np.zeros(krylov_dim, dtype=complex)
-        v = [psi]
-
-        w_prime = _data.matmul(H, v[-1])
-        diag[0] = _data.inner(w_prime, v[-1]) / p0
-        w = _data.add(w_prime, v[-1], -diag[0])
-        subdiag[0] = _data.norm.l2(w) / sp0
-        j = 1
-
-        while j < krylov_dim and subdiag[j-1] > self.options['sub_system_tol']:
-            v.append(_data.mul(w, 1 / subdiag[j-1]))
-            w_prime = _data.matmul(H, v[-1])
-            diag[j] = _data.inner(w_prime, v[-1]) / p0
-            w = _data.add(w_prime, v[-1], -diag[j])
-            w = _data.add(w, v[-2], -subdiag[j-1])
-            subdiag[j] = _data.norm.l2(w) / sp0
-            j += 1
-
-        krylov_tridiag = _data.diag["dense"](
-            [subdiag[:j-1], diag[:j], subdiag[:j-1]],
-            [-1, 0, 1]
-        )
-        krylov_basis = _data.Dense(np.hstack([p.to_array() for p in v]))
-
-        return krylov_tridiag, krylov_basis
-
-    def _lanczos_full_reorth_algorithm(self, psi):
-        """
-        Computes the Krylov subspace basis for a Hamiltonian 'H', a system
-        state 'psi' and Krylov dimension 'krylov_dim' using the Lanczos
-        algorithm and reorthogonalising the basis vectors with respect to all
-        previous ones (= full reorthogonalization). This can drastically reduce
-        numerical errors. The result is a tridiagonal matrix.
-
+        using the Lanczos algorithm with a given orthogonalization function.
         The space is spanned by
         {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
 
         Parameters
         ------------
         psi: np.ndarray
-            State used to calculation Krylov subspace (= first basis state).
+            State used to calculate Krylov subspace (= first basis state).
+        max_orthog_steps: int
+            Maximum number of previous basis vectors to reorthogonalize against.
+
+        Returns
+        ------------
+        krylov_trid: np.ndarray
+            The tridiagonal matrix of the Krylov subspace.
+        krylov_basis: np.ndarray
+            The basis vectors of the Krylov subspace.
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
@@ -146,9 +114,7 @@ class IntegratorKrylov(Integrator):
             Q.append(_data.mul(v, 1 / subdiag[k-1]))
             v = _data.matmul(H, Q[-1])
             k += 1
-            for j in range(k):  # removes projections
-                ol = _data.inner(Q[j], v) / p0
-                v = _data.add(v, Q[j], -ol)
+            v, ol = self._orthogonalize(Q, v, p0, steps=max_orthog_steps)
             diag[k-1] = ol
             subdiag[k-1] = _data.norm.l2(v) / sp0
 
@@ -160,6 +126,38 @@ class IntegratorKrylov(Integrator):
 
         return krylov_trid, krylov_basis
 
+    def _orthogonalize(self, Q, v, p0, steps=0):
+        """
+        Orthogonalizes a new vector `v` against the previous `max_orthog_steps`
+        number of Krylov basis vectors in the list `Q`.
+        
+        Parameters
+        ------------
+        Q: list of np.ndarray
+            The list of previous Krylov basis vectors.
+        v: np.ndarray
+            The new vector to orthogonalize.
+        p0: float
+            The purity of the initial state.
+        steps: int, default: 0
+            The number of previous basis vectors to reorthogonalize against.
+            The default `0` will reorthogonalize w.r.t all.
+
+        Returns
+        ------------
+        v: np.ndarray
+            The orthogonalized vector = new Krylov basis vector.
+        ol: float
+            The overlap of the orthogonalized vector with the last basis vector
+            in `Q`. This will be the new off diagonal element of the tridiagonal
+            matrix. 
+        """
+        ol = 0
+        for q in Q[-steps:]:
+            ol = _data.inner(q, v) / p0
+            v = _data.add(v, q, -ol)
+        return v, ol
+        
     def _arnoldi_algorithm(self, psi):
         """
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
@@ -172,6 +170,13 @@ class IntegratorKrylov(Integrator):
         ------------
         psi: np.ndarray
             State used to calculation Krylov subspace (= first basis state).
+        
+        Returns
+        ------------
+        krylov_hesse: np.ndarray
+            The upper triangular matrix of the Krylov subspace.
+        krylov_basis: np.ndarray
+            The basis vectors of the Krylov subspace.
         """
         krylov_dim = self._krylov_dim
         H = (1j * self.system(0)).data
@@ -190,7 +195,7 @@ class IntegratorKrylov(Integrator):
             Q.append(_data.mul(v, 1 / h[k, k-1]))
             v = _data.matmul(H, Q[-1])
             k += 1
-            for j in range(k):  # removes projections
+            for j in range(k):  # removes projections, create upper Hessenberg
                 h[j, k-1] = _data.inner(Q[j], v) / p0
                 v = _data.add(v, Q[j], -h[j, k-1])
             h[k, k-1] = _data.norm.l2(v) / sp0
