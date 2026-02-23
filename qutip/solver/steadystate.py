@@ -225,7 +225,7 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     if not weight:
       # Calculate weight if not provided by user
       # (currently, no good dispatched function is available)
-      weight = _data.mean.mean_abs(A.data)
+      weight = _data.mean.mean_abs_nonzero(A.data)
 
     # Add weight to the Liouvillian
     # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
