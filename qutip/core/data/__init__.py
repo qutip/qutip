@@ -18,6 +18,7 @@ from .kron import *
 from .linalg import *
 from .matmul import *
 from .make import *
+from .mean import *
 from .mul import *
 from .pow import *
 from .project import *

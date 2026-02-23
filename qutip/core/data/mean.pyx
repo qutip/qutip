@@ -193,3 +193,5 @@ mean_abs.add_specialisations([
     (Dia, mean_abs_dia),
     (CSR, mean_abs_csr),
 ], _defer=True)
+
+del _inspect, _Dispatcher
