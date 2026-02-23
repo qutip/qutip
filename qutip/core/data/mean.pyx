@@ -1,7 +1,7 @@
 # cython: language_level=3
 # cython: boundscheck=False, wraparound=False, initializedcheck=False
 from qutip import settings
-from qutip.core.data cimport CSR, Dia, Dense
+from qutip.core.data cimport base, CSR, Dia, Dense
 
 cdef extern from "<complex>" namespace "std":
     double abs(double complex z) nogil
@@ -16,14 +16,14 @@ cdef inline int int_min(int a, int b) noexcept nogil:
     return a if a < b else b
 
 cdef double complex _mean_generic(double complex* data, size_t start, size_t end, double atol) noexcept nogil:
-    cdef size_t i, count = 0
+    cdef base.idxint i, count = 0
     cdef double complex total = 0
 
     for i in range(start, end):
         if not isclose(data[i], atol):
             total += data[i]
             count += 1
-    return total / count if count > 0 else 0.0
+    return total / <double complex> count if count > 0 else 0.0
 
 cdef double _mean_abs_generic(double complex* data, size_t start, size_t end, double atol) noexcept nogil:
     cdef size_t i, count = 0
@@ -33,12 +33,13 @@ cdef double _mean_abs_generic(double complex* data, size_t start, size_t end, do
         if not isclose(data[i], atol):
             total += abs(data[i])
             count += 1
-    return total / count if count > 0 else 0.0
+    return total / <double> count if count > 0 else 0.0
 
 # This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
 __all__ = []
 
 cpdef double complex mean_csr(CSR matrix) noexcept nogil:
+    cdef base.idxint nnz = 0
     cdef double atol
 
     with gil:
@@ -53,8 +54,8 @@ cpdef double complex mean_csr(CSR matrix) noexcept nogil:
 
 cpdef double complex mean_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col=1
+    cdef base.idxint nnz = 0
     cdef double complex mean = 0
-    cdef size_t nnz = 0
     cdef double atol
 
     with gil:
@@ -76,10 +77,11 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
     
     if nnz == 0:
         return 0.0
-    return mean / nnz
+    return mean / <double complex> nnz
 
 cpdef double complex mean_dense(Dense matrix) noexcept nogil:
-    cdef size_t ptr, nnz = 0
+    cdef size_t ptr
+    cdef base.idxint nnz = 0
     cdef double atol
 
     with gil:
@@ -88,7 +90,8 @@ cpdef double complex mean_dense(Dense matrix) noexcept nogil:
     return _mean_generic(matrix.data, 0, matrix.shape[0] * matrix.shape[1], atol)
 
 cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
-    cdef size_t nnz, ptr, nnz_corrected = 0
+    cdef size_t ptr
+    cdef base.idxint nnz = 0, nnz_corrected = 0
     cdef double mean = 0
     cdef double atol
 
@@ -105,7 +108,7 @@ cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
 cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col=1
     cdef double mean_abs = 0
-    cdef size_t nnz = 0
+    cdef base.idxint nnz = 0
     cdef double atol
 
     with gil:
@@ -127,10 +130,11 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
             nnz += 1
     if nnz == 0:
         return 0.0
-    return mean_abs / nnz
+    return mean_abs / <double> nnz
 
 cpdef double mean_abs_dense(Dense matrix) noexcept nogil:
-    cdef size_t ptr, nnz = 0
+    cdef size_t ptr
+    cdef base.idxint nnz = 0
     cdef double mean_abs = 0, cur
     cdef double atol
 
