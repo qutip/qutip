@@ -91,7 +91,7 @@ cpdef double complex mean_dense(Dense matrix) noexcept nogil:
 
 cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
     cdef size_t ptr
-    cdef base.idxint nnz = 0, nnz_corrected = 0
+    cdef base.idxint nnz = 0
     cdef double mean = 0
     cdef double atol
 
