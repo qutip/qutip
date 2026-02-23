@@ -225,11 +225,7 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     if not weight:
       # Calculate weight if not provided by user
       # (currently, no good dispatched function is available)
-      if isinstance(A.data, _data.CSR):
-          weight = np.mean(np.abs(A.data.as_scipy().data))
-      else:
-          A_np = np.abs(A.data.to_array())
-          weight = np.mean(A_np[A_np > 0])
+      weight = _data.mean.mean_abs(A.data)
 
     # Add weight to the Liouvillian
     # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
