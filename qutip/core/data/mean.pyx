@@ -80,7 +80,7 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol=atol):
+            if isclose(cur_el, atol):
                 continue
             mean += cur_el
             nnz += 1
@@ -135,7 +135,7 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol=atol):
+            if isclose(cur_el, atol):
                 continue
             mean_abs += abs(matrix.data[diag * matrix.shape[1] + col])
             nnz += 1
@@ -159,7 +159,7 @@ cpdef double mean_abs_dense(Dense matrix) noexcept nogil:
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
-mean = _Dispatcher(
+mean_nonzero = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
@@ -167,16 +167,16 @@ mean = _Dispatcher(
     module=__name__,
     inputs=('matrix',),
 )
-mean.__doc__ = """
+mean_nonzero.__doc__ = """
     Adapted mean value: compute the mean value of non-zero entries of a matrix.
 """
-mean.add_specialisations([
+mean_nonzero.add_specialisations([
     (Dense, mean_dense),
     (Dia, mean_dia),
     (CSR, mean_csr),
 ], _defer=True)
 
-mean_abs = _Dispatcher(
+mean_abs_nonzero = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
     ]),
@@ -184,11 +184,11 @@ mean_abs = _Dispatcher(
     module=__name__,
     inputs=('matrix',),
 )
-mean_abs.__doc__ = """
+mean_abs_nonzero.__doc__ = """
     Adapted mean value: \
     compute the mean value of absolute values of non-zero entries of a matrix.
 """
-mean_abs.add_specialisations([
+mean_abs_nonzero.add_specialisations([
     (Dense, mean_abs_dense),
     (Dia, mean_abs_dia),
     (CSR, mean_abs_csr),
