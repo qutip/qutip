@@ -80,7 +80,7 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol=atol):
+            if isclose(cur_el, atol):
                 continue
             mean += cur_el
             nnz += 1
@@ -135,7 +135,7 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol=atol):
+            if isclose(cur_el, atol):
                 continue
             mean_abs += abs(matrix.data[diag * matrix.shape[1] + col])
             nnz += 1
