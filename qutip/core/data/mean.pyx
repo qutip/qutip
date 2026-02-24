@@ -64,6 +64,7 @@ cpdef double complex mean_csr(CSR matrix) noexcept nogil:
 
 cpdef double complex mean_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col = 1
+    cdef double complex cur_el
     cdef base.idxint nnz = 0
     cdef double complex mean = 0
     cdef double atol
@@ -118,6 +119,7 @@ cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
 
 cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col = 1
+    cdef double complex cur_el
     cdef double mean_abs = 0
     cdef base.idxint nnz = 0
     cdef double atol
@@ -137,7 +139,7 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
             cur_el = matrix.data[diag * matrix.shape[1] + col]
             if isclose(cur_el, atol):
                 continue
-            mean_abs += abs(matrix.data[diag * matrix.shape[1] + col])
+            mean_abs += abs(cur_el)
             nnz += 1
     if nnz == 0:
         return 0.0
