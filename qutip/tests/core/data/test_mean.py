@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import qutip as qt
+import qutip
 import numbers
 
 from qutip.core.data.mean import mean_csr, mean_dia, mean_dense
@@ -12,7 +12,7 @@ from . import test_mathematics as testing
 class TestMean(testing.UnaryOpMixin):
 
     def op_numpy(self, matrix):
-        atol = qt.settings.core["atol"]
+        atol = qutip.settings.core["atol"]
 
         # Ignore values close to zero
         mask = ~np.isclose(matrix, 0.0, atol=atol)
@@ -40,7 +40,7 @@ class TestMean(testing.UnaryOpMixin):
 
         expected = self.op_numpy(data)
 
-        matrix = qt.Qobj(data, dtype=dtype).data
+        matrix = qutip.Qobj(data, dtype=dtype).data
         result = op(matrix, atol)
 
         np.testing.assert_allclose(result, expected, atol=self.atol)
@@ -49,7 +49,7 @@ class TestMean(testing.UnaryOpMixin):
 
 class TestAbsMean(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        atol = qt.settings.core["atol"]
+        atol = qutip.settings.core["atol"]
 
         # Ignore values close to zero
         mask = ~np.isclose(matrix, 0.0, atol=atol)
@@ -76,7 +76,7 @@ class TestAbsMean(testing.UnaryOpMixin):
                          [1.0, 2.0]], dtype=complex)
         expected = self.op_numpy(data)
 
-        matrix = qt.Qobj(data, dtype=dtype).data
+        matrix = qutip.Qobj(data, dtype=dtype).data
         result = op(matrix, atol)
 
         np.testing.assert_allclose(result, expected)
