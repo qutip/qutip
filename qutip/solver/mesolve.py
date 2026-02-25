@@ -14,6 +14,7 @@ from time import time
 from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
+from ..core.cy.lindblad_matrix_form import LindbladMatrixForm
 from .solver_base import Solver, _solver_deprecation, _kwargs_migration
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
@@ -250,7 +251,6 @@ class MESolver(SESolver):
             self._vectorize_state = False
             H = QobjEvo(H)
             c_ops_qevo = [QobjEvo(c) for c in c_ops]
-            from qutip.core.cy.lindblad_matrix_form import LindbladMatrixForm
             rhs = LindbladMatrixForm(H, c_ops_qevo)
         else:
             rhs = H if H.issuper else liouvillian(H)

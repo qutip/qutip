@@ -16,7 +16,7 @@ instead of superoperator-vector multiplication.
 from functools import partial
 
 from qutip.core.data cimport Data, Dense
-from qutip.core.data.adjoint cimport iadjoint_dense
+from qutip.core.data.adjoint cimport iadd_adjoint_dense
 from qutip.core.data.mul cimport imul_dense
 from qutip.core.data import dense
 from qutip.core.cy.qobjevo cimport QobjEvo
@@ -166,7 +166,7 @@ cdef class LindbladMatrixForm(QobjEvo):
             out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
 
         # Add Hermitian conjugate: out += out.dag()
-        out_dense = iadjoint_dense(out_dense, temp_dense)
+        out_dense = iadd_adjoint_dense(out_dense, temp_dense)
 
         return out_dense
 

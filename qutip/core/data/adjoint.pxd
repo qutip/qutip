@@ -11,7 +11,7 @@ cpdef CSR conj_csr(CSR matrix)
 cpdef Dense adjoint_dense(Dense matrix)
 cpdef Dense transpose_dense(Dense matrix)
 cpdef Dense conj_dense(Dense matrix)
-cpdef Dense iadjoint_dense(Dense matrix, Dense tmp)
+cpdef Dense iadd_adjoint_dense(Dense matrix, Dense tmp)
 
 cpdef Dia adjoint_dia(Dia matrix)
 cpdef Dia transpose_dia(Dia matrix)

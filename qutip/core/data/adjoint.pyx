@@ -18,7 +18,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 __all__ = [
     'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_dia',
-    'conj', 'conj_csr', 'conj_dense', 'conj_dia', 'iadjoint_dense',
+    'conj', 'conj_csr', 'conj_dense', 'conj_dia', 'iadd_adjoint_dense',
     'transpose', 'transpose_csr', 'transpose_dense', 'transpose_dia',
 ]
 
@@ -111,7 +111,7 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
-cpdef Dense iadjoint_dense(Dense matrix, Dense tmp):
+cpdef Dense iadd_adjoint_dense(Dense matrix, Dense tmp):
     """Add the adjoint to matrix in-place: matrix += matrix.dag()
 
     Uses tmp as scratch space. Both must be square with the same shape.
