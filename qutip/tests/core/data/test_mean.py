@@ -28,9 +28,9 @@ class TestMean(testing.UnaryOpMixin):
         pytest.param(mean_dia, Dia, numbers.Complex),
         pytest.param(mean_dense, Dense, numbers.Complex),
     ]
-    @pytest.mark.parametrize("op, dtype, _", specialisations)
+    @pytest.mark.parametrize("op, dtype, return_type", specialisations)
     @pytest.mark.parametrize(["scale", "atol"], [(0.999, 1e-12), (1.0, 1e-12), (1.001, 1e-12)])
-    def test_atol_boundary(self, op, dtype, _, scale, atol):
+    def test_atol_boundary(self, op, dtype, return_type, scale, atol):
         """
         Boundary tests around atol value
         """
@@ -44,6 +44,7 @@ class TestMean(testing.UnaryOpMixin):
         result = op(matrix, atol)
 
         np.testing.assert_allclose(result, expected, atol=self.atol)
+        assert isinstance(result, return_type)
 
 
 class TestAbsMean(testing.UnaryOpMixin):
@@ -64,9 +65,9 @@ class TestAbsMean(testing.UnaryOpMixin):
         pytest.param(mean_abs_dia, Dia, numbers.Real),
         pytest.param(mean_abs_dense, Dense, numbers.Real),
     ]
-    @pytest.mark.parametrize("op, dtype, _", specialisations)
+    @pytest.mark.parametrize("op, dtype, result_type", specialisations)
     @pytest.mark.parametrize(["scale", "atol"], [(0.999, 1e-12), (1.0, 1e-12), (1.001, 1e-12)])
-    def test_atol_boundary(self, op, dtype, _, scale, atol):
+    def test_atol_boundary(self, op, dtype, result_type, scale, atol):
         """
         Boundary tests around atol value
         """
@@ -79,3 +80,4 @@ class TestAbsMean(testing.UnaryOpMixin):
         result = op(matrix, atol)
 
         np.testing.assert_allclose(result, expected)
+        assert isinstance(result, result_type)
