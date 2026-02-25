@@ -33,13 +33,6 @@ class TestMESolveDecay:
     ada = a.dag() * a
 
     @pytest.fixture(params=[
-        pytest.param(False, id='superop'),
-        pytest.param(True, id='matrix_form'),
-    ])
-    def matrix_form(self, request):
-        return request.param
-
-    @pytest.fixture(params=[
         pytest.param([ada, lambda t, args: 1], id='Hlist_func'),
         pytest.param([ada, '1'], id='Hlist_str'),
         pytest.param([ada, np.ones_like(tlist)], id='Hlist_array'),
@@ -87,42 +80,68 @@ class TestMESolveDecay:
 
     c_ops_1 = c_ops
 
-    def testME_CteDecay(self, cte_c_ops, matrix_form):
+    def testME_CteDecay(self, cte_c_ops):
         "mesolve: simple constant decay"
         me_error = 1e-6
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [cte_c_ops]
-        options = {"progress_bar": None, "matrix_form": matrix_form}
+        options = {"progress_bar": None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
+    def testME_CteDecay_matrix_form(self):
+        "mesolve: constant decay with matrix_form"
+        me_error = 1e-6
+        H = self.a.dag() * self.a
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def testME_TDDecay(self, c_ops, method, matrix_form):
+    def testME_TDDecay(self, c_ops, method):
         "mesolve: time-dependence as function list"
         me_error = 1e-5
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = {"method": method, "progress_bar": None,
-                   "matrix_form": matrix_form}
+        options = {"method": method, "progress_bar": None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, rtol=me_error)
 
-    def testME_2TDDecay(self, c_ops, c_ops_1, matrix_form):
+    def testME_TDDecay_matrix_form(self):
+        "mesolve: time-dependent decay with matrix_form"
+        me_error = 1e-5
+        H = self.a.dag() * self.a
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [[self.a, 'sqrt(kappa * exp(-t))']]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         args={"kappa": self.kappa}, options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa *
+                                     (1.0 - np.exp(-self.tlist)))
+        np.testing.assert_allclose(actual_answer, expt, rtol=me_error)
+
+    def testME_2TDDecay(self, c_ops, c_ops_1):
         "mesolve: time-dependence as function list"
         me_error = 1e-5
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops, c_ops_1]
-        options = {"progress_bar": None, "matrix_form": matrix_form}
+        options = {"progress_bar": None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
@@ -130,12 +149,12 @@ class TestMESolveDecay:
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
-    def testME_TDH_TDDecay(self, H, c_ops, matrix_form):
+    def testME_TDH_TDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
         me_error = 5e-6
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = {"progress_bar": None, "matrix_form": matrix_form}
+        options = {"progress_bar": None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
@@ -143,7 +162,21 @@ class TestMESolveDecay:
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
-    def testME_TDH_longTDDecay(self, H, c_ops, matrix_form):
+    def testME_TDH_TDDecay_matrix_form(self):
+        "mesolve: time-dependent H and decay with matrix_form"
+        me_error = 5e-6
+        H = [self.ada, '1']
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [[self.a, 'sqrt(kappa * exp(-t))']]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
+                         args={"kappa": self.kappa}, options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa *
+                                     (1.0 - np.exp(-self.tlist)))
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
+    def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
         me_error = 2e-5
         psi0 = qutip.basis(self.N, 9)  # initial state
@@ -153,7 +186,7 @@ class TestMESolveDecay:
             c_op_list = [c_ops + c_ops]
         else:
             c_op_list = [[c_ops, c_ops]]
-        options = {"progress_bar": None, "matrix_form": matrix_form}
+        options = {"progress_bar": None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
@@ -497,8 +530,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(sy, sy_analytic, atol=0.05)
         np.testing.assert_allclose(sz, sz_analytic, atol=0.05)
 
-    @pytest.mark.parametrize('matrix_form', [False, True])
-    def testQubitDynamics2(self, matrix_form):
+    def testQubitDynamics2(self):
         "mesolve: qubit without dissipation"
 
         epsilon = 0.0 * 2 * np.pi   # cavity frequency
@@ -508,8 +540,7 @@ class TestJCModelEvolution:
         psi0 = qutip.basis(2, 0)        # initial state
         tlist = np.linspace(0, 5, 200)
 
-        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2,
-                                          matrix_form=matrix_form)
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
 
         sx_analytic = np.zeros(np.shape(tlist))
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
@@ -519,8 +550,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(sy, sy_analytic, atol=0.05)
         np.testing.assert_allclose(sz, sz_analytic, atol=0.05)
 
-    @pytest.mark.parametrize('matrix_form', [False, True])
-    def testCavity1(self, matrix_form):
+    def testCavity1(self):
         "mesolve: cavity-qubit interaction, no dissipation"
 
         use_rwa = True
@@ -538,8 +568,7 @@ class TestJCModelEvolution:
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
-            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist,
-            matrix_form=matrix_form)
+            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist)
 
         nc_ex = 0.5 * (1 - np.cos(2 * g * np.sqrt(n + 1) * tlist)) + n
         na_ex = 0.5 * (1 + np.cos(2 * g * np.sqrt(n + 1) * tlist))
@@ -547,8 +576,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
         np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
-    @pytest.mark.parametrize('matrix_form', [False, True])
-    def testCavity2(self, matrix_form):
+    def testCavity2(self):
         "mesolve: cavity-qubit without interaction, decay"
 
         use_rwa = True
@@ -566,8 +594,7 @@ class TestJCModelEvolution:
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
-            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist,
-            matrix_form=matrix_form)
+            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist)
 
         nc_ex = (0.5 * (1 - np.cos(2 * g * np.sqrt(n + 1) * tlist)) + n) * \
             np.exp(-kappa * tlist)
