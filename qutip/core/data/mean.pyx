@@ -6,7 +6,7 @@ from qutip.core.data cimport base, CSR, Dia, Dense
 cdef extern from "<complex>" namespace "std":
     double abs(double complex z) nogil
 
-cdef inline bint isclose(double complex z, double atol) nogil:
+cdef inline bint is_small(double complex z, double atol) nogil:
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
 cdef double complex _mean_generic(
@@ -19,7 +19,7 @@ cdef double complex _mean_generic(
     cdef double complex total = 0
 
     for i in range(start, end):
-        if not isclose(data[i], atol):
+        if not is_small(data[i], atol):
             total += data[i]
             count += 1
     return total / <double complex>count if count > 0 else 0.0
@@ -34,7 +34,7 @@ cdef double _mean_abs_generic(
     cdef double total = 0
 
     for i in range(start, end):
-        if not isclose(data[i], atol):
+        if not is_small(data[i], atol):
             total += abs(data[i])
             count += 1
     return total / <double>count if count > 0 else 0.0
@@ -75,7 +75,7 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol):
+            if is_small(cur_el, atol):
                 continue
             mean += cur_el
             nnz += 1
@@ -131,7 +131,7 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol):
+            if is_small(cur_el, atol):
                 continue
             mean_abs += abs(cur_el)
             nnz += 1
