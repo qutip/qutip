@@ -64,8 +64,8 @@ class TestLindbladMatrixFormInit:
         H_nh_expected = H - 0.5j * (c.dag() * c)
         H_nh_actual = rhs.H_nh(0.0)
 
-        diff = (H_nh_actual - H_nh_expected).norm()
-        assert diff < 1e-12
+        with qutip.CoreOptions(atol=1e-12):
+            assert H_nh_actual == H_nh_expected
 
 
 class TestLindbladMatrixFormProperties:
@@ -130,5 +130,8 @@ class TestLindbladMatrixFormProperties:
             drho_super_vec = L(t) * rho_vec
             drho_super = qutip.vector_to_operator(drho_super_vec)
 
-            diff = np.max(np.abs(drho_matrix.to_array() - drho_super.full()))
-            assert diff < 1e-10, f"Failed at t={t}: diff = {diff}"
+            drho_matrix_qobj = qutip.Qobj(drho_matrix.to_array())
+            assert_allclose(
+                drho_matrix_qobj.full(), drho_super.full(), atol=1e-10,
+                err_msg=f"Failed at t={t}",
+            )
