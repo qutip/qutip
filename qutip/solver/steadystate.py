@@ -8,7 +8,7 @@ import scipy.sparse.linalg
 from warnings import warn
 
 
-__all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
+__all__ = ["steadystate", "steadystate_fourier", "steadystate_floquet", "pseudo_inverse"]
 
 
 def _permute_wbm(L, b):
@@ -366,7 +366,7 @@ def _steadystate_power(A, **kw):
     return rho_ss
 
 
-def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
+def steadystate_fourier(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
                         solver=None, **kwargs):
     """
     Calculates the effective steady state for a driven
@@ -455,6 +455,17 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
 
     M_subs = L_0 + L_m @ S + L_p @ T
     return steadystate(M_subs, solver=solver, **kwargs)
+
+
+def steadystate_floquet(*args, **kwargs):
+    """Deprecated. Use :func:`steadystate_fourier` instead."""
+    import warnings
+    warnings.warn(
+        "steadystate_floquet is deprecated. "
+        "Use steadystate_fourier instead.",
+        FutureWarning,
+    )
+    return steadystate_fourier(*args, **kwargs)
 
 
 def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
