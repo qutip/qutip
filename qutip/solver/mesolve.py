@@ -260,6 +260,8 @@ class MESolver(SESolver):
         Solver.__init__(self, rhs, options=options)
 
     def _prepare_state(self, state):
+        # Kets skip this check: ket2dm (in super) always produces a
+        # Hermitian dm.  Only explicit dm inputs need validation.
         if not self._vectorize_state and state.isoper and not state.isherm:
             raise ValueError(
                 "matrix_form=True requires a Hermitian density matrix"
