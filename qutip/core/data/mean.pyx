@@ -9,12 +9,6 @@ cdef extern from "<complex>" namespace "std":
 cdef inline bint isclose(double complex z, double atol) nogil:
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
-cdef inline int int_max(int a, int b) noexcept nogil:
-    return a if a > b else b
-
-cdef inline int int_min(int a, int b) noexcept nogil:
-    return a if a < b else b
-
 cdef double complex _mean_generic(
     double complex* data,
     size_t start,
@@ -74,8 +68,8 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
 
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
-        start = int_max(0, offset)
-        end = int_min(matrix.shape[1], matrix.shape[0] + offset)
+        start = max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
         if end < start:
             continue
 
@@ -129,8 +123,8 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
 
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
-        start = int_max(0, offset)
-        end = int_min(matrix.shape[1], matrix.shape[0] + offset)
+        start = max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
 
         if end < start:
             continue
