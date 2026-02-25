@@ -768,7 +768,8 @@ class Bloch:
         # wireframe
         self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
                                  color=self.frame_color,
-                                 alpha=self.frame_alpha)
+                                 alpha=self.frame_alpha,
+                                 linewidth=self.frame_width)
         # equator
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='z',
                        lw=self.frame_width, color=self.frame_color)
@@ -789,7 +790,8 @@ class Bloch:
         # wireframe
         self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
                                  color=self.frame_color,
-                                 alpha=self.frame_alpha)
+                                 alpha=self.frame_alpha,
+                                 linewidth=self.frame_width)
         # equator
         self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
                        zs=0, zdir='z', lw=self.frame_width,
