@@ -276,6 +276,7 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
+        fail-on-error: false
 
   towncrier-check:
     name: Verify Towncrier entry added
@@ -309,6 +310,7 @@ jobs:
     needs: cases
     runs-on: ubuntu-latest
     container: python:3-slim
+    fail-on-error: false
     steps:
       - name: Finalise coverage reporting
         env:
