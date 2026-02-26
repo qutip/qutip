@@ -275,8 +275,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
           COVERALLS_PARALLEL: true
+        continue-on-error: true
         run: coveralls --service=github
-        fail-on-error: false
 
   towncrier-check:
     name: Verify Towncrier entry added
@@ -310,11 +310,11 @@ jobs:
     needs: cases
     runs-on: ubuntu-latest
     container: python:3-slim
-    fail-on-error: false
     steps:
       - name: Finalise coverage reporting
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
+        continue-on-error: true
         run: |
           python -m pip install coveralls
           coveralls --service=github --finish
