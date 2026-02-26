@@ -4,9 +4,9 @@ from qutip import settings
 from qutip.core.data cimport base, CSR, Dia, Dense
 
 cdef extern from "<complex>" namespace "std":
-    double abs(double complex z) nogil
+    double abs(double complex z)
 
-cdef inline bint is_small(double complex z, double atol) nogil:
+cdef inline bint is_small(double complex z, double atol):
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
 cdef double complex _mean_generic(
@@ -14,7 +14,7 @@ cdef double complex _mean_generic(
     size_t start,
     size_t end,
     double atol
-) noexcept nogil:
+) noexcept:
     cdef base.idxint i, count = 0
     cdef double complex total = 0
 
@@ -29,7 +29,7 @@ cdef double _mean_abs_generic(
     size_t start,
     size_t end,
     double atol
-) noexcept nogil:
+) noexcept:
     cdef size_t i, count = 0
     cdef double total = 0
 
@@ -42,11 +42,10 @@ cdef double _mean_abs_generic(
 # This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
 __all__ = []
 
-cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept nogil:
+cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
 
     cdef base.idxint nnz = 0
 
@@ -58,11 +57,10 @@ cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept nogil:
 
     return _mean_generic(matrix.data, 0, nnz, atol)
 
-cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept nogil:
+cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
     cdef double complex cur_el
     cdef base.idxint nnz = 0
@@ -86,11 +84,10 @@ cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept nogil:
         return 0.0
     return mean / <double complex>nnz
 
-cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept nogil:
+cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
 
     return _mean_generic(
         matrix.data,
@@ -99,11 +96,10 @@ cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept nogil:
         atol
     )
 
-cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept nogil:
+cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
 
     cdef base.idxint nnz = 0
 
@@ -114,11 +110,10 @@ cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept nogil:
 
     return _mean_abs_generic(matrix.data, 0, nnz, atol)
 
-cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept nogil:
+cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
     cdef double complex cur_el
     cdef double mean_abs = 0
@@ -142,11 +137,10 @@ cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept nogil:
         return 0.0
     return mean_abs / <double>nnz
 
-cpdef double mean_abs_dense(Dense matrix, double atol=-1) noexcept nogil:
+cpdef double mean_abs_dense(Dense matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
-        with gil:
-            atol = settings.core['atol']
+        atol = settings.core['atol']
 
     return _mean_abs_generic(
         matrix.data,
