@@ -1,5 +1,6 @@
 # cython: language_level=3
 # cython: boundscheck=False, wraparound=False, initializedcheck=False
+from cython cimport cdivision
 from qutip import settings
 from qutip.core.data cimport base, CSR, Dia, Dense
 
@@ -9,6 +10,7 @@ cdef extern from "<complex>" namespace "std":
 cdef inline bint is_small(double complex z, double atol):
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
+@cdivision(True)
 cdef double complex _mean_generic(
     double complex* data,
     size_t start,
@@ -24,6 +26,7 @@ cdef double complex _mean_generic(
             count += 1
     return total / <double complex>count if count > 0 else 0.0
 
+@cdivision(True)
 cdef double _mean_abs_generic(
     double complex* data,
     size_t start,
@@ -57,6 +60,7 @@ cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept:
 
     return _mean_generic(matrix.data, 0, nnz, atol)
 
+@cdivision(True)
 cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
@@ -110,6 +114,7 @@ cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept:
 
     return _mean_abs_generic(matrix.data, 0, nnz, atol)
 
+@cdivision(True)
 cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept:
     # Take the global absolute tolerance in case not provided by user
     if atol < 0:
