@@ -67,7 +67,7 @@ cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
         atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
     cdef double complex cur_el
-    cdef base.idxint nnz = 0
+    cdef size_t nnz = 0
     cdef double complex mean = 0
 
     for diag in range(matrix.num_diag):
