@@ -1,59 +1,56 @@
 # cython: language_level=3
 # cython: boundscheck=False, wraparound=False, initializedcheck=False
+from cython cimport cdivision
 from qutip import settings
 from qutip.core.data cimport base, CSR, Dia, Dense
 
 cdef extern from "<complex>" namespace "std":
-    double abs(double complex z) nogil
+    double abs(double complex z)
 
-cdef inline bint isclose(double complex z, double atol) nogil:
+cdef inline bint is_small(double complex z, double atol):
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
-cdef inline int int_max(int a, int b) noexcept nogil:
-    return a if a > b else b
-
-cdef inline int int_min(int a, int b) noexcept nogil:
-    return a if a < b else b
-
+@cdivision(True)
 cdef double complex _mean_generic(
     double complex* data,
     size_t start,
     size_t end,
     double atol
-) noexcept nogil:
-    cdef base.idxint i, count = 0
+) noexcept:
+    cdef size_t i, count = 0
     cdef double complex total = 0
 
     for i in range(start, end):
-        if not isclose(data[i], atol):
+        if not is_small(data[i], atol):
             total += data[i]
             count += 1
-    return total / <double complex>count if count > 0 else 0.0
+    return total / count if count > 0 else 0.0
 
+@cdivision(True)
 cdef double _mean_abs_generic(
     double complex* data,
     size_t start,
     size_t end,
     double atol
-) noexcept nogil:
+) noexcept:
     cdef size_t i, count = 0
     cdef double total = 0
 
     for i in range(start, end):
-        if not isclose(data[i], atol):
+        if not is_small(data[i], atol):
             total += abs(data[i])
             count += 1
-    return total / <double>count if count > 0 else 0.0
+    return total / count if count > 0 else 0.0
 
 # This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
 __all__ = []
 
-cpdef double complex mean_csr(CSR matrix) noexcept nogil:
-    cdef base.idxint nnz = 0
-    cdef double atol
-
-    with gil:
+cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
         atol = settings.core['atol']
+
+    cdef base.idxint nnz = 0
 
     nnz = matrix.row_index[matrix.shape[0]]
 
@@ -62,26 +59,26 @@ cpdef double complex mean_csr(CSR matrix) noexcept nogil:
 
     return _mean_generic(matrix.data, 0, nnz, atol)
 
-cpdef double complex mean_dia(Dia matrix) noexcept nogil:
+@cdivision(True)
+cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
+        atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
     cdef double complex cur_el
-    cdef base.idxint nnz = 0
+    cdef size_t nnz = 0
     cdef double complex mean = 0
-    cdef double atol
-
-    with gil:
-        atol = settings.core['atol']
 
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
-        start = int_max(0, offset)
-        end = int_min(matrix.shape[1], matrix.shape[0] + offset)
+        start = max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
         if end < start:
             continue
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol):
+            if is_small(cur_el, atol):
                 continue
             mean += cur_el
             nnz += 1
@@ -90,10 +87,9 @@ cpdef double complex mean_dia(Dia matrix) noexcept nogil:
         return 0.0
     return mean / <double complex>nnz
 
-cpdef double complex mean_dense(Dense matrix) noexcept nogil:
-    cdef double atol
-
-    with gil:
+cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
         atol = settings.core['atol']
 
     return _mean_generic(
@@ -103,12 +99,12 @@ cpdef double complex mean_dense(Dense matrix) noexcept nogil:
         atol
     )
 
-cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
-    cdef base.idxint nnz = 0
-    cdef double atol
-
-    with gil:
+cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
         atol = settings.core['atol']
+
+    cdef base.idxint nnz = 0
 
     nnz = matrix.row_index[matrix.shape[0]]
 
@@ -117,27 +113,27 @@ cpdef double mean_abs_csr(CSR matrix) noexcept nogil:
 
     return _mean_abs_generic(matrix.data, 0, nnz, atol)
 
-cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
+@cdivision(True)
+cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
+        atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
     cdef double complex cur_el
     cdef double mean_abs = 0
     cdef base.idxint nnz = 0
-    cdef double atol
-
-    with gil:
-        atol = settings.core['atol']
 
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
-        start = int_max(0, offset)
-        end = int_min(matrix.shape[1], matrix.shape[0] + offset)
+        start = max(0, offset)
+        end = min(matrix.shape[1], matrix.shape[0] + offset)
 
         if end < start:
             continue
 
         for col in range(start, end):
             cur_el = matrix.data[diag * matrix.shape[1] + col]
-            if isclose(cur_el, atol):
+            if is_small(cur_el, atol):
                 continue
             mean_abs += abs(cur_el)
             nnz += 1
@@ -145,12 +141,11 @@ cpdef double mean_abs_dia(Dia matrix) noexcept nogil:
         return 0.0
     return mean_abs / <double>nnz
 
-cpdef double mean_abs_dense(Dense matrix) noexcept nogil:
-    cdef double atol
-
-    with gil:
+cpdef double mean_abs_dense(Dense matrix, double atol=-1) noexcept:
+    # Take the global absolute tolerance in case not provided by user
+    if atol < 0:
         atol = settings.core['atol']
-    
+
     return _mean_abs_generic(
         matrix.data,
         0,
