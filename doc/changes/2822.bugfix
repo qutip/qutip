@@ -1,0 +1,1 @@
+Fixed scipy.linalg.LinAlgWarning: Matrix is singular when calculating the fidelity of pure state denisty matrix.
