@@ -1,0 +1,15 @@
+name: 🤔 Others
+description: Tell us about issues that aren't exactly bugs or features
+body:
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: Describe the Issue!
+      description: Tell us about your issue. You can include screenshots, code snippets, etc.
+      placeholder: "Please describe the issue here"
+    validations:
+      required: true
+  - type: markdown
+    id: thank-you
+    attributes:
+      value: Thanks for taking the time to fill out this issue!
