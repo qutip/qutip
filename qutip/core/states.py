@@ -73,9 +73,6 @@ def basis(
 ) -> Qobj:
     """Generates the vector representation of a Fock state.
 
-    Note that the Fock index ``n`` starts from zero. Therefore, ``basis(N, 0)``
-    is the ground state of an N-dimensional system.
-
     Parameters
     ----------
     dimensions : int or list of ints, Space
