@@ -373,7 +373,7 @@ def _map_tuple(fun, tup):
     return tuple(fun(x) for x in tup)
 
 
-class DimensionsMeta(type):
+class MetaDims(type):
     """Caching and type resolution for Space and Dimensions types."""
 
     def __init__(cls, name, bases, attrs):
@@ -408,7 +408,7 @@ class DimensionsMeta(type):
         return cls._stored_dims[proc_args]
 
 
-class Space(metaclass=DimensionsMeta):
+class Space(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], (list, tuple, _homtuple)):
@@ -734,7 +734,7 @@ class SumSpace(Space):
 
     @classmethod
     def _process_args(cls, *args, repeat=None, **kwargs):
-        if repeat is not None and repeat == 1:
+        if repeat == 1:
             repeat = None
         if repeat is not None and (
             not isinstance(repeat, numbers.Integral) or repeat <= 0
@@ -803,12 +803,11 @@ class SumSpace(Space):
         self.spaces = spaces
         self._space_dims = _map_tuple(lambda space: space.size, spaces)
         if self._repeat:
-            size = spaces[0].size * self._repeat
+            self.size = spaces[0].size * self._repeat
         else:
             self._space_cumdims_array = np.cumsum((0,) + self._space_dims)
-            size = self._space_cumdims_array[-1]
+            self.size = self._space_cumdims_array[-1]
 
-        super().__init__(size)
         self.issuper, self.superrep = self._check_super()
         self._pure_dims = False
 
@@ -938,7 +937,7 @@ class SuperSpace(Space):
         return SuperSpace(self.oper.scalar_like(), rep=self.superrep)
 
 
-class Dimensions(metaclass=DimensionsMeta):
+class Dimensions(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], list):
