@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numbers
+from typing import Literal
 import pytest
 import collections
 import numpy as np
@@ -274,57 +275,74 @@ class TestSumSpace:
     @pytest.mark.parametrize(
             "space_container", ["list", "tuple", "homtuple", "varargs"])
     @pytest.mark.parametrize(
-            "space_type", ["none", "one-sum", "one-other", "hom", "inhom"])
+            "space_type", ["one-sum", "one-other", "hom", "inhom"])
     @pytest.mark.parametrize(
-            "repeat", [None, 1, 3, 0, -1, 3.14])
-    def test_construct(self, space_container, space_type, repeat):
+            "repeat", [None, 1])
+    def test_construct_norepeat(self, space_container, space_type, repeat):
         if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
+            return
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        sum_space = SumSpace(*args, repeat=repeat)
+
+        if space_type == "one-other":
+            # SumSpace(space) == space if space is not a sum itself
+            assert sum_space == spaces[0]
             return
 
-        if space_type == "none":
-            spaces = []
-        elif space_type == "one-sum":
-            spaces = [SumSpace(Space(2), Space(3))]
-        elif space_type == "one-other":
-            spaces = [Space(3)]
-        elif space_type == "hom":
-            spaces = [Space(3), Space(3)]
-        elif space_type == "inhom":
-            spaces = [Space(3), Space(4)]
+        assert len(sum_space.spaces) == len(spaces)
+        assert all(
+            sum_space.spaces[i] == space
+            for i, space in enumerate(list(spaces))
+        )
 
-        if space_container == "tuple":
-            spaces = tuple(spaces)
-        elif space_container == "homtuple":
-            spaces = _homtuple(
-                None if len(spaces) == 0 else spaces[0], len(spaces))
-        args = spaces if space_container == "varargs" else [spaces]
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["one-sum", "one-other", "hom", "inhom"])
+    def test_construct_repeat(self, space_container, space_type):
+        repeat = 3
 
-        if repeat is not None and (
-            repeat <= 0 or not isinstance(repeat, numbers.Integral)
-        ):
-            with pytest.raises(ValueError, match="must be a positive integer"):
-                SumSpace(*args, repeat=repeat)
+        if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
             return
-        if space_type == "none":
-            with pytest.raises(ValueError, match="at least one space"):
-                SumSpace(*args, repeat=repeat)
-            return
-        if repeat is not None and repeat != 1 and len(spaces) != 1:
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        if len(spaces) != 1:
             with pytest.raises(ValueError, match="Invalid arguments"):
                 SumSpace(*args, repeat=repeat)
             return
 
         sum_space = SumSpace(*args, repeat=repeat)
-        if repeat is None:
-            repeat = 1
-        if space_type == "one-other" and repeat == 1:
-            assert sum_space == spaces[0]
-            return
+
         assert len(sum_space.spaces) == len(spaces) * repeat
-        assert all(
-            sum_space.spaces[i] == space
-            for i, space in enumerate(list(spaces) * repeat)
-        )
+        assert all(sum_space.spaces[i] == spaces[0] for i in range(repeat))
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["none", "one-sum", "one-other", "hom", "inhom"])
+    @pytest.mark.parametrize(
+            "repeat", [0, -1, 3.14])
+    def test_invalid_repeat(self, space_container, space_type, repeat):
+        if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
+            return
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        with pytest.raises(ValueError, match="must be a positive integer"):
+            SumSpace(*args, repeat=repeat)
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "repeat", [None, 1, 3])
+    def test_no_spaces(self, space_container, repeat):
+        spaces, args = self._make_spaces_and_args(space_container, "none")
+
+        with pytest.raises(ValueError, match="at least one space"):
+            SumSpace(*args, repeat=repeat)
 
     def test_super_validation(self):
         with pytest.raises(ValueError,
@@ -343,6 +361,31 @@ class TestSumSpace:
         with pytest.raises(ValueError, match="super representation"):
             space = Space(([1], [[3], [2]]))
             space.replace_superrep("choi")
+
+    def _make_spaces_and_args(
+        self,
+        space_container: Literal["list", "tuple", "homtuple", "varargs"],
+        space_type: Literal["none", "one-sum", "one-other", "hom", "inhom"],
+    ):
+        if space_type == "none":
+            spaces = []
+        elif space_type == "one-sum":
+            spaces = [SumSpace(Space(2), Space(3))]
+        elif space_type == "one-other":
+            spaces = [Space(3)]
+        elif space_type == "hom":
+            spaces = [Space(3), Space(3)]
+        elif space_type == "inhom":
+            spaces = [Space(3), Space(4)]
+
+        if space_container == "tuple":
+            spaces = tuple(spaces)
+        elif space_container == "homtuple":
+            spaces = _homtuple(
+                None if len(spaces) == 0 else spaces[0], len(spaces))
+        args = spaces if space_container == "varargs" else [spaces]
+
+        return spaces, args
 
 
 @pytest.mark.parametrize("dims_list", [
