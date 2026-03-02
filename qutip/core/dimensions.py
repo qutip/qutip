@@ -323,6 +323,56 @@ def einsum(subscripts, *operands):
     return from_tensor_rep(result, dims)
 
 
+class _homtuple(Sequence):
+    """
+    Sequence where all elements are the same.
+
+    We use this instead of tuple in the list representation of a ``SumSpace``
+    if all spaces are the same. Makes the string representation of such Qobj
+    more sightly, and may save a bit of memory. (For example, the dimensions of
+    the HEOM generator can contain extremely many copies of the same space.)
+    """
+
+    def __init__(self, elem, count):
+        self.elem = elem
+        self.count = count
+
+    def __getitem__(self, i):
+        if type(i) is slice:
+            num_selected = len(range(*i.indices(self.count)))
+            return _homtuple(self.elem, num_selected)
+        if i < 0 or i >= self.count:
+            raise IndexError
+        return self.elem
+
+    def __len__(self):
+        return self.count
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if isinstance(other, _homtuple):
+            return self.count == other.count and self.elem == other.elem
+        if isinstance(other, tuple):
+            return (
+                self.count == len(other)
+                and all(self.elem == x for x in other)
+            )
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.elem, self.count))
+
+    def __repr__(self):
+        return f"({repr(self.elem)},) * {self.count}"
+
+
+def _map_tuple(fun, tup):
+    if type(tup) is _homtuple:
+        return _homtuple(fun(tup.elem), tup.count)
+    return tuple(fun(x) for x in tup)
+
+
 class DimensionsMeta(type):
     """Caching and type resolution for Space and Dimensions types."""
 
@@ -665,56 +715,6 @@ class Compound(Space):
 
     def scalar_like(self) -> Space:
         return Space([space.scalar_like() for space in self.spaces])
-
-
-class _homtuple(Sequence):
-    """
-    Sequence where all elements are the same.
-
-    We use this instead of tuple in the list representation of a ``SumSpace``
-    if all spaces are the same. Makes the string representation of such Qobj
-    more sightly, and may save a bit of memory. (For example, the dimensions of
-    the HEOM generator can contain extremely many copies of the same space.)
-    """
-
-    def __init__(self, elem, count):
-        self.elem = elem
-        self.count = count
-
-    def __getitem__(self, i):
-        if type(i) is slice:
-            num_selected = len(range(*i.indices(self.count)))
-            return _homtuple(self.elem, num_selected)
-        if i < 0 or i >= self.count:
-            raise IndexError
-        return self.elem
-
-    def __len__(self):
-        return self.count
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-        if isinstance(other, _homtuple):
-            return self.count == other.count and self.elem == other.elem
-        if isinstance(other, tuple):
-            return (
-                self.count == len(other)
-                and all(self.elem == x for x in other)
-            )
-        return NotImplemented
-
-    def __hash__(self):
-        return hash((self.elem, self.count))
-
-    def __repr__(self):
-        return f"({repr(self.elem)},) * {self.count}"
-
-
-def _map_tuple(fun, tup):
-    if type(tup) is _homtuple:
-        return _homtuple(fun(tup.elem), tup.count)
-    return tuple(fun(x) for x in tup)
 
 
 class SumSpace(Space):
