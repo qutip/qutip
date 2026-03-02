@@ -397,6 +397,11 @@ class MetaDims(type):
             else:
                 return proc_args[0]
 
+        # check for extra kwargs
+        proc_kwargs.pop("rep", None)  # extra "rep" is allowed
+        if len(proc_kwargs) > 0:
+            raise ValueError(f"Unexpected keyword arguments: {proc_kwargs}")
+
         proc_args = tuple([
             tuple(arg) if isinstance(arg, list) else arg
             for arg in proc_args
@@ -411,6 +416,11 @@ class MetaDims(type):
 class Space(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
+        if "repeat" in kwargs:
+            repeat = kwargs.pop("repeat")
+            inner_space = Space(*args, **kwargs)
+            return SumSpace, [inner_space], {"repeat": repeat}
+
         if len(args) == 1 and isinstance(args[0], (list, tuple, _homtuple)):
             # From a list (or tuple) of int
             rep = kwargs.pop("rep", None)
