@@ -17,6 +17,49 @@ from .heom.bofin_solvers import HEOMSolver
 
 from .steadystate import steadystate
 from ..ui.progressbar import progress_bars
+from .parallel import serial_map, _maps
+
+
+# -----------------------------------------------------------------------------
+# INTERNAL HELPERS
+# -----------------------------------------------------------------------------
+
+def _corr_3op_1row(task_data, solver, B, n_tau):
+    """
+    Compute one row of the 3-operator 2-time correlation matrix.
+
+    Defined at module level so it can be pickled for parallel execution.
+
+    Parameters
+    ----------
+    task_data : tuple
+        ``(rho_modified, taulist_shifted, n_compute)`` where
+
+        - *rho_modified* is ``C(t) @ rho(t) @ A(t)``
+        - *taulist_shifted* is ``taulist[:n_compute] + t``
+        - *n_compute* is how many tau points to actually evaluate
+
+    solver : :class:`.MESolver` or :class:`.BRSolver`
+        Solver with options already configured (``normalize_output=False``,
+        ``progress_bar=False``).
+    B : :class:`.QobjEvo`
+        Operator whose expectation value is measured.
+    n_tau : int
+        Full length of taulist (for zero-padding skipped entries).
+
+    Returns
+    -------
+    row : ndarray of complex
+        Correlation values, length *n_tau*.
+    """
+    rho_modified, taulist_shifted, n_compute = task_data
+    row = np.zeros(n_tau, dtype=complex)
+    if n_compute > 0:
+        row[:n_compute] = solver.run(
+            rho_modified, taulist_shifted, e_ops=B
+        ).expect[0]
+    return row
+
 
 # -----------------------------------------------------------------------------
 # PUBLIC API
@@ -92,7 +135,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
                        solver="me", reverse=False, args=None,
-                       options=None):
+                       options=None, *,
+                       max_t_plus_tau=None, map='serial', map_kw=None):
     r"""
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\tau)B(t)\right>`
@@ -131,6 +175,17 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver.
+    max_t_plus_tau : float, optional
+        If provided, skip computation where ``t + tau > max_t_plus_tau``.
+        Skipped entries are filled with ``0``. Default ``None`` means compute
+        all entries (equivalent to ``np.inf``).
+    map : str, default: ``'serial'``
+        How to run the loop over *tlist*. A string is looked up in
+        ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
+        ``'parallel'``, ``'loky'``).
+    map_kw : dict, optional
+        Keyword arguments passed to the map function via its ``map_kw``
+        parameter, e.g. ``{'num_cpus': 4}``.
 
     Returns
     -------
@@ -159,7 +214,9 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     else:
         A_op, B_op, C_op = 1, a_op, b_op
 
-    return correlation_3op(solver, state0, tlist, taulist, A_op, B_op, C_op)
+    return correlation_3op(solver, state0, tlist, taulist, A_op, B_op, C_op,
+                           max_t_plus_tau=max_t_plus_tau,
+                           map=map, map_kw=map_kw)
 
 
 def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
@@ -222,7 +279,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
 
 def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       solver="me", args=None, options=None):
+                       solver="me", args=None, options=None, *,
+                       max_t_plus_tau=None, map='serial', map_kw=None):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\tau)C(t)\right>` along two time axes using the
@@ -263,6 +321,17 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with ``me`` solver.
+    max_t_plus_tau : float, optional
+        If provided, skip computation where ``t + tau > max_t_plus_tau``.
+        Skipped entries are filled with ``0``. Default ``None`` means compute
+        all entries (equivalent to ``np.inf``).
+    map : str, default: ``'serial'``
+        How to run the loop over *tlist*. A string is looked up in
+        ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
+        ``'parallel'``, ``'loky'``).
+    map_kw : dict, optional
+        Keyword arguments passed to the map function via its ``map_kw``
+        parameter, e.g. ``{'num_cpus': 4}``.
 
     Returns
     -------
@@ -288,7 +357,9 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if state0 is None:
         state0 = steadystate(H, c_ops)
 
-    return correlation_3op(solver, state0, tlist, taulist, a_op, b_op, c_op)
+    return correlation_3op(solver, state0, tlist, taulist, a_op, b_op, c_op,
+                           max_t_plus_tau=max_t_plus_tau,
+                           map=map, map_kw=map_kw)
 
 
 # high level correlation
@@ -350,7 +421,8 @@ def coherence_function_g1(
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
+    G1 = correlation_3op(solver, state0, [0], taulist,
+                         None, a_op.dag(), a_op)[0]
 
     g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
     return g1, G1
@@ -433,7 +505,8 @@ def _make_solver(H, c_ops, args, options, solver):
     return solver_instance
 
 
-def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
+def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
+                    max_t_plus_tau=None, map='serial', map_kw=None):
     r"""
     Calculate the three-operator two-time correlation function:
 
@@ -458,9 +531,21 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
     A, B, C : :class:`.Qobj`, :class:`.QobjEvo`, optional, default=None
-        Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
-        in the Schrodinger picture. They do not need to be all provided. For
-        exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.
+        Operators ``A``, ``B``, ``C`` from the equation
+        ``<A(t)B(t+\tau)C(t)>`` in the Schrodinger picture. They do not need
+        to be all provided. For exemple, if ``A`` is not provided,
+        ``<B(t+\tau)C(t)>`` is computed.
+    max_t_plus_tau : float, optional
+        If provided, skip computation where ``t + tau > max_t_plus_tau``.
+        Skipped entries are filled with ``0``. Default ``None`` means compute
+        all entries (equivalent to ``np.inf``).
+    map : str, default: ``'serial'``
+        How to run the loop over *tlist*. A string is looked up in
+        ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
+        ``'parallel'``, ``'loky'``).
+    map_kw : dict, optional
+        Keyword arguments passed to the map function via its ``map_kw``
+        parameter, e.g. ``{'num_cpus': 4}``.
 
     Returns
     -------
@@ -478,8 +563,12 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     B = QobjEvo(qeye_like(state0) if B in [None, 1] else B)
     C = QobjEvo(qeye_like(state0) if C in [None, 1] else C)
 
+    map_func = _maps[map]
+
     if isinstance(solver, (MESolver, BRSolver)):
-        out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
+        out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C,
+                                  max_t_plus_tau=max_t_plus_tau,
+                                  map_func=map_func, map_kw=map_kw)
     elif isinstance(solver, MCSolver):
         raise TypeError("Monte Carlo support for correlation was removed. "
                         "Please, tell us on GitHub issues if you need it!")
@@ -493,7 +582,13 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     return out
 
 
-def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
+def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C,
+                        max_t_plus_tau=None, map_func=serial_map,
+                        map_kw=None):
+    """
+    Internal worker for :func:`correlation_3op` using density-matrix solvers.
+    """
+    n_tau = np.size(taulist)
     old_opt = solver.options.copy()
     try:
         # We don't want to modify the solver
@@ -501,22 +596,34 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
         solver.options["normalize_output"] = False
         solver.options["progress_bar"] = False
 
-        progress_bar = progress_bars[old_opt['progress_bar']](
-            len(taulist) + 1, **old_opt['progress_kwargs']
-        )
         rho_t = solver.run(state0, tlist).states
-        corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-        progress_bar.update()
 
+        tasks = []
         for t_idx, rho in enumerate(rho_t):
             t = tlist[t_idx]
-            corr_mat[t_idx, :] = solver.run(
-                C(t) @ rho @ A(t),
-                taulist + t,
-                e_ops=B
-            ).expect[0]
-            progress_bar.update()
-        progress_bar.finished()
+            rho_modified = C(t) @ rho @ A(t)
+
+            if max_t_plus_tau is not None:
+                n_compute = int(np.searchsorted(
+                    taulist, max_t_plus_tau - t, side='right'
+                ))
+                taulist_shifted = taulist[:n_compute] + t
+            else:
+                n_compute = n_tau
+                taulist_shifted = taulist + t
+
+            tasks.append((rho_modified, taulist_shifted, n_compute))
+
+        results = map_func(
+            _corr_3op_1row,
+            tasks,
+            task_args=(solver, B, n_tau),
+            progress_bar=old_opt['progress_bar'],
+            progress_bar_kwargs=old_opt['progress_kwargs'],
+            map_kw=map_kw,
+        )
+
+        corr_mat = np.array(results, dtype=complex)
 
     finally:
         solver.options = old_opt
