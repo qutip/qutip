@@ -10,7 +10,7 @@ from qutip.core.dimensions import (
     flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
     einsum, to_tensor_rep, from_tensor_rep,
-    Dimensions, Field, Space, SumSpace, SuperSpace, _homtuple
+    Dimensions, Compound, Field, Space, SumSpace, SuperSpace, _homtuple
 )
 from qutip.core.energy_restricted import EnrSpace
 
@@ -249,6 +249,20 @@ class TestSumSpace:
 
         assert SumSpace(Space(([2], [3])), repeat=1) is Space((([2], [3]),))
 
+    @pytest.mark.parametrize("space_arg", [
+        pytest.param(1, id="field"),
+        pytest.param(3, id="ket"),
+        pytest.param([3], id="ket-from-list"),
+        pytest.param([2, 3], id="compound"),
+        pytest.param([[2], [3]], id="superket"),
+    ])
+    @pytest.mark.parametrize("repeat", [None, 1, 3])
+    def test_repeat_space(self, space_arg, repeat):
+        assert (
+            Space(space_arg, repeat=repeat)
+            is SumSpace(Space(space_arg), repeat=repeat)
+        )
+
     def test_simplification(self):
         assert Space(([1],)) is Field()
         assert Space(([3, 2],)) is Space([3, 2])
@@ -458,3 +472,14 @@ def test_scalar_dims(list_dims, expected):
         assert Dimensions(list_dims).as_list() == expected
     with qutip.CoreOptions(auto_tidyup_dims=False):
         assert Dimensions(list_dims).as_list() == list_dims
+
+
+@pytest.mark.parametrize(["cls", "args", "kwargs"], [
+    pytest.param(SuperSpace, [Dimensions([[2], [3]])], {"superrep": "choi"},
+                 id="typo"),
+    pytest.param(Compound, [Space(2), Space(3)], {"repeat": 5},
+                 id="unsupported")
+])
+def test_extra_kwargs(cls, args, kwargs):
+    with pytest.raises(ValueError, match="Unexpected keyword arguments"):
+        cls(*args, **kwargs)
