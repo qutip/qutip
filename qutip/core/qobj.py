@@ -992,7 +992,10 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        if self.isherm:
+        
+        is_herm = self._isherm if self._isherm is not None else False
+
+        if is_herm:
             evals, ekets = self.eigenstates(sparse=sparse, tol=tol, maxiter=maxiter)
             # Clip tiny negative values to 0 to handle numerical noise
             sqrt_evals = np.sqrt(np.maximum(evals, 0))
