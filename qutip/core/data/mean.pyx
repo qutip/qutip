@@ -95,7 +95,7 @@ cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept:
     return _mean_generic(
         matrix.data,
         0,
-        matrix.shape[0] * matrix.shape[1],
+        <size_t> matrix.shape[0] * <size_t> matrix.shape[1],
         atol
     )
 
@@ -149,7 +149,7 @@ cpdef double mean_abs_dense(Dense matrix, double atol=-1) noexcept:
     return _mean_abs_generic(
         matrix.data,
         0,
-        matrix.shape[0] * matrix.shape[1],
+        <size_t> matrix.shape[0] * <size_t> matrix.shape[1],
         atol
     )
 
