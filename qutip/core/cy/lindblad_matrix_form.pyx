@@ -150,6 +150,7 @@ cdef class LindbladMatrixForm(QobjEvo):
                                             self._buffer_size,
                                             fortran=rho_dense.fortran)
         temp_dense = <Dense>self._temp_buffer
+        temp_dense.fortran = rho_dense.fortran
 
         # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
         # Then drho/dt = A + A.dag()
