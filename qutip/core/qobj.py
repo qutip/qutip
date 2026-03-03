@@ -992,6 +992,19 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
+        if self.isherm:
+            evals, ekets = self.eigenstates(sparse=sparse, tol=tol, maxiter=maxiter)
+            # Clip tiny negative values to 0 to handle numerical noise
+            sqrt_evals = np.sqrt(np.maximum(evals, 0))
+            # Reconstruct the square root matrix.
+            data = _data.zeros(self.data.shape[0], self.data.shape[1])
+            for i in range(len(evals)):
+                if sqrt_evals[i] > 0:
+                    term = ekets[i] * ekets[i].dag()
+                    data = _data.add(data, _data.mul(term.data, sqrt_evals[i]))
+
+            return Qobj(data, dims=self._dims, copy=False)
+
         return Qobj(_data.sqrtm(self._data),
                     dims=self._dims,
                     copy=False)

@@ -68,21 +68,9 @@ def fidelity(A, B):
             # Swap the order so that we can take a more numerically
             # stable square root of B.
             return fidelity(B, A)
-        # If A is a density matrix, check if it is Hermitian
-        # and perform spectral decomposition.
-        if A.isherm and A.type == 'oper':
-            evals, ekets = A.eigenstates()
-            # Clip tiny negative values to 0 to handle numerical noise
-            sqrt_evals = np.sqrt(np.maximum(evals, 0))
-            # Reconstruct the square root matrix.
-            sqrtmA = sum([
-                sqrt_evals[i] * ekets[i].proj()
-                for i in range(len(evals))
-            ])
-        else:
-            # If we made it here, both A and B are operators, so
-            # we have to take the sqrtm of one of them.
-            sqrtmA = A.sqrtm()
+        # If we made it here, both A and B are operators, so
+        # we have to take the sqrtm of one of them.
+        sqrtmA = A.sqrtm()
 
     if sqrtmA._dims != B._dims:
         raise TypeError('Density matrices do not have same dimensions.')
