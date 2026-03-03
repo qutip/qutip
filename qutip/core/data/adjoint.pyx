@@ -116,15 +116,16 @@ cpdef Dense iadd_adjoint_dense(Dense matrix, Dense tmp):
 
     Uses tmp as scratch space. Both must be square with the same shape.
     """
+    if matrix.shape[0] != tmp.shape[0] or matrix.shape[1] != tmp.shape[1]:
+        raise ValueError("tmp and matrix must have the same shape")
     cdef size_t nbytes = matrix.shape[0] * matrix.shape[1] * sizeof(double complex)
     memcpy(tmp.data, matrix.data, nbytes)
     cdef size_t ptr
     with nogil:
         for ptr in range(matrix.shape[0] * matrix.shape[1]):
             tmp.data[ptr] = _conj(tmp.data[ptr])
-    tmp.fortran = not tmp.fortran
-    iadd_dense(matrix, tmp, 1)
-    tmp.fortran = not tmp.fortran
+    tmp.fortran = not matrix.fortran
+    matrix = iadd_dense(matrix, tmp, 1)
     return matrix
 
 
