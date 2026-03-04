@@ -79,11 +79,11 @@ calculated using the Lanczos algorithm (or alternative - see below).
 Alternative Algorithms for Kyrlov Construction
 ----------------------------------------------
 
-As the number of degrees of freedom grow, the standard Lanczos algorithm shows
+As the number of degrees of freedom grows, the standard Lanczos algorithm shows
 significant errors due to numerical inaccuracies.
 This is why the *default* algorithm in QuTiP to construct the Krylov basis is
 the *fully-reorthogonalized* Lanczos algorithm (FRO).
-It orthogonalizes new basis vectors in respect to *all* (contrary to just the
+It orthogonalizes new basis vectors with respect to *all* (contrary to just the
 last two) previously created vectors to greatly limit the accumulation of
 numerical errors.  However, by specifically setting
 ``options["algorithm"]="lanczos"``, the standard Lanczos algorithm is still
@@ -93,9 +93,26 @@ In addition, QuTiP supports the Arnoldi iteration.
 It is necessary to correctly calculate open system dynamics.
 Contrary to the standard Lanczos and FRO Lanczos which produce a tri-diagonal
 matrix, the Arnoldi interation provides an upper-Hessenberg form.
-If :func:`.krylovsolve` is provided with collapse operators ``c_ops`` or a
-non-Hermitian Liouvillian, the Arnoldi algorithm will be enforced automatically.
 
+Finding a Good Krylov-Subspace Dimension
+----------------------------------------
+
+With the Krylov-subspace method, great computational speed-ups can be achieved
+especially for large systems and short time evolutions. In QuTiP, the integrator
+calculates the subspace up to the parameter ``krylov_dim`` (or until a happy
+breakdown is detected). It then evolves the state up to the time where accuracy
+up to the provided tolerance ``atol`` is still guaranteed, and then recalculates
+the subspace. By repeating this, the time evolution is calculated.
+
+To achieve the promised speed-up, it is essential to choose a suitable
+Krylov-subspace dimension. Too small a dimension leads to frequent recalculation
+of the Kyrlov basis and thus high computational load. Too big of a basis
+however leads to an increasingly expensive calculation of basis vectors and
+little gain in accuracy.
+
+Therefore, aiming for a Krylov-dimension that is much smaller than the provided
+Hilbert space (or Liouvillian space) is recommended. However, the optimal
+dimension very much depends on both the Hamiltonian and the initial state.
 
 .. _krylov-qutip:
 
