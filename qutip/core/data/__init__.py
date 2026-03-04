@@ -18,7 +18,6 @@ from .kron import *
 from .linalg import *
 from .matmul import *
 from .make import *
-from .mean import *
 from .mul import *
 from .pow import *
 from .project import *
@@ -30,7 +29,7 @@ from .trace import *
 from .solve import *
 from .extract import *
 # For operations with mulitple related versions, we just import the module.
-from . import norm, permute, ode
+from . import norm, permute, ode, mean
 
 
 # Set up the data conversions that are known by us.  All types covered by
