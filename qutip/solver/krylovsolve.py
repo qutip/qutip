@@ -61,7 +61,7 @@ def krylovsolve(
         Note that for mixed states, the Krylov dimension can be larger than the
         dimension of the Hamltonian since we are computing the Liouvillian.
 
-    algorithm: str
+    algorithm: str, default: "auto"
         The algorithm to use for Krylov space construction. Options are:
         - "auto": automatically choose the best algorithm.
         - "lanczos": use the Lanczos algorithm.

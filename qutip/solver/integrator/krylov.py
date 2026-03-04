@@ -39,7 +39,7 @@ class IntegratorKrylov(Integrator):
 
         if self.options["krylov_dim"] <= 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
-                             "greater zero.")
+                             "greater than zero.")
 
         self._max_step = -np.inf
         self._krylov_dim = self.options["krylov_dim"]
@@ -311,8 +311,7 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation. If the defaut 0 is given, the full Krylov
-            space is calculated.
+            evolution approximation.
 
         algorithm: str, default: "auto"
             Algorithm for Krylov space constructions. The default ``auto`` will
