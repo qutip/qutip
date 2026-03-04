@@ -996,17 +996,13 @@ class Qobj:
         is_herm = self._isherm if self._isherm is not None else False
 
         if is_herm:
-            evals, ekets = self.eigenstates(sparse=sparse, tol=tol, maxiter=maxiter)
-            # Clip tiny negative values to 0 to handle numerical noise
-            sqrt_evals = np.sqrt(np.maximum(evals, 0))
-            # Reconstruct the square root matrix.
-            data = _data.zeros(self.data.shape[0], self.data.shape[1])
-            for i in range(len(evals)):
-                if sqrt_evals[i] > 0:
-                    term = ekets[i] * ekets[i].dag()
-                    data = _data.add(data, _data.mul(term.data, sqrt_evals[i]))
+            evals, evecs = _data.eigs(self._data, isherm=True)
+            sqrt_lambda = np.sqrt(evals.astype(complex))
+            diag_sqrt_lambda = _data.diag(sqrt_lambda, 0, self._data.shape)
+            v_mid = _data.matmul(evecs, diag_sqrt_lambda)
+            res_data = _data.matmul(v_mid, _data.adjoint(evecs))
 
-            return Qobj(data, dims=self._dims, copy=False)
+            return Qobj(res_data, dims=self._dims, copy=False)
 
         return Qobj(_data.sqrtm(self._data),
                     dims=self._dims,
