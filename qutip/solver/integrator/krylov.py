@@ -1,8 +1,6 @@
 import numpy as np
-import warnings
 from math import factorial
 from qutip.core import data as _data
-from qutip.core import liouvillian
 from ..integrator import IntegratorException, Integrator
 from ..sesolve import SESolver
 from ..mesolve import MESolver
@@ -231,19 +229,10 @@ class IntegratorKrylov(Integrator):
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step(
-        self,
-        krylov_tridiag,
-        krylov_basis,
-        krylov_state=None
-    ):
+    def _compute_max_step( self, krylov_tridiag):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
-        if not krylov_state:
-            krylov_state = \
-                self._compute_krylov_set(krylov_tridiag, krylov_basis)
-
         bsprod = np.prod(np.diag(krylov_tridiag.as_ndarray(), k=-1))
         num = self.options["atol"] * factorial(krylov_tridiag.shape[0])
         dt = np.real(np.power(num / bsprod, 1 / krylov_tridiag.shape[0]))
@@ -254,13 +243,10 @@ class IntegratorKrylov(Integrator):
                 f"possible time step size is {dt}. But is smaller than the "
                 f"minimum desired time step size of {self.options['min_step']}."
             )
-        return np.min(dt, self.options["max_step"])
+        return min(dt, self.options["max_step"])
         
     def set_state(self, t, state0):
         self._t_0 = t
-
-        if state0.shape[1] > 1 and not self.system.issuper:
-            self.system = -1j * liouvillian(self.system)
 
         krylov_tridiag, krylov_basis = self._algorithm(state0)
         self._krylov_state = \
@@ -278,7 +264,7 @@ class IntegratorKrylov(Integrator):
             not np.isfinite(self._max_step)
             or self.options["always_compute_step"]
         ):
-            self._max_step = self._compute_max_step(krylov_tridiag, krylov_basis)
+            self._max_step = self._compute_max_step(krylov_tridiag)
 
     def get_state(self, copy=True):
         return self._t_0, self._compute_psi(0, *self._krylov_state)
