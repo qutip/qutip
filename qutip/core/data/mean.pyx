@@ -4,10 +4,28 @@ from cython cimport cdivision
 from qutip import settings
 from qutip.core.data cimport base, CSR, Dia, Dense
 
+# This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
+__all__ = []
+
 cdef extern from "<complex>" namespace "std":
     double abs(double complex z)
 
 cdef inline bint is_small(double complex z, double atol):
+    """
+    Check if a complex number is small within a given absolute tolerance.
+
+    Parameters
+    ----------
+    z : double complex
+        The complex number to check.
+    atol : double
+        Absolute tolerance.
+
+    Returns
+    -------
+    bint
+        True if both real and imaginary parts are within ±atol of zero.
+    """
     return abs(z.real) <= atol and abs(z.imag) <= atol
 
 @cdivision(True)
@@ -17,6 +35,26 @@ cdef double complex _mean_generic(
     size_t end,
     double atol
 ) noexcept:
+    """
+    Compute the mean of non-small elements in a contiguous array segment.
+
+    Parameters
+    ----------
+    data : double complex*
+        Pointer to the array data.
+    start : size_t
+        Starting index (inclusive).
+    end : size_t
+        Ending index (exclusive).
+    atol : double
+        Absolute tolerance for considering elements as zero.
+
+    Returns
+    -------
+    double complex
+        Mean of elements not considered small (within atol).
+        Returns 0.0 if all elements are small.
+    """
     cdef size_t i, count = 0
     cdef double complex total = 0
 
@@ -33,6 +71,26 @@ cdef double _mean_abs_generic(
     size_t end,
     double atol
 ) noexcept:
+    """
+    Compute the mean of absolute values of non-small elements in a contiguous array segment.
+
+    Parameters
+    ----------
+    data : double complex*
+        Pointer to the array data.
+    start : size_t
+        Starting index (inclusive).
+    end : size_t
+        Ending index (exclusive).
+    atol : double
+        Absolute tolerance for considering elements as zero.
+
+    Returns
+    -------
+    double
+        Mean of absolute values of elements not considered small (within atol).
+        Returns 0.0 if all elements are small.
+    """
     cdef size_t i, count = 0
     cdef double total = 0
 
@@ -42,11 +100,24 @@ cdef double _mean_abs_generic(
             count += 1
     return total / count if count > 0 else 0.0
 
-# This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
-__all__ = []
 
 cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of non-small elements in a CSR matrix.
+
+    Parameters
+    ----------
+    matrix : CSR
+        Compressed Sparse Row matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double complex
+        Mean of non-small elements. Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
 
@@ -61,7 +132,22 @@ cpdef double complex mean_csr(CSR matrix, double atol=-1) noexcept:
 
 @cdivision(True)
 cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of non-small elements in a DIA matrix.
+
+    Parameters
+    ----------
+    matrix : Dia
+        Diagonal sparse matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double complex
+        Mean of non-small elements. Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
@@ -88,7 +174,22 @@ cpdef double complex mean_dia(Dia matrix, double atol=-1) noexcept:
     return mean / nnz
 
 cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of non-small elements in a dense matrix.
+
+    Parameters
+    ----------
+    matrix : Dense
+        Dense matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double complex
+        Mean of non-small elements. Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
 
@@ -100,11 +201,27 @@ cpdef double complex mean_dense(Dense matrix, double atol=-1) noexcept:
     )
 
 cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of absolute values of non-small elements in a CSR matrix.
+
+    Parameters
+    ----------
+    matrix : CSR
+        Compressed Sparse Row matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double
+        Mean of absolute values of non-small elements.
+        Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
 
-    cdef base.idxint nnz = 0
+    cdef size_t nnz = 0
 
     nnz = matrix.row_index[matrix.shape[0]]
 
@@ -115,7 +232,23 @@ cpdef double mean_abs_csr(CSR matrix, double atol=-1) noexcept:
 
 @cdivision(True)
 cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of absolute values of non-small elements in a DIA matrix.
+
+    Parameters
+    ----------
+    matrix : Dia
+        Diagonal sparse matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double
+        Mean of absolute values of non-small elements.
+        Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
     cdef int offset, diag, start, end, col = 1
@@ -142,7 +275,23 @@ cpdef double mean_abs_dia(Dia matrix, double atol=-1) noexcept:
     return mean_abs / nnz
 
 cpdef double mean_abs_dense(Dense matrix, double atol=-1) noexcept:
-    # Take the global absolute tolerance in case not provided by user
+    """
+    Compute the mean of absolute values of non-small elements in a dense matrix.
+
+    Parameters
+    ----------
+    matrix : Dense
+        Dense matrix.
+    atol : double, optional
+        Absolute tolerance for considering elements as zero.
+        If negative, uses the global tolerance from `settings.core['atol']`.
+
+    Returns
+    -------
+    double
+        Mean of absolute values of non-small elements.
+        Returns 0.0 if all elements are small.
+    """
     if atol < 0:
         atol = settings.core['atol']
 
@@ -165,8 +314,22 @@ mean_nonzero = _Dispatcher(
     inputs=('matrix',),
 )
 mean_nonzero.__doc__ = """
-    Adapted mean value: compute the mean value of non-zero entries of a matrix.
+    Compute the mean value of non-zero entries of a matrix.
+
+    This is a dispatcher that calls the appropriate implementation based on
+    the matrix type (Dense, Dia, or CSR).
+
+    Parameters
+    ----------
+    matrix : Dense, Dia, or CSR
+        The input matrix.
+
+    Returns
+    -------
+    double complex
+        Mean of non-small elements (using global tolerance).
 """
+
 mean_nonzero.add_specialisations([
     (Dense, mean_dense),
     (Dia, mean_dia),
@@ -182,8 +345,20 @@ mean_abs_nonzero = _Dispatcher(
     inputs=('matrix',),
 )
 mean_abs_nonzero.__doc__ = """
-    Adapted mean value: \
-    compute the mean value of absolute values of non-zero entries of a matrix.
+    Compute the mean value of absolute values of non-zero entries of a matrix.
+
+    This is a dispatcher that calls the appropriate implementation based on
+    the matrix type (Dense, Dia, or CSR).
+
+    Parameters
+    ----------
+    matrix : Dense, Dia, or CSR
+        The input matrix.
+
+    Returns
+    -------
+    double
+        Mean of absolute values of non-small elements (using global tolerance).
 """
 mean_abs_nonzero.add_specialisations([
     (Dense, mean_abs_dense),
