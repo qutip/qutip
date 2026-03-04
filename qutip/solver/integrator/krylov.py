@@ -246,8 +246,15 @@ class IntegratorKrylov(Integrator):
 
         bsprod = np.prod(np.diag(krylov_tridiag.as_ndarray(), k=-1))
         num = self.options["atol"] * factorial(krylov_tridiag.shape[0])
-        dt = np.power(num / bsprod, 1 / krylov_tridiag.shape[0])
-        return np.real(dt)
+        dt = np.real(np.power(num / bsprod, 1 / krylov_tridiag.shape[0]))
+        if dt < self.options["min_step"]:
+            raise ValueError(
+                f"With the krylov dimension of {self.options['krylov_dim']} "
+                f"and desired tolerance of {self.options['atol']}, the maximum "
+                f"possible time step size is {dt}. But is smaller than the "
+                f"minimum desired time step size of {self.options['min_step']}."
+            )
+        return np.min(dt, self.options["max_step"])
         
     def set_state(self, t, state0):
         self._t_0 = t
@@ -307,8 +314,9 @@ class IntegratorKrylov(Integrator):
             Max. number of internal steps/call.
 
         min_step, max_step : float, default: (1e-5, 1e5)
-            Minimum and maximum step size.
-
+            Minimum and maximum time step size before the Krylov basis is
+            recalculated.
+        
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
             evolution approximation.
