@@ -1,1 +1,1 @@
-Uses the `mean_abs_nonzero` function from `qutip/core/data/mean.pyx` module, thereby tackling cases of different data types (Dense, CSR, and Dia) in one line.
+Uses the `mean_abs_nonzero` function from `qutip/core/data/mean.pyx` module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call.
