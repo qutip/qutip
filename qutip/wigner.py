@@ -220,9 +220,10 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
     Returns
     -------
 
-    W : array
+    W : array (2D)
         Values representing the Wigner function calculated over the specified
-        range [xvec,yvec].
+        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to 
+        y-coordinate yvec[j] and x-coordinate xvec[k].
 
     yvex : array
         FFT ONLY. Returns the y-coordinate values calculated via the Fourier
