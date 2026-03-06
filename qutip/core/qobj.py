@@ -992,18 +992,6 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        
-        is_herm = self._isherm if self._isherm is not None else False
-
-        if is_herm:
-            evals, evecs = _data.eigs(self._data, isherm=True)
-            sqrt_lambda = np.sqrt(evals.astype(complex))
-            diag_sqrt_lambda = _data.diag(sqrt_lambda, 0, self._data.shape)
-            v_mid = _data.matmul(evecs, diag_sqrt_lambda)
-            res_data = _data.matmul(v_mid, _data.adjoint(evecs))
-
-            return Qobj(res_data, dims=self._dims, copy=False)
-
         return Qobj(_data.sqrtm(self._data),
                     dims=self._dims,
                     copy=False)
