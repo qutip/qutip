@@ -44,7 +44,9 @@ QobjEvoLike = Union["Qobj", "QobjEvo", ElementType, Sequence[ElementType]]
 LayerType = Union[str, type]
 
 
-SpaceLike = Union[int, list[int], list[list[int]], "Space"]
+SpaceLike = Union[
+    int, list[int], list[list[int]], "Space", tuple["SpaceLike", ...]
+]
 
 
 DimensionLike = Union[
