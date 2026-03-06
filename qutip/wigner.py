@@ -985,7 +985,8 @@ def spin_wigner(rho, theta, phi):
     -------
     W, THETA, PHI : 2d-array
         Values representing the spin Wigner function at the values specified
-        by THETA and PHI.
+        by THETA and PHI. The arrays are indexed such that the element [j,k]
+        corresponds to the azimuthal angle ``phi[j]`` and polar angle ``theta[k]``
 
     References
     ----------
