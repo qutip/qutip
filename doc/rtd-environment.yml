@@ -20,7 +20,7 @@ dependencies:
 - docutils==0.22.4
 - executing==2.2.1
 - filelock==3.20.3
- -fonttools==4.61.1
+- fonttools==4.61.1
 - highspy==1.12.0
 - idna==3.11
 - imagesize==1.4.1
@@ -70,7 +70,7 @@ dependencies:
 - sphinxcontrib-bibtex==2.6.5
 - sphinxcontrib-devhelp==2.0.0
 - sphinxcontrib-htmlhelp==2.1.0
- -sphinxcontrib-jquery==4.1
+- sphinxcontrib-jquery==4.1
 - sphinxcontrib-jsmath==1.0.1
 - sphinxcontrib-qthelp==2.0.0
 - sphinxcontrib-serializinghtml==2.0.0

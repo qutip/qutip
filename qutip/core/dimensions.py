@@ -323,7 +323,57 @@ def einsum(subscripts, *operands):
     return from_tensor_rep(result, dims)
 
 
-class DimensionsMeta(type):
+class _homtuple(Sequence):
+    """
+    Sequence where all elements are the same.
+
+    We use this instead of tuple in the list representation of a ``SumSpace``
+    if all spaces are the same. Makes the string representation of such Qobj
+    more sightly, and may save a bit of memory. (For example, the dimensions of
+    the HEOM generator can contain extremely many copies of the same space.)
+    """
+
+    def __init__(self, elem, count):
+        self.elem = elem
+        self.count = count
+
+    def __getitem__(self, i):
+        if type(i) is slice:
+            num_selected = len(range(*i.indices(self.count)))
+            return _homtuple(self.elem, num_selected)
+        if i < 0 or i >= self.count:
+            raise IndexError
+        return self.elem
+
+    def __len__(self):
+        return self.count
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if isinstance(other, _homtuple):
+            return self.count == other.count and self.elem == other.elem
+        if isinstance(other, tuple):
+            return (
+                self.count == len(other)
+                and all(self.elem == x for x in other)
+            )
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.elem, self.count))
+
+    def __repr__(self):
+        return f"({repr(self.elem)},) * {self.count}"
+
+
+def _map_tuple(fun, tup):
+    if type(tup) is _homtuple:
+        return _homtuple(fun(tup.elem), tup.count)
+    return tuple(fun(x) for x in tup)
+
+
+class MetaDims(type):
     """Caching and type resolution for Space and Dimensions types."""
 
     def __init__(cls, name, bases, attrs):
@@ -347,6 +397,11 @@ class DimensionsMeta(type):
             else:
                 return proc_args[0]
 
+        # check for extra kwargs
+        proc_kwargs.pop("rep", None)  # extra "rep" is allowed
+        if len(proc_kwargs) > 0:
+            raise ValueError(f"Unexpected keyword arguments: {proc_kwargs}")
+
         proc_args = tuple([
             tuple(arg) if isinstance(arg, list) else arg
             for arg in proc_args
@@ -358,9 +413,14 @@ class DimensionsMeta(type):
         return cls._stored_dims[proc_args]
 
 
-class Space(metaclass=DimensionsMeta):
+class Space(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
+        if "repeat" in kwargs:
+            repeat = kwargs.pop("repeat")
+            inner_space = Space(*args, **kwargs)
+            return SumSpace, [inner_space], {"repeat": repeat}
+
         if len(args) == 1 and isinstance(args[0], (list, tuple, _homtuple)):
             # From a list (or tuple) of int
             rep = kwargs.pop("rep", None)
@@ -667,56 +727,6 @@ class Compound(Space):
         return Space([space.scalar_like() for space in self.spaces])
 
 
-class _homtuple(Sequence):
-    """
-    Sequence where all elements are the same.
-
-    We use this instead of tuple in the list representation of a ``SumSpace``
-    if all spaces are the same. Makes the string representation of such Qobj
-    more sightly, and may save a bit of memory. (For example, the dimensions of
-    the HEOM generator can contain extremely many copies of the same space.)
-    """
-
-    def __init__(self, elem, count):
-        self.elem = elem
-        self.count = count
-
-    def __getitem__(self, i):
-        if type(i) is slice:
-            num_selected = len(range(*i.indices(self.count)))
-            return _homtuple(self.elem, num_selected)
-        if i < 0 or i >= self.count:
-            raise IndexError
-        return self.elem
-
-    def __len__(self):
-        return self.count
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-        if isinstance(other, _homtuple):
-            return self.count == other.count and self.elem == other.elem
-        if isinstance(other, tuple):
-            return (
-                self.count == len(other)
-                and all(self.elem == x for x in other)
-            )
-        return NotImplemented
-
-    def __hash__(self):
-        return hash((self.elem, self.count))
-
-    def __repr__(self):
-        return f"({repr(self.elem)},) * {self.count}"
-
-
-def _map_tuple(fun, tup):
-    if type(tup) is _homtuple:
-        return _homtuple(fun(tup.elem), tup.count)
-    return tuple(fun(x) for x in tup)
-
-
 class SumSpace(Space):
     # Implementation note:
     # Should SumSpace(x) (with only one argument) be simplified to just x?
@@ -734,7 +744,7 @@ class SumSpace(Space):
 
     @classmethod
     def _process_args(cls, *args, repeat=None, **kwargs):
-        if repeat is not None and repeat == 1:
+        if repeat == 1:
             repeat = None
         if repeat is not None and (
             not isinstance(repeat, numbers.Integral) or repeat <= 0
@@ -803,12 +813,11 @@ class SumSpace(Space):
         self.spaces = spaces
         self._space_dims = _map_tuple(lambda space: space.size, spaces)
         if self._repeat:
-            size = spaces[0].size * self._repeat
+            self.size = spaces[0].size * self._repeat
         else:
             self._space_cumdims_array = np.cumsum((0,) + self._space_dims)
-            size = self._space_cumdims_array[-1]
+            self.size = self._space_cumdims_array[-1]
 
-        super().__init__(size)
         self.issuper, self.superrep = self._check_super()
         self._pure_dims = False
 
@@ -938,7 +947,7 @@ class SuperSpace(Space):
         return SuperSpace(self.oper.scalar_like(), rep=self.superrep)
 
 
-class Dimensions(metaclass=DimensionsMeta):
+class Dimensions(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], list):
