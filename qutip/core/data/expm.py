@@ -145,7 +145,7 @@ logm.add_specialisations([
 def sqrtm_dense(matrix) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
-    
+
     # Spectral Decomposition for Hermitian matrices to avoid SciPy's singularity warning
     if isherm_dense(matrix):
         evals, evecs = eigs_dense(matrix, isherm=True)
