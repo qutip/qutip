@@ -355,6 +355,7 @@ def test_direct_component_validation():
     for args in ([], [-1], [2], [0, 0, 0], [0, 1], [-1, 0], [2, 0]):
         with pytest.raises(IndexError):
             direct_component(linear, *args)
+        with pytest.raises(IndexError):
             set_direct_component(linear, None, *args)
 
     matrix = direct_sum([[sigmax(), None], [None, sigmay()]])
@@ -363,13 +364,16 @@ def test_direct_component_validation():
     ):
         with pytest.raises(IndexError):
             direct_component(matrix, *args)
-            set_direct_component(linear, None, *args)
+        with pytest.raises(IndexError):
+            set_direct_component(matrix, None, *args)
+            print(f"\nargs: {args}\n")
 
 
 def test_set_direct_component_validation():
     matrix = direct_sum([[1, 2], [None, 3]])
     with pytest.raises(ValueError):
         set_direct_component(matrix, basis(2, 0), 1, 0)
+    with pytest.raises(ValueError):
         set_direct_component(matrix, sigmax(), 0, 0)
 
 
