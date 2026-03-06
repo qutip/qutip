@@ -2,11 +2,16 @@ import numpy as np
 import scipy.sparse.linalg
 import scipy.linalg
 
+from .adjoint import adjoint_dense
+from .convert import to
+from .eigen import eigs_dense
 from .dense import Dense
 from .csr import CSR
 from .dia import Dia
 from . import dia
-from .properties import isdiag_csr, isdiag_dia
+from .make import diag
+from .matmul import matmul_dense
+from .properties import isdiag_csr, isdiag_dia, isherm_dense
 from qutip.settings import settings
 from .base import idxint_dtype
 
@@ -140,6 +145,16 @@ logm.add_specialisations([
 def sqrtm_dense(matrix) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
+    
+    # Spectral Decomposition for Hermitian matrices to avoid SciPy's singularity warning
+    if isherm_dense(matrix):
+        evals, evecs = eigs_dense(matrix, isherm=True)
+        sqrt_lambda = np.sqrt(evals.astype(complex))
+        diag_csr = diag(sqrt_lambda, 0, matrix.shape)
+        diag_dense = to(Dense, diag_csr)
+        v_mid = matmul_dense(evecs, diag_dense)
+        return matmul_dense(v_mid, adjoint_dense(evecs))
+
     # As of scipy 1.16.0, it's bugged and overly eager for warning.
     # Tests filter warnings, and 1.16.1 will fix the bug.
     # See qutip#2711
