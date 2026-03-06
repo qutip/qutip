@@ -821,7 +821,8 @@ def qfunc(
     -------
     ndarray
         Values representing the Husimi-Q function calculated over the specified
-        range ``[xvec, yvec]``.
+        range ``[xvec, yvec]``. The array is indexed such that the element [j, k]
+        corresponds to the y-coordinate ``yvec[j]`` and x-coordinate ``xvec[k]``.
 
     See Also
     --------
@@ -890,7 +891,8 @@ def spin_q_function(rho, theta, phi):
     -------
     Q, THETA, PHI : 2d-array
         Values representing the spin Husimi Q function at the values specified
-        by THETA and PHI.
+        by THETA and PHI. The arrays are indexed such that the element [j, k]
+        corresponds to the azimuthal angle ``phi[j]`` and polar angle ``theta[k]``
 
     References
     ----------
