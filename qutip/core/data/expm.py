@@ -142,17 +142,17 @@ logm.add_specialisations([
 ], _defer=True)
 
 
-def sqrtm_dense(matrix) -> Dense:
+def sqrtm_dense(matrix, /, isherm=None) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
 
-    # Spectral Decomposition for Hermitian matrices to avoid SciPy's singularity warning
-    if isherm_dense(matrix):
+    # Spectral Decomposition for Hermitian matrices
+    # to avoid SciPy's singularity warning.
+    if (isherm if isherm is not None else isherm_dense(matrix)):
         evals, evecs = eigs_dense(matrix, isherm=True)
         sqrt_lambda = np.sqrt(evals.astype(complex))
-        diag_csr = diag(sqrt_lambda, 0, matrix.shape)
-        diag_dense = to(Dense, diag_csr)
-        v_mid = matmul_dense(evecs, diag_dense)
+        diag_sqrt_lamda = diag(sqrt_lambda, 0, matrix.shape, dtype=Dense)
+        v_mid = matmul_dense(evecs, diag_sqrt_lamda)
         return matmul_dense(v_mid, adjoint_dense(evecs))
 
     # As of scipy 1.16.0, it's bugged and overly eager for warning.
@@ -162,9 +162,7 @@ def sqrtm_dense(matrix) -> Dense:
 
 
 sqrtm = _Dispatcher(
-    _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
-    ]),
+    sqrtm_dense,
     name='sqrtm',
     module=__name__,
     inputs=('matrix',),
