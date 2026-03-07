@@ -220,9 +220,10 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
     Returns
     -------
 
-    W : array
+    W : array (2D)
         Values representing the Wigner function calculated over the specified
-        range [xvec,yvec].
+        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to 
+        y-coordinate yvec[j] and x-coordinate xvec[k].
 
     yvex : array
         FFT ONLY. Returns the y-coordinate values calculated via the Fourier
@@ -820,7 +821,8 @@ def qfunc(
     -------
     ndarray
         Values representing the Husimi-Q function calculated over the specified
-        range ``[xvec, yvec]``.
+        range ``[xvec, yvec]``. The array is indexed such that the element [j, k]
+        corresponds to the y-coordinate ``yvec[j]`` and x-coordinate ``xvec[k]``.
 
     See Also
     --------
@@ -889,7 +891,8 @@ def spin_q_function(rho, theta, phi):
     -------
     Q, THETA, PHI : 2d-array
         Values representing the spin Husimi Q function at the values specified
-        by THETA and PHI.
+        by THETA and PHI. The arrays are indexed such that the element [j, k]
+        corresponds to the azimuthal angle ``phi[j]`` and polar angle ``theta[k]``
 
     References
     ----------
@@ -982,7 +985,8 @@ def spin_wigner(rho, theta, phi):
     -------
     W, THETA, PHI : 2d-array
         Values representing the spin Wigner function at the values specified
-        by THETA and PHI.
+        by THETA and PHI. The arrays are indexed such that the element [j,k]
+        corresponds to the azimuthal angle ``phi[j]`` and polar angle ``theta[k]``
 
     References
     ----------
