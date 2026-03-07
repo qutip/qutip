@@ -1,0 +1,1 @@
+Fixes UnboundLocalError in plot_split_distribution and improved function by changing cmap implementation and adding kwargs. 
