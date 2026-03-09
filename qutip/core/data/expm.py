@@ -2,15 +2,13 @@ import numpy as np
 import scipy.sparse.linalg
 import scipy.linalg
 
-from .adjoint import adjoint_dense
-from .convert import to
 from .eigen import eigs_dense
 from .dense import Dense
 from .csr import CSR
 from .dia import Dia
 from . import dia
 from .make import diag
-from .matmul import matmul_dense
+from .matmul import matmul_dense, matmul_dag_dense
 from .properties import isdiag_csr, isdiag_dia, isherm_dense
 from qutip.settings import settings
 from .base import idxint_dtype
@@ -153,7 +151,7 @@ def sqrtm_dense(matrix, /, isherm=None) -> Dense:
         sqrt_lambda = np.sqrt(evals.astype(complex))
         diag_sqrt_lamda = diag(sqrt_lambda, 0, matrix.shape, dtype=Dense)
         v_mid = matmul_dense(evecs, diag_sqrt_lamda)
-        return matmul_dense(v_mid, adjoint_dense(evecs))
+        return matmul_dag_dense(v_mid, evecs)
 
     # As of scipy 1.16.0, it's bugged and overly eager for warning.
     # Tests filter warnings, and 1.16.1 will fix the bug.
