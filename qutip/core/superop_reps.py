@@ -9,7 +9,7 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 from __future__ import annotations
 
 __all__ = [
-    'kraus_to_choi', 'kraus_to_super', 'to_superpauli', 'from_superpauli',
+    'kraus_to_choi', 'kraus_to_super', 'to_superpauli', 'superpauli_to_super',
     'to_choi', 'to_chi', 'to_super', 'to_kraus', 'to_stinespring',
 ]
 
@@ -136,7 +136,7 @@ def to_superpauli(q_oper):
     return out
 
 
-def from_superpauli(q_oper):
+def superpauli_to_super(q_oper):
     """
     Convert a Pauli Transfer Matrix back to a standard superoperator
     in the column-stacking basis.
@@ -152,23 +152,27 @@ def from_superpauli(q_oper):
         Superoperator in the standard QuTiP column-stacking basis
         with ``superrep='super'``.
     """
-    # Ensure we are working with a Qobj
-    sqobj = Qobj(q_oper)
-    # Check if it's square
-    if sqobj.shape[0] != sqobj.shape[1]:
+    # Ensure we are working with a Pauli Transfer Matrix.
+    if not isinstance(q_oper, Qobj):
+        raise TypeError("q_oper must be a Qobj.")
+    if q_oper.superrep != 'pauli':
+        raise ValueError("q_oper must be a Pauli Transfer Matrix (superrep='pauli').")
+    if q_oper.shape[0] != q_oper.shape[1]:
         raise ValueError("Pauli Transfer Matrix must be a square.")
+    if not isqubitdims(q_oper.dims):
+        raise ValueError("Pauli Basis is only defined for qubits.")
 
-    dim = sqobj.shape[0]
+    dim =q_oper.shape[0]
     if (dim & (dim - 1)) != 0 or _int_log_two(dim) % 2 != 0:
         raise ValueError(
             "Pauli basis is only defined for qubit systems"
             "(dimensions of 4^n)."
         )
 
-    nq = _int_log_two(sqobj.shape[0]) // 2
+    nq = _int_log_two(q_oper.shape[0]) // 2
     B = _superpauli_basis(nq) * 2**(-0.5 * nq)
-    B.dims = sqobj.dims
-    out = B @ sqobj @ B.dag()
+    B.dims =q_oper.dims
+    out = B @q_oper @ B.dag()
     out.superrep = 'super'
     return out
 

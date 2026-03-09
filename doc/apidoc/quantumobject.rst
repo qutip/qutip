@@ -95,7 +95,7 @@ Superoperator Representations
 -----------------------------
 
 .. automodule:: qutip.core.superop_reps
-    :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring, to_superpauli, from_superpauli
+    :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring, to_superpauli, superpauli_to_super
     :undoc-members:
 
 Operators and Superoperator Dimensions
