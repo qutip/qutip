@@ -87,3 +87,13 @@ class TestNumpyBackend:
     def test_getattr_jax(self):
         with CoreOptions(numpy_backend=mock_jax):
             assert np.sum([1, 2, 3]) == "jax_sum"
+
+
+class TestOpenMPOptions:
+    def test_has_openmp_is_boolean(self):
+        assert isinstance(settings.has_openmp, bool)
+
+    def test_openmp_core_options_roundtrip(self):
+        with CoreOptions(use_openmp=False, openmp_thresh=123):
+            assert settings.core["use_openmp"] is False
+            assert settings.core["openmp_thresh"] == 123

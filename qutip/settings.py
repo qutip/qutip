@@ -4,6 +4,7 @@ tidyup functionality, etc.
 """
 import os
 import sys
+import importlib.util
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
@@ -184,6 +185,7 @@ class Settings:
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+        self._has_openmp_cache = None
 
     @property
     def has_mkl(self) -> bool:
@@ -304,10 +306,21 @@ class Settings:
         return os.access(self.coeffroot, os.W_OK)
 
     @property
+    def has_openmp(self) -> bool:
+        """Whether OpenMP support is available in the installed extensions."""
+        if self._has_openmp_cache is None:
+            # We detect OpenMP support by checking if the OpenMP Cython module
+            # was built and is importable in this installation.
+            self._has_openmp_cache = (
+                importlib.util.find_spec("qutip.core.cy.openmp.parfuncs")
+                is not None
+            )
+        return self._has_openmp_cache
+
+    @property
     def _has_openmp(self) -> bool:
-        return False
-        # We keep this as a reminder for when openmp is restored: see Pull #652
-        # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+        # Backward-compatible alias for internal legacy call-sites.
+        return self.has_openmp
 
     @property
     def idxint_size(self) -> int:

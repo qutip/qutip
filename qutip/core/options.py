@@ -134,6 +134,12 @@ class CoreOptions(QutipOptions):
         ``auto_tidyup`` parameter above) and the default value of ``atol`` used
         in :meth:`Qobj.tidyup`.
 
+    use_openmp : bool [True]
+        Enable OpenMP-enabled kernels when they are available.
+
+    openmp_thresh : int [10000]
+        Minimum matrix size threshold before OpenMP kernels should be used.
+
     function_coefficient_style : str {"auto"}
         The signature expected by function coefficients. The options are:
 
@@ -185,6 +191,10 @@ class CoreOptions(QutipOptions):
         "rtol": 1e-12,
         # use auto tidyup absolute tolerance
         "auto_tidyup_atol": 1e-14,
+        # Enable OpenMP kernels when available.
+        "use_openmp": True,
+        # Minimum size threshold for OpenMP kernels.
+        "openmp_thresh": 10000,
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
         # Default Qobj dtype for Qobj create function
@@ -217,6 +227,9 @@ class CoreOptions(QutipOptions):
     ) -> float: ...
 
     @overload
+    def __getitem__(self, key: Literal["openmp_thresh"]) -> int: ...
+
+    @overload
     def __getitem__(
         self, key: Literal["function_coefficient_style", "default_dtype_scope"]
     ) -> str: ...
@@ -239,6 +252,9 @@ class CoreOptions(QutipOptions):
     def __setitem__(
         self, key: Literal["atol", "rtol", "auto_tidyup_atol"], value: float
     ) -> None: ...
+
+    @overload
+    def __setitem__(self, key: Literal["openmp_thresh"], value: int) -> None: ...
 
     @overload
     def __setitem__(

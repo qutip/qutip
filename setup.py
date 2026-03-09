@@ -28,7 +28,7 @@ def process_options():
             Is this a release build (True) or a local development build (False)
         'openmp': bool
             Should we build our OpenMP extensions and attempt to link in OpenMP
-            libraries? (Not supported in this version.)
+            libraries?
         'cflags': list of str
             Flags to be passed to the C++ compiler.
         'ldflags': list of str
@@ -88,8 +88,7 @@ def _determine_user_arguments(options):
             --wheel \
             --config-setting="--global-option=--with-openmp"
     """
-    # options = _parse_bool_user_argument(options, 'openmp')
-    options['openmp'] = False  # Not supported yet
+    options = _parse_bool_user_argument(options, 'openmp')
     options = _parse_bool_user_argument(options, 'idxint_64')
     return options
 

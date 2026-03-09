@@ -1,0 +1,1 @@
+Restores OpenMP support controls by re-enabling the build flag (``--with-openmp``/``CI_QUTIP_WITH_OPENMP``), exposing ``settings.has_openmp`` detection, and adding ``CoreOptions(use_openmp=..., openmp_thresh=...)`` toggles for runtime configuration.
