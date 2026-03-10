@@ -86,7 +86,7 @@ jobs:
             oldmpl: 1
             pypi: 1
             coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\"
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
