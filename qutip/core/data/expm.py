@@ -157,7 +157,10 @@ def sqrtm_dense(matrix, /, isherm=None) -> Dense:
 
 
 sqrtm = _Dispatcher(
-    sqrtm_dense,
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('isherm', _inspect.Parameter.KEYWORD_ONLY, default=None),
+    ]),
     name='sqrtm',
     module=__name__,
     inputs=('matrix',),
