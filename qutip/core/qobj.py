@@ -992,7 +992,7 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        return Qobj(_data.sqrtm(self._data),
+        return Qobj(_data.sqrtm(self._data, isherm=self._isherm),
                     dims=self._dims,
                     copy=False)
 

@@ -62,7 +62,7 @@ def fidelity(A, B):
             return np.abs(A.overlap(B))
         # Take advantage of the fact that the density operator for A
         # is a projector to avoid a sqrtm call.
-        sqrtmA = ket2dm(A)
+        sqrtmA = A.proj()
     else:
         if B.isket or B.isbra:
             # Swap the order so that we can take a more numerically
