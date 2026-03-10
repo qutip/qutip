@@ -152,10 +152,7 @@ def sqrtm_dense(matrix, /, isherm=None) -> Dense:
         diag_sqrt_lamda = diag(sqrt_lambda, 0, matrix.shape, dtype=Dense)
         v_mid = matmul_dense(evecs, diag_sqrt_lamda)
         return matmul_dag_dense(v_mid, evecs)
-
-    # As of scipy 1.16.0, it's bugged and overly eager for warning.
-    # Tests filter warnings, and 1.16.1 will fix the bug.
-    # See qutip#2711
+    
     return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()))
 
 
