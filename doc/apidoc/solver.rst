@@ -232,7 +232,7 @@ Steady-state Solvers
 --------------------
 
 .. automodule:: qutip.solver.steadystate
-    :members: steadystate, pseudo_inverse, steadystate_floquet
+    :members: steadystate, pseudo_inverse, steadystate_fourier, steadystate_floquet
     :undoc-members:
 
 

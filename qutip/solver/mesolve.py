@@ -9,11 +9,12 @@ from __future__ import annotations
 __all__ = ['mesolve', 'MESolver']
 
 from numpy.typing import ArrayLike
-from typing import Any, Callable
+from typing import Any
 from time import time
-from .. import (Qobj, QobjEvo, liouvillian, lindblad_dissipator)
+from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
+from ..core.cy.lindblad_matrix_form import LindbladMatrixForm
 from .solver_base import Solver, _solver_deprecation, _kwargs_migration
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
@@ -25,9 +26,9 @@ def mesolve(
     rho0: Qobj,
     tlist: ArrayLike,
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
-    _e_ops = None,
-    _args = None,
-    _options = None,
+    _e_ops=None,
+    _args=None,
+    _options=None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
@@ -39,10 +40,10 @@ def mesolve(
     set of collapse operators, or a Liouvillian.
 
     Evolve the state vector or density matrix (``rho0``) using a given
-    Hamiltonian or Liouvillian (``H``) and an optional set of collapse operators
-    (``c_ops``), by integrating the set of ordinary differential equations
-    that define the system. In the absence of collapse operators the system is
-    evolved according to the unitary evolution of the Hamiltonian.
+    Hamiltonian or Liouvillian (``H``) and an optional set of collapse
+    operators (``c_ops``), by integrating the set of ordinary differential
+    equations that define the system. In the absence of collapse operators
+    the system is evolved according to the unitary evolution of the Hamiltonian.
 
     The output is either the state vector at arbitrary points in time
     (``tlist``), or the expectation values of the supplied operators
@@ -124,11 +125,15 @@ def mesolve(
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
-          | Maximum number of (internally defined) steps allowed in one ``tlist``
-            step.
+          | Maximum number of (internally defined) steps allowed in one
+            ``tlist`` step.
         - | max_step : float
-          | Maximum lenght of one internal step. When using pulses, it should be
-            less than half the width of the thinnest pulse.
+          | Maximum length of one internal step. When using pulses, it
+            should be less than half the width of the thinnest pulse.
+        - | matrix_form : bool
+          | Use matrix-form Lindblad solver instead of superoperator form.
+            The matrix-form solver can be faster for denser systems.
+            Default: False.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
@@ -158,6 +163,9 @@ def mesolve(
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
     if not use_mesolve:
+        # Strip matrix_form option before passing to sesolve
+        if options and 'matrix_form' in options:
+            options = {k: v for k, v in options.items() if k != 'matrix_form'}
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
                        options=options)
 
@@ -205,11 +213,12 @@ class MESolver(SESolver):
     _avail_integrators: dict[str, object] = {}
     solver_options = {
         "progress_bar": "",
-        "progress_kwargs": {"chunk_size":10},
+        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
         "normalize_output": True,
-        'method': 'adams',
+        "method": "adams",
+        "matrix_form": False,
     }
 
     def __init__(
@@ -231,11 +240,33 @@ class MESolver(SESolver):
 
         self._num_collapse = len(c_ops)
 
-        rhs = H if H.issuper else liouvillian(H)
-        rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                   for c_op in c_ops)
+        # Check for matrix_form option
+        matrix_form = (options or {}).get('matrix_form', False)
+
+        if matrix_form:
+            if H.issuper:
+                raise TypeError(
+                    "matrix_form=True cannot be used with superoperator H"
+                )
+            self._vectorize_state = False
+            H = QobjEvo(H)
+            c_ops_qevo = [QobjEvo(c) for c in c_ops]
+            rhs = LindbladMatrixForm(H, c_ops_qevo)
+        else:
+            rhs = H if H.issuper else liouvillian(H)
+            rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
+                       for c_op in c_ops)
 
         Solver.__init__(self, rhs, options=options)
+
+    def _prepare_state(self, state):
+        # Kets skip this check: ket2dm (in super) always produces a
+        # Hermitian dm.  Only explicit dm inputs need validation.
+        if not self._vectorize_state and state.isoper and not state.isherm:
+            raise ValueError(
+                "matrix_form=True requires a Hermitian density matrix"
+            )
+        return super()._prepare_state(state)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()

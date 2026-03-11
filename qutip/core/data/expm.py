@@ -2,11 +2,14 @@ import numpy as np
 import scipy.sparse.linalg
 import scipy.linalg
 
+from .eigen import eigs_dense
 from .dense import Dense
 from .csr import CSR
 from .dia import Dia
 from . import dia
-from .properties import isdiag_csr, isdiag_dia
+from .make import diag
+from .matmul import matmul_dense, matmul_dag_dense
+from .properties import isdiag_csr, isdiag_dia, isherm_dense
 from qutip.settings import settings
 from .base import idxint_dtype
 
@@ -137,19 +140,24 @@ logm.add_specialisations([
 ], _defer=True)
 
 
-def sqrtm_dense(matrix) -> Dense:
+def sqrtm_dense(matrix, /, isherm=None) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
-    # As of scipy 1.16.0, it's bugged and overly eager for warning.
-    # Tests filter warnings, and 1.16.1 will fix the bug.
-    # See qutip#2711
+
+    # Spectral Decomposition for Hermitian matrices
+    # to avoid SciPy's singularity warning.
+    if (isherm if isherm is not None else isherm_dense(matrix)):
+        evals, evecs = eigs_dense(matrix, isherm=True)
+        sqrt_lambda = np.sqrt(evals.astype(complex))
+        diag_sqrt_lamda = diag(sqrt_lambda, 0, matrix.shape, dtype=Dense)
+        v_mid = matmul_dense(evecs, diag_sqrt_lamda)
+        return matmul_dag_dense(v_mid, evecs)
+    
     return Dense(scipy.linalg.sqrtm(matrix.as_ndarray()))
 
 
 sqrtm = _Dispatcher(
-    _inspect.Signature([
-        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
-    ]),
+    sqrtm_dense,
     name='sqrtm',
     module=__name__,
     inputs=('matrix',),
