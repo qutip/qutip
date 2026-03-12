@@ -694,6 +694,179 @@ class MultiTrajResult(_BaseResult):
             lines.append("  Trajectories not saved.")
         lines.append(">")
         return "\n".join(lines)
+    
+    def plot_expect(
+        self,
+        *,
+        fig=None,
+        axes=None,
+        labels=None,
+        title=None,
+        xlabel="Time",
+        ylabel="Expectation value",
+        show_legend=True,
+        show_trajectories=0,
+        show_average=True,
+        alpha_trajectories=0.3,
+        **plot_kwargs,
+    ):
+        """
+        Plot expectation values from multi-trajectory solver results.
+
+        Supports plotting the trajectory-averaged expectation values,
+        individual trajectories, or both.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure, optional
+            User-provided figure. If ``None`` and *axes* is also ``None``,
+            a new figure is created.
+
+        axes : matplotlib.axes.Axes, optional
+            User-provided axes. If ``None`` and *fig* is also ``None``,
+            new axes are created.
+
+        labels : list of str, optional
+            Labels for each expectation-value curve. When ``None``, labels
+            are taken from the *e_ops* keys (the original dictionary keys
+            when *e_ops* was passed as a ``dict``, otherwise
+            ``"e_ops[0]"``, ``"e_ops[1]"``, …).
+
+        title : str, optional
+            Title for the plot. When ``None``, the solver name stored in
+            the result is used.
+
+        xlabel : str, optional
+            Label for the *x*-axis. Default ``"Time"``.
+
+        ylabel : str, optional
+            Label for the *y*-axis. Default ``"Expectation value"``.
+
+        show_legend : bool, optional
+            Whether to display the legend. Default ``True``.
+
+        show_trajectories : int, optional
+            Number of individual trajectories to overlay on the plot.
+            Requires that the solver was run with
+            ``options={"keep_runs_results": True}``.
+            Default ``0`` (none).
+
+        show_average : bool, optional
+            Whether to plot the average over all trajectories.
+            Default ``True``.
+
+        alpha_trajectories : float, optional
+            Opacity of individual trajectory lines. Default ``0.3``.
+
+        **plot_kwargs
+            Additional keyword arguments forwarded to
+            ``matplotlib.axes.Axes.plot``.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the plot.
+
+        axes : matplotlib.axes.Axes
+            The axes containing the plot.
+
+        Raises
+        ------
+        ValueError
+            If no data can be plotted.
+        """
+        import warnings
+
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as err:
+            raise ImportError(
+                "matplotlib is required for plotting. "
+                "Install it with:  pip install matplotlib"
+            ) from err
+
+        if show_trajectories > 0 and not self.trajectories:
+            warnings.warn(
+                "Trajectories are not saved. "
+                "Set options={'keep_runs_results': True} to plot "
+                "individual trajectories. Showing average only.",
+                stacklevel=2,
+            )
+            show_trajectories = 0
+
+        if not show_average and show_trajectories <= 0:
+            raise ValueError(
+                "Nothing to plot: set show_average=True or provide "
+                "show_trajectories > 0 with keep_runs_results=True."
+            )
+
+        avg_expect = self.average_expect
+        if not avg_expect and not self.trajectories:
+            raise ValueError(
+                "No expectation-value data to plot. "
+                "Ensure that e_ops were supplied to the solver."
+            )
+
+        if fig is None and axes is None:
+            fig, axes = plt.subplots()
+        elif axes is None:
+            axes = fig.add_subplot(111)
+        elif fig is None:
+            fig = axes.get_figure()
+
+        if labels is None:
+            labels = [
+                key if isinstance(key, str) else f"e_ops[{key}]"
+                for key in self.e_data.keys()
+            ]
+
+        color_cycle = plt.rcParams["axes.prop_cycle"].by_key().get(
+            "color", [f"C{i}" for i in range(10)]
+        )
+
+        if show_trajectories > 0 and self.trajectories:
+            n_traj = min(show_trajectories, len(self.trajectories))
+            for traj_idx in range(n_traj):
+                traj = self.trajectories[traj_idx]
+                for i, exp in enumerate(traj.expect):
+                    color = color_cycle[i % len(color_cycle)]
+                    traj_label = (
+                        f"{labels[i]} (traj)" if traj_idx == 0 else None
+                    )
+                    axes.plot(
+                        self.times, exp,
+                        color=color,
+                        alpha=alpha_trajectories,
+                        label=traj_label,
+                        **plot_kwargs,
+                    )
+
+        if show_average and avg_expect:
+            for i, (exp, label) in enumerate(zip(avg_expect, labels)):
+                color = color_cycle[i % len(color_cycle)]
+                avg_label = (
+                    f"{label} (avg)" if show_trajectories > 0 else label
+                )
+                axes.plot(
+                    self.times, exp,
+                    color=color,
+                    linewidth=2,
+                    label=avg_label,
+                    **plot_kwargs,
+                )
+
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+
+        if title is None:
+            title = self.solver
+        if title is not None:
+            axes.set_title(str(title))
+
+        if show_legend:
+            axes.legend()
+
+        return fig, axes
 
     def merge(self, other, p=None):
         r"""
@@ -1108,6 +1281,100 @@ class McResult(_McBaseResult):
     options : :obj:`~SolverResultsOptions`
         The options for this result class.
     """
+
+    def plot_photocurrent(
+        self,
+        *,
+        fig=None,
+        axes=None,
+        title=None,
+        xlabel="Time",
+        ylabel="Photocurrent",
+        show_legend=True,
+        **plot_kwargs,
+    ):
+        """
+        Plot the photocurrent from Monte-Carlo solver results.
+
+        The photocurrent is computed from collapse event histograms
+        (one curve per collapse operator).
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure, optional
+            User-provided figure. If ``None`` and *axes* is also ``None``,
+            a new figure is created.
+
+        axes : matplotlib.axes.Axes, optional
+            User-provided axes. If ``None`` and *fig* is also ``None``,
+            new axes are created.
+
+        title : str, optional
+            Title for the plot. When ``None``, the solver name is used.
+
+        xlabel : str, optional
+            Label for the *x*-axis. Default ``"Time"``.
+
+        ylabel : str, optional
+            Label for the *y*-axis. Default ``"Photocurrent"``.
+
+        show_legend : bool, optional
+            Whether to display the legend. Default ``True``.
+
+        **plot_kwargs
+            Additional keyword arguments forwarded to
+            ``matplotlib.axes.Axes.plot``.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the plot.
+
+        axes : matplotlib.axes.Axes
+            The axes containing the plot.
+
+        Raises
+        ------
+        ValueError
+            If no photocurrent data is available.
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as err:
+            raise ImportError(
+                "matplotlib is required for plotting. "
+                "Install it with:  pip install matplotlib"
+            ) from err
+
+        photocurrent = self.photocurrent
+        if not photocurrent:
+            raise ValueError("No photocurrent data available.")
+
+        if fig is None and axes is None:
+            fig, axes = plt.subplots()
+        elif axes is None:
+            axes = fig.add_subplot(111)
+        elif fig is None:
+            fig = axes.get_figure()
+
+        times = self.times[:-1]
+        for i, pc in enumerate(photocurrent):
+            axes.plot(
+                times, pc, label=f"c_ops[{i}]", **plot_kwargs
+            )
+
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+
+        if title is None:
+            title = self.solver
+        if title is not None:
+            axes.set_title(str(title))
+
+        if show_legend:
+            axes.legend()
+
+        return fig, axes
 
     @property
     def photocurrent(self):

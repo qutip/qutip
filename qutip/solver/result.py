@@ -364,6 +364,110 @@ class Result(_BaseResult):
         lines.append(">")
         return "\n".join(lines)
 
+    def plot_expect(
+        self,
+        *,
+        fig=None,
+        axes=None,
+        labels=None,
+        title=None,
+        xlabel="Time",
+        ylabel="Expectation value",
+        show_legend=True,
+        **plot_kwargs,
+    ):
+        """
+        Plot the expectation values from the solver result.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure, optional
+            User-provided figure. If ``None`` and *axes* is also ``None``,
+            a new figure is created.
+
+        axes : matplotlib.axes.Axes, optional
+            User-provided axes. If ``None`` and *fig* is also ``None``,
+            new axes are created.
+
+        labels : list of str, optional
+            Labels for each expectation-value curve. When ``None``, labels
+            are taken from the *e_ops* keys (the original dictionary keys
+            when *e_ops* was passed as a ``dict``, otherwise
+            ``"e_ops[0]"``, ``"e_ops[1]"``, …).
+
+        title : str, optional
+            Title for the plot. When ``None``, the solver name stored in
+            the result is used.
+
+        xlabel : str, optional
+            Label for the *x*-axis. Default ``"Time"``.
+
+        ylabel : str, optional
+            Label for the *y*-axis. Default ``"Expectation value"``.
+
+        show_legend : bool, optional
+            Whether to display the legend. Default ``True``.
+
+        **plot_kwargs
+            Additional keyword arguments forwarded to
+            ``matplotlib.axes.Axes.plot``.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the plot.
+
+        axes : matplotlib.axes.Axes
+            The axes containing the plot.
+
+        Raises
+        ------
+        ValueError
+            If no expectation-value data is available.
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as err:
+            raise ImportError(
+                "matplotlib is required for plotting. "
+                "Install it with:  pip install matplotlib"
+            ) from err
+
+        if not self.e_data:
+            raise ValueError(
+                "No expectation-value data to plot. "
+                "Ensure that e_ops were supplied to the solver."
+            )
+
+        if fig is None and axes is None:
+            fig, axes = plt.subplots()
+        elif axes is None:
+            axes = fig.add_subplot(111)
+        elif fig is None:
+            fig = axes.get_figure()
+
+        if labels is None:
+            labels = [
+                key if isinstance(key, str) else f"e_ops[{key}]"
+                for key in self.e_data.keys()
+            ]
+
+        for label, expectation in zip(labels, self.expect):
+            axes.plot(self.times, expectation, label=label, **plot_kwargs)
+
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+
+        if title is None:
+            title = self.solver
+        if title is not None:
+            axes.set_title(str(title))
+
+        if show_legend:
+            axes.legend()
+
+        return fig, axes
+
     @property
     def expect(self) -> list[ArrayLike]:
         return [np.array(e_op) for e_op in self.e_data.values()]
