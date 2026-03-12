@@ -384,7 +384,7 @@ class Qobj:
     def dtype(self):
         return type(self._data)
 
-    def to(self, data_type: LayerType, copy: bool=False) -> Qobj:
+    def to(self, data_type: LayerType, copy: bool = False) -> Qobj:
         """
         Convert the underlying data store of this `Qobj` into a different
         storage representation.
@@ -1889,9 +1889,10 @@ class Qobj:
             # We can test with either Choi or chi, since the basis
             # transformation between them is unitary and hence preserves
             # the CP and TP conditions.
-            J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
-            # If J isn't hermitian, then that could indicate either that J is not
-            # normal, or is normal, but has complex eigenvalues.  In either case,
+            J = (self if self.superrep in ('choi', 'chi')
+                 else qutip.to_choi(self))
+            # If J isn't hermitian, that could indicate J is not normal,
+            # or is normal but has complex eigenvalues.  In either case,
             # it makes no sense to then demand that the eigenvalues be
             # non-negative.
             self._iscp = J.isherm and np.all(
@@ -1914,7 +1915,7 @@ class Qobj:
                 qobj = self
             else:
                 qobj = qutip.to_choi(self)
-            # Collapse dims to ignore product structure etc of underlying spaces
+            # Collapse dims to ignore product structure of underlying spaces
             qobj = Qobj(qobj.data,
                         dims=qobj._dims.collapse(),
                         copy=False)
