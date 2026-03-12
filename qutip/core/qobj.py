@@ -283,6 +283,10 @@ class Qobj:
     ):
         self._isherm = isherm
         self._isunitary = isunitary
+        self._ishp = None
+        self._iscp = None
+        self._istp = None
+        self._iscptp = None
         self._initialize_data(arg, dims, copy)
 
         if superrep is not None:
@@ -300,12 +304,17 @@ class Qobj:
 
     def copy(self) -> Qobj:
         """Create identical copy"""
-        return Qobj(arg=self._data,
-                    dims=self._dims,
-                    isherm=self._isherm,
-                    isunitary=self._isunitary,
-                    dtype=self.dtype,
-                    copy=True)
+        result = Qobj(arg=self._data,
+                      dims=self._dims,
+                      isherm=self._isherm,
+                      isunitary=self._isunitary,
+                      dtype=self.dtype,
+                      copy=True)
+        result._ishp = self._ishp
+        result._iscp = self._iscp
+        result._istp = self._istp
+        result._iscptp = self._iscptp
+        return result
 
     @property
     def dims(self) -> list[list[int]] | list[list[list[int]]]:
@@ -318,6 +327,15 @@ class Qobj:
             raise ValueError('Provided dimensions do not match the data: ' +
                              f"{dims.shape} vs {self._data.shape}")
         self._dims = dims
+        # Changing dims can change the type (e.g. oper -> super), which
+        # invalidates all type-dependent cached properties.  _isherm is NOT
+        # cleared because hermiticity is a pure matrix property, independent
+        # of how the dimensions are labelled.
+        self._isunitary = None
+        self._ishp = None
+        self._iscp = None
+        self._istp = None
+        self._iscptp = None
 
     @property
     def type(self) -> str:
@@ -330,6 +348,14 @@ class Qobj:
     @superrep.setter
     def superrep(self, super_rep: str):
         self._dims = self._dims.replace_superrep(super_rep)
+        # The CP/TP/HP tests normalize to Choi representation internally, so
+        # a change of superrep invalidates those results.  _isherm and
+        # _isunitary are NOT cleared: the matrix values are unchanged, and
+        # replace_superrep does not alter the Qobj type.
+        self._ishp = None
+        self._iscp = None
+        self._istp = None
+        self._iscptp = None
 
     @property
     def data(self) -> _data.Data:
@@ -343,6 +369,16 @@ class Qobj:
             raise ValueError('Provided data do not match the dimensions: ' +
                              f"{self._dims.shape} vs {data.shape}")
         self._data = data
+        # New matrix data invalidates every property derived from matrix
+        # values.  Note: dtype conversion in __init__ assigns _data directly
+        # to avoid triggering this (storage format changes do not affect any
+        # of these properties).
+        self._isherm = None
+        self._isunitary = None
+        self._ishp = None
+        self._iscp = None
+        self._istp = None
+        self._iscptp = None
 
     @property
     def dtype(self):
@@ -1831,62 +1867,77 @@ class Qobj:
 
     @property
     def ishp(self) -> bool:
-        # FIXME: this needs to be cached in the same ways as isherm.
+        if self._ishp is not None:
+            return self._ishp
         if self.type in ["super", "oper"]:
             try:
                 J = qutip.to_choi(self)
-                return J.isherm
-            except:
-                return False
+                self._ishp = J.isherm
+            except Exception:
+                self._ishp = False
         else:
-            return False
+            self._ishp = False
+        return self._ishp
 
     @property
     def iscp(self) -> bool:
-        # FIXME: this needs to be cached in the same ways as isherm.
+        if self._iscp is not None:
+            return self._iscp
         if self.type not in ["super", "oper"]:
-            return False
-        # We can test with either Choi or chi, since the basis
-        # transformation between them is unitary and hence preserves
-        # the CP and TP conditions.
-        J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
-        # If J isn't hermitian, then that could indicate either that J is not
-        # normal, or is normal, but has complex eigenvalues.  In either case,
-        # it makes no sense to then demand that the eigenvalues be
-        # non-negative.
-        return J.isherm and np.all(J.eigenenergies() >= -settings.core['atol'])
+            self._iscp = False
+        else:
+            # We can test with either Choi or chi, since the basis
+            # transformation between them is unitary and hence preserves
+            # the CP and TP conditions.
+            J = self if self.superrep in ('choi', 'chi') else qutip.to_choi(self)
+            # If J isn't hermitian, then that could indicate either that J is not
+            # normal, or is normal, but has complex eigenvalues.  In either case,
+            # it makes no sense to then demand that the eigenvalues be
+            # non-negative.
+            self._iscp = J.isherm and np.all(
+                J.eigenenergies() >= -settings.core['atol']
+            )
+        return self._iscp
 
     @property
     def istp(self) -> bool:
+        if self._istp is not None:
+            return self._istp
         if self.type not in ['super', 'oper']:
-            return False
-        # Normalize to a super of type choi or chi.
-        # We can test with either Choi or chi, since the basis
-        # transformation between them is unitary and hence
-        # preserves the CP and TP conditions.
-        if self.issuper and self.superrep in ('choi', 'chi'):
-            qobj = self
+            self._istp = False
         else:
-            qobj = qutip.to_choi(self)
-        # Collapse dims to ignore product structure etc of underlying spaces
-        qobj = Qobj(qobj.data,
-                    dims=qobj._dims.collapse(),
-                    copy=False)
-        # We use the condition from John Watrous' lecture notes,
-        # Tr_1(J(Phi)) = identity_2.
-        # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,
-        # Theory of Quantum Information (Fall 2011), theorem 5.4.
-        tr_oper = qobj.ptrace([0])
-        return np.allclose(tr_oper.full(), np.eye(tr_oper.shape[0]),
-                           atol=settings.core['atol'])
+            # Normalize to a super of type choi or chi.
+            # We can test with either Choi or chi, since the basis
+            # transformation between them is unitary and hence
+            # preserves the CP and TP conditions.
+            if self.issuper and self.superrep in ('choi', 'chi'):
+                qobj = self
+            else:
+                qobj = qutip.to_choi(self)
+            # Collapse dims to ignore product structure etc of underlying spaces
+            qobj = Qobj(qobj.data,
+                        dims=qobj._dims.collapse(),
+                        copy=False)
+            # We use the condition from John Watrous' lecture notes,
+            # Tr_1(J(Phi)) = identity_2.
+            # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,
+            # Theory of Quantum Information (Fall 2011), theorem 5.4.
+            tr_oper = qobj.ptrace([0])
+            self._istp = np.allclose(tr_oper.full(), np.eye(tr_oper.shape[0]),
+                                     atol=settings.core['atol'])
+        return self._istp
 
     @property
     def iscptp(self) -> bool:
+        if self._iscptp is not None:
+            return self._iscptp
         if not (self.issuper or self.isoper):
-            return False
-        reps = ('choi', 'chi')
-        q_oper = qutip.to_choi(self) if self.superrep not in reps else self
-        return q_oper.iscp and q_oper.istp
+            self._iscptp = False
+        else:
+            reps = ('choi', 'chi')
+            q_oper = qutip.to_choi(self) if self.superrep not in reps else self
+            self._iscptp = q_oper.iscp and q_oper.istp
+        return self._iscptp
 
     @property
     def isherm(self) -> bool:

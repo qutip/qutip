@@ -201,6 +201,121 @@ def test_QobjUnitaryOper():
     assert (qutip.sigmam()*1)._isunitary == None
 
 
+def assert_cptp_properties(qobj, ishp, iscp, istp, iscptp):
+    """Check cached and recomputed values for the four CP/TP properties."""
+    assert qobj.ishp == ishp
+    assert qobj.iscp == iscp
+    assert qobj.istp == istp
+    assert qobj.iscptp == iscptp
+    # Reset caches and verify recomputation gives the same results.
+    qobj._ishp = None
+    qobj._iscp = None
+    qobj._istp = None
+    qobj._iscptp = None
+    assert qobj.ishp == ishp
+    assert qobj.iscp == iscp
+    assert qobj.istp == istp
+    assert qobj.iscptp == iscptp
+
+
+class TestQobjCPTPCaching:
+    def test_identity_channel(self):
+        # The identity channel sprepost(I, I) is a valid CPTP map.
+        channel = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
+        assert_cptp_properties(channel, ishp=True, iscp=True, istp=True, iscptp=True)
+
+    def test_non_channel(self):
+        # 2 * partial_transpose(bell_dm) as a Choi matrix is HP and TP but not
+        # CP (it has a negative eigenvalue), so it is not a valid channel.
+        rho = qutip.ket2dm(qutip.bell_state())
+        rho_out = qutip.partial_transpose(rho, [0, 1])
+        J = 2 * rho_out
+        J.dims = [[[2], [2]], [[2], [2]]]
+        J.superrep = 'choi'
+        assert_cptp_properties(J, ishp=True, iscp=False, istp=True, iscptp=False)
+
+    def test_non_super_returns_false(self):
+        # For a plain ket, all four should be False.
+        ket = qutip.basis(2, 0)
+        assert_cptp_properties(ket, ishp=False, iscp=False, istp=False, iscptp=False)
+
+    def test_cache_invalidated_by_dims_setter(self):
+        # Build an oper, cache its properties, then promote it to a super via
+        # dims + superrep. The cached values must be cleared.
+        rho = qutip.ket2dm(qutip.bell_state())
+        rho_out = qutip.partial_transpose(rho, [0, 1])
+        J = 2 * rho_out
+        # Access properties while still an oper to populate the cache.
+        _ = J.type
+        _ = J.ishp
+        _ = J.iscp
+        _ = J.istp
+        _ = J.iscptp
+        assert J._ishp is not None
+        # Now change dims and superrep — caches must be cleared.
+        J.dims = [[[2], [2]], [[2], [2]]]
+        assert J._ishp is None
+        assert J._iscp is None
+        assert J._istp is None
+        assert J._iscptp is None
+        assert J._isunitary is None
+
+    def test_cache_invalidated_by_superrep_setter(self):
+        channel = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
+        _ = channel.ishp
+        _ = channel.iscp
+        _ = channel.istp
+        _ = channel.iscptp
+        assert channel._ishp is not None
+        channel.superrep = 'choi'
+        assert channel._ishp is None
+        assert channel._iscp is None
+        assert channel._istp is None
+        assert channel._iscptp is None
+
+    def test_cache_invalidated_by_data_setter(self):
+        channel = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
+        _ = channel.isherm
+        _ = channel.isunitary
+        _ = channel.ishp
+        _ = channel.iscp
+        _ = channel.istp
+        _ = channel.iscptp
+        assert channel._isherm is not None
+        assert channel._ishp is not None
+        # Replace data with a copy of itself — all caches must be cleared.
+        channel.data = channel.data.copy()
+        assert channel._isherm is None
+        assert channel._isunitary is None
+        assert channel._ishp is None
+        assert channel._iscp is None
+        assert channel._istp is None
+        assert channel._iscptp is None
+
+    def test_copy_preserves_cache(self):
+        channel = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
+        _ = channel.ishp
+        _ = channel.iscp
+        _ = channel.istp
+        _ = channel.iscptp
+        copied = channel.copy()
+        assert copied._ishp == channel._ishp
+        assert copied._iscp == channel._iscp
+        assert copied._istp == channel._istp
+        assert copied._iscptp == channel._iscptp
+
+    def test_type_correct_after_dims_superrep_change(self):
+        # Regression test for the bug in the issue: accessing .type before
+        # setting dims/superrep must not cause stale results afterwards.
+        rho = qutip.ket2dm(qutip.bell_state())
+        rho_out = qutip.partial_transpose(rho, [0, 1])
+        J = 2 * rho_out
+        assert J.type == 'oper'   # populates cache
+        J.dims = [[[2], [2]], [[2], [2]]]
+        J.superrep = 'choi'
+        assert J.type == 'super'
+
+
 def test_QobjDimsShape():
     "qutip.Qobj shape"
     N = 10
