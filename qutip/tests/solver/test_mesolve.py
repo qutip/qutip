@@ -3,6 +3,7 @@ from types import FunctionType
 
 import qutip
 from qutip.solver.mesolve import mesolve, MESolver
+from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 import pickle
 import pytest
@@ -801,6 +802,45 @@ def test_non_normalized_dm(rho0, matrix_form):
                       options={"matrix_form": matrix_form})
     result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
     np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
+
+
+@pytest.mark.parametrize("kdim", [50, 1000])
+@pytest.mark.parametrize("alg", ['lanczos_fro'])
+def test_krylovsolve_mixed_state(kdim, alg):
+    H = qutip.rand_herm(20, density=.8)
+    rho0 = qutip.rand_dm(20)
+    e_op = qutip.num(20)
+    e_op.dims = H.dims
+    tlist = np.linspace(0, 1, 11)
+
+    opts = {"store_states": True}
+    ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
+    ref_exp = ref.expect[0]
+
+    opts = {"store_states": True, "algorithm": alg, "always_compute_step": True}
+    kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    np.testing.assert_allclose(ref_exp, kout.expect[0], atol=1e-5, rtol=1e-5)
+
+
+def test_krylovsolve_decay():
+    a = qutip.destroy(10)
+    H = a.dag() * a
+    kappa = 0.2
+    c_op = np.sqrt(kappa) * a
+    tlist = np.linspace(0, 10, 201)
+    psi0 = qutip.basis(10, 9)
+
+    opt = {"store_states": True}
+    kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H], options=opt)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    expt = kout.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    np.testing.assert_allclose(actual_answer, expt, atol=1e-6)
 
 
 class TestMESolveMatrixForm:
