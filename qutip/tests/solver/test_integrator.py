@@ -19,6 +19,7 @@ class TestIntegratorCte():
     _analytical_me = lambda _, t: 1 - np.exp(-t)
     me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
                                   c_ops=[qutip.destroy(2)])
+    kopt = {"krylov_dim": 3}
 
     @pytest.fixture(params=list(SESolver.avail_integrators().keys()))
     def se_method(self, request):
@@ -34,7 +35,7 @@ class TestIntegratorCte():
         return request.param
 
     def test_se_integration(self, se_method):
-        evol = SESolver.avail_integrators()[se_method](self.se_system, {})
+        evol = SESolver.avail_integrators()[se_method](self.se_system, self.kopt)
         state0 = qutip.basis(2, 0).data
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
@@ -43,7 +44,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 1)
 
     def test_me_integration(self, me_method):
-        evol = MESolver.avail_integrators()[me_method](self.me_system, {})
+        evol = MESolver.avail_integrators()[me_method](self.me_system, self.kopt)
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -135,7 +136,7 @@ def test_krylov(sizes):
     if M:
         H = H & (qutip.num(M) + qutip.create(M) + qutip.destroy(M))
     H = qutip.QobjEvo(-1j * H)
-    integrator = IntegratorKrylov(H, {})
+    integrator = IntegratorKrylov(H, {"krylov_dim": 30})
     ref_integrator = IntegratorDiag(H, {})
     psi = qutip.basis(100, 95).data
     integrator.set_state(0, psi)
