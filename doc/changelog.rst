@@ -6,6 +6,32 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.2.3 (2026-01-21)
+========================
+
+Micro release to add support to scipy 1.17.
+
+Bug Fixes
+---------
+
+- Enables discovery of declaration files (`.pxd`) by Cython's compiler during
+  the runtime compilation in `qutip/core/coefficient.py` under editable installs.
+  Fixes issue #2770. (#2796, by Veronika Kurth)
+
+
+Documentation
+-------------
+
+- Updated verification command in Quick Start guide to support standard installs.
+  (#2793, by Omkar Sarkar)
+
+
+Miscellaneous
+-------------
+
+- Add support for scipy 1.17 (#2800)
+
+
 QuTiP 5.2.2 (2025-11-05)
 ========================
 

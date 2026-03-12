@@ -42,6 +42,9 @@ class Solver:
     _integrator = None
     _avail_integrators = {}
 
+    # Whether to vectorize density matrices for superoperator form
+    _vectorize_state = True
+
     # Class of option used by the solver
     solver_options = {
         "progress_bar": "text",
@@ -54,10 +57,11 @@ class Solver:
     _resultclass = Result
 
     def __init__(self, rhs, *, options=None):
-        if isinstance(rhs, (QobjEvo, Qobj)):
-            self.rhs = QobjEvo(rhs)
-        else:
-            raise TypeError("The rhs must be a QobjEvo")
+        if isinstance(rhs, Qobj):
+            rhs = QobjEvo(rhs)
+        if not isinstance(rhs, QobjEvo):
+            raise TypeError("The rhs must be a Qobj or QobjEvo")
+        self.rhs = rhs
         self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -121,9 +125,10 @@ class Solver:
             # refer to the ODE tolerance and some integrator do not use it.
             and np.abs(norm - 1) <= settings.core["atol"]
             # Only ket and dm can be normalized
-            and (self.rhs._dims[1] == state._dims or state.shape[1] == 1)
+            and (self.rhs._dims[1] == state._dims or state.shape[1] == 1
+                 or (not self._vectorize_state and state.isoper))
         )
-        if self.rhs._dims[1] == state._dims:
+        if self._vectorize_state and self.rhs._dims[1] == state._dims:
             return stack_columns(state.data)
         return state.data
 
@@ -131,7 +136,10 @@ class Solver:
         """
         Retore the Qobj state from its data.
         """
-        if self._state_metadata['dims'] == self.rhs._dims[1]:
+        if (
+            self._vectorize_state
+            and self._state_metadata['dims'] == self.rhs._dims[1]
+        ):
             state = Qobj(unstack_columns(data),
                          **self._state_metadata, copy=False)
         else:
@@ -351,7 +359,7 @@ class Solver:
         if new_options is None:
             new_options = {}
         if not isinstance(new_options, dict):
-            raise TypeError("options most to be a dictionary.")
+            raise TypeError("options must to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
         )

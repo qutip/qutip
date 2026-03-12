@@ -8,7 +8,7 @@ import scipy.sparse.linalg
 from warnings import warn
 
 
-__all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
+__all__ = ["steadystate", "steadystate_fourier", "steadystate_floquet", "pseudo_inverse"]
 
 
 def _permute_wbm(L, b):
@@ -215,15 +215,17 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     return rho_ss
 
 
-def _steadystate_direct(A, weight, **kw):
-    # Find the weight, no good dispatched function available...
-    if weight:
-        pass
-    elif isinstance(A.data, _data.CSR):
-        weight = np.mean(np.abs(A.data.as_scipy().data))
-    else:
-        A_np = np.abs(A.full())
-        weight = np.mean(A_np[A_np > 0])
+def _steadystate_direct(A: Qobj, weight: float, **kw):
+    # Convert Dia to CSR for cleaner diagonal matrix representation:
+    # without zeros or uninitialised padded elements, which is especially
+    # relevant for multi-diagonal cases
+    if isinstance(A.data, _data.Dia):
+        A = A.to("csr")
+
+    if not weight:
+      # Calculate weight if not provided by user
+      # (currently, no good dispatched function is available)
+      weight = _data.mean.mean_abs_nonzero(A.data)
 
     # Add weight to the Liouvillian
     # L[:, 0] = A[:, 0] + vectorized(eye * weight).T
@@ -364,7 +366,7 @@ def _steadystate_power(A, **kw):
     return rho_ss
 
 
-def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
+def steadystate_fourier(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
                         solver=None, **kwargs):
     """
     Calculates the effective steady state for a driven
@@ -453,6 +455,17 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
 
     M_subs = L_0 + L_m @ S + L_p @ T
     return steadystate(M_subs, solver=solver, **kwargs)
+
+
+def steadystate_floquet(*args, **kwargs):
+    """Deprecated. Use :func:`steadystate_fourier` instead."""
+    import warnings
+    warnings.warn(
+        "steadystate_floquet is deprecated. "
+        "Use steadystate_fourier instead.",
+        FutureWarning,
+    )
+    return steadystate_fourier(*args, **kwargs)
 
 
 def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
