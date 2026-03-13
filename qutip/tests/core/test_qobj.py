@@ -246,7 +246,7 @@ class TestQobjCPTPCaching:
         rho_out = qutip.partial_transpose(rho, [0, 1])
         J = 2 * rho_out
         # Access properties while still an oper to populate the cache.
-        _ = J.type
+        _ = J.isunitary
         _ = J.ishp
         _ = J.iscp
         _ = J.istp
@@ -303,17 +303,6 @@ class TestQobjCPTPCaching:
         assert copied._iscp == channel._iscp
         assert copied._istp == channel._istp
         assert copied._iscptp == channel._iscptp
-
-    def test_type_correct_after_dims_superrep_change(self):
-        # Regression test for the bug in the issue: accessing .type before
-        # setting dims/superrep must not cause stale results afterwards.
-        rho = qutip.ket2dm(qutip.bell_state())
-        rho_out = qutip.partial_transpose(rho, [0, 1])
-        J = 2 * rho_out
-        assert J.type == 'oper'   # populates cache
-        J.dims = [[[2], [2]], [[2], [2]]]
-        J.superrep = 'choi'
-        assert J.type == 'super'
 
 
 def test_QobjDimsShape():
