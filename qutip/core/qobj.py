@@ -1381,7 +1381,7 @@ class Qobj:
             Quantum object with small elements removed.
         """
         atol = atol or settings.core['auto_tidyup_atol']
-        self.data = _data.tidyup(self.data, atol)
+        self._data = _data.tidyup(self._data, atol)
         return self
 
     def drop_scalar_dims(self, inplace: bool = False) -> Qobj:
@@ -1932,6 +1932,9 @@ class Qobj:
     @property
     def iscptp(self) -> bool:
         if self._iscptp is not None:
+            return self._iscptp
+        if self._iscp is not None and self._istp is not None:
+            self._iscptp = self._iscp and self._istp
             return self._iscptp
         if not (self.issuper or self.isoper):
             self._iscptp = False
