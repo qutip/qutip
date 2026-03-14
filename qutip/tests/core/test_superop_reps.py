@@ -109,7 +109,7 @@ class TestSuperopReps:
             superpauli_to_super(invalid_type)
         with pytest.raises(ValueError, match="superrep='pauli'"):
             superpauli_to_super(wrong_superrep)
-        with pytest.raises(ValueError, match="only defined for qubits."):
+        with pytest.raises(ValueError, match="only defined for qubit"):
             superpauli_to_super(invalid_dims)
         with pytest.raises(ValueError, match="must be a square."):
             superpauli_to_super(non_square)
