@@ -156,23 +156,21 @@ def superpauli_to_super(q_oper):
     if not isinstance(q_oper, Qobj):
         raise TypeError("q_oper must be a Qobj.")
     if q_oper.superrep != 'pauli':
-        raise ValueError("q_oper must be a Pauli Transfer Matrix (superrep='pauli').")
+        raise ValueError(
+            "q_oper must be a Pauli Transfer Matrix (superrep='pauli')."
+        )
     if q_oper.shape[0] != q_oper.shape[1]:
         raise ValueError("Pauli Transfer Matrix must be a square.")
     if not isqubitdims(q_oper.dims):
-        raise ValueError("Pauli Basis is only defined for qubits.")
-
-    dim =q_oper.shape[0]
-    if (dim & (dim - 1)) != 0 or _int_log_two(dim) % 2 != 0:
         raise ValueError(
-            "Pauli basis is only defined for qubit systems"
+            "Pauli basis is only defined for qubit systems "
             "(dimensions of 4^n)."
         )
 
     nq = _int_log_two(q_oper.shape[0]) // 2
     B = _superpauli_basis(nq) * 2**(-0.5 * nq)
-    B.dims =q_oper.dims
-    out = B @q_oper @ B.dag()
+    B.dims = q_oper.dims
+    out = B @ q_oper @ B.dag()
     out.superrep = 'super'
     return out
 
