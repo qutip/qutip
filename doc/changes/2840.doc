@@ -1,0 +1,1 @@
+Updated the installation verification instructions to use the universally recommended pytest --pyargs qutip.tests command.
