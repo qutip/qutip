@@ -225,25 +225,13 @@ If this is prohibitive for you, it is also possible to install `only the build t
 Verifying the Installation
 ==========================
 
-QuTiP includes a collection of built-in test scripts to verify that an installation was successful.
-To run the suite of tests scripts you must also have the ``pytest`` testing library.
-After installing QuTiP, leave the installation directory and call:
+To verify that QuTiP has been installed correctly, you can run the built-in test suite using `pytest`. From your terminal, run the following command:
 
 .. code-block:: bash
 
-   python -c "import qutip.testing; qutip.testing.run()"
+    pytest --pyargs qutip.tests
 
-This will take between 10 and 30 minutes, depending on your computer.
-At the end, the testing report should report a success; it is normal for some tests to be skipped, and for some to be marked "xfail" in yellow.
-Skips may be tests that do not run on your operating system, or tests of optional components that you have not installed the dependencies for.
-If any failures or errors occur, please check that you have installed all of the required modules.
-See the next section on how to check the installed versions of the QuTiP dependencies.
-If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/g/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
-
-If the ``mpi4py`` module is installed, the test suide will also run a set of tests checking the MPI capabilities of QuTiP.
-If the MPI backend on your system is not configured correctly, these tests may sometimes cause the test suite to crash or hang.
-Please make sure that you are using the latest versions of ``mpi4py`` and the MPI backend.
-If the tests still crash or hang, try running pytest with the ``-s`` option to display any potential error or warning messages from the MPI backend.
+This command works universally across different installation methods (including Conda environments) and will execute all available tests to ensure the library is functioning as expected.
 
 .. _install-about:
 
