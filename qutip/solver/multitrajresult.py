@@ -707,7 +707,7 @@ class MultiTrajResult(_BaseResult):
         show_legend=True,
         show_trajectories=0,
         show_average=True,
-        alpha_trajectories=0.3,
+        trajectory_kwargs=None,
         **plot_kwargs,
     ):
         """
@@ -755,8 +755,11 @@ class MultiTrajResult(_BaseResult):
             Whether to plot the average over all trajectories.
             Default ``True``.
 
-        alpha_trajectories : float, optional
-            Opacity of individual trajectory lines. Default ``0.3``.
+        trajectory_kwargs : dict, optional
+            Keyword arguments for styling trajectory lines, passed to
+            ``matplotlib.axes.Axes.plot``. Defaults to
+            ``{"alpha": 0.3, "linewidth": 0.8, "color": "gray"}``.
+            Set individual keys to override specific defaults.
 
         **plot_kwargs
             Additional keyword arguments forwarded to
@@ -820,36 +823,34 @@ class MultiTrajResult(_BaseResult):
                 for key in self.e_data.keys()
             ]
 
-        color_cycle = plt.rcParams["axes.prop_cycle"].by_key().get(
-            "color", [f"C{i}" for i in range(10)]
-        )
+        # Default trajectory styling — visually distinct from average
+        traj_kw = {"alpha": 0.3, "linewidth": 0.8, "color": "gray"}
+        if trajectory_kwargs is not None:
+            traj_kw.update(trajectory_kwargs)
 
+        # --- individual trajectories ---
         if show_trajectories > 0 and self.trajectories:
             n_traj = min(show_trajectories, len(self.trajectories))
             for traj_idx in range(n_traj):
                 traj = self.trajectories[traj_idx]
                 for i, exp in enumerate(traj.expect):
-                    color = color_cycle[i % len(color_cycle)]
                     traj_label = (
                         f"{labels[i]} (traj)" if traj_idx == 0 else None
                     )
                     axes.plot(
                         self.times, exp,
-                        color=color,
-                        alpha=alpha_trajectories,
                         label=traj_label,
-                        **plot_kwargs,
+                        **traj_kw,
                     )
 
+        # --- average ---
         if show_average and avg_expect:
             for i, (exp, label) in enumerate(zip(avg_expect, labels)):
-                color = color_cycle[i % len(color_cycle)]
                 avg_label = (
                     f"{label} (avg)" if show_trajectories > 0 else label
                 )
                 axes.plot(
                     self.times, exp,
-                    color=color,
                     linewidth=2,
                     label=avg_label,
                     **plot_kwargs,
