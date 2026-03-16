@@ -22,8 +22,6 @@ __all__ = ['direct_sum', 'direct_sum_sparse',
            'direct_component', 'set_direct_component']
 
 
-QobjLike = Union[Number, Qobj, QobjEvo]
-
 ARRAY_ONE = np.full((1,), 1, dtype=_data.base.idxint_dtype)
 
 
@@ -92,7 +90,7 @@ def _qobj_data(qobj: Number | Qobj, scalar_dtype: LayerType) -> _data.Data:
     return qobj.data
 
 
-def _qobj_dims(qobj: QobjLike) -> Dimensions:
+def _qobj_dims(qobj: Number | Qobj | QobjEvo) -> Dimensions:
     return (
         qobj._dims if isinstance(qobj, (Qobj, QobjEvo))
         else Dimensions(Field(), Field())
@@ -109,7 +107,7 @@ def direct_sum(
 
 @overload
 def direct_sum(
-    qobjs: list[QobjLike] | list[list[QobjLike]],
+    qobjs: list[Number | Qobj | QobjEvo] | list[list[Number | Qobj | QobjEvo]],
     dtype: LayerType = None
 ) -> QobjEvo:
     ...
@@ -164,7 +162,7 @@ def direct_sum(qobjs, dtype=None):
 
     # Step 1: check type of all provided qobj and make (row, col) -> qobj dict
 
-    linear = isinstance(qobjs[0], QobjLike)
+    linear = isinstance(qobjs[0], (Number, Qobj, QobjEvo))
     if not linear and len(qobjs[0]) == 0:
         raise ValueError("No Qobjs provided for direct sum.")
     if not linear and not all(len(row) == len(qobjs[0]) for row in qobjs):
@@ -270,7 +268,7 @@ def direct_sum_sparse(
 
 @overload
 def direct_sum_sparse(
-    qobjs: dict[tuple[int, int], QobjLike],
+    qobjs: dict[tuple[int, int], Number | Qobj | QobjEvo],
     sum_dimensions: DimensionLike,
     dtype: LayerType = None
 ) -> QobjEvo:
@@ -282,8 +280,36 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
     Construct the direct sum of the provided component quantum objects.
     This is a variant of :func:`.direct_sum` suitable for large, sparse block
     matrices. The caller must provide the dimensions of the direct sum, for
-    example in list form as in :code:`[([2], [3]), ([2], [3])]` for an operator
-    on :math:`\mathbb C^2 \oplus \mathbb C^3`.
+    example in list form as in :code:`[([2], [3]), ([2], [3])]` for an
+    operator on :math:`\mathbb C^2 \oplus \mathbb C^3`.
+
+    In more detail: the ``sum_dimensions`` parameter is a list of two entries.
+    The two entries of this list respectively correspond to the output and
+    input Hilbert spaces of the quantum object. Each entry is the "list
+    representation" of the dimensions of the corresponding Hilbert space, like
+    it is used throughout QuTiP. For use in this function, either one of the
+    two spaces or both of them must have the structure of a direct sum, which
+    is represented as a tuple in the "list representation".
+
+    List representation syntax overview:
+
+    * A normal, unmarked Hilbert space of dimension :math:`n` is represented
+      by the list :code:`[n]`.
+    * A product Hilbert space, where the constituents have the dimensions
+      :math:`n_1` up to :math:`n_k`, is represented by the list
+      :code:`[n1, n2, ..., nk]`.
+    * The direct sum of Hilbert spaces, which have the list representations
+      :code:`l1` up to :code:`[lk]`, is represented by the tuple
+      :code:`[l1, l2, ..., lk]`. Sum dimensions may be nested.
+    * For example, the direct sum of a 2D space and a 3D space has the list
+      representation :code:`([2], [3])`.
+    * As another example, the direct sum of a 2D space, and the product of two
+      3D spaces, is :code:`([2], [3, 3])`.
+    * Superoperators act on operator spaces; the list representation of an
+      operator space is the list :code:`[lOut, lIn]`, where :code:`lIn` and
+      :code:`lOut` are list representations of the input and output spaces
+      of the operators. Direct sum components may be either regular Hilbert
+      spaces or operator spaces, but not mixed within the same quantum object.
 
     Parameters
     ----------
@@ -293,6 +319,7 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
         components may be Python numbers, :class:`.Qobj`, or :class:`.QobjEvo`.
     sum_dimensions : list of tuples or lists
         Dimensions of the resulting Qobj, like in the creation of a Qobj.
+        See detailed explanation above.
     dtype : type or str, optional
         Storage representation for the output ``Qobj``. Any data-layer known
         to ``qutip.data.to`` is accepted.
@@ -321,9 +348,9 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
 
 
 def _do_direct_sum(
-        qobjs: dict[tuple[int, int], QobjLike],
-        sum_dimensions: Dimensions,
-        dtype: LayerType = None
+    qobjs: dict[tuple[int, int], Number | Qobj | QobjEvo],
+    sum_dimensions: Dimensions,
+    dtype: LayerType = None
 ):
     """Assumes `qobjs` is sorted and performs no dimensions checks"""
 
