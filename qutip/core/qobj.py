@@ -859,6 +859,20 @@ class Qobj:
         out = np.asarray(self.data.to_array(), order=order)
         return out.squeeze() if squeeze else out
 
+    def full_tensor(self) -> np.ndarray:
+        """
+        Return the dense ndarray representation of the quantum object reshaped
+        as a tensor according to its dimensions.
+
+        Returns
+        -------
+        data : numpy.ndarray
+            Dense ndarray representation of the quantum object reshaped as a
+            tensor according to its dimensions.
+        """
+        from qutip.core.dimensions import to_tensor_rep
+        return to_tensor_rep(self)
+
     def data_as(self, format: str = None, copy: bool = True) -> Any:
         """Matrix from quantum object.
 

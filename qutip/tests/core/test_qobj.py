@@ -1332,6 +1332,14 @@ def test_data_as():
     assert "dia_matrix" in str(err.value)
 
 
+def test_full_tensor():
+    state = qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))
+    tensor = state.full_tensor()
+
+    assert isinstance(tensor, np.ndarray)
+    assert tensor.shape == tuple(flatten(state.dims))
+
+
 @pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
 def test_qobj_dtype(dtype):
     obj = qutip.qeye(2, dtype=dtype)
