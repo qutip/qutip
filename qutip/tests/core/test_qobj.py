@@ -1333,11 +1333,12 @@ def test_data_as():
 
 
 def test_full_tensor():
-    state = qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))
-    tensor = state.full_tensor()
+    with qutip.CoreOptions(auto_tidyup_dims=False):
+        state = qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))
+        tensor = state.full_tensor()
 
     assert isinstance(tensor, np.ndarray)
-    assert tensor.shape == tuple(flatten(state.dims))
+    assert tensor.shape == (2, 2, 1, 1)
 
 
 @pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
