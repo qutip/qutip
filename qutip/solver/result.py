@@ -374,6 +374,7 @@ class Result(_BaseResult):
         xlabel="Time",
         ylabel="Expectation value",
         show_legend=True,
+        separate_axes=False,
         **plot_kwargs,
     ):
         """
@@ -408,6 +409,10 @@ class Result(_BaseResult):
         show_legend : bool, optional
             Whether to display the legend. Default ``True``.
 
+        separate_axes : bool, optional
+            If ``True``, each expectation value is plotted in its own
+            subplot. Default ``False``.
+            
         **plot_kwargs
             Additional keyword arguments forwarded to
             ``matplotlib.axes.Axes.plot``.
@@ -417,7 +422,7 @@ class Result(_BaseResult):
         fig : matplotlib.figure.Figure
             The figure containing the plot.
 
-        axes : matplotlib.axes.Axes
+        axes : matplotlib.axes.Axes or array of Axes
             The axes containing the plot.
 
         Raises
@@ -439,32 +444,72 @@ class Result(_BaseResult):
                 "Ensure that e_ops were supplied to the solver."
             )
 
-        if fig is None and axes is None:
-            fig, axes = plt.subplots()
-        elif axes is None:
-            axes = fig.add_subplot(111)
-        elif fig is None:
-            fig = axes.get_figure()
-
         if labels is None:
             labels = [
                 key if isinstance(key, str) else f"e_ops[{key}]"
                 for key in self.e_data.keys()
             ]
 
-        for label, expectation in zip(labels, self.expect):
-            axes.plot(self.times, expectation, label=label, **plot_kwargs)
+        n_e_ops = len(self.expect)
 
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
+        if separate_axes:
+            if fig is None and axes is None:
+                fig, axes = plt.subplots(
+                    n_e_ops, 1, sharex=True,
+                    figsize=(6, 3 * n_e_ops),
+                    squeeze=False,
+                )
+                axes = axes.flatten()
+            elif axes is None:
+                axes = np.array([
+                    fig.add_subplot(n_e_ops, 1, i + 1)
+                    for i in range(n_e_ops)
+                ])
+            elif fig is None:
+                if not hasattr(axes, '__len__'):
+                    axes = np.array([axes])
+                fig = axes[0].get_figure()
 
-        if title is None:
-            title = self.solver
-        if title is not None:
-            axes.set_title(str(title))
+            for i, (expectation, label) in enumerate(
+                zip(self.expect, labels)
+            ):
+                axes[i].plot(
+                    self.times, expectation, label=label, **plot_kwargs
+                )
+                axes[i].set_ylabel(label)
+                if show_legend:
+                    axes[i].legend()
 
-        if show_legend:
-            axes.legend()
+            axes[-1].set_xlabel(xlabel)
+
+            if title is None:
+                title = self.solver
+            if title is not None:
+                axes[0].set_title(str(title))
+
+        else:
+            if fig is None and axes is None:
+                fig, axes = plt.subplots()
+            elif axes is None:
+                axes = fig.add_subplot(111)
+            elif fig is None:
+                fig = axes.get_figure()
+
+            for label, expectation in zip(labels, self.expect):
+                axes.plot(
+                    self.times, expectation, label=label, **plot_kwargs
+                )
+
+            axes.set_xlabel(xlabel)
+            axes.set_ylabel(ylabel)
+
+            if title is None:
+                title = self.solver
+            if title is not None:
+                axes.set_title(str(title))
+
+            if show_legend:
+                axes.legend()
 
         return fig, axes
 

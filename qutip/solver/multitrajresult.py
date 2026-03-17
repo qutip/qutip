@@ -708,6 +708,7 @@ class MultiTrajResult(_BaseResult):
         show_trajectories=0,
         show_average=True,
         trajectory_kwargs=None,
+        separate_axes=False,
         **plot_kwargs,
     ):
         """
@@ -761,6 +762,10 @@ class MultiTrajResult(_BaseResult):
             ``{"alpha": 0.3, "linewidth": 0.8, "color": "gray"}``.
             Set individual keys to override specific defaults.
 
+        separate_axes : bool, optional
+            If ``True``, each expectation value is plotted in its own
+            subplot. Default ``False``.
+
         **plot_kwargs
             Additional keyword arguments forwarded to
             ``matplotlib.axes.Axes.plot``.
@@ -771,7 +776,7 @@ class MultiTrajResult(_BaseResult):
             The figure containing the plot.
 
         axes : matplotlib.axes.Axes
-            The axes containing the plot.
+            The axes containing the plot
 
         Raises
         ------
@@ -810,62 +815,129 @@ class MultiTrajResult(_BaseResult):
                 "Ensure that e_ops were supplied to the solver."
             )
 
-        if fig is None and axes is None:
-            fig, axes = plt.subplots()
-        elif axes is None:
-            axes = fig.add_subplot(111)
-        elif fig is None:
-            fig = axes.get_figure()
-
         if labels is None:
             labels = [
                 key if isinstance(key, str) else f"e_ops[{key}]"
                 for key in self.e_data.keys()
             ]
 
+        n_e_ops = len(labels)
+
         # Default trajectory styling — visually distinct from average
         traj_kw = {"alpha": 0.3, "linewidth": 0.8, "color": "gray"}
         if trajectory_kwargs is not None:
             traj_kw.update(trajectory_kwargs)
 
-        # --- individual trajectories ---
-        if show_trajectories > 0 and self.trajectories:
-            n_traj = min(show_trajectories, len(self.trajectories))
-            for traj_idx in range(n_traj):
-                traj = self.trajectories[traj_idx]
-                for i, exp in enumerate(traj.expect):
-                    traj_label = (
-                        f"{labels[i]} (traj)" if traj_idx == 0 else None
+        if separate_axes:
+            if fig is None and axes is None:
+                fig, axes = plt.subplots(
+                    n_e_ops, 1, sharex=True,
+                    figsize=(6, 3 * n_e_ops),
+                    squeeze=False,
+                )
+                axes = axes.flatten()
+            elif axes is None:
+                axes = np.array([
+                    fig.add_subplot(n_e_ops, 1, i + 1)
+                    for i in range(n_e_ops)
+                ])
+            elif fig is None:
+                if not hasattr(axes, '__len__'):
+                    axes = np.array([axes])
+                fig = axes[0].get_figure()
+
+            # --- trajectories on each subplot ---
+            if show_trajectories > 0 and self.trajectories:
+                n_traj = min(show_trajectories, len(self.trajectories))
+                for traj_idx in range(n_traj):
+                    traj = self.trajectories[traj_idx]
+                    for i, exp in enumerate(traj.expect):
+                        traj_label = (
+                            f"{labels[i]} (traj)"
+                            if traj_idx == 0 else None
+                        )
+                        axes[i].plot(
+                            self.times, exp,
+                            label=traj_label,
+                            **traj_kw,
+                        )
+
+            # --- average on each subplot ---
+            if show_average and avg_expect:
+                for i, (exp, label) in enumerate(
+                    zip(avg_expect, labels)
+                ):
+                    avg_label = (
+                        f"{label} (avg)"
+                        if show_trajectories > 0 else label
+                    )
+                    axes[i].plot(
+                        self.times, exp,
+                        linewidth=2,
+                        label=avg_label,
+                        **plot_kwargs,
+                    )
+                    axes[i].set_ylabel(label)
+                    if show_legend:
+                        axes[i].legend()
+
+            axes[-1].set_xlabel(xlabel)
+
+            if title is None:
+                title = self.solver
+            if title is not None:
+                axes[0].set_title(str(title))
+
+        else:
+            if fig is None and axes is None:
+                fig, axes = plt.subplots()
+            elif axes is None:
+                axes = fig.add_subplot(111)
+            elif fig is None:
+                fig = axes.get_figure()
+
+            # --- individual trajectories ---
+            if show_trajectories > 0 and self.trajectories:
+                n_traj = min(show_trajectories, len(self.trajectories))
+                for traj_idx in range(n_traj):
+                    traj = self.trajectories[traj_idx]
+                    for i, exp in enumerate(traj.expect):
+                        traj_label = (
+                            f"{labels[i]} (traj)"
+                            if traj_idx == 0 else None
+                        )
+                        axes.plot(
+                            self.times, exp,
+                            label=traj_label,
+                            **traj_kw,
+                        )
+
+            # --- average ---
+            if show_average and avg_expect:
+                for i, (exp, label) in enumerate(
+                    zip(avg_expect, labels)
+                ):
+                    avg_label = (
+                        f"{label} (avg)"
+                        if show_trajectories > 0 else label
                     )
                     axes.plot(
                         self.times, exp,
-                        label=traj_label,
-                        **traj_kw,
+                        linewidth=2,
+                        label=avg_label,
+                        **plot_kwargs,
                     )
 
-        # --- average ---
-        if show_average and avg_expect:
-            for i, (exp, label) in enumerate(zip(avg_expect, labels)):
-                avg_label = (
-                    f"{label} (avg)" if show_trajectories > 0 else label
-                )
-                axes.plot(
-                    self.times, exp,
-                    linewidth=2,
-                    label=avg_label,
-                    **plot_kwargs,
-                )
+            axes.set_xlabel(xlabel)
+            axes.set_ylabel(ylabel)
 
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
+            if title is None:
+                title = self.solver
+            if title is not None:
+                axes.set_title(str(title))
 
-        if title is None:
-            title = self.solver
-        if title is not None:
-            axes.set_title(str(title))
-
-        if show_legend:
-            axes.legend()
+            if show_legend:
+                axes.legend()
 
         return fig, axes
 
