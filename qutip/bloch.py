@@ -370,70 +370,62 @@ class Bloch:
         self.point_alpha.append(alpha)
         self._inner_point_color.append(colors)
 
-    def add_states(self, state: Qobj,
-                   kind: Literal['vector', 'point'] = 'vector',
-                   colors=None, alpha=1.0):
-        """Add a state vector Qobj to Bloch sphere.
+    def _normalize_colors(self, colors, n):
+        if colors is None:
+            return [None] * n
 
-        Parameters
-        ----------
-        state : :obj:`.Qobj` or array_like
-            Input state vector or list.
+        if not isinstance(colors, (list, tuple, np.ndarray)):
+            return [colors] * n
 
-        kind : {'vector', 'point'}
-            Type of object to plot.
+        if len(colors) != n:
+            raise ValueError("colors must match number of states.")
 
-        colors : str or array_like
-            Optional array with colors for the states.
-            The colors can be a string or a RGB or RGBA tuple.
+        return list(colors)
 
-        alpha : float, default=1.
-            Transparency value for the vectors. Values between 0 and 1.
+
+    def add_states(
+        self,
+        states,
+        kind: Literal['vector', 'point'] = 'vector',
+        colors=None,
+        alpha: float = 1.0
+    ):
         """
-        state = np.asarray(state)
+        Add one or more quantum states to the Bloch sphere.
+        """
 
-        if state.ndim == 0:
-            state = state[np.newaxis]
+        # Normalize states
+        if not isinstance(states, (list, tuple, np.ndarray)):
+            states = [states]
 
-        if state.ndim != 1:
-            raise ValueError("The included states are not valid. "
-                             "State should be a Qobj or a list of Qobj.")
+        if len(states) == 0:
+            raise ValueError("No states provided.")
 
-        if colors is not None:
-            colors = np.asarray(colors)
+        # Validate states
+        for s in states:
+            if not isinstance(s, Qobj):
+                raise TypeError("Each state must be a Qobj.")
 
-            if colors.ndim == 0:
-                colors = np.repeat(colors, state.shape[0])
+        # Validate alpha
+        if not (0 <= alpha <= 1):
+            raise ValueError("alpha must be between 0 and 1.")
 
-            elif (
-                colors.ndim == 1
-                and (np.issubdtype(colors.dtype, np.floating)
-                     or np.issubdtype(colors.dtype, np.integer))):
-                colors = colors[np.newaxis]
-                colors = np.repeat(colors, [state.shape[0]], axis=0)
+        # Normalize colors
+        colors = self._normalize_colors(colors, len(states))
 
-            if (
-                colors.shape[0] != state.shape[0] or colors.ndim > 2
-                or colors.ndim == 2
-                and not (np.issubdtype(colors.dtype, np.floating)
-                         or np.issubdtype(colors.dtype, np.integer))):
-                raise ValueError("The included colors are not valid. "
-                                 "colors must have the same size as state.")
-
+        # Select plotting function
+        if kind == 'vector':
+            plot_func = self.add_vectors
+        elif kind == 'point':
+            plot_func = self.add_points
         else:
-            colors = np.array([None] * state.shape[0])
+            raise ValueError(f"Invalid kind: {kind}")
 
-        for k, st in enumerate(state):
-            vec = _state_to_cartesian_coordinates(st)
+        # Convert all states at once
+        vectors = [_state_to_cartesian_coordinates(s) for s in states]
 
-            if kind == 'vector':
-                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
-            elif kind == 'point':
-                self.add_points(vec, colors=[colors[k]], alpha=alpha)
-            else:
-                raise ValueError("The included kind is not valid. "
-                                 f"It should be vector or point, not {kind}.")
-
+        plot_func(vectors, colors=colors, alpha=alpha)
+        
     def add_vectors(self, vectors, colors=None, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
 
