@@ -1,0 +1,1 @@
+Refactored ``add_states`` in ``Bloch`` to improve readability, add input validation, and extract color normalization into a helper method.

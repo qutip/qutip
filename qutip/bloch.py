@@ -390,49 +390,83 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
-        state = np.asarray(state)
+        if not isinstance(state, (list, np.ndarray)):
+            state = [state]
 
-        if state.ndim == 0:
-            state = state[np.newaxis]
+        # Validate all states are Qobj
+        for st in state:
+            if not isinstance(st, Qobj):
+                raise ValueError(
+                    "The included states are not valid. "
+                    "State should be a Qobj or a list of Qobj."
+                )
 
-        if state.ndim != 1:
-            raise ValueError("The included states are not valid. "
-                             "State should be a Qobj or a list of Qobj.")
+        # Validate kind early, before doing any work
+        if kind not in ('vector', 'point'):
+            raise ValueError(
+                "The included kind is not valid. "
+                f"It should be vector or point, not {kind}."
+            )
 
-        if colors is not None:
-            colors = np.asarray(colors)
+        # Validate alpha
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError(
+                "alpha must be between 0 and 1, "
+                f"got {alpha}."
+            )
 
-            if colors.ndim == 0:
-                colors = np.repeat(colors, state.shape[0])
+        n = len(state)
+        colors = self._normalize_colors(colors, n)
 
-            elif (
-                colors.ndim == 1
-                and (np.issubdtype(colors.dtype, np.floating)
-                     or np.issubdtype(colors.dtype, np.integer))):
-                colors = colors[np.newaxis]
-                colors = np.repeat(colors, [state.shape[0]], axis=0)
-
-            if (
-                colors.shape[0] != state.shape[0] or colors.ndim > 2
-                or colors.ndim == 2
-                and not (np.issubdtype(colors.dtype, np.floating)
-                         or np.issubdtype(colors.dtype, np.integer))):
-                raise ValueError("The included colors are not valid. "
-                                 "colors must have the same size as state.")
-
-        else:
-            colors = np.array([None] * state.shape[0])
-
-        for k, st in enumerate(state):
+        for st, color in zip(state, colors):
             vec = _state_to_cartesian_coordinates(st)
-
             if kind == 'vector':
-                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
-            elif kind == 'point':
-                self.add_points(vec, colors=[colors[k]], alpha=alpha)
+                self.add_vectors(vec, colors=[color], alpha=alpha)
             else:
-                raise ValueError("The included kind is not valid. "
-                                 f"It should be vector or point, not {kind}.")
+                self.add_points(vec, colors=[color], alpha=alpha)
+
+    def _normalize_colors(self, colors, n: int):
+        """Normalize colors input to a list of length n.
+
+        Parameters
+        ----------
+        colors : None, str, or array_like
+            Color or colors to normalize.
+        n : int
+            Number of states (expected length).
+
+        Returns
+        -------
+        list
+            List of colors of length n.
+        """
+        if colors is None:
+            return [None] * n
+
+        # Single string color like 'red' or '#ff0000'
+        if isinstance(colors, str):
+            return [colors] * n
+
+        colors = np.asarray(colors)
+
+        # Single RGB/RGBA tuple e.g. (1, 0, 0) or (1, 0, 0, 0.5)
+        if colors.ndim == 1 and colors.shape[0] in (3, 4) and \
+                np.issubdtype(colors.dtype, np.number):
+            return [colors] * n
+
+        # Already a list of n colors
+        if colors.ndim == 1 and colors.shape[0] == n:
+            return list(colors)
+
+        # List of n RGB/RGBA tuples — shape (n, 3) or (n, 4)
+        if colors.ndim == 2 and colors.shape[0] == n and \
+                colors.shape[1] in (3, 4):
+            return list(colors)
+
+        raise ValueError(
+            "The included colors are not valid. "
+            "colors must have the same size as state."
+        )
 
     def add_vectors(self, vectors, colors=None, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
