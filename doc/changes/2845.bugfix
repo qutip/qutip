@@ -1,0 +1,2 @@
+```
+Fixed ``Bloch`` attributes such as ``view`` and ``vector_color`` not being respected after ``clear()`` is called (issue #1106).
