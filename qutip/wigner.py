@@ -251,6 +251,11 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
         raise TypeError('Input state is not a valid operator.')
 
     if method == 'fft':
+        if offset > 0:
+            return NotImplementedError(
+                "The 'fft' method does not currently"
+                "support the 'offset' parameter."
+            )
         return _wigner_fourier(psi, xvec, g)
 
     if psi.isket or psi.isbra:
@@ -345,20 +350,29 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel, offset=0):
     B = 4 * abs(A) ** 2
     if sp.isspmatrix_csr(rho.data):
         # for compress sparse row matrices
-        for m in range(len(rho.data.indptr) - 1):
-            m_phys = m + offset
-            for jj in range(len(rho.data.indptr) - 1):
-                n = rho.data.indices[jj]
-                n_phys = n + offset
-                if m == n:
-                    W += real(rho[m, m] * (-1) ** m_phys *
-                              genlaguerre(m_phys, 0)(B))
-                elif n > m:
-                    W += 2.0 * real(rho[m, n] * (-1) ** m_phys *
-                                    (2 * A) ** (n_phys - m_phys) *
-                                    sqrt(factorial(m_phys) /
-                                    factorial(n_phys)) *
-                                    genlaguerre(m_phys, n_phys - m_phys)(B))
+        if parallel:
+            iterator = (
+                (m, rho, A, B, offset)
+                for m in range(len(rho.data.indptr) - 1)
+            )
+            W1_out = parallel_map(_par_wig_eval, iterator)
+            W += sum(W1_out)
+        else:
+            for m in range(len(rho.data.indptr) - 1):
+                m_phys = m + offset
+                for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):
+                    n = rho.data.indices[jj]
+                    n_phys = n + offset
+                    if m == n:
+                        W += real(rho[m, m] * (-1) ** m_phys *
+                                  genlaguerre(m_phys, 0)(B))
+                    elif n > m:
+                        W += 2.0 * real(rho[m, n] * (-1) ** m_phys *
+                                        (2 * A) ** (n_phys - m_phys) *
+                                        sqrt(factorial(m_phys) /
+                                        factorial(n_phys)) *
+                                        genlaguerre(m_phys, n_phys - m_phys)
+                                        (B))
 
     else:
         # for dense density matrices
@@ -383,19 +397,27 @@ def _par_wig_eval(args):
     Private function for calculating terms of Laguerre Wigner function
     using parfor.
     """
-    m, rho, A, B = args
+    if len(args) == 5:
+        m, rho, A, B, offset = args
+    else:
+        m, rho, A, B = args
+        offset = 0
+
     W1 = zeros(np.shape(A))
+    m_phys = m + offset
     for jj in range(rho.data.indptr[m], rho.data.indptr[m + 1]):
         n = rho.data.indices[jj]
+        n_phys = n + offset
 
         if m == n:
-            W1 += real(rho[m, m] * (-1) ** m * genlaguerre(m, 0)(B))
+            W1 += real(rho[m, m] * (-1) ** m_phys * genlaguerre(m_phys, 0)(B))
 
         elif n > m:
-            W1 += 2.0 * real(rho[m, n] * (-1) ** m *
-                             (2 * A) ** (n - m) *
-                             sqrt(factorial(m) / factorial(n)) *
-                             genlaguerre(m, n - m)(B))
+            W1 += 2.0 * real(rho[m, n] * (-1) ** m_phys *
+                             (2 * A) ** (n_phys - m_phys) *
+                             sqrt(factorial(m_phys) /
+                             factorial(n_phys)) *
+                             genlaguerre(m_phys, n_phys - m_phys)(B))
     return W1
 
 
@@ -482,38 +504,45 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False, offset=0):
     """
 
     M = np.prod(rho.shape[0])
-    X,Y = np.meshgrid(xvec, yvec)
-    #A = 0.5 * g * (X + 1.0j * Y)
-    A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
+    X, Y = np.meshgrid(xvec, yvec)
+    # A = 0.5 * g * (X + 1.0j * Y)
+    A2 = g * (X + 1.0j * Y)  # this is A2 = 2*A
 
     B = np.abs(A2)
     B *= B
-    w0 = (2*rho[0, -1])*np.ones_like(A2)
-    L = M-1
-    #calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
-    #using Horner's method
+
+    if offset == 0:
+        w0 = (2*rho[0, -1])*np.ones_like(A2)
+    else:
+        diag = np.array([2*rho[0, -1]])
+        diag = np.concatenate((np.zeros(offset, dtype=diag.dtype), diag))
+        w0 = _wig_laguerre_val(M-1, B, diag) * np.ones_like(A2)
+
+    L = M - 1
+    # calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
+    # using Horner's method
     if not sparse:
-        rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
+        rho_dense = rho.full() * (2*np.ones((M, M)) - np.diag(np.ones(M)))
         while L > 0:
             L -= 1
-            diag = np.diag(rho, L)
+            diag = np.asarray(np.diag(rho_dense, L)).flatten()
             if offset > 0:
                 diag = np.concatenate((np.zeros(offset, dtype=diag.dtype),
                                        diag))
-            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
     else:
         # TODO: fix dispatch.
         _rho = _data.to(_data.CSR, rho.data).as_scipy()
         while L > 0:
             L -= 1
-            diag = _rho.diagonal(L)
+            diag = np.asarray(_rho.diagonal(L)).flatten()
             if L != 0:
-                diag *= 2
-                if offset > 0:
-                    diag = np.concatenate((np.zeros(offset, type=diag.dtype),
-                                           diag))
-            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+                diag = diag * 2
+            if offset > 0:
+                diag = np.concatenate((np.zeros(offset, dtype=diag.dtype),
+                                       diag))
+            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
 
     return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)

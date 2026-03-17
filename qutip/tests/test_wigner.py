@@ -692,3 +692,46 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         W_overlap = trapezoid(
             trapezoid(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
+
+
+def test_wigner_offset_parallel_laguerre():
+    "Winger: Compare parallel and serial laguerre results."
+    xvec = np.linspace(-2, 2, 20)
+    state = qutip.rand_dm(15, density=0.5)
+
+    W_serial = qutip.wigner(state, xvec, xvec, method='laguerre',
+                            parfor=False, offset=5)
+    W_parallel = qutip.wigner(state, xvec, xvec, method='laguerre',
+                              parfor=True, offset=5)
+
+    np.testing.assert_allclose(W_serial, W_parallel, atol=1e-10)
+
+
+@pytest.mark.parametrize('method', ['clenshaw', 'laguerre', 'iterative'])
+def test_wigner_offset_consistency(method):
+    "Wigner: Compare offset result with standard Wigner function call"
+    xvec = np.linspace(-2, 2, 20)
+    yvec = np.linspace(-2, 2, 20)
+
+    state_offset = qutip.rand_ket(40)
+    padded_data = np.pad(state_offset.full(), ((30, 0), (0, 0)),
+                         mode='constant')
+    state_base = qutip.Qobj(padded_data)
+
+    W_base = qutip.wigner(state_base, xvec, yvec, method=method, offset=0)
+    W_offset = qutip.wigner(state_offset, xvec, yvec, method=method, offset=30)
+
+    np.testing.assert_allclose(W_base, W_offset, atol=1e-3)
+
+
+def test_wigner_offset_sparse_consistency():
+    "Wigner: Compare sparse and dense clenshaw with offsets."
+    xvec = np.linspace(-2, 2, 20)
+    state = qutip.rand_ket(40)
+
+    W_dense = qutip.wigner(state, xvec, xvec, method='clenshaw',
+                           sparse=False, offset=20)
+    W_sparse = qutip.wigner(state, xvec, xvec, method='clenshaw',
+                            sparse=True, offset=20)
+
+    np.testing.assert_allclose(W_dense, W_sparse, atol=1e-10)
