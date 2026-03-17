@@ -314,8 +314,6 @@ class Bloch:
         self.point_alpha = []
         self.vector_alpha = []
         self.annotations = []
-        self.vector_color = []
-        self.point_color = None
         self._lines = []
         self._arcs = []
 
@@ -719,6 +717,8 @@ class Bloch:
 
         if self.axes is None:
             self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+        # Always re-apply view in case it was updated since last render
+        self.axes.view_init(azim=self.view[0], elev=self.view[1])
 
         # Clearing the axes is horrifically slow and loses a lot of the
         # axes state, but matplotlib doesn't seem to provide a better way
