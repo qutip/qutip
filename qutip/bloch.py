@@ -675,9 +675,17 @@ class Bloch:
 
     def make_sphere(self):
         """
-        Plots Bloch sphere and data sets.
+        Deprecated: Use render() instead.
         """
-        self.render()
+        import warnings
+
+        warnings.warn(
+            "make_sphere() is deprecated and will be removed in QuTiP 5.0. "
+            "Use render() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.render()
 
     def run_from_ipython(self):
         try:
