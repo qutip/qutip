@@ -721,7 +721,7 @@ def test_wigner_offset_consistency(method):
     W_base = qutip.wigner(state_base, xvec, yvec, method=method, offset=0)
     W_offset = qutip.wigner(state_offset, xvec, yvec, method=method, offset=30)
 
-    np.testing.assert_allclose(W_base, W_offset, atol=1e-3)
+    np.testing.assert_allclose(W_base, W_offset, atol=1e-10)
 
 
 def test_wigner_offset_sparse_consistency():

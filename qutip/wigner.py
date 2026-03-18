@@ -379,7 +379,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel, offset=0):
         for m in range(M):
             m_phys = m + offset
             if abs(rho[m, m]) > 0.0:
-                W += real(rho[m, m] * (-1) ** m * genlaguerre(m_phys, 0)(B))
+                W += real(rho[m, m] * (-1) ** m_phys * genlaguerre(m_phys, 0)(B))
             for n in range(m + 1, M):
                 n_phys = n + offset
                 if abs(rho[m, n]) > 0.0:
@@ -397,11 +397,7 @@ def _par_wig_eval(args):
     Private function for calculating terms of Laguerre Wigner function
     using parfor.
     """
-    if len(args) == 5:
-        m, rho, A, B, offset = args
-    else:
-        m, rho, A, B = args
-        offset = 0
+    m, rho, A, B, offset = args
 
     W1 = zeros(np.shape(A))
     m_phys = m + offset
