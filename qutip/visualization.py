@@ -1149,7 +1149,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
 
 def plot_fock_distribution(rho, fock_numbers=None, color="green",
-                           unit_y_range=True, *, fig=None, ax=None):
+                           unit_y_range=True, offset=0, *, fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1167,6 +1167,10 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
     unit_y_range : bool, default: True
         Set y-axis limits [0, 1] or not
+
+    offset : int, default: 0
+        The lowest number state that is included in the finite number
+        state representation of the state.
 
     fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
@@ -1197,7 +1201,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
         N = rho.shape[0]
 
-        artist = ax.bar(np.arange(N), np.real(rho.diag()),
+        artist = ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
                         color=color, alpha=0.6, width=0.8).patches
         artist_list.append(artist)
 
@@ -1221,7 +1225,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
 
 def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
-                g=sqrt(2), sparse=False, parfor=False, *,
+                g=sqrt(2), sparse=False, parfor=False, offset=0, *,
                 cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
@@ -1258,6 +1262,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
     parfor : bool {False, True}
         Flag for parallel calculation.
         See the documentation for qutip.wigner for details.
+
+    offset : int, default: 0
+        The lowest number state that is included in the finite number
+        state representation of the state.
 
     cmap : a matplotlib cmap instance, optional
         The colormap.
@@ -1301,7 +1309,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
 
         W0 = wigner(
             rho, xvec, yvec, method=method,
-            g=g, sparse=sparse, parfor=parfor
+            g=g, sparse=sparse, parfor=parfor, offset=offset
         )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
