@@ -532,9 +532,12 @@ class TestMultiTrajResult:
 
 # ── Visualisation tests ───────────────────────────────────────────
 
-mpl = pytest.importorskip("matplotlib", reason="matplotlib required")
-mpl.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+@pytest.fixture()
+def plt():
+    mpl = pytest.importorskip("matplotlib",
+                              reason="matplotlib required")
+    mpl.use("Agg")
+    return pytest.importorskip("matplotlib.pyplot")
 
 
 def _make_plot_result(e_ops, solver="test_solver"):
@@ -547,7 +550,7 @@ def _make_plot_result(e_ops, solver="test_solver"):
 
 
 @pytest.fixture()
-def _close_figures():
+def _close_figures(plt):
     yield
     plt.close("all")
 
@@ -555,12 +558,13 @@ def _close_figures():
 @pytest.mark.usefixtures("_close_figures")
 class TestResultPlotExpect:
 
-    def test_returns_fig_and_axes(self):
+    def test_returns_fig_and_axes(self, plt):
+        import matplotlib
         a = qutip.destroy(5)
         result = _make_plot_result([a.dag() * a])
         fig, axes = result.plot_expect()
-        assert isinstance(fig, mpl.figure.Figure)
-        assert isinstance(axes, mpl.axes.Axes)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert isinstance(axes, matplotlib.axes.Axes)   
 
     def test_number_of_lines(self):
         a = qutip.destroy(5)
@@ -610,14 +614,14 @@ class TestResultPlotExpect:
         fig, axes = result.plot_expect(show_legend=False)
         assert axes.get_legend() is None
 
-    def test_user_provided_axes(self):
+    def test_user_provided_axes(self, plt):
         a = qutip.destroy(5)
         result = _make_plot_result([a.dag() * a])
         fig_in, ax_in = plt.subplots()
         fig_out, ax_out = result.plot_expect(axes=ax_in)
         assert ax_out is ax_in
 
-    def test_user_provided_fig(self):
+    def test_user_provided_fig(self, plt):
         a = qutip.destroy(5)
         result = _make_plot_result([a.dag() * a])
         fig_in = plt.figure()
@@ -733,11 +737,12 @@ class TestMcResultPlotPhotocurrent:
         c_ops = [0.5 * qutip.destroy(3)]
         return qutip.mcsolve(H, psi0, tlist, c_ops, ntraj=5)
 
-    def test_returns_fig_and_axes(self):
+    def test_returns_fig_and_axes(self, plt):
+        import matplotlib
         result = self._run_mc()
         fig, axes = result.plot_photocurrent()
-        assert isinstance(fig, mpl.figure.Figure)
-        assert isinstance(axes, mpl.axes.Axes)
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert isinstance(axes, matplotlib.axes.Axes)
 
     def test_one_line_per_c_op(self):
         result = self._run_mc()
@@ -755,7 +760,7 @@ class TestMcResultPlotPhotocurrent:
         fig, axes = result.plot_photocurrent(title="PC")
         assert axes.get_title() == "PC"
 
-    def test_user_provided_axes(self):
+    def test_user_provided_axes(self, plt):
         result = self._run_mc()
         fig_in, ax_in = plt.subplots()
         fig_out, ax_out = result.plot_photocurrent(axes=ax_in)

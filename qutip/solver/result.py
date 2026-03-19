@@ -470,22 +470,19 @@ class Result(_BaseResult):
                     axes = np.array([axes])
                 fig = axes[0].get_figure()
 
-            for i, (expectation, label) in enumerate(
-                zip(self.expect, labels)
-            ):
-                axes[i].plot(
+            for ax, expectation, label in zip(axes, self.expect, labels):
+                ax.plot(
                     self.times, expectation, label=label, **plot_kwargs
                 )
-                axes[i].set_ylabel(label)
+                ax.set_ylabel(label)
                 if show_legend:
-                    axes[i].legend()
+                    ax.legend()
 
-            axes[-1].set_xlabel(xlabel)
-
-            if title is None:
-                title = self.solver
-            if title is not None:
-                axes[0].set_title(str(title))
+            for ax in axes:
+                ax.set_xlabel(xlabel)
+                ax.set_title(title or self.solver)
+            for ax in axes:
+                ax.label_outer()
 
         else:
             if fig is None and axes is None:
@@ -503,10 +500,7 @@ class Result(_BaseResult):
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
 
-            if title is None:
-                title = self.solver
-            if title is not None:
-                axes.set_title(str(title))
+            axes.set_title(title or self.solver)
 
             if show_legend:
                 axes.legend()

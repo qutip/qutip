@@ -883,10 +883,7 @@ class MultiTrajResult(_BaseResult):
 
             axes[-1].set_xlabel(xlabel)
 
-            if title is None:
-                title = self.solver
-            if title is not None:
-                axes[0].set_title(str(title))
+            axes[0].set_title(title or self.solver)
 
         else:
             if fig is None and axes is None:
@@ -931,10 +928,7 @@ class MultiTrajResult(_BaseResult):
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
 
-            if title is None:
-                title = self.solver
-            if title is not None:
-                axes.set_title(str(title))
+            axes.set_title(title or self.solver)
 
             if show_legend:
                 axes.legend()

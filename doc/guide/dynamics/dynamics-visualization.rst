@@ -14,7 +14,8 @@ Basic Usage
 After running any solver, call :meth:`~qutip.solver.result.Result.plot_expect`
 on the result:
 
-.. code-block:: python
+.. plot::
+    :context: reset
 
     import qutip
     import numpy as np
@@ -34,7 +35,8 @@ Dictionary Labels
 When ``e_ops`` is passed as a dictionary, the keys are used as legend labels
 automatically:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     result = qutip.mesolve(H, psi0, tlist, [0.5 * a],
                            e_ops={"photons": a.dag() * a,
@@ -46,7 +48,8 @@ Separate Subplots
 
 To plot each expectation value in its own subplot, use ``separate_axes=True``:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     result.plot_expect(separate_axes=True)
 
@@ -57,7 +60,8 @@ For Monte Carlo results
 (:class:`~qutip.solver.multitrajresult.McResult`),
 individual trajectories can be overlaid on the average:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     result = qutip.mcsolve(H, psi0, tlist, [0.5 * a],
                            e_ops=[a.dag() * a],
@@ -69,7 +73,8 @@ individual trajectories can be overlaid on the average:
 
 Trajectory styling can be customised:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     result.plot_expect(
         show_trajectories=10,
@@ -81,7 +86,8 @@ Photocurrent
 
 Monte Carlo results also support plotting the photocurrent:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     result.plot_photocurrent()
 
@@ -91,7 +97,8 @@ Customisation
 All methods accept ``fig`` and ``axes`` keyword arguments for embedding
 plots in custom layouts:
 
-.. code-block:: python
+.. plot::
+    :context: close-figs
 
     import matplotlib.pyplot as plt
 
