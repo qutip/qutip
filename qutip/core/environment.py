@@ -2345,7 +2345,6 @@ def _approx_cf_fit(clist, tlist, target_rmse, Nr_max, Ni_max,
                 "params_imag": params_imag, "summary": full_summary}
     # Finally, generate coefficients and exponents
     if fermionic:
-        # TODO: Generalize for Im(C(0))!=0
         ckAR = []
         vkAR = []
         for term in params_real:
@@ -2910,8 +2909,6 @@ class FermionicEnvironment(abc.ABC):
             ck_plus=ckAR, vk_plus=vkAR, ck_minus=ckAI,
             vk_minus=vkAI, mu=self.mu, T=self.T, tag=tag)
         return approx_env, fit_info
-        # TODO: All methods from spectra miss on the imaginary part of the correlation function at zero
-        # way too often, maybe a typo somewhere of finite sampling effects
 
 
 class LorentzianEnvironment(FermionicEnvironment):
