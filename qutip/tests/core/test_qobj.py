@@ -1348,27 +1348,17 @@ def test_data_as():
             id="ket-no-auto-tidyup",
         ),
         pytest.param(
-            True,
-            lambda: qutip.tensor(qutip.qeye(2), qutip.qeye(3)),
-            (2, 3, 2, 3),
-            id="operator-auto-tidyup",
-        ),
-        pytest.param(
             False,
-            lambda: qutip.tensor(qutip.qeye(2), qutip.qeye(3)),
-            (2, 3, 2, 3),
+            lambda: qutip.tensor(qutip.qeye(2), qutip.qeye(3), qutip.qeye(1)),
+            (2, 3, 1, 2, 3, 1),
             id="operator-no-auto-tidyup",
         ),
         pytest.param(
-            True,
-            lambda: qutip.to_super(qutip.tensor(qutip.qeye(2), qutip.qeye(3))),
-            (2, 3, 2, 3, 2, 3, 2, 3),
-            id="super-auto-tidyup",
-        ),
-        pytest.param(
             False,
-            lambda: qutip.to_super(qutip.tensor(qutip.qeye(2), qutip.qeye(3))),
-            (2, 3, 2, 3, 2, 3, 2, 3),
+            lambda: qutip.to_super(
+                qutip.tensor(qutip.qeye(2), qutip.qeye(3), qutip.qeye(1))
+            ),
+            (2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1),
             id="super-no-auto-tidyup",
         ),
     ],
