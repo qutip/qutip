@@ -6,21 +6,15 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = [
-    "n_thermal",
-    "clebsch",
-    "convert_unit",
-    "iterated_fit",
-    "fermi_dirac",
-]
+__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit', 'fermi_dirac']
 
-from typing import Any, Callable, Literal
+from typing import Callable, Literal, Any
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.fft import fft
-from scipy.linalg import eig, eigvals, hankel, lstsq, svd
 from scipy.optimize import curve_fit
+from scipy.linalg import hankel, lstsq, eigvals, svd, eig
+from scipy.fft import fft
 
 
 def n_thermal(w, w_th):
@@ -62,10 +56,9 @@ def n_thermal(w, w_th):
 
     return result.item() if w.ndim == 0 else result
 
-
 def fermi_dirac(w, beta, mu):
     """
-    Return the number of fermions in thermal and chemical equilibrium for an
+    Return the average number of fermions in thermal and chemical equilibrium for a
     fermionic mode with frequency 'w', at the temperature described by
     'beta' where :math:`\\beta = \\hbar/k_BT` and chemical potential
     mu.
@@ -107,17 +100,17 @@ def fermi_dirac(w, beta, mu):
 
 
 def _factorial_prod(N, arr):
-    arr[: int(N)] += 1
+    arr[:int(N)] += 1
 
 
 def _factorial_div(N, arr):
-    arr[: int(N)] -= 1
+    arr[:int(N)] -= 1
 
 
 def _to_long(arr):
     prod = 1
     for i, v in enumerate(arr):
-        prod *= (i + 1) ** int(v)
+        prod *= (i+1)**int(v)
     return prod
 
 
@@ -167,7 +160,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0) * _to_long(c_factor))
+    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
@@ -182,11 +175,8 @@ def clebsch(j1, j2, j3, m1, m2, m3):
         _factorial_div(v, factor)
     common_denominator = -np.min(s_factors, axis=0)
     numerators = s_factors + common_denominator
-    S = (
-        sum([(-1) ** i * _to_long(vec) for i, vec in enumerate(numerators)])
-        * sign
-        / _to_long(common_denominator)
-    )
+    S = sum([(-1)**i * _to_long(vec) for i, vec in enumerate(numerators)]) * \
+        sign / _to_long(common_denominator)
     return C * S
 
 
@@ -194,8 +184,8 @@ def clebsch(j1, j2, j3, m1, m2, m3):
 # Functions for unit conversions
 #
 _e = 1.602176565e-19  # C
-_kB = 1.3806488e-23  # J/K
-_h = 6.62606957e-34  # Js
+_kB = 1.3806488e-23   # J/K
+_h = 6.62606957e-34   # Js
 
 _unit_factor_tbl = {
     #   "unit": "factor that convert argument from unit 'unit' to Joule"
@@ -391,40 +381,30 @@ def convert_mK_to_GHz(w):
 
 
 def _version2int(version_string):
-    str_list = (
-        version_string.split("-dev")[0]
-        .split("rc")[0]
-        .split("a")[0]
-        .split("b")[0]
-        .split("post")[0]
-        .split(".")
-    )
-    return sum(
-        [
-            int(d if len(d) > 0 else 0) * (100 ** (3 - n))
-            for n, d in enumerate(str_list[:3])
-        ]
-    )
+    str_list = version_string.split(
+        "-dev")[0].split("rc")[0].split("a")[0].split("b")[0].split(
+        "post")[0].split('.')
+    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
+                for n, d in enumerate(str_list[:3])])
 
 
 # -----------------------------------------------------------------------------
 # Fitting utilities
 #
 
-
 def iterated_fit(
     fun: Callable[..., complex],
     num_params: int,
     xdata: ArrayLike,
     ydata: ArrayLike,
-    target_rmse: float = 1e-3,
+    target_rmse: float = 1e-5,
     Nmin: int = 1,
     Nmax: int = 10,
     guess: ArrayLike | Callable[[int], ArrayLike] = None,
     lower: ArrayLike = None,
     upper: ArrayLike = None,
     sigma: float | ArrayLike = None,
-    maxfev: int = None,
+    maxfev: int = None
 ) -> tuple[float, ArrayLike]:
     r"""
     Iteratively tries to fit the given data with a model of the form
@@ -485,8 +465,7 @@ def iterated_fit(
 
     if len(xdata) != len(ydata):
         raise ValueError(
-            "The shape of the provided fit data is not consistent"
-        )
+            "The shape of the provided fit data is not consistent")
 
     if lower is None:
         lower = np.full(num_params, -np.inf)
@@ -494,8 +473,7 @@ def iterated_fit(
         upper = np.full(num_params, np.inf)
     if not (len(lower) == num_params and len(upper) == num_params):
         raise ValueError(
-            "The shape of the provided fit bounds is not consistent"
-        )
+            "The shape of the provided fit bounds is not consistent")
 
     N = Nmin
     rmse1 = np.inf
@@ -507,24 +485,15 @@ def iterated_fit(
             guesses = np.array(guess(N))
             if guesses.shape != (N, num_params):
                 raise ValueError(
-                    "The shape of the provided fit guesses is not consistent"
-                )
+                    "The shape of the provided fit guesses is not consistent")
         else:
             guesses = np.tile(guess, (N, 1))
 
         lower_repeat = np.tile(lower, N)
         upper_repeat = np.tile(upper, N)
-        rmse1, params = _fit(
-            fun,
-            num_params,
-            xdata,
-            ydata,
-            guesses,
-            lower_repeat,
-            upper_repeat,
-            sigma,
-            maxfev,
-        )
+        rmse1, params = _fit(fun, num_params, xdata, ydata,
+                             guesses, lower_repeat,
+                             upper_repeat, sigma, maxfev)
         N += 1
 
     return rmse1, params
@@ -562,23 +531,14 @@ def _rmse(fun, xdata, ydata, params):
 
     if (yhat == ydata).all():
         return 0
-    return np.sqrt(np.mean(np.abs(yhat - ydata) ** 2)) / (
-        np.max(ydata) - np.min(ydata)
+    return (
+        np.sqrt(np.mean(np.abs(yhat - ydata) ** 2))
+        / (np.max(ydata) - np.min(ydata))
     )
 
 
-def _fit(
-    fun,
-    num_params,
-    xdata,
-    ydata,
-    guesses,
-    lower,
-    upper,
-    sigma,
-    maxfev,
-    method="trf",
-):
+def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
+         maxfev, method='trf'):
     # fun: model function
     # num_params: number of parameters in fun
     # xdata, ydata: data to be fit
@@ -593,10 +553,10 @@ def _fit(
 
     # Depending on the method, scipy uses leastsq or least_squares, and the
     # `maxfev` parameter has different names in the two functions
-    if method == "lm":
-        maxfev_arg = {"maxfev": maxfev}
+    if method == 'lm':
+        maxfev_arg = {'maxfev': maxfev}
     else:
-        maxfev_arg = {"max_nfev": maxfev}
+        maxfev_arg = {'max_nfev': maxfev}
 
     # Scipy only supports scalar sigma since 1.12
     if sigma is not None and not hasattr(sigma, "__len__"):
@@ -606,13 +566,8 @@ def _fit(
         lambda x, *packed_params: _evaluate(
             fun, x, _unpack(packed_params, num_params)
         ),
-        xdata,
-        ydata,
-        p0=_pack(guesses),
-        bounds=(lower, upper),
-        method=method,
-        sigma=sigma,
-        **maxfev_arg,
+        xdata, ydata, p0=_pack(guesses), bounds=(lower, upper),
+        method=method, sigma=sigma, **maxfev_arg
     )
     params = _unpack(packed_params, num_params)
     rmse = _rmse(fun, xdata, ydata, params)
@@ -647,13 +602,8 @@ def _fit(
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-def aaa(
-    func: Callable[..., complex] | ArrayLike,
-    z: ArrayLike,
-    tol: float = 0,
-    max_iter: int = 100,
-) -> dict[str, Any]:
+def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
+        tol: float = 0, max_iter: int = 100) -> dict[str, Any]:
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in [AAA]_ . This
@@ -720,11 +670,9 @@ def aaa(
         # Obtain the rational Approximation of the function with these support
         # points
         rational_approx = _get_rational_approx(
-            cauchy, weights, values, indices, func
-        )
+            cauchy, weights, values, indices, func)
         errors[k] = np.linalg.norm(
-            func - rational_approx, np.inf
-        )  # compute error
+            func - rational_approx, np.inf)  # compute error
         if errors[k] <= tol * np.linalg.norm(func, np.inf):
             # if contributions are smaller than the tolerance, then stop the
             # loop
@@ -735,7 +683,6 @@ def aaa(
         cauchy = _compute_cauchy_matrix(z, support_points)
         r = _get_rational_approx(cauchy, weights, values)
         return r.reshape(z.shape)
-
     # Obtain poles residues and zeros
     pol, res, zer = _prz(support_points, values, weights)
     rmse = _rmse(r(z), z, func, None)
@@ -745,12 +692,12 @@ def aaa(
         "poles": pol,
         "residues": res,
         "zeros": zer,
-        "errors": errors[: k + 1],
+        "errors": errors[:k + 1],
         "rmse": rmse,
         "support points": support_points,
         "values at support": values,
         "indices": indices,
-        "indices ordered": iindices,
+        "indices ordered": iindices
     }
 
 
@@ -877,7 +824,7 @@ def _prz(support_points, values, weights):
     cauchy = _compute_cauchy_matrix(pol, support_points)
 
     numerator = cauchy @ (values * weights)
-    denominator = (-(cauchy**2)) @ weights  # Quotient rule f=1/cauchy
+    denominator = (-cauchy**2) @ weights  # Quotient rule f=1/cauchy
     res = numerator / denominator
     ez = np.block([[0, weights], [values[:, None], np.diag(support_points)]])
     zeros = eig(ez, geye)[0]
@@ -887,16 +834,14 @@ def _prz(support_points, values, weights):
 
 # --- Prony methods fitting ---
 
-
 def _prony_model(n, amp, phase):
     # It serves to compute rmse, a single term of the prony
     # polynomial form [ESPIRAvsESPRIT]_ using phases
     return amp * np.power(phase, np.arange(n))
 
 
-def prony_methods(
-    method: Literal["prony", "esprit"], signal: ArrayLike, n: int
-) -> tuple[float, ArrayLike]:
+def prony_methods(method: Literal["prony", "esprit"],
+                  signal: ArrayLike, n: int) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using prony methods.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -922,9 +867,9 @@ def prony_methods(
         of our approximation
     """
     if method != "prony":
-        n = len(signal) - n
-    hankel0 = hankel(c=signal[:n], r=signal[n - 1 : -1])
-    hankel1 = hankel(c=signal[1 : n + 1], r=signal[n:])
+        n = len(signal)-n
+    hankel0 = hankel(c=signal[:n], r=signal[n - 1: -1])
+    hankel1 = hankel(c=signal[1: n + 1], r=signal[n:])
     if method == "prony":
         pencil_matrix = lstsq(hankel0.T, hankel1.T)[0]
         phases = eigvals(pencil_matrix.T)
@@ -933,12 +878,10 @@ def prony_methods(
         pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
         phases = eigvals(pencil_matrix)
     vandermonte = np.array(
-        [[phase**k for phase in phases] for k in range(len(signal))]
-    )
+        [[phase**k for phase in phases] for k in range(len(signal))])
     amplitudes = lstsq(vandermonte, signal)[0]
     params = _unpack(
-        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2
-    )
+        np.array([val for pair in zip(amplitudes, phases) for val in pair]), 2)
 
     rmse = _rmse(_prony_model, len(signal), signal, params)
     return rmse, params
@@ -946,10 +889,8 @@ def prony_methods(
 
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
-
-def espira1(
-    signal: ArrayLike, n: int, tol: float = 0
-) -> tuple[float, ArrayLike]:
+def espira1(signal: ArrayLike, n: int,
+            tol: float = 0) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -976,39 +917,32 @@ def espira1(
     """
     # Compute FFT
     F = fft(signal)
-    M = len(F)  # lenght of the signal
+    M = len(F)   # lenght of the signal
 
     # Set knots on the unit circle
     Z = np.exp(2j * np.pi * np.arange(M) / M)
     # Modify the DFT values
-    F = F * Z ** (-1)
+    F = F * Z**(-1)
     # Use AAA
-    result = aaa(F, Z, max_iter=n + 1, tol=tol)  # One extra iteration so n
+    result = aaa(F, Z, max_iter=n+1, tol=tol)  # One extra iteration so n
     # coincides with the number of exponents
     # Construct Cauchy matrix
-    CC = (-1) / np.subtract.outer(result["support points"], result["poles"])
+    CC = (-1) / np.subtract.outer(result['support points'], result['poles'])
     ck, _, _, _ = np.linalg.lstsq(
-        CC, result["values at support"], rcond=None
-    )  # Solve by lstsq
-    amplitudes = -ck / (
-        1 - result["poles"] ** M
-    )  # Calculate proper amplitudes
+        CC, result['values at support'], rcond=None)  # Solve by lstsq
+    amplitudes = -ck / (1 - result['poles']**M)  # Calculate proper amplitudes
 
     # pack and calculate goodness of fit
     params = _unpack(
-        np.array(
-            [val for pair in zip(amplitudes, result["poles"]) for val in pair]
-        ),
-        2,
-    )
+        np.array([val for pair in zip(amplitudes, result['poles'])
+                  for val in pair]), 2)
     rmse = _rmse(_prony_model, len(signal), signal, params)
 
     return rmse, params
 
 
-def espira2(
-    signal: ArrayLike, n: int, tol: float = 0
-) -> tuple[float, ArrayLike]:
+def espira2(signal: ArrayLike, n: int,
+            tol: float = 0) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -1040,27 +974,26 @@ def espira2(
     # Set knots on the unit circle
     Z = np.exp(2j * np.pi * np.arange(M) / M)
     # Modify the DFT values
-    F = F1 * Z ** (-1)
+    F = F1 * Z**(-1)
     # Run AAA
-    result = aaa(F, Z, max_iter=n + 1, tol=tol)
+    result = aaa(F, Z, max_iter=n+1, tol=tol)
     # Use results from AAA to construct lowener and cauchy matrices for the
     # FFT and modified FFT values
     indices = result["indices"]
     support_points = result["support points"]
-    values = result["values at support"]
+    values = result['values at support']
     cauchy = _compute_cauchy_matrix(Z[indices], support_points)
     loewner = np.subtract.outer(F[indices], values) * cauchy
     loewner = loewner[::-1].conj()  # invert rows and conjugate
-    loewner2 = (
-        np.subtract.outer(F1[indices], F1[result["indices ordered"]]) * cauchy
-    )
+    loewner2 = np.subtract.outer(
+        F1[indices], F1[result['indices ordered']]) * cauchy
     loewner2 = loewner2[::-1].conj()  # invert rows and conjugate
     _, N2 = loewner2.shape
     A1 = np.hstack((loewner, loewner2))
     _, _, Vt = np.linalg.svd(A1)
     V = Vt[:n, :]  # Reduce rows in V matrix
     V1 = V[:, :N2]  # First matrix for matrix pencil
-    V2 = V[:, N2 : 2 * N2]  # Second matrix for matrix pencil
+    V2 = V[:, N2:2*N2]  # Second matrix for matrix pencil
     # obtain phases
     phases = np.linalg.eigvals(np.linalg.pinv(V1.T) @ V2.T)
     # Initialize Vandermonde matrix
@@ -1072,8 +1005,7 @@ def espira2(
     amp = np.linalg.lstsq(vd, signal, rcond=None)[0]
     # calculate and pack stuff similarly to other fitting methods
     params = _unpack(
-        np.array([val for pair in zip(amp, phases) for val in pair]), 2
-    )
+        np.array([val for pair in zip(amp, phases) for val in pair]), 2)
     rmse = _rmse(_prony_model, len(signal), signal, params)
 
     return rmse, params
