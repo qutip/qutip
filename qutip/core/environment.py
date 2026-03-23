@@ -245,7 +245,7 @@ class BosonicEnvironment(abc.ABC):
 
         T : optional, float
             Environment temperature. (The spectral density of this environment
-            can only be calculated from the powr spectrum if a temperature is
+            can only be calculated from the power spectrum if a temperature is
             provided.)
 
         tag : optional, str, tuple or any other object
