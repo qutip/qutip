@@ -452,6 +452,9 @@ class Result(_BaseResult):
 
         n_e_ops = len(self.expect)
 
+        if title is None:
+            title = self.solver
+
         if separate_axes:
             if fig is None and axes is None:
                 fig, axes = plt.subplots(
@@ -477,12 +480,8 @@ class Result(_BaseResult):
                 ax.set_ylabel(label)
                 if show_legend:
                     ax.legend()
-
-            for ax in axes:
                 ax.set_xlabel(xlabel)
-                ax.set_title(title or self.solver)
-            for ax in axes:
-                ax.label_outer()
+                ax.set_title(title)
 
         else:
             if fig is None and axes is None:
@@ -500,7 +499,7 @@ class Result(_BaseResult):
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
 
-            axes.set_title(title or self.solver)
+            axes.set_title(title)
 
             if show_legend:
                 axes.legend()

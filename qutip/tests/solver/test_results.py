@@ -534,10 +534,8 @@ class TestMultiTrajResult:
 
 @pytest.fixture()
 def plt():
-    mpl = pytest.importorskip("matplotlib",
-                              reason="matplotlib required")
-    mpl.use("Agg")
-    return pytest.importorskip("matplotlib.pyplot")
+    return pytest.importorskip("matplotlib.pyplot",
+                               reason="matplotlib required")
 
 
 def _make_plot_result(e_ops, solver="test_solver"):

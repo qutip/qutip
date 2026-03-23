@@ -815,6 +815,9 @@ class MultiTrajResult(_BaseResult):
                 "Ensure that e_ops were supplied to the solver."
             )
 
+        if title is None:
+            title = self.solver
+
         if labels is None:
             labels = [
                 key if isinstance(key, str) else f"e_ops[{key}]"
@@ -880,10 +883,8 @@ class MultiTrajResult(_BaseResult):
                     axes[i].set_ylabel(label)
                     if show_legend:
                         axes[i].legend()
-
-            axes[-1].set_xlabel(xlabel)
-
-            axes[0].set_title(title or self.solver)
+                    axes[i].set_xlabel(xlabel)
+                    axes[i].set_title(title)
 
         else:
             if fig is None and axes is None:
@@ -928,7 +929,7 @@ class MultiTrajResult(_BaseResult):
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
 
-            axes.set_title(title or self.solver)
+            axes.set_title(title)
 
             if show_legend:
                 axes.legend()
