@@ -865,7 +865,7 @@ class Bloch:
             alpha = self.vector_alpha[k]
             color = self.vector_color[k]
 
-            if color is None or color == [None]:
+            if color is None or (isinstance(color, list) and color == None):
                 idx = k % len(self.vector_default_color)
                 color = self.vector_default_color[idx]
 
