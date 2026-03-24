@@ -412,7 +412,7 @@ class Result(_BaseResult):
         separate_axes : bool, optional
             If ``True``, each expectation value is plotted in its own
             subplot. Default ``False``.
-            
+
         **plot_kwargs
             Additional keyword arguments forwarded to
             ``matplotlib.axes.Axes.plot``.
@@ -456,6 +456,7 @@ class Result(_BaseResult):
             title = self.solver
 
         if separate_axes:
+            custom_axes = True
             if fig is None and axes is None:
                 fig, axes = plt.subplots(
                     n_e_ops, 1, sharex=True,
@@ -463,11 +464,13 @@ class Result(_BaseResult):
                     squeeze=False,
                 )
                 axes = axes.flatten()
+                custom_axes = False
             elif axes is None:
                 axes = np.array([
                     fig.add_subplot(n_e_ops, 1, i + 1)
                     for i in range(n_e_ops)
                 ])
+                custom_axes = False
             elif fig is None:
                 if not hasattr(axes, '__len__'):
                     axes = np.array([axes])
@@ -477,11 +480,15 @@ class Result(_BaseResult):
                 ax.plot(
                     self.times, expectation, label=label, **plot_kwargs
                 )
-                ax.set_ylabel(label)
+                ax.set_ylabel(ylabel)
                 if show_legend:
                     ax.legend()
-                ax.set_xlabel(xlabel)
-                ax.set_title(title)
+                if custom_axes:
+                    ax.set_xlabel(xlabel)
+                    ax.set_title(title)
+            if not custom_axes:
+                axes[0].set_title(title)
+                axes[-1].set_xlabel(xlabel)
 
         else:
             if fig is None and axes is None:
@@ -498,7 +505,6 @@ class Result(_BaseResult):
 
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
-
             axes.set_title(title)
 
             if show_legend:

@@ -830,8 +830,13 @@ class MultiTrajResult(_BaseResult):
         traj_kw = {"alpha": 0.3, "linewidth": 0.8, "color": "gray"}
         if trajectory_kwargs is not None:
             traj_kw.update(trajectory_kwargs)
+        # Styling used for average
+        plot_kw = {"linewidth": 2}
+        if plot_kwargs is not None:
+            plot_kw.update(plot_kwargs)
 
         if separate_axes:
+            custom_axes = True
             if fig is None and axes is None:
                 fig, axes = plt.subplots(
                     n_e_ops, 1, sharex=True,
@@ -839,11 +844,13 @@ class MultiTrajResult(_BaseResult):
                     squeeze=False,
                 )
                 axes = axes.flatten()
+                custom_axes = False
             elif axes is None:
                 axes = np.array([
                     fig.add_subplot(n_e_ops, 1, i + 1)
                     for i in range(n_e_ops)
                 ])
+                custom_axes = False
             elif fig is None:
                 if not hasattr(axes, '__len__'):
                     axes = np.array([axes])
@@ -854,37 +861,34 @@ class MultiTrajResult(_BaseResult):
                 n_traj = min(show_trajectories, len(self.trajectories))
                 for traj_idx in range(n_traj):
                     traj = self.trajectories[traj_idx]
-                    for i, exp in enumerate(traj.expect):
+                    for ax, exp, label in zip(axes, traj.expect, labels):
                         traj_label = (
-                            f"{labels[i]} (traj)"
+                            f"{label} (traj)"
                             if traj_idx == 0 else None
                         )
-                        axes[i].plot(
-                            self.times, exp,
-                            label=traj_label,
-                            **traj_kw,
+                        ax.plot(
+                            self.times, exp, label=traj_label, **traj_kw,
                         )
 
             # --- average on each subplot ---
             if show_average and avg_expect:
-                for i, (exp, label) in enumerate(
-                    zip(avg_expect, labels)
-                ):
+                for ax, exp, label in zip(axes, avg_expect, labels):
                     avg_label = (
                         f"{label} (avg)"
                         if show_trajectories > 0 else label
                     )
-                    axes[i].plot(
-                        self.times, exp,
-                        linewidth=2,
-                        label=avg_label,
-                        **plot_kwargs,
+                    ax.plot(
+                        self.times, exp, label=avg_label, **plot_kw
                     )
-                    axes[i].set_ylabel(label)
+                    ax.set_ylabel(ylabel)
                     if show_legend:
-                        axes[i].legend()
-                    axes[i].set_xlabel(xlabel)
-                    axes[i].set_title(title)
+                        ax.legend()
+                    if custom_axes:
+                        ax.set_xlabel(xlabel)
+                        ax.set_title(title)
+                if not custom_axes:
+                    axes[0].set_title(title)
+                    axes[-1].set_xlabel(xlabel)
 
         else:
             if fig is None and axes is None:
@@ -899,36 +903,28 @@ class MultiTrajResult(_BaseResult):
                 n_traj = min(show_trajectories, len(self.trajectories))
                 for traj_idx in range(n_traj):
                     traj = self.trajectories[traj_idx]
-                    for i, exp in enumerate(traj.expect):
+                    for label, exp in zip(labels, traj.expect):
                         traj_label = (
-                            f"{labels[i]} (traj)"
+                            f"{label} (traj)"
                             if traj_idx == 0 else None
                         )
                         axes.plot(
-                            self.times, exp,
-                            label=traj_label,
-                            **traj_kw,
+                            self.times, exp, label=traj_label, **traj_kw,
                         )
 
             # --- average ---
             if show_average and avg_expect:
-                for i, (exp, label) in enumerate(
-                    zip(avg_expect, labels)
-                ):
+                for label, exp in zip(labels, avg_expect):
                     avg_label = (
                         f"{label} (avg)"
                         if show_trajectories > 0 else label
                     )
                     axes.plot(
-                        self.times, exp,
-                        linewidth=2,
-                        label=avg_label,
-                        **plot_kwargs,
+                        self.times, exp, label=avg_label, **plot_kw,
                     )
 
             axes.set_xlabel(xlabel)
             axes.set_ylabel(ylabel)
-
             axes.set_title(title)
 
             if show_legend:
@@ -1359,6 +1355,7 @@ class McResult(_McBaseResult):
         xlabel="Time",
         ylabel="Photocurrent",
         show_legend=True,
+        separate_axes=False,
         **plot_kwargs,
     ):
         """
@@ -1389,6 +1386,10 @@ class McResult(_McBaseResult):
         show_legend : bool, optional
             Whether to display the legend. Default ``True``.
 
+        separate_axes : bool, optional
+            If ``True``, each photocurrent is plotted in its own
+            subplot. Default ``False``.
+
         **plot_kwargs
             Additional keyword arguments forwarded to
             ``matplotlib.axes.Axes.plot``.
@@ -1418,29 +1419,66 @@ class McResult(_McBaseResult):
         if not photocurrent:
             raise ValueError("No photocurrent data available.")
 
-        if fig is None and axes is None:
-            fig, axes = plt.subplots()
-        elif axes is None:
-            axes = fig.add_subplot(111)
-        elif fig is None:
-            fig = axes.get_figure()
-
+        n_c_ops = len(photocurrent)
         times = self.times[:-1]
-        for i, pc in enumerate(photocurrent):
-            axes.plot(
-                times, pc, label=f"c_ops[{i}]", **plot_kwargs
-            )
-
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
 
         if title is None:
             title = self.solver
-        if title is not None:
-            axes.set_title(str(title))
 
-        if show_legend:
-            axes.legend()
+        if separate_axes:
+            custom_axes = True
+            if fig is None and axes is None:
+                fig, axes = plt.subplots(
+                    n_c_ops, 1, sharex=True,
+                    figsize=(6, 3 * n_c_ops),
+                    squeeze=False,
+                )
+                axes = axes.flatten()
+                custom_axes = False
+            elif axes is None:
+                axes = np.array([
+                    fig.add_subplot(n_c_ops, 1, i + 1)
+                    for i in range(n_c_ops)
+                ])
+                custom_axes = False
+            elif fig is None:
+                if not hasattr(axes, '__len__'):
+                    axes = np.array([axes])
+                fig = axes[0].get_figure()
+
+            for i, (ax, pc) in enumerate(zip(axes, photocurrent)):
+                ax.plot(
+                    times, pc, label=f"c_ops[{i}]", **plot_kwargs
+                )
+                ax.set_ylabel(ylabel)
+                if show_legend:
+                    ax.legend()
+                if custom_axes:
+                    ax.set_xlabel(xlabel)
+                    ax.set_title(title)
+            if not custom_axes:
+                axes[0].set_title(title)
+                axes[-1].set_xlabel(xlabel)
+
+        else:
+            if fig is None and axes is None:
+                fig, axes = plt.subplots()
+            elif axes is None:
+                axes = fig.add_subplot(111)
+            elif fig is None:
+                fig = axes.get_figure()
+
+            for i, pc in enumerate(photocurrent):
+                axes.plot(
+                    times, pc, label=f"c_ops[{i}]", **plot_kwargs
+                )
+
+            axes.set_xlabel(xlabel)
+            axes.set_ylabel(ylabel)
+            axes.set_title(title)
+
+            if show_legend:
+                axes.legend()
 
         return fig, axes
 
