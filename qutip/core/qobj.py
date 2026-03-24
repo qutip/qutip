@@ -6,7 +6,8 @@ from __future__ import annotations
 import functools
 import numbers
 import warnings
-from typing import Any, Literal, Union, overload
+from typing import Any, Literal, TypeVar, Union, overload
+from collections.abc import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy.sparse
@@ -39,15 +40,16 @@ _CALL_ALLOWED = {
     ('oper', 'ket'),
 }
 
+T = TypeVar('T')
 
-def _require_equal_type(method):
+def _require_equal_type(method: Callable[[Qobj, Qobj | complex], T]) -> Callable[[Qobj, Qobj | complex], T]:
     """
     Decorate a binary Qobj method to ensure both operands are Qobj and of the
     same type and dimensions.  Promote numeric scalar to identity matrices of
     the same type and shape.
     """
     @functools.wraps(method)
-    def out(self, other):
+    def out(self: Qobj, other: Qobj | complex) -> T:
         if isinstance(other, Qobj):
             if self._dims != other._dims:
                 msg = (
