@@ -58,10 +58,10 @@ Monte Carlo Evolution
     :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.multitrajresult.McResult
-    :members: steady_state, merge
+    :members: steady_state, merge, plot_expect, plot_photocurrent
 
 .. autoclass:: qutip.solver.multitrajresult.NmmcResult
-    :members: steady_state, merge
+    :members: steady_state, merge, plot_expect
 
 
 Bloch-Redfield Master Equation
