@@ -182,7 +182,7 @@ class BosonicEnvironment(abc.ABC):
     def jump_correlator(
         self, t: float | ArrayLike, *, eps: float = 1e-10
     ) -> (complex | ArrayLike):
-        """
+        r"""
         Compute the jump correlator g(t) for the Universal Lindblad Equation.
 
         The jump correlator is the time-domain representation of the square
