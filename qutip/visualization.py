@@ -1526,7 +1526,7 @@ def plot_expectation_values(results, ylabels=None, *,
 
 
 def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
-                           cmap=None, colorbar=False, fig=None, ax=None):
+                           cmap=None, colorbar=False, fig=None, ax=None, **kwargs):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1546,8 +1546,9 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         projection where the surface of the unit sphere is mapped on
         the unit disk ('2d') or surface plot ('3d').
 
-    cmap : a matplotlib cmap instance, optional
-        The colormap.
+    cmap : a matplotlib cmap instance or str, optional
+        The colormap for the plot. Can be a Matplotlib colormap object or a
+        string name of a registered colormap.
 
     colorbar : bool, default: False
         Whether (True) or not (False) a colorbar should be attached to the
@@ -1558,6 +1559,10 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
 
     ax : a matplotlib axis instance, optional
         The axis context in which the plot will be drawn.
+
+    **kwargs: dict
+        Additional keyword arguments passed to Matplotlib's `pcolor` (for 2D)
+        or `plotsurface` (for 3D)
 
     Returns
     -------
@@ -1584,20 +1589,24 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         min_P = min(min_P, P.min())
         max_P = max(max_P, P.max())
 
-    if cmap is None:
-        if min_P < -1e12:
+    if min_P < -1e12:
+        norm = mpl.colors.Normalize(-max_P, max_P)
+        if cmap is None:
             cmap = _diverging_cmap()
-            norm = mpl.colors.Normalize(-max_P, max_P)
-        else:
+    else:
+        norm = mpl.colors.Normalize(min_P, max_P)
+        if cmap is None:
             cmap = _sequential_cmap()
-            norm = mpl.colors.Normalize(min_P, max_P)
+    
+    if isinstance(cmap, str):
+        cmap = mpl.colormaps[cmap]
 
     artist_list = list()
     if projection == '2d':
         Y = (THETA - pi / 2) / (pi / 2)
         X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
         for P in Ps:
-            artist_list.append([ax.pcolor(X, Y, P.real, cmap=cmap)])
+            artist_list.append([ax.pcolor(X, Y, P.real, cmap=cmap, **kwargs)])
         ax.set_xlabel(r'$\varphi$', fontsize=18)
         ax.set_ylabel(r'$\theta$', fontsize=18)
         ax.axis('equal')
@@ -1611,7 +1620,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         zz = cos(THETA)
         for P in Ps:
             artist = [ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                      facecolors=cmap(norm(P)), linewidth=0)]
+                      facecolors=cmap(norm(P)), **kwargs)]
             artist_list.append(artist)
         ax.view_init(azim=-35, elev=35)
 
