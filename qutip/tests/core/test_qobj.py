@@ -1332,6 +1332,46 @@ def test_data_as():
     assert "dia_matrix" in str(err.value)
 
 
+@pytest.mark.parametrize(
+    ("auto_tidyup_dims", "factory", "expected_shape"),
+    [
+        pytest.param(
+            True,
+            lambda: qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)),
+            (2, 2, 1),
+            id="ket-auto-tidyup",
+        ),
+        pytest.param(
+            False,
+            lambda: qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)),
+            (2, 2, 1, 1),
+            id="ket-no-auto-tidyup",
+        ),
+        pytest.param(
+            False,
+            lambda: qutip.tensor(qutip.qeye(2), qutip.qeye(3), qutip.qeye(1)),
+            (2, 3, 1, 2, 3, 1),
+            id="operator-no-auto-tidyup",
+        ),
+        pytest.param(
+            False,
+            lambda: qutip.to_super(
+                qutip.tensor(qutip.qeye(2), qutip.qeye(3), qutip.qeye(1))
+            ),
+            (2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1),
+            id="super-no-auto-tidyup",
+        ),
+    ],
+)
+def test_full_tensor(auto_tidyup_dims, factory, expected_shape):
+    with qutip.CoreOptions(auto_tidyup_dims=auto_tidyup_dims):
+        qobj = factory()
+        tensor = qobj.full_tensor()
+
+    assert isinstance(tensor, np.ndarray)
+    assert tensor.shape == expected_shape
+
+
 @pytest.mark.parametrize('dtype', ["CSR", "Dense", "Dia"])
 def test_qobj_dtype(dtype):
     obj = qutip.qeye(2, dtype=dtype)
