@@ -203,7 +203,7 @@ class BosonicEnvironment(abc.ABC):
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
         """
-        return self._jc_from_ps(w)
+        return self._jc_from_ps(t)
 
     # --- user-defined environment creation
 
@@ -475,7 +475,7 @@ class BosonicEnvironment(abc.ABC):
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
-    def _jc_from_ps(self, t, wMax, **ps_kwargs):
+    def _jc_from_ps(self, t, wMax=None, **ps_kwargs):
         t = np.asarray(t, dtype=float)
         if t.ndim == 0:
             tMax = np.abs(t)
@@ -483,6 +483,15 @@ class BosonicEnvironment(abc.ABC):
             return np.array([])
         else:
             tMax = np.max(np.abs(t))
+
+        if wMax is None:
+            ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
+            ps_target = ps_max * 1e-6
+            wMax = 1.
+            n_iter = 0
+            while self.power_spectrum(wMax) > ps_target and n_iter < 10:
+                wMax *= 2
+                n_iter += 1
 
         if getattr(self, "_jc_tMax", tMax) <= tMax:
             self._jc_tMax = tMax
@@ -1882,6 +1891,9 @@ class OhmicEnvironment(BosonicEnvironment):
         t : array_like or float
             The time at which to evaluate the correlation function.
         """
+        if not _mpmath_available:
+            self._cf_from_ps(t, 15 * self.wc, **kwargs)
+
         t = np.asarray(t, dtype=float)
         t_was_array = t.ndim > 0
         if not t_was_array:
