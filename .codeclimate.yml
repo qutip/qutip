@@ -1,0 +1,46 @@
+version: "2"
+exclude_patterns:
+- "doc/"
+- "dist/"
+- "**/tests/"
+checks:
+  argument-count:
+    config:
+      threshold: 10
+  complex-logic:
+    config:
+      threshold: 20
+  file-lines:
+    enabled: false
+  method-complexity:
+    config:
+      threshold: 20
+  method-count:
+    config:
+      threshold: 75
+  method-lines:
+    config:
+      threshold: 100
+  nested-control-flow:
+    config:
+      threshold: 4
+  return-statements:
+    config:
+      threshold: 4
+  similar-code:
+    config:
+      threshold: 64
+  identical-code:
+    config:
+      threshold: 64
+plugins:
+  fixme:
+    enabled: true
+  pep8:
+    enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+        python:
+          python_version: 3

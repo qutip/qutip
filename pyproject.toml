@@ -1,0 +1,113 @@
+[build-system]
+requires = [
+    "setuptools>=77.0.3",
+    "packaging",
+    "wheel",
+    "cython>=0.29.20",
+    "numpy>=2.0.0",
+    "scipy>=1.9",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qutip"
+dynamic = ["version"]
+description = "QuTiP: The Quantum Toolbox in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "BSD-3-Clause"
+keywords = ["quantum", "physics", "dynamics"]
+authors = [
+  {name = "Alexander Pitchford"},
+  {name = "Paul D. Nation"},
+  {name = "Robert J. Johansson"},
+  {name = "Chris Granade"},
+  {name = "Arne Grimsmo"},
+  {name = "Nathan Shammah"},
+  {name = "Shahnawaz Ahmed"},
+  {name = "Neill Lambert"},
+  {name = "Eric Giguère"},
+  {name = "Boxi Li"},
+  {name = "Jake Lishman"},
+  {name = "Simon Cross"},
+  {email = "qutip-admin@googlegroups.com"},
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.9,!=1.16.0,!=1.17.0",
+    "packaging",
+]
+
+# URLs for your project
+[project.urls]
+Homepage = "https://qutip.org"
+Issues = "https://github.com/qutip/qutip/issues"
+Documentation = "https://qutip.readthedocs.io/en/stable/"
+"Source Code" = "https://github.com/qutip/qutip"
+
+[project.optional-dependencies]
+graphics = ["matplotlib>=3.5"]
+runtime_compilation = ["cython>=0.29.20", "filelock", "setuptools"]
+semidefinite = ["cvxpy>=1.0", "cvxopt"]
+tests = ["pytest>=5.2", "pytest-rerunfailures"]
+ipython = ["ipython"]
+extras = [
+  "loky; python_version>='3.11'",
+  "loky!=3.5.0; python_version<='3.10'",
+  "tqdm",
+  "mpmath",
+]
+mpi = ["mpi4py"]
+full = [
+  "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
+]
+
+[tool.setuptools]
+packages = { find = { include = ["qutip*"] } }
+
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+# Change in future version to "build"
+build-frontend = "pip"
+
+[tool.towncrier]
+directory = "doc/changes"
+filename = "doc/changelog.rst"
+name = "QuTiP"
+package = "qutip"
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removals"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Miscellaneous"
+showcontent = true
