@@ -52,7 +52,7 @@ pytest==9.0.2
 pytest-rerunfailures==16.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
-requests==2.32.5
+requests==2.33.0
 roman-numerals==4.1.0
 scipy==1.16.3
 scs==3.2.11
