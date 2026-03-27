@@ -484,16 +484,15 @@ class BosonicEnvironment(abc.ABC):
         else:
             tMax = np.max(np.abs(t))
 
-        if wMax is None:
-            ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
-            ps_target = ps_max * 1e-6
-            wMax = 1.
-            n_iter = 0
-            while self.power_spectrum(wMax) > ps_target and n_iter < 10:
-                wMax *= 2
-                n_iter += 1
-
-        if getattr(self, "_jc_tMax", tMax) <= tMax:
+        if getattr(self, "_jc_tMax", -1) < tMax:
+            if wMax is None:
+                ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
+                ps_target = ps_max * 1e-6
+                wMax = 1.
+                n_iter = 0
+                while self.power_spectrum(wMax) > ps_target and n_iter < 10:
+                    wMax *= 2
+                    n_iter += 1
             self._jc_tMax = tMax
             # TODO: only definied for real positive power_spectrum
             self._jc = _fft(

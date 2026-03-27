@@ -1,4 +1,11 @@
-
+import numpy as np
+import scipy
+import scipy.integrate as integrate
+from scipy.interpolate import CubicSpline
+import qutip as qt
+import matplotlib.pyplot as plt
+import functools
+import itertools
 
 def cont_t2w_fft(ft, t_max, Nt):
     dt = t_max * 2**(1 - Nt)
@@ -108,5 +115,5 @@ def integrate_2d_flat(op, t, T, Nt):
     # fill
     for s in ts[1:-1]:
         for sp in ts[1:-1]:
-            out += op(s, sp, t) / 2
+            out += op(s, sp, t)
     return out * (2 * T / (Nt - 1))**2
