@@ -46,7 +46,7 @@ pure_eval==0.2.3
 pybtex==0.25.1
 pybtex-docutils==1.0.3
 pycparser==3.0
-Pygments==2.19.2
+Pygments==2.20.0
 pyparsing==3.3.2
 pytest==9.0.2
 pytest-rerunfailures==16.1
