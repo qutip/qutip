@@ -18,7 +18,7 @@ from packaging.version import parse as parse_version
 from . import (
     Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
-from .core.superop_reps import _to_superpauli, isqubitdims
+from .core.superop_reps import to_superpauli, isqubitdims
 from .wigner import wigner, qfunc
 from .matplotlib_utilities import complex_phase_cmap
 
@@ -386,7 +386,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                                      "currently only supported for qubits.")
                 # Convert to a superoperator in the Pauli basis,
                 # so that all the elements are real.
-                sqobj = _to_superpauli(rho)
+                sqobj = to_superpauli(rho)
                 nq = int(log2(sqobj.shape[0]) / 2)
                 W = sqobj.full().T
                 # Create default labels, too.
