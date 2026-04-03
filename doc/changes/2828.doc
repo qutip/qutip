@@ -1,0 +1,1 @@
+Clarified the documentation of fmmesolve to explain the relationship between spectra_cb and BosonicEnvironment, resolving potential confusion between noise power spectrum and spectral density definitions.

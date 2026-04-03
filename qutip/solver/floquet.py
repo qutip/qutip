@@ -677,9 +677,34 @@ def fmmesolve(
         The states are reverted to the lab basis before computing the
         expectation values.
 
-    spectra_cb : list callback functions, default: ``lambda w: (w > 0)``
-        List of callback functions that compute the noise power spectrum as
-        a function of frequency for the collapse operators in `c_ops`.
+    spectra_cb : list of callable, default: ``[lambda w: (w > 0)]``
+        List of callback functions that compute the noise power spectrum
+        :math:`S(\omega)` as a function of frequency for each collapse
+        operator in `c_ops`.
+
+        The noise power spectrum is related to the decay rates in the
+        Floquet-Markov master equation via:
+
+        .. math::
+            \gamma_{\alpha\beta k} = S(\Delta_{\alpha\beta k}) |X_{\alpha\beta k}|^2
+
+        where :math:`\Delta_{\alpha\beta k}` are the Floquet quasi-energy
+        differences and :math:`X_{\alpha\beta k}` are the matrix elements of
+        the coupling operators.
+
+        .. note::
+            This is the noise power spectrum :math:`S(\omega)`, not the
+            spectral density :math:`J(\omega)` used in some other contexts.
+            At zero temperature, they are related by
+            :math:`S(\omega) = 2 J(\omega)` for :math:`\omega > 0`.
+
+            If using :class:`.BosonicEnvironment`, use the
+            :meth:`.BosonicEnvironment.power_spectrum` method to obtain the
+            correct spectrum for `spectra_cb`:
+
+            >>> env = BosonicEnvironment.from_spectral_density(
+            ...     wlist, J, T=0.0)
+            >>> spectra_cb = [env.power_spectrum]
 
     T : float, default=tlist[-1]
         The period of the time-dependence of the hamiltonian. The default value
@@ -733,6 +758,31 @@ def fmmesolve(
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
+
+    Notes
+    -----
+    The Floquet-Markov master equation describes the dynamics of a quantum
+    system subject to a periodic driving Hamiltonian and weak coupling to
+    a thermal environment. The dissipation is characterized by the noise
+    power spectrum :math:`S(\omega)` provided via `spectra_cb`.
+
+    **Relationship to BosonicEnvironment:**
+
+    When using :class:`.BosonicEnvironment` to describe the environment,
+    note that `spectra_cb` expects the noise power spectrum :math:`S(\omega)`,
+    not the spectral density :math:`J(\omega)`. These are related by:
+
+    .. math::
+        S(\omega) = 2 \pi J(\omega) [n_{th}(\omega) + 1] \quad \text{for } \omega > 0
+
+    where :math:`n_{th}(\omega)` is the thermal occupation number.
+    At zero temperature, this simplifies to :math:`S(\omega) = 2 J(\omega)`.
+
+    Use :meth:`.BosonicEnvironment.power_spectrum` to obtain the correct
+    spectrum for `fmmesolve`:
+
+    >>> env = DrudeLorentzEnvironment(T=0.1, lam=0.01, gamma=0.1)
+    >>> spectra_cb = [env.power_spectrum]
 
     Returns
     -------
