@@ -8,7 +8,7 @@ import numpy as np
 
 from ..core import (
     Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
-    tensor, expect, qeye_like, isket
+    tensor, expect, qeye_like, isket, sigmax, sigmam, sigmap, basis
 )
 from .mesolve import MESolver
 from .mcsolve import MCSolver
@@ -536,13 +536,16 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         to be all provided. For exemple, if ``A`` is not provided,
         ``<B(t+\tau)C(t)>`` is computed.
     max_t_plus_tau : float, optional
-        If provided, skip computation where ``t + tau > max_t_plus_tau``.
-        Skipped entries are filled with ``0``. Default ``None`` means compute
-        all entries (equivalent to ``np.inf``).
+        Maximum value of ``t + tau`` to compute. If provided, entries where
+        ``t + tau > max_t_plus_tau`` are skipped and filled with ``0``.
+        This is useful for reducing computation when correlations decay
+        quickly and long-time behavior is not needed.
+        Default ``None`` means compute all entries.
     map : str, default: ``'serial'``
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
-        ``'parallel'``, ``'loky'``).
+        ``'parallel'``, ``'loky'``). Use ``'parallel'`` for multi-core
+        parallelization to speed up computation.
     map_kw : dict, optional
         Keyword arguments passed to the map function via its ``map_kw``
         parameter, e.g. ``{'num_cpus': 4}``.
@@ -554,6 +557,61 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         specified by ``tlist`` (first index) and `taulist` (second index). If
         ``tlist`` is ``None``, then a 1-dimensional array of correlation values
         is returned instead.
+
+    Notes
+    -----
+    **Performance Optimization:**
+
+    This function can be computationally expensive for large `tlist` and
+    `taulist`. Two strategies can help reduce computation time:
+
+    1. **Limit computation with ``max_t_plus_tau``:**
+       If correlations decay quickly, you can skip computing entries where
+       ``t + tau`` is large. For example, if you only need correlations
+       up to total time ``T_max``::
+
+           corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                  max_t_plus_tau=T_max)
+
+    2. **Parallel execution with ``map``:**
+       Use multiple CPU cores to parallelize the computation::
+
+           corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                  map='parallel', map_kw={'num_cpus': 4})
+
+    These options can be combined for maximum performance::
+
+        corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                               max_t_plus_tau=T_max,
+                               map='parallel', map_kw={'num_cpus': 4})
+
+    Examples
+    --------
+    Compute a simple two-time correlation:
+
+    >>> import numpy as np
+    >>> from qutip import sigmam, sigmap, basis, mesolve, correlation_3op
+    >>> from qutip.solver import MESolver
+    >>> H = 0.5 * 2 * np.pi * sigmax()
+    >>> c_ops = [np.sqrt(0.1) * sigmam()]
+    >>> solver = MESolver(H, c_ops)
+    >>> rho0 = basis(2, 0)
+    >>> tlist = np.linspace(0, 10, 100)
+    >>> taulist = np.linspace(0, 5, 50)
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
+    ...                         A=sigmap(), B=sigmam(), C=sigmap())
+
+    Compute with performance optimization:
+
+    >>> # Only compute up to t + tau = 12
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),
+    ...                         max_t_plus_tau=12.0)
+    >>>
+    >>> # Use 4 CPU cores for parallel computation
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),
+    ...                         map='parallel', map_kw={'num_cpus': 4})
     """
     taulist = np.asarray(taulist)
     if isket(state0):
