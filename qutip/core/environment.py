@@ -177,7 +177,7 @@ class BosonicEnvironment(abc.ABC):
             In that case, this parameter is used as the finite difference in
             the numerical differentiation.
         """
-        return self.power_spectrum(w, eps=eps)**0.5
+        return (self.power_spectrum(w, eps=eps))**0.5 / (2 * np.pi)
 
     def jump_correlator(
         self, t: float | ArrayLike, *, eps: float = 1e-10
@@ -497,7 +497,7 @@ class BosonicEnvironment(abc.ABC):
             # TODO: only definied for real positive power_spectrum
             self._jc = _fft(
                 lambda w: self.power_spectrum(w, **ps_kwargs)**0.5,
-                self._jc_tMax, tMax=wMax, scale=(1 / (2 * np.pi))
+                self._jc_tMax, tMax=wMax, scale=1/(2 * np.pi)
             )
 
         result = self._jc(t)
@@ -518,7 +518,7 @@ class BosonicEnvironment(abc.ABC):
                 self.correlation_function,
                 self._ps_wMax, tMax=tMax, out="real"
             )
-            self._ps = lambda w: np.real(fft_out(-w))**2
+            self._ps = lambda w: np.real(fft_out(-w))**2 * (2 * np.pi)
 
         result = self._ps(w)
         return result.item() if w.ndim == 0 else result
