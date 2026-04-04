@@ -773,7 +773,7 @@ def fmmesolve(
     not the spectral density :math:`J(\omega)`. These are related by:
 
     .. math::
-        S(\omega) = 2 \pi J(\omega) [n_{th}(\omega) + 1] \quad \text{for } \omega > 0
+        S(\omega) = 2 J(\omega) [n_{th}(\omega) + 1] \quad \text{for } \omega > 0
 
     where :math:`n_{th}(\omega)` is the thermal occupation number.
     At zero temperature, this simplifies to :math:`S(\omega) = 2 J(\omega)`.
