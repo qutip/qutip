@@ -1,0 +1,1 @@
+Clarified the x and y axis order for the arrays returned by the phase-space functions wigner, spin_wigner, qfunc and spin_q_function.

@@ -1,0 +1,61 @@
+/* Fix for: https://github.com/readthedocs/sphinx_rtd_theme/issues/301 */
+/* Fix taken from: https://github.com/readthedocs/sphinx_rtd_theme/pull/383/ */
+span.eqno {
+  margin-left: 5px;
+  float: right;
+  /* position the number above the equation so that :hover is activated */
+  z-index: 1;
+  position: relative;
+}
+
+span.eqno .headerlink {
+  display: none;
+  visibility: hidden;
+}
+
+span.eqno:hover .headerlink {
+  display: inline-block;
+  visibility: visible;
+}
+
+/*
+Ensure each property is on it's line.
+https://github.com/readthedocs/sphinx_rtd_theme/issues/1301
+*/
+.py.property {
+  display: block !important;
+}
+
+
+/*
+Improve multiline signature look
+https://github.com/readthedocs/sphinx_rtd_theme/issues/1529
+(Solution found by the hypothesis team)
+*/
+
+/* don't use italics for param names; looks bad with "|" for unions */
+.rst-content dl .sig-param {
+  font-style: normal;
+}
+
+/* Take out pointless vertical whitespace in the signatures. */
+.rst-content dl .sig dl,
+.rst-content dl .sig dd {
+  margin-bottom: 0;
+}
+
+/* Make signature boxes full-width, with view-source and header links right-aligned. */
+/* Does not works on Firefox, but does in opera. */
+.rst-content dl .sig {
+  width: -webkit-fill-available;
+}
+
+.rst-content .viewcode-link {
+  display: inline-flex;
+  float: inline-end;
+  margin-right: 1.5em;
+}
+.rst-content .headerlink {
+  position: absolute;
+  right: 0.5em;
+}
