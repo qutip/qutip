@@ -54,6 +54,16 @@ jobs:
             # Should be enough to include this in one of the runs
             includempi: 1
 
+          - case-name: p314 ubuntu arm
+            os: ubuntu-24.04-arm
+            python-version: "3.14"
+            numpy-build: ">=2.2.0"
+            numpy-requirement: ">=2.2.0"
+            pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+
           - case-name: p312, numpy fallback
             os: ubuntu-latest
             python-version: "3.12"
@@ -87,6 +97,7 @@ jobs:
             pypi: 1
             coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
@@ -110,7 +121,7 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
-            os: windows-latest
+            os: windows-11-arm
             python-version: "3.14"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
