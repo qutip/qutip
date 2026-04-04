@@ -145,6 +145,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
+        if: matrix.os != 'windows-11-arm'
+        # Currently miniconda doesn't support window-11 arms
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
@@ -218,8 +220,13 @@ jobs:
           fi
 
       - name: Package information
+        shell: bash
         run: |
-          conda list
+          if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
+            pip list
+          else
+            conda list
+          fi
           python -c "import qutip; qutip.about()"
           python -c "import qutip; print(qutip.settings)"
 
