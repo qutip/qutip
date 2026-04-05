@@ -40,6 +40,27 @@ def pytest_runtest_setup(item):
     _skip_cython_tests_if_unavailable(item)
 
 
+# Configure pytest-randomly for reproducible random seeds
+# This ensures that random tests will produce the same results across runs
+# and helps identify flaky tests
+try:
+    import pytest_randomly
+    
+    @pytest.hookimpl(tryfirst=True)
+    def pytest_configure(config):
+        # Set a fixed seed for numpy random number generator
+        # This ensures reproducibility across test runs
+        np.random.seed(42)
+        
+        # Configure pytest-randomly to use a fixed seed
+        # This will make random tests more reproducible
+        config.option.randomly_seed = "42"
+        
+except ImportError:
+    # If pytest-randomly is not available, skip this configuration
+    pass
+
+
 @pytest.fixture
 def in_temporary_directory():
     """
