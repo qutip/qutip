@@ -40,6 +40,7 @@ from .bloch import *
 from .visualization import *
 from .animation import *
 from .matplotlib_utilities import *
+from .plotly_visualization import *
 
 # library functions
 from .tomography import *

@@ -58,6 +58,7 @@ Documentation = "https://qutip.readthedocs.io/en/stable/"
 
 [project.optional-dependencies]
 graphics = ["matplotlib>=3.5"]
+plotly = ["plotly>=5.0"]
 runtime_compilation = ["cython>=0.29.20", "filelock", "setuptools"]
 semidefinite = ["cvxpy>=1.0", "cvxopt"]
 tests = ["pytest>=5.2", "pytest-rerunfailures"]
