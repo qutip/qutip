@@ -177,6 +177,18 @@ def testPropMCSolver():
     assert str(err.value).startswith("Non-deterministic")
 
 
+def testProp_Negative_Time_1():
+    U = Propagator(qeye(2))
+    U(-1)
+    assert U(-2).tr() == pytest.approx(np.exp(2j) * 2)
+
+
+def testProp_Negative_Time_2():
+    U = Propagator(qeye(2))
+    U(-1)
+    assert U(0.5).tr() == pytest.approx(np.exp(-0.5j) * 2)
+
+
 def testPropPiecewiseConst():
     H0 = qutip.sigmaz()
     H1 = qutip.sigmax()
