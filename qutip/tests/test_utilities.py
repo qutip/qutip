@@ -123,6 +123,28 @@ def test_cpu_count(monkeypatch):
     assert new_ncpus >= 1
 
 
+def test_zeta():
+    mpmath = pytest.importorskip("mpmath")
+    N = 100
+    s_list = np.random.rand(N) + 1.0001
+    q_list = np.random.lognormal(size=N)
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+
+    s_list = np.random.rand(N) + 1.0001
+    q_list = np.random.lognormal(size=N) + np.random.lognormal(size=N) * 1j
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+
+    s_list = (
+        1 + (np.random.lognormal(size=N) + 1e-6)
+        * np.exp((np.random.rand(N) - 0.5) * 1j * np.pi)
+    )  # Real part > 1.000001
+    q_list = np.random.lognormal(size=N) + np.random.lognormal(size=N)* 1j
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+
+
 class TestFitting:
     rng = np.random.default_rng(seed=42)
 
