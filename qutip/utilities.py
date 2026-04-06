@@ -367,6 +367,7 @@ def zeta(s, q, N=20, M=15):
         The shift parameter (q in standard notation).
     N : int, default: 20
         Number of direct terms to sum before the asymptotic expansion.
+        When ``q.real < 0``, should be larger than ``-q``.
     M : int, default: 15
         Number of Bernoulli terms for the tail approximation.
 
@@ -374,6 +375,7 @@ def zeta(s, q, N=20, M=15):
     ----
     Only tested for s.real > 1.
     """
+    q = np.complex128(q)
     if np.isclose(s, 1.0):
         raise ValueError("The Hurwitz zeta function has a pole at x = 1.")
 
