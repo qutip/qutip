@@ -415,7 +415,8 @@ class Propagator:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye_like(self.props[0]), t)
             Uinv = self.solver.step(self.times[idx])
-            U = self._inv(Uinv)
+            U = self._inv(Uinv) @ self.props[idx]
+            self.solver.start(qeye_like(self.props[0]), 0.)
         return U
 
     def _inv(self, U):
