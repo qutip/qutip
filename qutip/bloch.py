@@ -466,7 +466,7 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
-        kwargs : dict
+        **kwargs : dict
             Additional parameters for matplotlib.patches.FancyArrowPatch.
 
         """
@@ -523,7 +523,7 @@ class Bloch:
             or escape backslashes
             e.g. "$\\\\langle x \\\\rangle$".
 
-        kwargs :
+        **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
 
@@ -865,7 +865,7 @@ class Bloch:
             alpha = self.vector_alpha[k]
             color = self.vector_color[k]
 
-            if color is None or (isinstance(color, list) and color == None):
+            if color is None:
                 idx = k % len(self.vector_default_color)
                 color = self.vector_default_color[idx]
 
