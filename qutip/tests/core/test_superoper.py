@@ -204,7 +204,7 @@ class TestSuper_td:
         assert qutip.spre(self.t1)(0.5) == qutip.spre(self.t1(0.5))
 
     def test_spost_td(self):
-        "Superoperator: spre, time-dependent"
+        "Superoperator: spost, time-dependent"
         assert qutip.spost(self.t1)(0.5) == qutip.spost(self.t1(0.5))
 
     def test_sprepost_td(self):
@@ -218,6 +218,16 @@ class TestSuper_td:
         # left 2 QobjEvo, one cte
         assert (qutip.sprepost(self.t1, self.t2)(0.5)
                 == qutip.sprepost(self.t1(0.5), self.t2(0.5)))
+
+    def test_scommutator_td(self):
+        "Superoperator: scommutator, time-dependent"
+        assert (qutip.scommutator(self.t1)(0.5)
+                == qutip.scommutator(self.t1(0.5)))
+
+    def test_santicommutator_td(self):
+        "Superoperator: santicommutator, time-dependent"
+        assert (qutip.santicommutator(self.t1)(0.5)
+                == qutip.santicommutator(self.t1(0.5)))
 
     def test_operator_vector_td(self):
         "Superoperator: operator_to_vector, time-dependent"

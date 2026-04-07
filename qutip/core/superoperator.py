@@ -1,7 +1,8 @@
 __all__ = [
     'liouvillian', 'lindblad_dissipator', 'operator_to_vector',
     'vector_to_operator', 'stack_columns', 'unstack_columns', 'stacked_index',
-    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle',
+    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle', 'scommutator',
+    'santicommutator'
 ]
 
 import functools
@@ -449,6 +450,41 @@ def sprepost(A, B):
                 dims=dims,
                 isherm=A._isherm and B._isherm,
                 copy=False)
+
+
+@_map_over_compound_operators
+def scommutator(A: AnyQobj) -> AnyQobj:
+    """Generates the commutator superoperator for a given quantum object.
+
+    Parameters
+    ----------
+    A : Qobj or QobjEvo
+        Quantum operator for which the commutator superoperator is generated.
+
+    Returns
+    -------
+    super :Qobj or QobjEvo
+        The commutator superoperator formed from the input quantum object.
+    """
+    return spre(A) - spost(A)
+
+
+@_map_over_compound_operators
+def santicommutator(A: AnyQobj) -> AnyQobj:
+    """Generates the anticommutator superoperator for a given quantum object.
+
+    Parameters
+    ----------
+    A : Qobj or QobjEvo
+        Quantum operator for which the anticommutator superoperator
+        is generated.
+
+    Returns
+    -------
+    super :Qobj or QobjEvo
+        The anticommutator superoperator formed from the input quantum object.
+    """
+    return spre(A) + spost(A)
 
 
 def _to_super_of_tensor(q_oper):
