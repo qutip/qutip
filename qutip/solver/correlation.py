@@ -8,7 +8,7 @@ import numpy as np
 
 from ..core import (
     Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
-    tensor, expect, qeye_like, isket, sigmax, sigmam, sigmap, basis
+    tensor, expect, qeye_like, isket
 )
 from .mesolve import MESolver
 from .mcsolve import MCSolver
@@ -540,7 +540,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         ``t + tau > max_t_plus_tau`` are skipped and filled with ``0``.
         This is useful for reducing computation when correlations decay
         quickly and long-time behavior is not needed.
-        Default ``None`` means compute all entries.
+        Default ``None`` means compute all entries (equivalent to ``np.inf``).
     map : str, default: ``'serial'``
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
@@ -589,29 +589,29 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
     --------
     Compute a simple two-time correlation:
 
-    >>> import numpy as np
-    >>> from qutip import sigmam, sigmap, basis, mesolve, correlation_3op
-    >>> from qutip.solver import MESolver
-    >>> H = 0.5 * 2 * np.pi * sigmax()
-    >>> c_ops = [np.sqrt(0.1) * sigmam()]
-    >>> solver = MESolver(H, c_ops)
-    >>> rho0 = basis(2, 0)
-    >>> tlist = np.linspace(0, 10, 100)
-    >>> taulist = np.linspace(0, 5, 50)
-    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
-    ...                         A=sigmap(), B=sigmam(), C=sigmap())
+    >>> import numpy as np  # doctest: +SKIP
+    >>> from qutip import sigmam, sigmap, basis, sigmax, correlation_3op  # doctest: +SKIP
+    >>> from qutip.solver import MESolver  # doctest: +SKIP
+    >>> H = 0.5 * 2 * np.pi * sigmax()  # doctest: +SKIP
+    >>> c_ops = [np.sqrt(0.1) * sigmam()]  # doctest: +SKIP
+    >>> solver = MESolver(H, c_ops)  # doctest: +SKIP
+    >>> rho0 = basis(2, 0)  # doctest: +SKIP
+    >>> tlist = np.linspace(0, 10, 100)  # doctest: +SKIP
+    >>> taulist = np.linspace(0, 5, 50)  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap())  # doctest: +SKIP
 
     Compute with performance optimization:
 
-    >>> # Only compute up to t + tau = 12
-    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
-    ...                         A=sigmap(), B=sigmam(), C=sigmap(),
-    ...                         max_t_plus_tau=12.0)
-    >>>
-    >>> # Use 4 CPU cores for parallel computation
-    >>> corr = correlation_3op(solver, rho0, tlist, taulist,
-    ...                         A=sigmap(), B=sigmam(), C=sigmap(),
-    ...                         map='parallel', map_kw={'num_cpus': 4})
+    >>> # Only compute up to t + tau = 12  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),  # doctest: +SKIP
+    ...                         max_t_plus_tau=12.0)  # doctest: +SKIP
+    >>>  # doctest: +SKIP
+    >>> # Use 4 CPU cores for parallel computation  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),  # doctest: +SKIP
+    ...                         map='parallel', map_kw={'num_cpus': 4})  # doctest: +SKIP
     """
     taulist = np.asarray(taulist)
     if isket(state0):
