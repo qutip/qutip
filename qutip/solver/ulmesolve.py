@@ -17,6 +17,9 @@ from ..core.environment import BosonicEnvironment
 from typing import Any
 
 
+__all__ = ["ulmesolve", "ULMESolver", "ultransform"]
+
+
 def ulmesolve(
     H: QobjEvoLike,
     rho0: Qobj,
@@ -262,6 +265,79 @@ class ULMESolver(MESolver):
         Solver.options.fset(self, new_options)
 
 
+def ultransform(
+    H: Qobj | QobjEvo,
+    a_ops: tuple[Qobj | QobjEvo, BosonicEnvironment] | list[tuple[Qobj | QobjEvo, BosonicEnvironment]],
+    options: dict=None
+) -> tuple[Qobj | QobjEvo, list[Qobj | QobjEvo]]:
+    """
+    Transform the system according to universal lindblad equation.
+    It shift the Hamiltonian energies according to the lamb shift and compute
+    the dissipators.
+
+    Parameters
+    ----------
+    H: Qobj or QobjEvo
+        Hamiltonian of the system
+    a_ops: list of tuple of (Qobj | QobjEvo, BosonicEnvironment)
+        One or multiple coupling operators with their bath as
+        BosonicEnvironment. The bath must be independent.
+
+        .. note::
+
+            The power_spectrum and jump_correlator of the baths are used.
+            When possible, computing analytically the jump_correlator will
+            provide less numerical error.
+
+        .. note::
+
+            Coupling operators must be Hermitian
+
+    options: dict, optional
+        Options used to compute the operators. The following options are used:
+        - "ULME_creation": {"eigen", "prop"}
+          Method used to compute the operators, either eigen decomposition or
+          integrating over convolution of the operators with the jump_correlator.
+        - "use_lamb_shift": True,
+          Compute the lamb shift and add it to the Hamiltonian.
+        - "Nt": 500,
+          Number of time point used in the integration
+        - "T": 20
+          Range of the integration, the jump_correlator is expected to be
+          effectively 0 after this.
+        - "prop_options": {},
+          Option passed to sesolve used to compute the propagators.
+
+    Returns
+    -------
+    H, c_ops:
+        The corrected Hamiltonian and collapse operators.
+        These are formated so they can be used directly in mesolve or mcsolve.
+    """
+    opt = {
+        "ULME_creation": None,
+        "use_lamb_shift": True,
+        "Nt": 500,
+        "T": 20,
+        "prop_options": {}
+    }
+    H_evo = QobjEvo(H, copy=False)
+    if isinstance(options, dict):
+        opt.update(options)
+    if isinstance(a_ops, tuple):
+        a_ops = [a_ops]
+    c_ops = []
+    lamb_shifts = []
+    for op, env in a_ops:
+        op = QobjEvo(op, copy=False)
+        L, Lamb = _make_l_lambda(H_evo, op, env, opt)
+        c_ops.append(L)
+        lamb_shifts.append(Lamb)
+
+    return H + sum(lamb_shifts), c_ops
+
+
+
 def _make_l_lambda(H, X, env, options=None):
     options = options or {}
     method = options.get("ULME_creation", None)
@@ -363,7 +439,8 @@ def _make_L_lambda_eigen(H: QobjEvo, X: QobjEvo, env: BosonicEnvironment):
 
 class OP:
     def __init__(self, U, X, env, T, Nt):
-        self.U = U
+        self.U1 = U[0]
+        self.U2 = U[1]
         self.X = X
         self.g = env.jump_correlator
         self.ts = np.linspace(0, T, Nt)
@@ -386,11 +463,13 @@ class OP:
         Im = Xm * (g.conjugate() * 0.5)
         Yp = Xp @ Lp * g
         Ym = Xm @ Lm * (g.conjugate() * -1)
+        Ut = self.U1(t)
+        Ut_inv = Ut.dag()
 
         for i, s in enumerate(self.ts[1:]):
-            Us = self.U(s + t, t)
+            Us = self.U1(s + t) @ Ut_inv
             Xp = Us.dag() @ self.X(s + t) @ Us
-            Us = self.U(t, t - s)
+            Us = Ut @ self.U2(0, t - s)
             Xm = Us @ self.X(t - s) @ Us.dag()
             g = self.g(s)
             Lp += Xp * g.conjugate()
@@ -419,8 +498,10 @@ def _make_l_lambda_prop(H, X, env, options=None):
     options = options or {}
     T = options.get("T", 15)
     Nt = options.get("Nt", 300)
-    U = Propagator(H, tol=1e-12)
-    op = OP(U, X, env, T, Nt)
+    # Propagator memoization scheme is bad with tracking 2 evolutions at once...
+    U1 = Propagator(H, tol=1e-12, options={"method": "tsit5"})
+    U2 = Propagator(H, tol=1e-12, options={"method": "tsit5"})
+    op = OP([U1, U2], X, env, T, Nt)
 
     if H.isconstant and X.isconstant:
         return op.L(0), op.Lamd(0)
