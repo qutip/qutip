@@ -759,31 +759,6 @@ def fmmesolve(
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.
 
-    Notes
-    -----
-    The Floquet-Markov master equation describes the dynamics of a quantum
-    system subject to a periodic driving Hamiltonian and weak coupling to
-    a thermal environment. The dissipation is characterized by the noise
-    power spectrum :math:`S(\omega)` provided via `spectra_cb`.
-
-    **Relationship to BosonicEnvironment:**
-
-    When using :class:`.BosonicEnvironment` to describe the environment,
-    note that `spectra_cb` expects the noise power spectrum :math:`S(\omega)`,
-    not the spectral density :math:`J(\omega)`. These are related by:
-
-    .. math::
-        S(\omega) = 2 J(\omega) [n_{th}(\omega) + 1] \quad \text{for } \omega > 0
-
-    where :math:`n_{th}(\omega)` is the thermal occupation number.
-    At zero temperature, this simplifies to :math:`S(\omega) = 2 J(\omega)`.
-
-    Use :meth:`.BosonicEnvironment.power_spectrum` to obtain the correct
-    spectrum for `fmmesolve`:
-
-    >>> env = DrudeLorentzEnvironment(T=0.1, lam=0.01, gamma=0.1)
-    >>> spectra_cb = [env.power_spectrum]
-
     Returns
     -------
     result: :class:`.Result`
