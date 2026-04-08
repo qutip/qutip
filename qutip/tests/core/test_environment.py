@@ -5,7 +5,7 @@ from numbers import Number
 
 import numpy as np
 from scipy.integrate import quad_vec
-from qutip.utilities import n_thermal
+from qutip.utilities import n_thermal, fermi_dirac
 
 from qutip.core.environment import (
     BosonicEnvironment,
@@ -15,7 +15,8 @@ from qutip.core.environment import (
     CFExponent,
     ExponentialBosonicEnvironment,
     LorentzianEnvironment,
-    ExponentialFermionicEnvironment
+    ExponentialFermionicEnvironment,
+    FermionicEnvironment
 )
 
 
@@ -782,7 +783,7 @@ class TestBosonicEnvironment:
             reference.spectral_density, T=reference.T, tag="test"
         )
         wlist = np.linspace(-wMax, wMax, 200)
-        fit, info = env.approximate("aaa", wlist,Nmax=12)
+        fit, info = env.approximate("aaa", wlist, Nmax=12)
 
         assert isinstance(fit, ExponentialBosonicEnvironment)
         assert fit.T == env.T
@@ -1181,7 +1182,7 @@ class TestExpBosonicEnv:
 # ----- Fermionic Environments -----
 
 
-def assert_guarantees_f(env, check_db=False, beta=None, mu=None):
+def assert_guarantees_f(env, check_db=False, skip_cf=False, skip_ps=False, skip_sd=False):
     """
     Checks the argument types accepted by the SD, CFs and PSs of the provided
     fermionic environment, that the CFs satisfy their symmetries and that the
@@ -1189,13 +1190,18 @@ def assert_guarantees_f(env, check_db=False, beta=None, mu=None):
     we also check the detailed balance condition S^- = e^{β(ω-μ)} S^+.
     """
 
+    totest = []
+    if not skip_sd:
+        totest.extend([env.spectral_density])
+    if not skip_cf:
+        totest.extend([env.correlation_function_plus,
+                       env.correlation_function_minus])
+    if not skip_ps:
+        totest.extend([env.power_spectrum_plus,
+                       env.power_spectrum_minus])
     # SD, CF and PS can be called with number and array
     # Result is required to have same type, ndim and len as argument
-    for fun in [env.spectral_density,
-                env.correlation_function_plus,
-                env.correlation_function_minus,
-                env.power_spectrum_plus,
-                env.power_spectrum_minus]:
+    for fun in totest:
         assert isinstance(fun(1), Number)
         assert isinstance(fun(0.), Number)
         assert isinstance(fun(-1.), Number)
@@ -1211,39 +1217,42 @@ def assert_guarantees_f(env, check_db=False, beta=None, mu=None):
         assert len(res) == 3
 
     # SD must be real
-    sd = env.spectral_density(np.linspace(-10, 10, 20))
-    np.testing.assert_allclose(np.imag(sd), np.zeros_like(sd))
+    if not skip_sd:
+        sd = env.spectral_density(np.linspace(-10, 10, 20))
+        np.testing.assert_allclose(np.imag(sd), np.zeros_like(sd))
 
     # CF symmetry
-    for fun in [env.correlation_function_plus, env.correlation_function_minus]:
-        cf = fun(np.linspace(-10, 10, 20))
-        cf_reversed = cf[::-1]
-        np.testing.assert_allclose(cf, np.conjugate(cf_reversed))
+    if not skip_cf:
+        for fun in [env.correlation_function_plus, env.correlation_function_minus]:
+            cf = fun(np.linspace(-10, 10, 20))
+            cf_reversed = cf[::-1]
+            np.testing.assert_allclose(cf, np.conjugate(cf_reversed))
 
     # PS must be real and their sum must be SD
-    wlist = np.linspace(-10, 10, 20)
-    psp = env.power_spectrum_plus(wlist)
-    psm = env.power_spectrum_minus(wlist)
-    np.testing.assert_allclose(np.imag(psp), np.zeros_like(psp))
-    np.testing.assert_allclose(np.imag(psm), np.zeros_like(psm))
-    np.testing.assert_allclose(psp + psm, sd)
+    if (not skip_ps) and (not skip_sd):
+        wlist = np.linspace(-10, 10, 20)
+        psp = env.power_spectrum_plus(wlist)
+        psm = env.power_spectrum_minus(wlist)
+        np.testing.assert_allclose(np.imag(psp), np.zeros_like(psp))
+        np.testing.assert_allclose(np.imag(psm), np.zeros_like(psm))
+        np.testing.assert_allclose(psp + psm, sd)
 
-    # Detailed balance
-    if not check_db:
-        return
+        # Detailed balance
+        if not check_db:
+            return
 
-    if beta == np.inf:
-        foo = psp[wlist > mu]
-        np.testing.assert_allclose(foo, np.zeros_like(foo))
-        bar = psp[wlist < mu]
-        np.testing.assert_allclose(bar, np.zeros_like(bar))
-        return
+        if env.T == 0:
+            foo = psp[wlist > env.mu]
+            np.testing.assert_allclose(foo, np.zeros_like(foo))
+            bar = psm[wlist < env.mu]
+            np.testing.assert_allclose(bar, np.zeros_like(bar))
+        else:
+            factor = np.exp((wlist - env.mu)/env.T)
+            np.testing.assert_allclose(psm, factor * psp)
 
-    factor = np.exp(beta * (wlist - mu))
-    np.testing.assert_allclose(psm, factor * psp)
 
-
-def assert_equivalent_f(env1, env2, *, tol, tMax=25, wMax=10):
+def assert_equivalent_f(env1, env2, *, tol, tMax=25, wMax=10, skip_cf=False,
+                        skip_ps=False, skip_sd=False):
     """
     Checks that two fermionic environments have the same SD, CFs and PSs
     (up to given tolerance)
@@ -1251,16 +1260,21 @@ def assert_equivalent_f(env1, env2, *, tol, tMax=25, wMax=10):
     tlist = np.linspace(0, tMax, 100)
     wlist = np.linspace(-wMax, wMax, 100)
 
-    assert_allclose(env1.spectral_density(wlist),
-                    env2.spectral_density(wlist), tol)
-    assert_allclose(env1.correlation_function_plus(tlist),
-                    env2.correlation_function_plus(tlist), tol)
-    assert_allclose(env1.correlation_function_minus(tlist),
-                    env2.correlation_function_minus(tlist), tol)
-    assert_allclose(env1.power_spectrum_plus(wlist),
-                    env2.power_spectrum_plus(wlist), tol)
-    assert_allclose(env1.power_spectrum_minus(wlist),
-                    env2.power_spectrum_minus(wlist), tol)
+    if not skip_sd:
+        assert_allclose(env1.spectral_density(wlist),
+                        env2.spectral_density(wlist), tol)
+
+    if not skip_ps:
+        assert_allclose(env1.power_spectrum_plus(wlist),
+                        env2.power_spectrum_plus(wlist), tol)
+        assert_allclose(env1.power_spectrum_minus(wlist),
+                        env2.power_spectrum_minus(wlist), tol)
+    if not skip_cf:
+        assert_allclose(env1.correlation_function_plus(tlist),
+                        env2.correlation_function_plus(tlist), tol)
+        assert_allclose(env1.correlation_function_minus(tlist),
+                        env2.correlation_function_minus(tlist), tol)
+    # START REFERENCES
 
 
 class LorentzianReference:
@@ -1395,6 +1409,62 @@ class SingleMinusExpReference:
         return self.coefficient * np.exp(-self.exponent * t)
 
 
+class SemiCircularReference:
+    def __init__(self, T, mu, W, delta):
+        self.T = T
+        self.mu = mu
+        self.W = W
+        self.delta = delta
+
+    def _f(self, x):
+        if self.T == 0:
+            return np.heaviside(-x, 0.5)
+        else:
+            return 1 / (np.exp(x / self.T) + 1)
+
+    def spectral_density(self, w):
+        w = np.array(w, dtype=float)
+        try:
+            result = np.zeros(len(w))
+        except:
+            result = np.zeros(1)
+        mask = self.W >= w
+        mask2 = -self.W <= w
+        result[mask & mask2] = self.delta * \
+            np.sqrt(1 - (w[mask & mask2] / self.W)**2)
+        return result
+
+    def power_spectrum_plus(self, w):
+        return self.spectral_density(w) * self._f(w - self.mu)
+
+    def power_spectrum_minus(self, w):
+        return self.spectral_density(w) * self._f(-w + self.mu)
+
+    def correlation_function_plus(self, t):
+        # only valid for t >= 0
+        def integrand(w, t):
+            w = np.array(w)
+            beta = None if self.T is None else (
+                1 / self.T if self.T != 0 else np.inf)
+            return self.spectral_density(w) * fermi_dirac(w, beta, self.mu) * np.exp(1j*w*t)/(2*np.pi)
+
+        result = quad_vec(integrand, -self.W, self.W, args=(t,))
+        return result[0]
+
+    def correlation_function_minus(self, t):
+        # only valid for t >= 0
+        def integrand(w, t):
+            w = np.array(w)
+            beta = None if self.T is None else (
+                1 / self.T if self.T != 0 else np.inf)
+            return self.spectral_density(w) * fermi_dirac(w, -beta, self.mu) * np.exp(-1j*w*t)/(2*np.pi)
+
+        result = quad_vec(integrand, -self.W, self.W, args=(t,))
+        return result[0]
+
+# END REFERENCES BEGIN TESTS
+
+
 @pytest.mark.parametrize("params", [
     pytest.param({'T': 1.5, 'mu': 1, 'gamma': .75, 'W': .5, 'omega0': 1},
                  id='finite T - mu=omega0'),
@@ -1412,7 +1482,7 @@ class TestLorentzianEnvironment:
         env = LorentzianEnvironment(**params)
 
         assert_guarantees_f(
-            env, check_db=True, beta=(1 / params['T']), mu=params['mu'])
+            env, check_db=True)
         assert_equivalent_f(env, ref, tol=5e-5)
 
     @pytest.mark.parametrize("tag", [None, "test"])
@@ -1421,7 +1491,7 @@ class TestLorentzianEnvironment:
         original_tag = object()
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_matsubara(Nk, tag=tag)
+        approx = env.approximate("matsubara", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -
@@ -1442,7 +1512,7 @@ class TestLorentzianEnvironment:
         ref = LorentzianReference(**params)
         env = LorentzianEnvironment(**params, tag=original_tag)
 
-        approx = env.approx_by_pade(Nk, tag=tag)
+        approx = env.approximate("pade", Nk, tag=tag)
         assert isinstance(approx, ExponentialFermionicEnvironment)
         assert_guarantees_f(approx, check_db=False)
         assert len(approx.exponents) == 2 * (Nk + 1)  # (Nk+1) each + and -
@@ -1531,3 +1601,557 @@ class TestExpFermionicEnv:
         assert_guarantees_f(env, check_db=False)
         ref = SingleMinusExpReference(coefficient=2, exponent=.6)
         assert_equivalent_f(env, ref, tol=1e-8)
+
+
+class TestFermionicEnvironment:
+    @pytest.mark.parametrize(["ref", "info"], [
+        pytest.param(LorentzianReference(gamma=1, W=1, T=1, mu=1, omega0=1),
+                     {'wMax': 35, 'npoints': 300, 'tol': 1e-2},
+                     id="Lorentzian finite T"),
+        pytest.param(SemiCircularReference(T=0, W=1, delta=1, mu=1),
+                     {'wMax': 3.2, 'npoints': 1_000_000, 'tol': 1e-2},
+                     id="Semicircular zero T"),
+        # interpolation needs many points to pass tests due to the sharp cutoff
+        # Cubic interpolation is not good at sharp transitions, perhaps it will
+        # be worth changing the interpolation function
+        # Sort of a limitation for fermionic environments, probably also for
+        # Random Gaussian ensambles, was a bit hard to catch that this is an
+        # issue
+    ])
+    @pytest.mark.parametrize(["interpolate", "provide_wmax"], [
+        [True, False], [False, False], [False, True]
+    ])
+    @pytest.mark.parametrize("provide_temp", [True, False])
+    @pytest.mark.parametrize("provide_mu", [True, False])
+    def test_from_sd(
+        self, ref, info, interpolate, provide_wmax, provide_temp, provide_mu
+    ):
+        wMax = info['wMax']
+        npoints = info['npoints']
+        tol = info['tol']
+
+        # Collect arguments
+        if interpolate:
+            wlist = np.linspace(-wMax, wMax, npoints)
+            jlist = ref.spectral_density(wlist)
+            args1 = {'wlist': wlist, 'J': jlist}
+        else:
+            args1 = {'J': ref.spectral_density}
+        args2 = {'wMax': wMax} if provide_wmax else {}
+        args3 = {'T': ref.T} if provide_temp else {}
+        args4 = {'mu': ref.mu} if provide_mu else {}
+
+        env = FermionicEnvironment.from_spectral_density(
+            **args1, **args2, **args3, **args4
+        )
+
+        # Determine which characteristic functions should be accessible
+        skip_ps = False
+        skip_cf = False
+        if not provide_mu:
+            skip_ps = True
+            skip_cf = True
+        if not provide_temp:
+            skip_ps = True
+            skip_cf = True
+            with pytest.raises(ValueError) as err:
+                env.power_spectrum_plus(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+        elif (not provide_mu) and provide_wmax:
+            with pytest.raises(ValueError) as err:
+                env.power_spectrum_plus(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+
+        elif not interpolate and not provide_wmax:
+            skip_cf = True
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The support of the spectral density (wMax) must be '
+                'specified for this operation.')
+
+        assert_guarantees_f(env, check_db=True,
+                            skip_cf=skip_cf, skip_ps=skip_ps)
+        assert_equivalent_f(env, ref, skip_cf=skip_cf, skip_ps=skip_ps,
+                            tol=tol, wMax=wMax)
+
+    @pytest.mark.parametrize(["ref", "info"], [
+        pytest.param(LorentzianReference(gamma=1, W=1, T=1, mu=1, omega0=1),
+                     {'wMax': 40, 'npoints': 2500, 'tol': 1e-2},
+                     id="Lorentzian finite T"),
+        pytest.param(SemiCircularReference(T=0.1, W=1, delta=1, mu=1),
+                     {'wMax': 3.2, 'npoints': 10_000, 'tol': 1e-2},
+                     id="Semicircular zero T"),
+    ])
+    @pytest.mark.parametrize(["interpolate", "provide_wmax"], [
+        [True, False],   [False, False], [False, True]
+    ])
+    @pytest.mark.parametrize("provide_temp", [True, False])
+    @pytest.mark.parametrize("provide_mu", [True, False])
+    def test_from_ps(
+        self, ref, info, interpolate, provide_wmax, provide_temp, provide_mu,
+    ):
+        wMax = info['wMax']
+        npoints = info['npoints']
+        tol = info['tol']
+
+        # Collect arguments
+        if interpolate:
+            wlist = np.linspace(-wMax, wMax, npoints)
+            sp = ref.power_spectrum_plus(wlist)
+            sm = ref.power_spectrum_minus(wlist)
+
+            args1 = {'wlist': wlist, 'Sp': sp, 'Sm': sm}
+        else:
+            args1 = {'Sp': ref.power_spectrum_plus,
+                     'Sm': ref.power_spectrum_minus}
+
+        args2 = {'wMax': wMax} if provide_wmax else {}
+        args3 = {'T': ref.T} if provide_temp else {}
+        args4 = {'mu': ref.mu} if provide_mu else {}
+
+        env = FermionicEnvironment.from_power_spectra(
+            **args1, **args2, **args3, **args4
+        )
+
+        # Determine which characteristic functions should be accessible
+        skip_sd = False
+        skip_cf = False
+        skip_ps = False
+        if not provide_mu:
+            skip_sd = True
+            skip_cf = True
+        if not provide_temp:
+            skip_sd = True
+            skip_cf = True
+            with pytest.raises(ValueError) as err:
+                env.spectral_density(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+        elif (not provide_mu) and provide_wmax:
+            with pytest.raises(ValueError) as err:
+                env.spectral_density(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+
+        elif not interpolate and not provide_wmax:
+            skip_cf = True
+            with pytest.raises(ValueError) as err:
+                env.correlation_function_plus(0)
+            assert str(err.value) == (
+                'The support of the spectral density (wMax) must be '
+                'specified for this operation.')
+
+        assert_guarantees_f(env, check_db=True,
+                            skip_cf=skip_cf, skip_sd=skip_sd, skip_ps=skip_ps)
+        assert_equivalent_f(env, ref, skip_cf=skip_cf, skip_sd=skip_sd,
+                            skip_ps=skip_ps, tol=tol, wMax=wMax)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(["ref", "info"], [
+        pytest.param(LorentzianReference(gamma=1, W=1, T=1, mu=1, omega0=1),
+                     {'tMax': 35, 'npoints': 300, 'tol': 1e-2},
+                     id="Lorentzian finite T"),
+        pytest.param(SemiCircularReference(T=0, W=1, delta=1, mu=1),
+                     {'tMax': 500, 'npoints': 500, 'tol': 1e-2},
+                     id="Semicircular zero T"),
+        # Same fft issue but in time it's super slow (see test_from_sd)
+    ])
+    @pytest.mark.parametrize(["interpolate", "provide_tmax"], [
+        [False, False],   [False, True],   [True, False],
+    ])
+    @pytest.mark.parametrize("provide_temp", [True, False])
+    @pytest.mark.parametrize("provide_mu", [True, False])
+    def test_from_cf(
+        self, ref, info, interpolate, provide_tmax, provide_temp, provide_mu
+    ):
+        tMax = info['tMax']
+        npoints = info['npoints']
+        tol = info['tol']
+
+        # Collect arguments
+        if interpolate:
+            tlist = np.linspace(0, tMax, npoints)
+            cp = ref.correlation_function_plus(tlist)
+            cm = ref.correlation_function_minus(tlist)
+
+            args1 = {'wlist': tlist, 'Cp': cp, 'Cm': cm}
+        else:
+            args1 = {'Cp': ref.correlation_function_plus,
+                     'Cm': ref.correlation_function_minus}
+        args2 = {'tMax': tMax} if provide_tmax else {}
+        args3 = {'T': ref.T} if provide_temp else {}
+        args4 = {'mu': ref.mu} if provide_mu else {}
+
+        env = FermionicEnvironment.from_correlation_functions(
+            **args1, **args2, **args3, **args4
+        )
+
+        # Determine which characteristic functions should be accessible
+        skip_sd = False
+        skip_cf = False
+        skip_ps = False
+        if not provide_mu:
+            skip_sd = True
+            skip_ps = True
+        if not provide_temp:
+            skip_sd = True
+            skip_ps = True
+            with pytest.raises(ValueError) as err:
+                env.spectral_density(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+            with pytest.raises(ValueError) as err:
+                env.power_spectrum_plus(0)
+            assert str(err.value) == (
+                'The temperature must be specified for this operation.')
+        elif (not provide_mu) and provide_tmax:
+            with pytest.raises(ValueError) as err:
+                env.spectral_density(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+            with pytest.raises(ValueError) as err:
+                env.power_spectrum_plus(0)
+            assert str(err.value) == (
+                'The chemical potential must be specified for '
+                'this operation.')
+
+        elif not interpolate and not provide_tmax:
+            skip_ps = True
+            skip_sd = True
+            with pytest.raises(ValueError) as err:
+                env.power_spectrum_plus(0)
+            assert str(err.value) == (
+                'The support of the correlation function (tMax) '
+                'must be specified for this operation.')
+
+        assert_guarantees_f(env, check_db=False,
+                            skip_cf=skip_cf, skip_sd=skip_sd, skip_ps=skip_ps)
+        assert_equivalent_f(env, ref, skip_cf=skip_cf, skip_sd=skip_sd, skip_ps=skip_ps,
+                            tol=tol, tMax=tMax)
+
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(LorentzianReference(1, 1, 1, 2, 1), 5e-3,
+                     15, id="Lorentzian Example positive bias"),
+        pytest.param(LorentzianReference(1, -1, 1, 2, 1), 5e-3,
+                     15, id="Lorentzian Example negative bias"),
+    ])
+    def test_fixed_cf_fit(self, reference, tMax, tol):
+        # fixed number of exponents
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            T=reference.T
+        )
+        tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
+        fit, info = env.approximate(
+            "cf", tlist, target_rmse=None, Np_max=2, Nm_max=2,
+        )
+
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        # 2 per each real and imaginary part = 4
+        assert len(fit.exponents) == 16
+        # 4 per correlation function = 8
+        # Complex conjugate of each exponent = 16
+        assert fit.T == env.T
+        assert fit.tag is None
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Nr"+suffix] == 2
+            assert info["Ni"+suffix] == 2
+            assert info["rmse_real"+suffix] < 5e-2
+            assert info["rmse_imag"+suffix] < 5e-2
+            for key in ["fit_time_real", "fit_time_imag",
+                        "params_real", "params_imag", "summary"]:
+                assert key+suffix in info
+
+    @pytest.mark.parametrize(["reference", "tMax", "tol"], [
+        pytest.param(LorentzianReference(1, 1, 1, 1, 1), 5e-3,
+                     15, id="Lorentzian Example positive bias"),
+        pytest.param(LorentzianReference(1, -1, 1, 1, 1), 5e-3,
+                     15, id="Lorentzian Example negative bias"),
+        pytest.param(SinglePlusExpReference(1, 1), 5e-3,
+                     15, id="Single exponent plus"),
+        pytest.param(SingleMinusExpReference(1, 1), 5e-3,
+                     15, id="Single exponent minus"),
+    ])
+    def test_dynamic_cf_fit(self, reference, tMax, tol):
+        # dynamic number of exponents
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            tag="test"
+        )
+        tlist = np.linspace(0, tMax, 100)[1:]  # exclude t=0
+        fit, info = env.approximate(
+            "cf", tlist, target_rmse=0.1, Np_max=3, Nm_max=3, maxfev=1e9
+        )
+
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "CF Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Nr"+suffix] == 1
+            assert info["Ni"+suffix] == 1
+            assert info["rmse_real"+suffix] < 0.1
+            assert info["rmse_imag"+suffix] < 0.1
+            for key in ["fit_time_real", "fit_time_imag",
+                        "params_real", "params_imag", "summary"]:
+                assert key+suffix in info
+
+    @pytest.mark.parametrize(["reference", "wMax", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=1, delta=1, mu=1),
+                     1.2, 1e-1, id="SemiCircle Example"),
+        pytest.param(SemiCircularReference(T=0.1, W=1, delta=1, mu=-1),
+                     1.2, 1e-1, id="SemiCircle Example"),
+    ])
+    def test_fixed_sd_fit(self, reference, wMax, tol):
+        # fixed number of lorentzians
+        env = FermionicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, wMax=15, mu=reference.mu
+        )
+        wlist = np.linspace(-wMax, wMax, 1000)
+        fit, info = env.approximate(
+            "sd", wlist, Nk=1, target_rmse=None, Nmax=4, maxfev=1e8
+        )
+
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert len(fit.exponents) == 4 * (2) * 2
+        assert fit.T == env.T
+        assert fit.tag is None
+        # Avoid the sharp transition as this method does not capture it
+        # easily
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax/1.5
+        )
+
+        assert info["N"] == 4
+        assert info["Nk"] == 1
+        assert info["rmse"] < tol
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
+
+    @pytest.mark.parametrize(["reference", "wMax", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=1, delta=1, mu=1),
+                     1.2, 1e-1, id="SemiCircle Example"),
+        pytest.param(SemiCircularReference(T=0.1, W=1, delta=1, mu=-1),
+                     1.2, 1e-1, id="SemiCircle Example"),
+    ])
+    def test_dynamic_sd_fit(self, reference, wMax, tol):
+        # variable number of lorentzians
+        env = FermionicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, wMax=15, mu=reference.mu
+        )
+        wlist = np.linspace(-wMax, wMax, 1000)
+        fit, info = env.approximate(
+            "sd", wlist, Nk=1, target_rmse=0.001, Nmax=4, maxfev=1e8
+        )
+
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert len(fit.exponents) == 4 * (2) * 2
+        assert fit.T == env.T
+        assert fit.tag is None
+        # Avoid the sharp transition as this method does not capture it
+        # easily
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_cf=True, skip_ps=True, wMax=wMax/1.5
+        )
+
+        assert info["N"] == 4
+        assert info["Nk"] == 1
+        assert info["rmse"] < tol
+        for key in ["fit_time", "params", "summary"]:
+            assert key in info
+
+    @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=1),
+                     25, 8, 1e-2, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=-1),
+                     25, 8, 1e-2, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_prony_fit(self, reference, tMax, N, tol):
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            tag="test"
+        )
+        tlist = np.linspace(0, tMax, 250)
+        fit, info = env.approximate("prony", tlist, Np=N, Nm=N)
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "PRONY Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Np"] == N
+            assert info["Nm"] == N
+            assert info["rmse"+suffix].real < tol
+            assert info["rmse"+suffix].imag < tol
+            for key in ["fit_time"+suffix, "params"+suffix, "summary"]:
+                assert key in info
+
+    @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=1),
+                     25, 8, 1e-2, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=-1),
+                     25, 8, 1e-2, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_esprit_fit(self, reference, tMax, N, tol):
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            tag="test"
+        )
+        tlist = np.linspace(0, tMax, 250)
+        fit, info = env.approximate("esprit", tlist, Np=N, Nm=N)
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "ESPRIT Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Np"] == N
+            assert info["Nm"] == N
+            assert info["rmse"+suffix].real < tol
+            assert info["rmse"+suffix].imag < tol
+            for key in ["fit_time"+suffix, "params"+suffix, "summary"]:
+                assert key in info
+
+    @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=1),
+                     25, 8, 1e-2, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=-1),
+                     25, 8, 1e-2, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_espira1_fit(self, reference, tMax, N, tol):
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            tag="test"
+        )
+        tlist = np.linspace(0, tMax, 250)
+        fit, info = env.approximate("espira-I", tlist, Np=N, Nm=N)
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "ESPIRA-I Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Np"] == N
+            assert info["Nm"] == N
+            assert info["rmse"+suffix].real < tol
+            assert info["rmse"+suffix].imag < tol
+            for key in ["fit_time"+suffix, "params"+suffix, "summary"]:
+                assert key in info
+    # ESPIRA-II is TERRIBLY BAD IN THIS CONTEXT, maybe it should be removed
+
+    @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=1),
+                     25, 10, 5e-1, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=-1),
+                     25, 10, 5e-1, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_espira2_fit(self, reference, tMax, N, tol):
+        env = FermionicEnvironment.from_correlation_functions(
+            Cp=reference.correlation_function_plus,
+            Cm=reference.correlation_function_minus,
+            tag="test"
+        )
+        tlist = np.linspace(0, tMax, 250)
+        fit, info = env.approximate("espira-II", tlist, Np=N, Nm=N)
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "ESPIRA-II Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_sd=True, skip_ps=True, tMax=tMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["Np"] == N
+            assert info["Nm"] == N
+            assert info["rmse"+suffix].real < tol
+            assert info["rmse"+suffix].imag < tol
+            for key in ["fit_time"+suffix, "params"+suffix, "summary"]:
+                assert key in info
+
+    @pytest.mark.parametrize(["reference", "wMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=1),
+                     40, 9, 2e-2, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.1, W=15, delta=1, mu=-1),
+                     40, 9, 2e-2, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_aaa_fit(self, reference, wMax, N, tol):
+        env = FermionicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, tag="test", mu=reference.mu, wMax=wMax
+        )
+        wlist = np.linspace(-wMax, wMax, 1000)  # if the test is allowed to
+        # be slow including many more points here, the number of exponents
+        # needed for this accuracy is way less, logarithmic is better as well
+        fit, info = env.approximate("aaa", wlist, Np_max=N, Nm_max=N)
+
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "AAA Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_cf=True, wMax=wMax
+        )
+        for suffix in ["_plus", "_minus"]:
+            assert info["N"+suffix] <= N
+            assert info["rmse"+suffix] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key+suffix in info
+    # Changed parameters for easier fit so test is not slow
+    # increased tol because NLSQ is slow
+
+    @pytest.mark.parametrize(["reference", "wMax", "N", "tol"], [
+        pytest.param(SemiCircularReference(T=0.01, W=3, delta=1, mu=1),
+                     5, 4, 5e-2, id="SemiCircle Example Positive bias"),
+        pytest.param(SemiCircularReference(T=0.01, W=3, delta=1, mu=-1),
+                     5, 4, 5e-2, id="SemiCircle Example Negative bias"),
+    ])
+    def test_fixed_ps_fit(self, reference, wMax, N, tol):
+        env = FermionicEnvironment.from_spectral_density(
+            reference.spectral_density, T=reference.T, tag="test", mu=reference.mu, wMax=wMax
+        )
+        wlist = np.linspace(-wMax, wMax, 500)
+        fit, info = env.approximate("ps", wlist, Np_max=N, Nm_max=N)
+        assert isinstance(fit, ExponentialFermionicEnvironment)
+        assert fit.T == env.T
+        assert fit.tag == ("test", "PS Fit")
+        assert_equivalent_f(
+            fit, env, tol=tol, skip_cf=True, wMax=wMax)
+        for suffix in ["_plus", "_minus"]:
+            assert info["N"+suffix] <= N
+            assert info["rmse"+suffix] < tol
+            for key in ["fit_time", "params", "summary"]:
+                assert key+suffix in info

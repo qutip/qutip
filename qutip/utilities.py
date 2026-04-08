@@ -6,7 +6,7 @@ qutip modules.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
-__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
+__all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit', 'fermi_dirac']
 
 from typing import Callable, Literal, Any
 
@@ -53,6 +53,48 @@ def n_thermal(w, w_th):
 
     non_zero = w != 0
     result[non_zero] = 1 / (np.exp(w[non_zero] / w_th) - 1)
+
+    return result.item() if w.ndim == 0 else result
+
+def fermi_dirac(w, beta, mu):
+    """
+    Return the average number of fermions in thermal and chemical equilibrium for a
+    fermionic mode with frequency 'w', at the temperature described by
+    'beta' where :math:`\\beta = \\hbar/k_BT` and chemical potential
+    mu.
+
+    Parameters
+    ----------
+
+    w : float or ndarray
+        Frequency of the oscillator.
+
+    beta : float
+        The inverse temperature in units of time
+        (or the same units as `1/w`).
+    mu : float
+        The Chemical potential.
+    Returns
+    -------
+
+    n_avg : float or array
+
+        Return the number of average fermions in chemical and thermal
+        equilibrium for a fermion with the given frequency,chemical potential
+        and temperature.
+    """
+    w = np.array(w, dtype=float)
+
+    if (beta == np.inf) or (beta == -np.inf):
+        result = np.heaviside(-np.sign(beta) * (w - mu), 0.5)
+    else:
+        with np.errstate(over="ignore", under="ignore"):
+            result = 1 / (np.exp(beta * (w - mu)) + 1)
+        mask = np.isnan(result)
+        if np.any(mask):
+            result[mask] = np.exp(-beta * (w[mask] - mu)) / (
+                np.exp(-beta * (w[mask] - mu)) + 1
+            )
 
     return result.item() if w.ndim == 0 else result
 
@@ -561,7 +603,7 @@ def _fit(fun, num_params, xdata, ydata, guesses, lower, upper, sigma,
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
 def aaa(func: Callable[..., complex] | ArrayLike, z: ArrayLike,
-        tol: float = 1e-13, max_iter: int = 100) -> dict[str, Any]:
+        tol: float = 0, max_iter: int = 100) -> dict[str, Any]:
     """
     Computes a rational approximation of the function according to the AAA
     algorithm as explained in [AAA]_ . This
@@ -848,7 +890,7 @@ def prony_methods(method: Literal["prony", "esprit"],
 # ESPIRA I and II, ESPIRA 2 based on SVD not QR
 
 def espira1(signal: ArrayLike, n: int,
-            tol: float = 1e-13) -> tuple[float, ArrayLike]:
+            tol: float = 0) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-I.
     Based on the description in [ESPIRAvsESPRIT]_
@@ -900,7 +942,7 @@ def espira1(signal: ArrayLike, n: int,
 
 
 def espira2(signal: ArrayLike, n: int,
-            tol: float = 1e-13) -> tuple[float, ArrayLike]:
+            tol: float = 0) -> tuple[float, ArrayLike]:
     """
     Estimate amplitudes and frequencies using ESPIRA-II.
     Based on the description in [ESPIRAvsESPRIT]_
