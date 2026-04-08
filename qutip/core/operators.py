@@ -357,6 +357,11 @@ def sigmap(*, dtype: LayerType = None) -> Qobj:
         Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
 
+    Notes
+    -----
+    Equivalent to :func:`.create` when acting on a qubit defined by
+    :func:`.basis`.
+
     Examples
     --------
     >>> sigmap() # doctest: +SKIP
@@ -379,6 +384,11 @@ def sigmam(*, dtype: LayerType = None) -> Qobj:
     dtype : type or str, optional
         Storage representation. Any data-layer known to ``qutip.data.to`` is
         accepted.
+
+    Notes
+    -----
+    Equivalent to :func:`.destroy` when acting on a qubit defined by
+    :func:`.basis`.
 
     Examples
     --------
