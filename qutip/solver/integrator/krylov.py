@@ -233,9 +233,10 @@ class IntegratorKrylov(Integrator):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
-        bsprod = np.prod(np.diag(krylov_tridiag.as_ndarray(), k=-1))
-        num = self.options["atol"] * factorial(krylov_tridiag.shape[0])
-        dt = np.real(np.power(num / bsprod, 1 / krylov_tridiag.shape[0]))
+        facto = np.arange(2, krylov_tridiag.shape[0]+1)
+        bsprod = np.diag(krylov_tridiag.as_ndarray(), k=-1)
+        num = self.options["atol"] * np.prod(facto / bsprod)
+        dt = np.real(np.power(num, 1 / krylov_tridiag.shape[0]))
         if dt < self.options["min_step"]:
             raise ValueError(
                 f"With the krylov dimension of {self.options['krylov_dim']} "
