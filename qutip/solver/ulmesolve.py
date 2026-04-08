@@ -432,8 +432,8 @@ def _make_L_lambda_eigen(H: QobjEvo, X: QobjEvo, env: BosonicEnvironment):
 
     LL = np.einsum("ijk,ij,jk->ik", fs, X_np, X_np)
     return (
-        vecs @ Qobj(L_H, dims=X.dims) @ vecs.dag(),
-        vecs @ Qobj(LL, dims=X.dims) @ vecs.dag()
+        vecs @ Qobj(L_H) @ vecs.dag(),
+        vecs @ Qobj(LL) @ vecs.dag()
     )
 
 
