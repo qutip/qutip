@@ -1,5 +1,4 @@
 import numpy as np
-from math import factorial
 from qutip.core import data as _data
 from ..integrator import IntegratorException, Integrator
 from ..sesolve import SESolver
@@ -233,10 +232,11 @@ class IntegratorKrylov(Integrator):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
-        facto = np.arange(2, krylov_tridiag.shape[0]+1)
+        n = krylov_tridiag.shape[0]
+        facto = np.arange(2, n+1)
         bsprod = np.diag(krylov_tridiag.as_ndarray(), k=-1)
-        num = self.options["atol"] * np.prod(facto / bsprod)
-        dt = np.real(np.power(num, 1 / krylov_tridiag.shape[0]))
+        num = np.prod(np.power(facto / bsprod, 1 / n))
+        dt = np.power(self.options["atol"], 1 / n) * np.real(num)
         if dt < self.options["min_step"]:
             raise ValueError(
                 f"With the krylov dimension of {self.options['krylov_dim']} "
