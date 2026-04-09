@@ -1,0 +1,316 @@
+# The name is short because we mostly care how it appears in the pull request
+# "checks" dialogue box - it looks like
+#     Tests / ubuntu-latest, python-3.9, defaults
+# or similar.
+name: Tests
+
+on:
+    [push, pull_request]
+concurrency:
+    group: test_${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+defaults:
+  run:
+    # The slightly odd shell call is to force bash to read .bashrc, which is
+    # necessary for having conda behave sensibly.  We use bash as the shell even
+    # on Windows, since we don't run anything much complicated, and it makes
+    # things much simpler.
+    shell: bash -l -e {0}
+
+jobs:
+  cases:
+    name: ${{ matrix.os }}, python${{ matrix.python-version }}, ${{ matrix.case-name }}
+    runs-on: ${{ matrix.os }}
+    env:
+      MPLBACKEND: Agg  # Explicitly define matplotlib backend for Windows tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # Test other versions of Python in special cases to avoid exploding the
+        # matrix size; make sure to test all supported versions in some form.
+        python-version: ["3.14"]
+        case-name: ["python 3.14 - Latest"]
+        condaforge: [1]
+        numpy-build: [""]
+        numpy-requirement: [""]
+        scipy-requirement: [">=1.9"]
+        coverage-requirement: ["==6.5"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        # Extra special cases.  In these, the new variable defined should always
+        # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
+        # the lack of a variable is _always_ false-y, and the defaults lack all
+        # the special cases.
+        include:
+          - case-name: p313 numpy 2
+            os: ubuntu-latest
+            python-version: "3.13"
+            numpy-build: ">=2.2.0,<2.3.0"
+            numpy-requirement: ">=2.2.0,<2.3.0"
+            scipy-requirement: ">=1.15,<1.16"
+            pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+
+          - case-name: p312, numpy fallback
+            os: ubuntu-latest
+            python-version: "3.12"
+            numpy-build: ">=2.1.0,<2.2.0"
+            numpy-requirement: ">=1.26,<1.27"
+            scipy-requirement: ">=1.11,<1.12"
+            pypi: 1
+            oldmpl: 1
+            coveralls: 1
+
+          - case-name: p311, numpy fallback, no mkl
+            os: ubuntu-latest
+            python-version: "3.11"
+            numpy-build: ">=2.0.0,<2.1.0"
+            numpy-requirement: ">=1.23,<1.24"
+            scipy-requirement: ">=1.11,<1.12"
+            pypi: 1
+            oldmpl: 1
+            nomkl: 1
+            coveralls: 1
+
+          - case-name: Oldest officially supported
+            os: ubuntu-latest
+            python-version: "3.10"
+            numpy-build: ">=1.22.0,<1.23.0"
+            numpy-requirement: ">=1.22.0,<1.23.0"
+            scipy-requirement: ">=1.9,<1.10"
+            semidefinite: 1
+            oldcython: 1
+            oldmpl: 1
+            pypi: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+          # Mac
+          # Mac has issues with MKL since september 2022.
+          - case-name: macos
+            os: macos-latest
+            python-version: "3.14"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=2.0.0"
+            condaforge: 1
+            nomkl: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          - case-name: macos - numpy fallback
+            os: macos-15-intel  # Test on intel cpus
+            python-version: "3.11"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=1.25,<1.26"
+            scipy-requirement: "==1.16.*"
+            condaforge: 1
+            nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          - case-name: Windows
+            os: windows-latest
+            python-version: "3.14"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=2.0.0"
+            pypi: 1
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
+          - case-name: Windows - numpy fallback
+            os: windows-latest
+            python-version: "3.10"
+            numpy-build: ">=2.0.0"
+            numpy-requirement: ">=1.24,<1.25"
+            semidefinite: 1
+            oldcython: 1
+            oldmpl: 1
+            nocython: 1
+            condaforge: 1
+            nomkl: 1
+            coveralls: 1
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+          channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
+
+      - name: Install QuTiP and dependencies
+        # In the run, first we handle any special cases.  We do this in bash
+        # rather than in the GitHub Actions file directly, because bash gives us
+        # a proper programming language to use.
+        # We install without build isolation so qutip is compiled with the
+        # version of cython, scipy, numpy in the test matrix, not a temporary
+        # version use in the installation virtual environment.
+        run: |
+          # Install the extra requirement
+          python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
+          python -m pip install ipython  # ipython
+          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
+          python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
+          python -m pip install pytest-cov coveralls pytest-fail-slow
+          python -m pip install setuptools
+
+          if [[ "${{ matrix.pypi }}" ]]; then
+            pip install "numpy${{ matrix.numpy-build }}"
+            pip install "scipy${{ matrix.scipy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
+            conda install blas=*=mkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
+          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
+            # Conda doesn't supply forced nomkl builds on Windows, so we rely on
+            # pip not automatically linking to MKL.
+            pip install "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
+          else
+            conda install nomkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
+          fi
+          if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install "${{ matrix.conda-extra-pkgs }}"
+          fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # Both mpich and openmpi version 4 have caused problems in the past
+            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
+            # version of mpi4py are currently only available on conda-forge:
+            conda install --channel conda-forge "openmpi>=5.0" mpi4py
+          fi
+          if [[ "${{ matrix.oldcython }}" ]]; then
+            python -m pip install cython==0.29.36 filelock matplotlib==3.5
+          else
+            python -m pip install cython filelock
+          fi
+
+          python -m pip install -e . -v --no-build-isolation
+
+          if [[ "${{ matrix.nocython }}" ]]; then
+            python -m pip uninstall cython -y
+          fi
+
+          if [[ "${{ matrix.pypi }}" ]]; then
+            python -m pip install "numpy${{ matrix.numpy-requirement }}"
+          elif [[ -z "${{ matrix.nomkl }}" ]]; then
+            conda install "numpy${{ matrix.numpy-requirement }}"
+          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
+            python -m pip install "numpy${{ matrix.numpy-requirement }}"
+          else
+            conda install nomkl "numpy${{ matrix.numpy-requirement }}"
+          fi
+          if [[ -n "${{ matrix.semidefinite }}" ]]; then
+            python -m pip install cvxpy>=1.0 cvxopt
+          fi
+          if [[ "${{ matrix.oldmpl }}" ]]; then
+            python -m pip install matplotlib==3.7.* "pyparsing<=3.2.0" # graphics
+          else
+            python -m pip install matplotlib  # graphics
+          fi
+
+      - name: Package information
+        run: |
+          conda list
+          python -c "import qutip; qutip.about()"
+          python -c "import qutip; print(qutip.settings)"
+
+      - name: Environment information
+        run: |
+          uname -a
+          if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
+              hostnamectl
+              lscpu
+              free -h
+          fi
+
+      - name: Run tests
+        # If our tests are running for longer than an hour, _something_ is wrong
+        # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
+        # to see if something hung.
+        timeout-minutes: 60
+        run: |
+          if [[ -n "${{ matrix.openmp }}" ]]; then
+            # Force OpenMP runs to use more threads, even if there aren't
+            # actually that many CPUs.  We have to check any dispatch code is
+            # truly being executed.
+            export QUTIP_NUM_PROCESSES=2
+          fi
+          if [[ "${{ matrix.includempi }}" ]]; then
+            # By default, the max. number of allowed worker processes in openmpi is
+            # (number of physical cpu cores) - 1.
+            # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+            # For OpenMPI <= 4:
+            # export OMPI_MCA_rmaps_base_oversubscribe=true
+            # For OpenMPI >= 5:
+            export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
+          fi
+          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          # Above flags are:
+          #  -Werror
+          #     treat warnings as errors
+          #  --strict-config
+          #     error out if the configuration file is not parseable
+          #  --strict-markers
+          #     error out if a marker is used but not defined in the
+          #     configuration file
+          #  --timeout=300
+          #     error any individual test that goes longer than the given time
+          #  --durations=0 --durations-min=1.0
+          #     at the end, show a list of all the tests that took longer than a
+          #     second to run
+          #  --verbosity=1
+          #     turn the verbosity up so pytest prints the names of the tests
+          #     it's currently working on
+          #  --cov=qutip
+          #     limit coverage reporting to code that's within the qutip package
+          #  --cov-report=
+          #     don't print the coverage report to the terminal---it just adds
+          #     cruft, and we're going to upload the .coverage file to Coveralls
+          #  --color=yes
+          #     force coloured output in the terminal
+
+      - name: Upload to Coveralls
+        if: ${{ matrix.coveralls }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+          COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
+          COVERALLS_PARALLEL: true
+        run: coveralls --service=github
+
+  towncrier-check:
+    name: Verify Towncrier entry added
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Towncrier
+        run: |
+          python -m venv towncrier_check
+          source towncrier_check/bin/activate
+          python -m pip install towncrier
+
+      - name: Verify Towncrier entry added
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          # Fetch the pull request' base branch so towncrier will be able to
+          # compare the current branch with the base branch.
+          # Source: https://github.com/actions/checkout/#fetch-all-branches.
+          git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          source towncrier_check/bin/activate
+          towncrier check --compare-with origin/${BASE_BRANCH}
+          towncrier build --version "$(cat VERSION)" --draft
+
+  finalise:
+    name: Finalise coverage reporting
+    needs: cases
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Finalise coverage reporting
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        run: |
+          python -m pip install coveralls
+          coveralls --service=github --finish
