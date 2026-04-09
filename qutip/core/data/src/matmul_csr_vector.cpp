@@ -103,7 +103,7 @@ void _matmul_dag_csr_vector(
 }
 */
 #else
-/* No manual vectorisation. */
+/* No manual vectorisation - use real/imag separation for better auto-vectorization. */
 template <typename IntT>
 void _matmul_csr_vector(
         const std::complex<double> * _RESTRICT data,
@@ -115,17 +115,36 @@ void _matmul_csr_vector(
         const IntT nrows)
 {
     IntT row_start, row_end;
-    std::complex<double> dot;
-    for (size_t row=0; row < nrows; row++)
+    double dot_re, dot_im;
+    double data_re, data_im, vec_re, vec_im;
+    double scale_re = std::real(scale);
+    double scale_im = std::imag(scale);
+    double *out_ptr;
+    
+    for (IntT row = 0; row < nrows; row++)
     {
-        dot = 0;
+        dot_re = 0.0;
+        dot_im = 0.0;
         row_start = row_index[row];
-        row_end = row_index[row+1];
-        for (size_t ptr=row_start; ptr < row_end; ptr++)
+        row_end = row_index[row + 1];
+        
+        for (IntT ptr = row_start; ptr < row_end; ptr++)
         {
-            dot += data[ptr]*vec[col_index[ptr]];
+            data_re = std::real(data[ptr]);
+            data_im = std::imag(data[ptr]);
+            vec_re = std::real(vec[col_index[ptr]]);
+            vec_im = std::imag(vec[col_index[ptr]]);
+            
+            // (data_re + data_im*i) * (vec_re + vec_im*i)
+            dot_re += data_re * vec_re - data_im * vec_im;
+            dot_im += data_re * vec_im + data_im * vec_re;
         }
-        out[row] += scale * dot;
+        
+        // out[row] += scale * dot
+        // (scale_re + scale_im*i) * (dot_re + dot_im*i)
+        out_ptr = reinterpret_cast<double*>(&out[row]);
+        out_ptr[0] += scale_re * dot_re - scale_im * dot_im;
+        out_ptr[1] += scale_re * dot_im + scale_im * dot_re;
     }
 }
 #endif
@@ -141,17 +160,37 @@ void _matmul_dag_csr_vector(
         const IntT nrows)
 {
     IntT row_start, row_end;
-    std::complex<double> dot;
-    for (size_t row=0; row < nrows; row++)
+    double dot_re, dot_im;
+    double data_re, data_im, vec_re, vec_im;
+    double scale_re = std::real(scale);
+    double scale_im = std::imag(scale);
+    double *out_ptr;
+    
+    for (IntT row = 0; row < nrows; row++)
     {
-        dot = 0;
+        dot_re = 0.0;
+        dot_im = 0.0;
         row_start = row_index[row];
-        row_end = row_index[row+1];
-        for (size_t ptr=row_start; ptr < row_end; ptr++)
+        row_end = row_index[row + 1];
+        
+        for (IntT ptr = row_start; ptr < row_end; ptr++)
         {
-            dot += std::conj(data[ptr])*vec[col_index[ptr]];
+            // conj(data[ptr])
+            data_re = std::real(data[ptr]);
+            data_im = -std::imag(data[ptr]);  // conjugate
+            vec_re = std::real(vec[col_index[ptr]]);
+            vec_im = std::imag(vec[col_index[ptr]]);
+            
+            // (data_re + data_im*i) * (vec_re + vec_im*i)
+            dot_re += data_re * vec_re - data_im * vec_im;
+            dot_im += data_re * vec_im + data_im * vec_re;
         }
-        out[row] += scale * dot;
+        
+        // out[row] += scale * dot
+        // (scale_re + scale_im*i) * (dot_re + dot_im*i)
+        out_ptr = reinterpret_cast<double*>(&out[row]);
+        out_ptr[0] += scale_re * dot_re - scale_im * dot_im;
+        out_ptr[1] += scale_re * dot_im + scale_im * dot_re;
     }
 }
 

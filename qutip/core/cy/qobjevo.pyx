@@ -1137,8 +1137,8 @@ cdef class QobjEvo:
                     copy=False
                     )
 
-    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
-        """Compute ``out += self(t) @ state``"""
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
+        """Compute ``out += scale * self(t) @ state``"""
         cdef _BaseElement part
         t = self._prepare(t, state)
         if out is None and type(state) is Dense:
@@ -1149,7 +1149,22 @@ cdef class QobjEvo:
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            out = part.matmul_data_t(t, state, out)
+            out = part.matmul_data_t(t, state, out, scale)
+        return out
+
+    cpdef Data adjoint_rmatmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
+        """Compute ``out += scale * (state @ dag(self(t)))``"""
+        cdef _BaseElement part
+        t = self._prepare(t, state)
+        if out is None and type(state) is Dense:
+            out = dense.zeros(state.shape[0], self.shape[1],
+                              (<Dense> state).fortran)
+        elif out is None:
+            out = _data.zeros[type(state)](state.shape[0], self.shape[1])
+
+        for element in self.elements:
+            part = (<_BaseElement> element)
+            out = part.adjoint_rmatmul_data_t(t, state, out, scale)
         return out
 
 

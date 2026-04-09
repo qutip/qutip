@@ -22,8 +22,6 @@ __all__ = ['direct_sum', 'direct_sum_sparse',
            'direct_component', 'set_direct_component']
 
 
-QobjLike = Union[Number, Qobj, QobjEvo]
-
 ARRAY_ONE = np.full((1,), 1, dtype=_data.base.idxint_dtype)
 
 
@@ -92,7 +90,7 @@ def _qobj_data(qobj: Number | Qobj, scalar_dtype: LayerType) -> _data.Data:
     return qobj.data
 
 
-def _qobj_dims(qobj: QobjLike) -> Dimensions:
+def _qobj_dims(qobj: Number | Qobj | QobjEvo) -> Dimensions:
     return (
         qobj._dims if isinstance(qobj, (Qobj, QobjEvo))
         else Dimensions(Field(), Field())
@@ -109,7 +107,7 @@ def direct_sum(
 
 @overload
 def direct_sum(
-    qobjs: list[QobjLike] | list[list[QobjLike]],
+    qobjs: list[Number | Qobj | QobjEvo] | list[list[Number | Qobj | QobjEvo]],
     dtype: LayerType = None
 ) -> QobjEvo:
     ...
@@ -164,7 +162,7 @@ def direct_sum(qobjs, dtype=None):
 
     # Step 1: check type of all provided qobj and make (row, col) -> qobj dict
 
-    linear = isinstance(qobjs[0], QobjLike)
+    linear = isinstance(qobjs[0], (Number, Qobj, QobjEvo))
     if not linear and len(qobjs[0]) == 0:
         raise ValueError("No Qobjs provided for direct sum.")
     if not linear and not all(len(row) == len(qobjs[0]) for row in qobjs):
@@ -233,27 +231,26 @@ def direct_sum(qobjs, dtype=None):
             to_spaces[row] = to_space
         elif to_spaces[row] != to_space:
             raise ValueError(
-                "Direct sum: inconsistent dimensions in row"
-                f" {row + 1}. Expected {to_spaces[row].as_list()},"
-                f" got {to_space.as_list()}.")
+                f"Direct sum: inconsistent dimensions in row {row}. Expected"
+                f" {to_spaces[row].as_list()}, got {to_space.as_list()}.")
 
         from_space = _qobj_dims(qobj)[1]
         if from_spaces[col] is None:
             from_spaces[col] = from_space
         elif from_spaces[col] != from_space:
             raise ValueError(
-                "Direct sum: inconsistent dimensions in column"
-                f" {col + 1}. Expected {from_spaces[col].as_list()},"
-                f" got {from_space.as_list()}.")
+                f"Direct sum: inconsistent dimensions in column {col}."
+                f" Expected {from_spaces[col].as_list()}, got"
+                f" {from_space.as_list()}.")
 
     for row, space in enumerate(to_spaces):
         if space is None:
-            raise ValueError(f"Direct sum: empty row {row + 1}.")
+            raise ValueError(f"Direct sum: empty row {row}.")
     for col, space in enumerate(from_spaces):
         if space is None:
-            raise ValueError(f"Direct sum: empty column {col + 1}.")
+            raise ValueError(f"Direct sum: empty column {col}.")
 
-    sum_dimension = Dimensions(SumSpace(*from_spaces), SumSpace(*to_spaces))
+    sum_dimension = Dimensions(SumSpace(from_spaces), SumSpace(to_spaces))
 
     # Step 3: create direct sum
 
@@ -271,7 +268,7 @@ def direct_sum_sparse(
 
 @overload
 def direct_sum_sparse(
-    qobjs: dict[tuple[int, int], QobjLike],
+    qobjs: dict[tuple[int, int], Number | Qobj | QobjEvo],
     sum_dimensions: DimensionLike,
     dtype: LayerType = None
 ) -> QobjEvo:
@@ -283,8 +280,36 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
     Construct the direct sum of the provided component quantum objects.
     This is a variant of :func:`.direct_sum` suitable for large, sparse block
     matrices. The caller must provide the dimensions of the direct sum, for
-    example in list form as in :code:`[([2], [3]), ([2], [3])]` for an operator
-    on :math:`\mathbb C^2 \oplus \mathbb C^3`.
+    example in list form as in :code:`[([2], [3]), ([2], [3])]` for an
+    operator on :math:`\mathbb C^2 \oplus \mathbb C^3`.
+
+    In more detail: the ``sum_dimensions`` parameter is a list of two entries.
+    The two entries of this list respectively correspond to the output and
+    input Hilbert spaces of the quantum object. Each entry is the "list
+    representation" of the dimensions of the corresponding Hilbert space, like
+    it is used throughout QuTiP. For use in this function, either one of the
+    two spaces or both of them must have the structure of a direct sum, which
+    is represented as a tuple in the "list representation".
+
+    List representation syntax overview:
+
+    * A normal, unmarked Hilbert space of dimension :math:`n` is represented
+      by the list :code:`[n]`.
+    * A product Hilbert space, where the constituents have the dimensions
+      :math:`n_1` up to :math:`n_k`, is represented by the list
+      :code:`[n1, n2, ..., nk]`.
+    * The direct sum of Hilbert spaces, which have the list representations
+      :code:`l1` up to :code:`[lk]`, is represented by the tuple
+      :code:`[l1, l2, ..., lk]`. Sum dimensions may be nested.
+    * For example, the direct sum of a 2D space and a 3D space has the list
+      representation :code:`([2], [3])`.
+    * As another example, the direct sum of a 2D space, and the product of two
+      3D spaces, is :code:`([2], [3, 3])`.
+    * Superoperators act on operator spaces; the list representation of an
+      operator space is the list :code:`[lOut, lIn]`, where :code:`lIn` and
+      :code:`lOut` are list representations of the input and output spaces
+      of the operators. Direct sum components may be either regular Hilbert
+      spaces or operator spaces, but not mixed within the same quantum object.
 
     Parameters
     ----------
@@ -294,6 +319,7 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
         components may be Python numbers, :class:`.Qobj`, or :class:`.QobjEvo`.
     sum_dimensions : list of tuples or lists
         Dimensions of the resulting Qobj, like in the creation of a Qobj.
+        See detailed explanation above.
     dtype : type or str, optional
         Storage representation for the output ``Qobj``. Any data-layer known
         to ``qutip.data.to`` is accepted.
@@ -328,9 +354,9 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
 
 
 def _do_direct_sum(
-        qobjs: dict[tuple[int, int], QobjLike],
-        sum_dimensions: Dimensions,
-        dtype: LayerType = None
+    qobjs: dict[tuple[int, int], Number | Qobj | QobjEvo],
+    sum_dimensions: Dimensions,
+    dtype: LayerType = None
 ):
     """Assumes `qobjs` is sorted and performs no dimensions checks"""
 
@@ -389,12 +415,12 @@ def _do_direct_sum(
 
 
 @overload
-def direct_component(sum_qobj: Qobj, *index: int) -> Qobj:
+def direct_component(sum_qobj: Qobj, *index: int | slice) -> Qobj:
     ...
 
 
 @overload
-def direct_component(sum_qobj: QobjEvo, *index: int) -> Qobj | QobjEvo:
+def direct_component(sum_qobj: QobjEvo, *index: int | slice) -> Qobj | QobjEvo:
     ...
 
 
@@ -407,7 +433,7 @@ def direct_component(sum_qobj, *index):
     ----------
     sum_qobj : :class:`.Qobj` or :class:`.QobjEvo`
         A direct sum object from which to extract a component.
-    index : list of int
+    index : list of int or slice
         One or two indices identifying the component to extract. If both the
         row and column spaces are sums, two indices (``row``, ``col``) are
         required. If only one side is a sum, a single index is accepted and
@@ -417,6 +443,12 @@ def direct_component(sum_qobj, *index):
     -------
     component: :class:`.Qobj` or :class:`.QobjEvo`
         The extracted component.
+
+    Notes
+    -----
+    Each index may be either an int indicating a single component or a slice
+    indicating multiple components. For convenience, slices can be created
+    using `np.s_[start:stop]`. Custom steps are not supported.
     """
 
     if settings.core["default_dtype_scope"] == "full":
@@ -444,7 +476,7 @@ def direct_component(sum_qobj, *index):
 def set_direct_component(
     sum_qobj: Qobj,
     component: Qobj,
-    *index: int,
+    *index: int | slice,
     dtype: LayerType = None
 ) -> Qobj:
     ...
@@ -454,7 +486,7 @@ def set_direct_component(
 def set_direct_component(
     sum_qobj: Qobj | QobjEvo,
     component: Qobj | QobjEvo,
-    *index: int,
+    *index: int | slice,
     dtype: LayerType = None
 ) -> QobjEvo:
     ...
@@ -472,7 +504,7 @@ def set_direct_component(sum_qobj, component, *index):
         The direct sum object whose component will be replaced.
     component : :class:`.Qobj` or :class:`.QobjEvo`
         The new component to insert. ``None`` sets the component to zero.
-    index : list of int
+    index : list of int or slice
         One or two indices identifying the component to extract. If both the
         row and column spaces are sums, two indices (``row``, ``col``) are
         required. If only one side is a sum, a single index is accepted and
@@ -482,6 +514,12 @@ def set_direct_component(sum_qobj, component, *index):
     -------
     updated: :class:`.Qobj` or :class:`.QobjEvo`
         The resulting direct sum object with the component set.
+
+    Notes
+    -----
+    Each index may be either an int indicating a single component or a slice
+    indicating multiple components. For convenience, slices can be created
+    using `np.s_[start:stop]`. Custom steps are not supported.
     """
 
     if settings.core["default_dtype_scope"] == "full":
@@ -537,6 +575,10 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
 
     if x is None:
         return qzero(sum_dimensions[0], sum_dimensions[1])
+    if type(row) is slice:
+        row = row.start
+    if type(col) is slice:
+        col = col.start
 
     if isinstance(sum_dimensions[0], SumSpace):
         data_row = sum_dimensions[0]._space_cumdim(row)
@@ -567,7 +609,16 @@ def _blow_up_qobj(x: Qobj, *, sum_dimensions, row, col, dtype):
 
 
 def _check_bounds(given, min, max):
-    if not (min <= given < max):
+    if type(given) is slice:
+        if given.step and given.step != 1:
+            raise IndexError("Slicing with custom step is not supported.")
+        if given.start >= given.stop:
+            raise IndexError("Empty slice is not supported.")
+        if given.start < min or given.stop > max:
+            raise IndexError(f"Index [{given.start}:{given.stop}] out of"
+                             f" bounds ({min}, {max-1}) for component of"
+                             " direct sum")
+    elif not (min <= given < max):
         raise IndexError(f"Index ({given}) out of bounds ({min}, {max-1})"
                          " for component of direct sum.")
 
@@ -622,24 +673,36 @@ def _component_info(sum_dimensions, to_index, from_index):
     if isinstance(sum_dimensions[0], SumSpace):
         _check_bounds(to_index, 0, len(sum_dimensions[0].spaces))
         component_to = sum_dimensions[0].spaces[to_index]
-        data_row_start = sum_dimensions[0]._space_cumdim(to_index)
-        data_row_stop = sum_dimensions[0]._space_cumdim(to_index + 1)
+        if type(to_index) is slice:
+            data_row_start = sum_dimensions[0]._space_cumdim(to_index.start)
+            data_row_stop = sum_dimensions[0]._space_cumdim(to_index.stop)
+        else:
+            data_row_start = sum_dimensions[0]._space_cumdim(to_index)
+            data_row_stop = sum_dimensions[0]._space_cumdim(to_index + 1)
     else:
         _check_bounds(to_index, 0, 1)
         component_to = sum_dimensions[0]
         data_row_start = 0
         data_row_stop = sum_dimensions[0].size
+    if type(to_index) is slice:
+        component_to = SumSpace(component_to)
 
     if isinstance(sum_dimensions[1], SumSpace):
         _check_bounds(from_index, 0, len(sum_dimensions[1].spaces))
         component_from = sum_dimensions[1].spaces[from_index]
-        data_col_start = sum_dimensions[1]._space_cumdim(from_index)
-        data_col_stop = sum_dimensions[1]._space_cumdim(from_index + 1)
+        if type(from_index) is slice:
+            data_col_start = sum_dimensions[1]._space_cumdim(from_index.start)
+            data_col_stop = sum_dimensions[1]._space_cumdim(from_index.stop)
+        else:
+            data_col_start = sum_dimensions[1]._space_cumdim(from_index)
+            data_col_stop = sum_dimensions[1]._space_cumdim(from_index + 1)
     else:
         _check_bounds(from_index, 0, 1)
         component_from = sum_dimensions[1]
         data_col_start = 0
         data_col_stop = sum_dimensions[1].size
+    if type(from_index) is slice:
+        component_from = SumSpace(component_from)
 
     return (Dimensions(component_from, component_to),
             data_row_start, data_row_stop,

@@ -39,7 +39,7 @@ strengthen the absolute tolerance.
 
 .. testcode:: [dynamics_options]
 
-    options = {method="bdf", "atol": 1e-10, "progress_bar": False}
+    options = {"method": "bdf", "atol": 1e-10, "progress_bar": False}
 
 To use these new settings we can use the keyword argument ``options`` in either
 the :func:`.mesolve` and :func:`.mcsolve` function::
@@ -49,3 +49,34 @@ the :func:`.mesolve` and :func:`.mcsolve` function::
 or::
 
     >>> MCSolver(H0, c_op_list, options=options)
+
+
+Progress Bars
+=============
+
+The ``progress_bar`` solver option controls how run progress is displayed.
+For example:
+
+.. testcode:: [dynamics_options]
+
+    options = {"progress_bar": "text"}
+
+Common values are:
+
+- ``"text"``: periodic text output to stdout.
+- ``"enhanced"``: a single-line text progress bar.
+- ``"tqdm"``: uses ``tqdm`` (requires the ``tqdm`` package).
+- ``""`` (or ``False`` / ``None``): disable progress output.
+
+In notebook contexts, ``"html"`` is also available and uses an HTML-based
+progress display.
+
+The ``progress_kwargs`` option passes keyword arguments to the selected bar.
+For QuTiP's built-in text bars, a common argument is ``chunk_size``:
+
+.. testcode:: [dynamics_options]
+
+    options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 5},
+    }

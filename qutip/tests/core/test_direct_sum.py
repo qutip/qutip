@@ -19,6 +19,39 @@ def _ramp(t, args):
     return t
 
 
+def _check_meta(result, result_type, result_dims, dtype):
+    assert isinstance(result, (Qobj, QobjEvo))
+    assert result.type == result_type
+    assert result._dims == result_dims
+    assert result.shape == result_dims.shape
+    if result_type in ["operator-ket", "operator-bra", "super"]:
+        assert result.superrep == "super"
+    if isinstance(result, Qobj):
+        assert result.dtype.__name__ == dtype
+    else:
+        assert result(0).dtype.__name__ == dtype
+
+
+def _assert_equal(qobj1, qobj2):
+    if isinstance(qobj1, QobjEvo) and isinstance(qobj2, QobjEvo):
+        # == for QobjEvo tests identity, not equality
+        # this should be enough to check equality
+        assert qobj1(0) == qobj2(0)
+        assert qobj1(1) == qobj2(1)
+    elif isinstance(qobj2, Number):
+        # if we put in a plain scalar, we will get out a Qobj
+        assert qobj1 == Qobj(qobj2)
+    elif qobj2 is None:
+        assert qobj1 == Qobj(0) or qobj1 == qzero_like(qobj1)
+    elif qobj1.type == "operator-ket":
+        # accept getting out vectorized operators
+        assert qobj1 == qobj2 or vector_to_operator(qobj1) == qobj2
+    elif qobj1.type == "operator-bra":
+        assert qobj1 == qobj2 or vector_to_operator(qobj1.dag()) == qobj2
+    else:
+        assert qobj1 == qobj2
+
+
 @pytest.mark.parametrize(
     ["arguments", "result_type", "result_dims"], [
         pytest.param([basis(2, 0)],
@@ -53,18 +86,7 @@ def _ramp(t, args):
 @pytest.mark.parametrize("dtype", ["CSR", "Dense"])
 def test_linear(arguments, result_type, result_dims, dtype):
     result = direct_sum(arguments, dtype=dtype)
-
-    assert isinstance(result, (Qobj, QobjEvo))
-    assert result.type == result_type
-    assert result._dims == result_dims
-    assert result.shape == result_dims.shape
-    if result_type in ["operator-ket", "operator-bra"]:
-        assert result.superrep == "super"
-    if dtype is not None:
-        if isinstance(result, Qobj):
-            assert result.dtype.__name__ == dtype
-        else:
-            assert result(0).dtype.__name__ == dtype
+    _check_meta(result, result_type, result_dims, dtype)
 
     for i in range(len(arguments)):
         cmp = direct_component(result, i)
@@ -130,18 +152,7 @@ def test_linear(arguments, result_type, result_dims, dtype):
 @pytest.mark.parametrize("dtype", ["CSR", "Dense"])
 def test_matrix(arguments, result_type, result_dims, dtype):
     result = direct_sum(arguments, dtype=dtype)
-
-    assert isinstance(result, (Qobj, QobjEvo))
-    assert result.type == result_type
-    assert result._dims == result_dims
-    assert result.shape == result_dims.shape
-    if result_type == "super":
-        assert result.superrep == "super"
-    if dtype is not None:
-        if isinstance(result, Qobj):
-            assert result.dtype.__name__ == dtype
-        else:
-            assert result(0).dtype.__name__ == dtype
+    _check_meta(result, result_type, result_dims, dtype)
 
     copy = result.copy()
 
@@ -224,18 +235,7 @@ def test_matrix(arguments, result_type, result_dims, dtype):
 @pytest.mark.parametrize("dtype", ["CSR", "Dense"])
 def test_sparse(qobj_dict, result_dims, result_type, dtype):
     result = direct_sum_sparse(qobj_dict, result_dims, dtype=dtype)
-
-    assert isinstance(result, (Qobj, QobjEvo))
-    assert result.type == result_type
-    assert result._dims == result_dims
-    assert result.shape == result_dims.shape
-    if result_type in ["super", "operator-ket", "operator-bra"]:
-        assert result.superrep == "super"
-    if dtype is not None:
-        if isinstance(result, Qobj):
-            assert result.dtype.__name__ == dtype
-        else:
-            assert result(0).dtype.__name__ == dtype
+    _check_meta(result, result_type, result_dims, dtype)
 
     height = len(result_dims[0].spaces) if result_dims[1] is SumSpace else 1
     width = len(result_dims[1].spaces) if result_dims[1] is SumSpace else 1
@@ -248,24 +248,52 @@ def test_sparse(qobj_dict, result_dims, result_type, dtype):
                 assert cmp.norm() == 0
 
 
-def _assert_equal(qobj1, qobj2):
-    if isinstance(qobj1, QobjEvo) and isinstance(qobj2, QobjEvo):
-        # == for QobjEvo tests identity, not equality
-        # this should be enough to check equality
-        assert qobj1(0) == qobj2(0)
-        assert qobj1(1) == qobj2(1)
-    elif isinstance(qobj2, Number):
-        # if we put in a plain scalar, we will get out a Qobj
-        assert qobj1 == Qobj(qobj2)
-    elif qobj2 is None:
-        assert qobj1 == Qobj(0) or qobj1 == qzero_like(qobj1)
-    elif qobj1.type == "operator-ket":
-        # accept getting out vectorized operators
-        assert qobj1 == qobj2 or vector_to_operator(qobj1) == qobj2
-    elif qobj1.type == "operator-bra":
-        assert qobj1 == qobj2 or vector_to_operator(qobj1.dag()) == qobj2
-    else:
-        assert qobj1 == qobj2
+def test_slicing_linear():
+    kets = [basis(2, 0),
+            basis(([2], [2]), [0, [0]]),
+            Qobj([2]),
+            QobjEvo([[basis(2, 0), _ramp]])]
+    sum = direct_sum(kets)
+
+    for start in range(len(kets)):
+        for stop in range(start + 1, len(kets) + 1):
+            slice = np.s_[start:stop]
+            _assert_equal(
+                direct_component(sum, slice), direct_sum(kets[slice])
+            )
+            _assert_equal(
+                direct_component(sum, slice, 0), direct_sum(kets[slice])
+            )
+
+    mod1 = set_direct_component(
+        sum, 2 * direct_component(sum, np.s_[2:4]), np.s_[2:4])
+    mod2 = set_direct_component(sum, None, np.s_[0:2])
+    _assert_equal(mod1 - sum, mod2)
+
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[0:0])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[0:2:2])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[1:10])
+    with pytest.raises(IndexError):
+        direct_component(sum, np.s_[-1:3])
+
+
+def test_slicing_matrix():
+    qobjs = [[(3*i + j) * sigmax() for j in range(3)] for i in range(3)]
+    sum = direct_sum(qobjs)
+    _assert_equal(
+        direct_component(sum, 0, np.s_[1:3]), direct_sum([qobjs[0][1:3]])
+    )
+    _assert_equal(
+        direct_component(sum, np.s_[0:3], 1),
+        direct_sum([[qobjs[i][1]] for i in range(3)])
+    )
+    _assert_equal(
+        direct_component(sum, np.s_[1:3], np.s_[1:3]),
+        direct_sum([qobjs[1][1:3], qobjs[2][1:3]])
+    )
 
 
 @pytest.mark.parametrize("arguments", [
@@ -307,6 +335,7 @@ def test_direct_component_validation():
     for args in ([], [-1], [2], [0, 0, 0], [0, 1], [-1, 0], [2, 0]):
         with pytest.raises(IndexError):
             direct_component(linear, *args)
+        with pytest.raises(IndexError):
             set_direct_component(linear, None, *args)
 
     matrix = direct_sum([[sigmax(), None], [None, sigmay()]])
@@ -315,13 +344,15 @@ def test_direct_component_validation():
     ):
         with pytest.raises(IndexError):
             direct_component(matrix, *args)
-            set_direct_component(linear, None, *args)
+        with pytest.raises(IndexError):
+            set_direct_component(matrix, None, *args)
 
 
 def test_set_direct_component_validation():
     matrix = direct_sum([[1, 2], [None, 3]])
     with pytest.raises(ValueError):
         set_direct_component(matrix, basis(2, 0), 1, 0)
+    with pytest.raises(ValueError):
         set_direct_component(matrix, sigmax(), 0, 0)
 
 
