@@ -215,11 +215,13 @@ def lindblad_dissipator(
     if chi:
         D = (
             spre(a) * spost(b.dag()) * np.exp(1j * chi)
-            - 0.5 * spre(ad_b)
-            - 0.5 * spost(ad_b)
+            - 0.5 * santicommutator(ad_b)  # -0.5*spre(ad_b) - 0.5*spost(ad_b)
         )
     else:
-        D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+        D = (
+            spre(a) * spost(b.dag())
+            - 0.5 * santicommutator(ad_b)  # -0.5*spre(ad_b) - 0.5*spost(ad_b)
+        )
 
     if isinstance(D, QobjEvo):
         D.compress()
@@ -456,6 +458,11 @@ def sprepost(A, B):
 def scommutator(A: AnyQobj) -> AnyQobj:
     """Generates the commutator superoperator for a given quantum object.
 
+    This superoperator represents the linear map that takes an operator
+    (such as a density matrix) to its commutator with the given operator `A`.
+    Mathematically, it represents the operation:
+    `[A, rho] = A * rho - rho * A`
+
     Parameters
     ----------
     A : Qobj or QobjEvo
@@ -472,6 +479,12 @@ def scommutator(A: AnyQobj) -> AnyQobj:
 @_map_over_compound_operators
 def santicommutator(A: AnyQobj) -> AnyQobj:
     """Generates the anticommutator superoperator for a given quantum object.
+
+    This superoperator represents the linear map that takes an operator
+    (such as a density matrix) to its anticommutator with the
+    given operator `A`.
+    Mathematically, it represents the operation:
+    `{A, rho} = A * rho + rho * A`
 
     Parameters
     ----------

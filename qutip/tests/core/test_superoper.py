@@ -99,6 +99,30 @@ class TestMatVec:
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
+    def testScommutatorAppl(self):
+        """
+        Superoperator: apply commutator superoperator
+        """
+        N = 3
+        rho = qutip.rand_dm(N)
+        U = qutip.rand_unitary(N)
+        rho1 = U * rho - rho * U
+        rho2_vec = qutip.scommutator(U) * qutip.operator_to_vector(rho)
+        rho2 = qutip.vector_to_operator(rho2_vec)
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
+
+    def testSanticommutatorAppl(self):
+        """
+        Superoperator: apply anticommutator superoperator
+        """
+        N = 3
+        rho = qutip.rand_dm(N)
+        U = qutip.rand_unitary(N)
+        rho1 = U * rho + rho * U
+        rho2_vec = qutip.santicommutator(U) * qutip.operator_to_vector(rho)
+        rho2 = qutip.vector_to_operator(rho2_vec)
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
+
     def testOperatorUnitaryTransform(self):
         """
         Superoperator: Unitary transformation with operators and superoperators
