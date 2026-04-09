@@ -1,0 +1,1 @@
+Refactor the HEOM solver using the direct sum module, making time-dependent coupling operators and custom data types possible.
