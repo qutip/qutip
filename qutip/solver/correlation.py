@@ -193,6 +193,18 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         An 2-dimensional array (matrix) of correlation values for the times
         specified by ``tlist`` (first index) and ``taulist`` (second index).
 
+    Notes
+    -----
+    This function supports two performance optimization strategies:
+
+    *Limit computation with ``max_t_plus_tau``:*
+        Skip computing entries where ``t + tau`` exceeds a threshold.
+        This is useful when correlations decay quickly.
+
+    *Parallel execution with ``map``:*
+        Use ``map='parallel'`` with ``map_kw={'num_cpus': N}`` to utilize
+        multiple CPU cores.
+
     See Also
     --------
     :func:`correlation_3op` :
@@ -338,6 +350,18 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     corr_mat : array
         An 2-dimensional array (matrix) of correlation values for the times
         specified by ``tlist`` (first index) and ``taulist`` (second index).
+
+    Notes
+    -----
+    This function supports two performance optimization strategies:
+
+    *Limit computation with ``max_t_plus_tau``:*
+        Skip computing entries where ``t + tau`` exceeds a threshold.
+        This is useful when correlations decay quickly.
+
+    *Parallel execution with ``map``:*
+        Use ``map='parallel'`` with ``map_kw={'num_cpus': N}`` to utilize
+        multiple CPU cores.
 
     See Also
     --------
@@ -560,24 +584,25 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
 
     Notes
     -----
-    **Performance Optimization:**
+    Performance Optimization
+    ^^^^^^^^^^^^^^^^^^^^^^^^
 
-    This function can be computationally expensive for large `tlist` and
-    `taulist`. Two strategies can help reduce computation time:
+    This function can be computationally expensive for large ``tlist`` and
+    ``taulist``. Two strategies can help reduce computation time:
 
-    1. **Limit computation with ``max_t_plus_tau``:**
-       If correlations decay quickly, you can skip computing entries where
-       ``t + tau`` is large. For example, if you only need correlations
-       up to total time ``T_max``::
+    *Limit computation with ``max_t_plus_tau``:*
+        If correlations decay quickly, you can skip computing entries where
+        ``t + tau`` is large. For example, if you only need correlations
+        up to total time ``T_max``::
 
-           corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
-                                  max_t_plus_tau=T_max)
+            corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                   max_t_plus_tau=T_max)
 
-    2. **Parallel execution with ``map``:**
-       Use multiple CPU cores to parallelize the computation::
+    *Parallel execution with ``map``:*
+        Use multiple CPU cores to parallelize the computation::
 
-           corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
-                                  map='parallel', map_kw={'num_cpus': 4})
+            corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                   map='parallel', map_kw={'num_cpus': 4})
 
     These options can be combined for maximum performance::
 
