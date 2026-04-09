@@ -1,0 +1,2 @@
+Added user-guide documentation for solver progress bar options, including
+available values and ``progress_kwargs`` usage.
