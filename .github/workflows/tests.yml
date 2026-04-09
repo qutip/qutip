@@ -220,7 +220,6 @@ jobs:
           fi
 
       - name: Package information
-        shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
             pip list
