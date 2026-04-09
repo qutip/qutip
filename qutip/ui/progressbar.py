@@ -49,9 +49,6 @@ class BaseProgressBar(object):
         else:
             t_r_est = 0
 
-        if t_r_est < 0:
-            t_r_est = 0
-
         dd = datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=t_r_est)
         time_string = "%02d:%02d:%02d:%02d" % \
             (dd.day - 1, dd.hour, dd.minute, dd.second)

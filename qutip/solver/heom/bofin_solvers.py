@@ -359,7 +359,7 @@ class HierarchyADOsState:
     """
 
     def __init__(self, rho, ados, ado_state):
-        # initialize from numpy array ado_state (legacy)
+        # initialize from numpy array ado_state
         if not isinstance(ado_state, Qobj) and hasattr(ado_state, "shape"):
             n_ados = len(ados.labels)
             ado_space = SuperSpace(rho._dims)

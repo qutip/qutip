@@ -329,12 +329,6 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
     direct_sum: :class:`.Qobj` or :class:`.QobjEvo`
         The assembled direct-sum object. Returns a time-dependent object
         (:class:`.QobjEvo`) if any input component is time-dependent.
-
-    Notes
-    -----
-    In the case of time-dependent components, for performance reasons, avoid
-    constructing the :class:`.QobjEvo` from callables and prefer the list
-    format ``[[Qobj, coefficient], ...]``.
     """
 
     sum_dimensions = Dimensions(sum_dimensions)
