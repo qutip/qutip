@@ -45,6 +45,9 @@ class BosonicEnvironment(abc.ABC):
     its spectral density and temperature or, equivalently, its power spectrum
     or its two-time auto-correlation function.
 
+    See the Users Guide on :ref:`environments guide` and
+    :ref:`bosonic environments guide` for an introduction and definitions.
+
     Use one of the classmethods :meth:`from_spectral_density`,
     :meth:`from_power_spectrum` or :meth:`from_correlation_function` to
     construct an environment manually from one of these characteristic
@@ -2388,6 +2391,10 @@ class FermionicEnvironment(abc.ABC):
     The fermionic environment of an open quantum system. It is characterized by
     its spectral density, temperature and chemical potential or, equivalently,
     by its power spectra or its two-time auto-correlation functions.
+
+    See the Users Guide on :ref:`environments guide` and
+    :ref:`fermionic environments <fermionic environments guide>` for an
+    introduction and definitions.
 
     This class is included as a counterpart to :class:`BosonicEnvironment`, but
     it currently does not support all features that the bosonic environment

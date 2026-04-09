@@ -42,6 +42,9 @@ def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
 def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
 
+    See the Users Guide on :ref:`tensor-products` for an introduction and
+    worked examples.
+
     Parameters
     ----------
     args : array_like
@@ -127,6 +130,9 @@ def super_tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     Calculate the tensor product of input superoperators, by tensoring together
     the underlying Hilbert spaces on which each vectorized operator acts.
 
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
+
     Parameters
     ----------
     args : array_like
@@ -209,6 +215,9 @@ def composite(*args):
     are assumed to be unitaries, and are promoted using ``to_super``,
     while kets and bras are promoted by taking their projectors and
     using ``operator_to_vector(ket2dm(arg))``.
+
+    See the Users Guide on :ref:`tensor-products` and :ref:`super` for
+    related examples of tensor products and Liouville-space composition.
     """
     import qutip.core.superop_reps
     # First step will be to ensure everything is a Qobj at all.
@@ -314,6 +323,9 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
 def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     """Contracts a qobj along one or more index pairs.
+
+    See the Users Guide on :ref:`super` for worked examples of reshaping and
+    contracting operators in Liouville space.
 
     .. note::
 

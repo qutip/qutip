@@ -56,6 +56,10 @@ def mesolve(
     This allows the solution of master equations that are not in standard
     Lindblad form.
 
+    See the Users Guide on :ref:`master-master` and
+    :ref:`master-matrix-form` for an introduction, worked examples, and
+    matrix-form usage.
+
     **Time-dependent operators**
 
     For time-dependent problems, ``H`` and ``c_ops`` can be a :obj:`.QobjEvo`
@@ -188,6 +192,10 @@ class MESolver(SESolver):
     will be treated as direct contributions to the total system Liouvillian.
     This allows the solution of master equations that are not in standard
     Lindblad form.
+
+    See the Users Guide on :ref:`master-master` and
+    :ref:`master-matrix-form` for an introduction, worked examples, and
+    matrix-form usage.
 
     Parameters
     ----------

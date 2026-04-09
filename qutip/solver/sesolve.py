@@ -47,6 +47,9 @@ def sesolve(
     does not use any return values. e_ops cannot be used in conjunction
     with solving the Schrodinger operator equation
 
+    See the Users Guide on :ref:`master-unitary` for an introduction and
+    worked examples.
+
     **Time-dependent operators**
 
     For time-dependent problems, ``H`` and ``c_ops`` can be a :obj:`.QobjEvo`
@@ -131,6 +134,9 @@ class SESolver(Solver):
     """
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
+
+    See the Users Guide on :ref:`master-unitary` for an introduction and
+    worked examples.
 
     Parameters
     ----------
