@@ -219,6 +219,20 @@ dispatcher by directly writing to the ``__doc__`` attribute of the object.  We
    mechanism (like ``out`` parameters).
 
 
+Arbitrary data types
+====================
+Dispatched functions can be register with any data types. For this, the parent
+``Data`` is used as the types of the specialization::
+
+>>> add_square.add_specialisations([
+...     (data.Data, data.Data, data.Data, add_square_data),
+...     (data.CSR, data.Dense, data.Data, add_square_mixed),
+... ])
+
+These specialisations have lower priority than ones with specific types, but
+higher that any that would require conversion.
+
+
 Other Features
 ==============
 

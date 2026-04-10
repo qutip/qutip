@@ -85,6 +85,9 @@ data-layer types have been defined with few conversions specified between them
 and the pre-existing converters.  The first-class QuTiP data types :obj:`Dense`
 and :obj:`CSR` will typically have the fastest connectivity.
 
+Each type can have an alias for easy usage in public functions.
+For example, $to["dense"]$ is the same as $to[Dense]$.
+
 
 Adding New Types
 ================
@@ -175,3 +178,20 @@ so storing the object elides the creation of a single tuple and a dict lookup,
 but the cost of this is generally less than 100ns so it is generally not
 necessary to do it unless you will be making millions of calls to fast
 operations in a tight loop.
+
+
+Data layer groups
+=================
+
+Multiple types can be grouped together into a "group". These group share a
+common alias and are used to ensure types that work well together can be set as
+default at once.
+
+For example, the ``core`` group represent the cython data types from the qutip
+and ``cuDensity`` represent the type for cuQuantum's backend. By using::
+
+    to["cuDensity"]
+
+it will try to choose the best qutip-cuquantum type matching the original
+sparsity. (cuquantum's types are not structured like other qutip Data object,
+so it's not the best examples...)

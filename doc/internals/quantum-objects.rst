@@ -123,9 +123,4 @@ This class is mostly for usage in solvers and optimisers which work on
 time-dependent objects, as it can transpile the scalar time-dependence down to
 C code and compile this to run natively.  The classes may be instantiated
 directly by users when they want to reuse the results of compilation, as this
-process typically takes several seconds.
-
-:obj:`~qutip.QobjEvo` does not store its own data, but uses the underlying
-:obj:`~qutip.Qobj` instances until its :meth:`~qutip.QobjEvo.compile` method is
-called.  This method produces a C extension type :obj:`~qutip.CQobjEvo`, which
-*does* store its own data.
+process can takes a few seconds.

@@ -36,7 +36,7 @@ SciPy's :obj:`~scipy.sparse.csr_matrix`, but it also provides fast-path
 initialisation from Python or C using the type's
 :meth:`~qutip.core.data.CSR.copy` method, or the low-level constructors
 :obj:`~qutip.core.data.csr.empty`, :obj:`~qutip.core.data.csr.zeroes`,
-:obj:`~qutip.core.data.csr.identity`, and 
+:obj:`~qutip.core.data.csr.identity`, and
 :obj:`~qutip.core.data.csr.copy_structure`.
 
 .. _compressed sparse row format: https://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_(CSR,_CRS_or_Yale_format)
@@ -154,3 +154,19 @@ be a raw C pointer which is deallocated when the Python instance of
 the NumPy view is used, then ownership of the pointer is transferred to NumPy,
 and a reference to the :obj:`~numpy.ndarray` is stored within the instance to
 ensure it always outlives us.
+
+
+Dia: :obj:`~qutip.core.data.Dia`
+================================
+
+The `Diagonal format` store a the non-zero diagonal from the matrices. It is
+well suited for qutip as many operators have a strong diagonal structure.
+It has the advantage of being equaly fast for operation of both side:
+matrix--vector and vector--matrix product. It's implementation is close to the
+CSR implementation. I share the same memory management principle and is parallel
+with most implementation details such as the use of
+:c:type:`~qutip.core.data.idxint` type for offsets index and provinding a view
+using :meth:`~qutip.core.data.Dia.as_scipy`
+
+:obj:`~qutip.core.data.Dia` can be instantiated from Python in similar ways to
+SciPy's :obj:`~scipy.sparse.dia_matrix`.
