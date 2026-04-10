@@ -23,6 +23,5 @@ extend QuTiP, particularly the lower-level, more heavily optimised components.
    :maxdepth: 2
    :caption: Guide Contents:
 
-   development-environment
    quantum-objects
    data-layer/index
