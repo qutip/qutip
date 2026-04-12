@@ -156,8 +156,8 @@ and a reference to the :obj:`~numpy.ndarray` is stored within the instance to
 ensure it always outlives us.
 
 
-Dia: :obj:`~qutip.core.data.Dia`
-================================
+Diagonal Matrices: :obj:`~qutip.core.data.Dia`
+==============================================
 
 The `Diagonal format` store a the non-zero diagonal from the matrices. It is
 well suited for qutip as many operators have a strong diagonal structure.

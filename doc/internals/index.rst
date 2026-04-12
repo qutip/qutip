@@ -1,5 +1,5 @@
-QuTiP Package
-=============
+QuTiP's internals
+=================
 
 These pages are the developers' guide to the main QuTiP package code base.  The
 source code is available in the `GitHub repository qutip/qutip`_, which is the
