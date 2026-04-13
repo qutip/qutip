@@ -198,7 +198,7 @@ def composite(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
 def composite(*args):
     """
-    Given two or more operators, kets or bras, returns the Qobj
+    Given two or more operators, kets or bras, returns the :class:`.Qobj`
     corresponding to a composite system over each argument.
     For ordinary operators and vectors, this is the tensor product,
     while for superoperators and vectorized operators, this is
@@ -268,7 +268,7 @@ def _tensor_contract_dense(arr, *pairs):
 
 
 def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
-    """Transposes one or more pairs of indices of a Qobj.
+    """Transposes one or more pairs of indices of a :class:`.Qobj`.
 
     .. note::
 
@@ -277,7 +277,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    q_oper : Qobj
+    q_oper : :class:`.Qobj`
         Operator to swap dims.
 
     pairs : tuple
@@ -288,8 +288,9 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    sqobj : Qobj
-        The original Qobj with all named index pairs swapped with each other
+    sqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs swapped with
+        each other
     """
     q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
@@ -322,7 +323,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    qobj: Qobj
+    qobj: :class:`.Qobj`
         Operator to contract subspaces on.
 
     pairs : tuple
@@ -333,8 +334,8 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    cqobj : Qobj
-        The original Qobj with all named index pairs contracted
+    cqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs contracted
         away.
 
     """
@@ -468,7 +469,7 @@ def expand_operator(
 
     Parameters
     ----------
-    oper : Qobj
+    oper : :class:`.Qobj`
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
@@ -478,13 +479,13 @@ def expand_operator(
     targets : int or list of int
         The indices of subspace that are acted on.
     dtype : str, optional
-        Data type of the output Qobj. By default it uses the data
+        Data type of the output :class:`.Qobj`. By default it uses the data
         type specified in settings. If no data type is specified
         in settings it uses the ``CSR`` data type.
 
     Returns
     -------
-    expanded_oper : Qobj
+    expanded_oper : :class:`.Qobj`
         The expanded operator acting on a system with the desired dimension.
     """
     oper._dims._require_pure_dims("expand operator")
