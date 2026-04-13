@@ -456,12 +456,12 @@ def sprepost(A, B):
 
 @_map_over_compound_operators
 def scommutator(A: AnyQobj) -> AnyQobj:
-    """Generates the commutator superoperator for a given quantum object.
+    r"""Generates the commutator superoperator for a given quantum object.
 
     This superoperator represents the linear map that takes an operator
     (such as a density matrix) to its commutator with the given operator `A`.
     Mathematically, it represents the operation:
-    `[A, rho] = A * rho - rho * A`
+    :math:`[A, \rho] = A \rho - \rho A`
 
     Parameters
     ----------
@@ -478,13 +478,13 @@ def scommutator(A: AnyQobj) -> AnyQobj:
 
 @_map_over_compound_operators
 def santicommutator(A: AnyQobj) -> AnyQobj:
-    """Generates the anticommutator superoperator for a given quantum object.
+    r"""Generates the anticommutator superoperator for a given quantum object.
 
     This superoperator represents the linear map that takes an operator
     (such as a density matrix) to its anticommutator with the
     given operator `A`.
     Mathematically, it represents the operation:
-    `{A, rho} = A * rho + rho * A`
+    :math:`{A, \rho} = A \rho + \rho A`
 
     Parameters
     ----------
