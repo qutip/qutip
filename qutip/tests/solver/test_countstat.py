@@ -3,7 +3,6 @@ import qutip
 import pytest
 
 
-#@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_dqd_current():
     "Counting statistics: current and current noise in a DQD model"
 
