@@ -3,7 +3,7 @@ import qutip
 import pytest
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
+#@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_dqd_current():
     "Counting statistics: current and current noise in a DQD model"
 
@@ -92,18 +92,18 @@ def test_dqd_current():
 def compute_analytical_cumulants(Gamma_r, Gamma_l):
     """Compute the analytical values of the first three cumulants."""
     current = (Gamma_l * Gamma_r) / (Gamma_l + Gamma_r)
-    
+
     noise = current * (Gamma_r**2 + Gamma_l**2) / (Gamma_r + Gamma_l)**2
-    
-    skewness = (current * (Gamma_r**4 - 2 * Gamma_r**3 * Gamma_l + 
-                6 * Gamma_r**2 * Gamma_l**2 - 2 * Gamma_r * Gamma_l**3 + 
+
+    skewness = (current * (Gamma_r**4 - 2 * Gamma_r**3 * Gamma_l +
+                6 * Gamma_r**2 * Gamma_l**2 - 2 * Gamma_r * Gamma_l**3 +
                 Gamma_l**4) / (Gamma_r + Gamma_l)**4)
 
     return current, noise, skewness
 
 @pytest.mark.parametrize("method", ["pinv", "direct"])
 def test_three_cumulants(method):
-    """Counting statistics: Test the calculation of 
+    """Counting statistics: Test the calculation of
     the three first cummulat for the direct and pseudoinv methods"""
     Gamma_r = 0.5
     Gamma_l = 0.1

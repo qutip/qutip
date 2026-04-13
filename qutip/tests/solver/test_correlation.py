@@ -12,7 +12,7 @@ _equivalence_fock = qutip.fock(_equivalence_dimension, 1)
 _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
+#@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(["solver", "start"], [
     pytest.param("es", _equivalence_coherent, id="es"),
     pytest.param("es", None, id="es-steady state"),

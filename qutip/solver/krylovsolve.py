@@ -6,7 +6,6 @@ __all__ = ['krylovsolve']
 from .. import QobjEvo, Qobj
 from .mesolve import mesolve
 from .result import Result
-from .solver_base import _kwargs_migration
 from numpy.typing import ArrayLike
 from qutip.typing import QobjEvoLike
 from typing import Any, Callable
@@ -19,9 +18,6 @@ def krylovsolve(
     krylov_dim: int,
     algorithm: str = "auto",
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
-    _e_ops=None,
-    _args=None,
-    _options=None,
     *,
     e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
     args: dict[str, Any] = None,
@@ -123,9 +119,6 @@ def krylovsolve(
         vectors or density matrices corresponding to the times in ``tlist`` [if
         ``e_ops`` is an empty list of ``store_states=True`` in options].
     """
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    args = _kwargs_migration(_args, args, "args")
-    options = _kwargs_migration(_options, options, "options")
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
