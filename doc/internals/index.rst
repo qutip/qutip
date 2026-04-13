@@ -9,7 +9,7 @@ code works.
 
 In general we assume that you have a working knowledge of using QuTiP as a user,
 and these pages will not contain a tutorial on how to work with the library.  If
-that is what you are looking for, please refer to the `user guide`_ or the large
+that is what you are looking for, please refer to the :ref:`guide` or the large
 collection of `example notebooks`_.
 
 This developers' guide is intended for people who are looking to modify and
