@@ -1,11 +1,8 @@
 QuTiP's internals
 =================
 
-These pages are the developers' guide to the main QuTiP package code base.  The
-source code is available in the `GitHub repository qutip/qutip`_, which is the
-primary location for filing issues and making pull requests.  Please read these
-pages to help you understand how the ``qutip`` package is organised and how the
-code works.
+This section is the developers' guide of code base.  Please read these pages to
+understand how the ``qutip`` package is organised and how the code works.
 
 In general we assume that you have a working knowledge of using QuTiP as a user,
 and these pages will not contain a tutorial on how to work with the library.  If
