@@ -119,7 +119,7 @@ class BosonicEnvironment(abc.ABC):
         t : array_like or float
             The times at which to evaluate the correlation function.
 
-        eps : optional, float
+        eps : optional, float            # TODO: power_spectrum? Not correlation function?
             Used in case the power spectrum is derived from the spectral
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
@@ -157,6 +157,53 @@ class BosonicEnvironment(abc.ABC):
         """
 
         ...
+
+    def _g_w(
+        self, w: float | ArrayLike, *, eps: float = 1e-10
+    ) -> (float | ArrayLike):
+        """
+        Square root of the power_spectrum.
+
+        Used for the Universal Lindblad equation.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequencies at which to evaluate the power spectrum.
+
+        eps : optional, float
+            To derive the zero-frequency power spectrum from the spectral
+            density, the spectral density must be differentiated numerically.
+            In that case, this parameter is used as the finite difference in
+            the numerical differentiation.
+        """
+        return (self.power_spectrum(w, eps=eps))**0.5 / (2 * np.pi)
+
+    def jump_correlator(
+        self, t: float | ArrayLike, *, eps: float = 1e-10
+    ) -> (complex | ArrayLike):
+        r"""
+        Compute the jump correlator g(t) for the Universal Lindblad Equation.
+
+        The jump correlator is the time-domain representation of the square
+        root of the bath transition rates. It serves as the convolution kernel
+        for constructing time-dependent ULE jump operators.
+
+        It is defined as
+            J(t) = \int_{-inf}^{inf} ds g(t-s) g(s)
+        where J(t) is the correlation function and g(t) is the jump correlator.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+
+        eps : optional, float
+            Used in case the power spectrum is derived from the spectral
+            density; see the documentation of
+            :meth:`BosonicEnvironment.power_spectrum`.
+        """
+        return self._jc_from_ps(t)
 
     # --- user-defined environment creation
 
@@ -245,7 +292,7 @@ class BosonicEnvironment(abc.ABC):
 
         T : optional, float
             Environment temperature. (The spectral density of this environment
-            can only be calculated from the powr spectrum if a temperature is
+            can only be calculated from the power spectrum if a temperature is
             provided.)
 
         tag : optional, str, tuple or any other object
@@ -255,6 +302,56 @@ class BosonicEnvironment(abc.ABC):
             Extra arguments for the power spectrum ``S``.
         """
         return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag, args)
+
+    @classmethod
+    def from_jump_correlator(
+        cls,
+        g: Callable[[float], complex] | ArrayLike,
+        tlist: ArrayLike = None,
+        tMax: float = None,
+        *,
+        T: float = None,
+        tag: Any = None,
+        args: dict[str, Any] = None,
+    ) -> BosonicEnvironment:
+        r"""
+        Constructs a bosonic environment with the provided jump correlator
+        function. The provided function will only be used for times
+        :math:`t \geq 0`. At times :math:`t < 0`, the symmetry relation
+        :math:`g(-t) = g(t)^\ast` is enforced.
+
+        Parameters
+        ----------
+        g : callable or array_like
+            The spectral density. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
+
+            ``g(t: array_like, **args) -> array_like``
+
+            where ``t`` is time and ``args`` is a dict containing the
+            other parameters of the function.
+
+        tlist : optional, array_like
+            The times where the correlation function is sampled (if it is
+            provided as an array).
+
+        tMax : optional, float
+            Specifies that the correlation function is essentially zero outside
+            the interval [-tMax, tMax]. Used for numerical integration
+            purposes.
+
+        T : optional, float
+            Environment temperature. (The correlation function and the power
+            spectrum of this environment can only be calculated from the
+            spectral density if a temperature is provided.)
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for this environment.
+
+        args : optional, dict
+            Extra arguments for the spectral density ``g``.
+        """
+        return _BosonicEnvironment_fromJC(g, tlist, tMax, T, tag, args)
 
     @classmethod
     def from_spectral_density(
@@ -371,12 +468,60 @@ class BosonicEnvironment(abc.ABC):
         elif len(t) == 0:
             return np.array([])
         else:
-            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+            tMax = np.max(np.abs(t))
 
         result_fct = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
                           tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
+
+    def _jc_from_ps(self, t, wMax=None, **ps_kwargs):
+        t = np.asarray(t, dtype=float)
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = np.max(np.abs(t))
+
+        if getattr(self, "_jc_tMax", -1) < tMax:
+            if wMax is None:
+                ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
+                ps_target = ps_max * 1e-6
+                wMax = 1.
+                n_iter = 0
+                while self.power_spectrum(wMax) > ps_target and n_iter < 10:
+                    wMax *= 2
+                    n_iter += 1
+            self._jc_tMax = tMax
+            # TODO: only definied for real positive power_spectrum
+            self._jc = _fft(
+                lambda w: self.power_spectrum(w, **ps_kwargs)**0.5,
+                self._jc_tMax, tMax=wMax, scale=1/(2 * np.pi)
+            )
+
+        result = self._jc(t)
+        return result.item() if t.ndim == 0 else result
+
+    def _ps_from_jc(self, w, tMax):
+        w = np.asarray(w, dtype=float)
+        if w.ndim == 0:
+            wMax = np.abs(w)
+        elif len(w) == 0:
+            return np.array([])
+        else:
+            wMax = max(np.abs(w[0]), np.abs(w[-1]))
+
+        if getattr(self, "_ps_wMax", wMax) <= wMax:
+            self._ps_wMax = wMax
+            fft_out = _fft(
+                self.correlation_function,
+                self._ps_wMax, tMax=tMax, out="real"
+            )
+            self._ps = lambda w: np.real(fft_out(-w))**2 * (2 * np.pi)
+
+        result = self._ps(w)
+        return result.item() if w.ndim == 0 else result
 
     # --- fitting
 
@@ -916,6 +1061,39 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
 
     def power_spectrum(self, w, *, eps=1e-10):
         return self._ps_from_sd(w, eps)
+
+
+class _BosonicEnvironment_fromJC(BosonicEnvironment):
+    def __init__(self, g, tlist, tMax, T, tag, args):
+        super().__init__(T, tag)
+        self._jc = _complex_interpolation(
+            C, tlist, 'jump correlator function', args)
+        if tlist is not None:
+            self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
+        else:
+            self.tMax = tMax
+
+    def jump_correlator(self, t, **kwargs):
+        t = np.asarray(t, dtype=float)
+        result = np.zeros_like(t, dtype=complex)
+        positive_mask = (t >= 0)
+        non_positive_mask = np.invert(positive_mask)
+
+        result[positive_mask] = self._jc(t[positive_mask])
+        result[non_positive_mask] = np.conj(
+            self._jc(-t[non_positive_mask])
+        )
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        # TODO: make direct jc to sd?
+        return self._sd_from_ps(w)
+
+    def power_spectrum(self, w, **kwargs):
+        if self.tMax is None:
+            raise ValueError('The support of the correlation function (tMax) '
+                             'must be specified for this operation.')
+        return self._ps_from_jc(w, self.tMax)
 
 
 class DrudeLorentzEnvironment(BosonicEnvironment):
@@ -1659,7 +1837,7 @@ class OhmicEnvironment(BosonicEnvironment):
 
     def correlation_function(
         self, t: float | ArrayLike, **kwargs
-    ) -> (float | ArrayLike):
+    ) -> (complex | ArrayLike):
         r"""
         Calculates the correlation function of an Ohmic environment using the
         formula
@@ -1679,6 +1857,9 @@ class OhmicEnvironment(BosonicEnvironment):
         t : array_like or float
             The time at which to evaluate the correlation function.
         """
+        if not _mpmath_available:
+            self._cf_from_ps(t, 15 * self.wc, **kwargs)
+
         t = np.asarray(t, dtype=float)
         t_was_array = t.ndim > 0
         if not t_was_array:
@@ -2131,7 +2312,7 @@ def _complex_interpolation(fun, xlist, name, args=None):
         return lambda x: real_interp(x) + 1j * imag_interp(x)
 
 
-def _fft(f, wMax, tMax):
+def _fft(f, wMax, tMax, scale=1.):
     r"""
     Calculates the Fast Fourier transform of the given function. We calculate
     Fourier transformations via FFT because numerical integration is often
@@ -2178,7 +2359,7 @@ def _fft(f, wMax, tMax):
     g *= dt * np.exp(1j * w * tMax)
 
     return _complex_interpolation(
-        np.fft.fftshift(g), np.fft.fftshift(w), 'FFT'
+        np.fft.fftshift(g) * scale, np.fft.fftshift(w), 'FFT'
     )
 
 
