@@ -13,9 +13,7 @@ import warnings
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
-from .solver_base import (
-    Solver, Integrator, _solver_deprecation, _kwargs_migration
-)
+from .solver_base import Solver, Integrator
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
@@ -27,8 +25,6 @@ def mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     c_ops: QobjEvoLike | list[QobjEvoLike] = (),
-    _e_ops = None,
-    _ntraj = None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
@@ -36,8 +32,7 @@ def mcsolve(
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
     target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
-    timeout: float = None,
-    **kwargs,
+    timeout: float = None
 ) -> McResult:
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
@@ -168,10 +163,6 @@ def mcsolve(
     and the end condition is not ``ntraj``, the results returned by this
     function should be considered invalid.
     """
-    options = _solver_deprecation(kwargs, options, "mc")
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
-
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
