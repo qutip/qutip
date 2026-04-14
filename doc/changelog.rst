@@ -6,6 +6,63 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.2.3 (2026-01-21)
+========================
+
+Micro release to add support to scipy 1.17.
+
+Bug Fixes
+---------
+
+- Enables discovery of declaration files (`.pxd`) by Cython's compiler during
+  the runtime compilation in `qutip/core/coefficient.py` under editable installs.
+  Fixes issue #2770. (#2796, by Veronika Kurth)
+
+
+Documentation
+-------------
+
+- Updated verification command in Quick Start guide to support standard installs.
+  (#2793, by Omkar Sarkar)
+
+
+Miscellaneous
+-------------
+
+- Add support for scipy 1.17 (#2800)
+
+
+QuTiP 5.2.2 (2025-11-05)
+========================
+
+Add wheels for python 3.14.
+
+Bug Fixes
+---------
+
+- Add sanity check to CSR initialization. (#2748, reported by Pieter Eendebak)
+- Fix color ordering for single points in Bloch sphere. Previously, when plotting a single point on a Bloch sphere via `Bloch.add_points(colors=...)` or by modifying `Bloch.point_color`, the color list could become mismatched with the point order after internal sorting. This fix ensures colors are reordered correctly, eliminating miscoloring. (Fixes #2681) (#2754, by QiLin Xue)
+- The test test_fixed_prony_fit[True-UD Example]  failed when using netlib's blas (#2759, by Gerardo Jose Suarez)
+- Change measure functions to handle not only list[Qobj] but any iterable[Qobj] for POVM measurement (#2766, by Clemens Possel)
+- Fix bug with repeated `conj` of `QobjEvo` (#2767)
+
+Documentation
+-------------
+
+- Fix typo in Qobj.overlap. (#2757, by Kemal Bidzhiev)
+- Add "tlist5" ODE method to documentation. (#2739)
+
+Miscellaneous
+-------------
+
+- Make handling of dimensions more consistent, make ENR spaces usable with more modules, add tests, bugfixes (#2751)
+- Improve code to find MKL libraries (#2742)
+- Improve test stability. (#2773, #2769, #2763, #2753)
+- Remove fast-path for solver first state in result (#2760)
+- Ensure expect work with the settings `auto_real_casting=False`. (#2752)
+- Remove intermediate step when creating a `fock_dm`. (#2772)
+
+
 QuTiP 5.2.1 (2025-08-25)
 ========================
 

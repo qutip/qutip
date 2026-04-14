@@ -1,24 +1,6 @@
-__all__ = ["Options", "SolverOptions"]
+__all__ = []
 
 import warnings
-
-
-def SolverOptions(*args, **kwargs):
-    warnings.warn(
-        "Dedicated options class are no longer needed, "
-        "options should be passed as dict to solvers.",
-        FutureWarning
-    )
-    return kwargs
-
-
-def Options(**kwargs):
-    warnings.warn(
-        "Dedicated options class are no longer needed, "
-        "options should be passed as dict to solvers.",
-        FutureWarning
-    )
-    return kwargs
 
 
 class _SolverOptions(dict):

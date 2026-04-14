@@ -12,7 +12,6 @@ _equivalence_fock = qutip.fock(_equivalence_dimension, 1)
 _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(["solver", "start"], [
     pytest.param("es", _equivalence_coherent, id="es"),
     pytest.param("es", None, id="es-steady state"),
@@ -328,3 +327,149 @@ def test_G2():
     expected = np.ones(11)
     np.testing.assert_allclose(g1, expected, rtol=2e-5)
     np.testing.assert_allclose(G1, expected * scale**4, rtol=2e-5)
+
+
+# ---------------------------------------------------------------------------
+# Tests for speedup features: max_t_plus_tau and parallel map
+# ---------------------------------------------------------------------------
+
+
+class TestCorrelationSpeedup:
+    """Tests for max_t_plus_tau and parallel map features."""
+
+    @classmethod
+    def setup_class(cls):
+        N = 5
+        cls.a = qutip.destroy(N)
+        cls.H = cls.a.dag() * cls.a
+        cls.state = qutip.fock_dm(N, 1)
+        cls.c_ops = [np.sqrt(0.5) * cls.a]
+        cls.tlist = np.linspace(0, 3, 10)
+        cls.taulist = np.linspace(0, 3, 10)
+
+    def _corr_3op(self, **kwargs):
+        return qutip.correlation_3op_2t(
+            self.H, self.state, self.tlist, self.taulist,
+            self.c_ops,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+            **kwargs,
+        )
+
+    def _corr_2op(self, **kwargs):
+        return qutip.correlation_2op_2t(
+            self.H, self.state, self.tlist, self.taulist,
+            self.c_ops,
+            self.a.dag(), self.a,
+            **kwargs,
+        )
+
+    def _check_truncation(self, corr, full, max_tp):
+        """Check valid region matches full and skipped entries are zero."""
+        for ti, t in enumerate(self.tlist):
+            for taui, tau in enumerate(self.taulist):
+                if t + tau <= max_tp:
+                    np.testing.assert_allclose(
+                        corr[ti, taui], full[ti, taui], atol=1e-10,
+                        err_msg=f"mismatch at t={t}, tau={tau}",
+                    )
+                else:
+                    assert corr[ti, taui] == 0.0, (
+                        f"expected 0 at t={t}, tau={tau}, "
+                        f"got {corr[ti, taui]}"
+                    )
+
+    # --- max_t_plus_tau tests ---
+
+    def test_default_unchanged(self):
+        """Without new kwargs the result must be identical to before."""
+        corr = self._corr_3op()
+        assert corr.shape == (len(self.tlist), len(self.taulist))
+        assert corr.dtype == complex
+        assert np.isfinite(corr).all()
+
+    @pytest.mark.parametrize("max_tp", [2.0, 4.0])
+    def test_truncation_correctness(self, max_tp):
+        """Valid region must match full; skipped entries must be zero."""
+        full = self._corr_3op()
+        trunc = self._corr_3op(max_t_plus_tau=max_tp)
+        self._check_truncation(trunc, full, max_tp)
+
+    def test_very_small_max(self):
+        """If max_t_plus_tau is 0, only the (0,0) entry can be nonzero."""
+        trunc = self._corr_3op(max_t_plus_tau=0.0)
+        for ti, t in enumerate(self.tlist):
+            for taui, tau in enumerate(self.taulist):
+                if t + tau > 0:
+                    assert trunc[ti, taui] == 0.0
+
+    def test_inf_same_as_none(self):
+        """max_t_plus_tau=np.inf must match the default (None)."""
+        full = self._corr_3op()
+        inf = self._corr_3op(max_t_plus_tau=np.inf)
+        np.testing.assert_allclose(inf, full, atol=1e-12)
+
+    @pytest.mark.parametrize("max_tp", [0.0, 2.0, 4.0, 100.0])
+    def test_shape_preserved(self, max_tp):
+        """Output shape must always be (len(tlist), len(taulist))."""
+        corr = self._corr_3op(max_t_plus_tau=max_tp)
+        assert corr.shape == (len(self.tlist), len(self.taulist))
+
+    # --- parallel map tests ---
+
+    def test_serial_explicit_matches_default(self):
+        """Passing map='serial' explicitly must match the default."""
+        default = self._corr_3op()
+        serial = self._corr_3op(map='serial')
+        np.testing.assert_allclose(serial, default, atol=1e-12)
+
+    def test_parallel_matches_serial(self):
+        """Parallel map must give the same result as serial_map."""
+        serial = self._corr_3op()
+        parallel = self._corr_3op(
+            map='parallel', map_kw={'num_cpus': 2},
+        )
+        np.testing.assert_allclose(parallel, serial, atol=1e-10)
+
+    def test_parallel_with_max_t_plus_tau(self):
+        """Both optimisations combined must be correct."""
+        max_tp = 4.0
+        ref = self._corr_3op()
+        both = self._corr_3op(
+            max_t_plus_tau=max_tp,
+            map='parallel', map_kw={'num_cpus': 2},
+        )
+        self._check_truncation(both, ref, max_tp)
+
+    # --- passthrough tests ---
+
+    @pytest.mark.parametrize("max_tp", [None, 4.0])
+    @pytest.mark.parametrize("map_str", ['serial', 'parallel'])
+    def test_2op_passthrough(self, max_tp, map_str):
+        """New kwargs must work through correlation_2op_2t."""
+        kwargs = {'map': map_str, 'map_kw': {'num_cpus': 2}}
+        if max_tp is not None:
+            kwargs['max_t_plus_tau'] = max_tp
+
+        full = self._corr_2op()
+        result = self._corr_2op(**kwargs)
+
+        if max_tp is not None:
+            self._check_truncation(result, full, max_tp)
+        else:
+            np.testing.assert_allclose(result, full, atol=1e-10)
+
+    def test_direct_solver_call(self):
+        """correlation_3op with a solver instance and new kwargs."""
+        from qutip.solver.mesolve import MESolver
+
+        solver = MESolver(self.H, self.c_ops)
+        full = qutip.correlation_3op(
+            solver, self.state, self.tlist, self.taulist,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+        )
+        trunc = qutip.correlation_3op(
+            solver, self.state, self.tlist, self.taulist,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+            max_t_plus_tau=4.0, map='parallel', map_kw={'num_cpus': 2},
+        )
+        self._check_truncation(trunc, full, 4.0)

@@ -6,7 +6,8 @@ from __future__ import annotations
 import functools
 import numbers
 import warnings
-from typing import Any, Literal, Union, overload
+from typing import Any, Literal, TypeVar, Union, overload
+from collections.abc import Callable
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy.sparse
@@ -39,15 +40,16 @@ _CALL_ALLOWED = {
     ('oper', 'ket'),
 }
 
+T = TypeVar('T')
 
-def _require_equal_type(method):
+def _require_equal_type(method: Callable[[Qobj, Qobj | complex], T]) -> Callable[[Qobj, Qobj | complex], T]:
     """
     Decorate a binary Qobj method to ensure both operands are Qobj and of the
     same type and dimensions.  Promote numeric scalar to identity matrices of
     the same type and shape.
     """
     @functools.wraps(method)
-    def out(self, other):
+    def out(self: Qobj, other: Qobj | complex) -> T:
         if isinstance(other, Qobj):
             if self._dims != other._dims:
                 msg = (
@@ -859,6 +861,25 @@ class Qobj:
         out = np.asarray(self.data.to_array(), order=order)
         return out.squeeze() if squeeze else out
 
+    def full_tensor(self) -> np.ndarray:
+        """
+        Dense ndarray reshaped according to the tensor dimensions of the
+        quantum object.
+
+        Returns
+        -------
+        data : numpy.ndarray
+            Dense ndarray representation of the quantum object with one axis
+            for each entry in ``dims``.
+
+        Examples
+        --------
+        >>> oper = qutip.qeye([2, 3])
+        >>> oper.full_tensor().shape
+        (2, 3, 2, 3)
+        """
+        return to_tensor_rep(self)
+
     def data_as(self, format: str = None, copy: bool = True) -> Any:
         """Matrix from quantum object.
 
@@ -992,7 +1013,7 @@ class Qobj:
         """
         if self._dims[0] != self._dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        return Qobj(_data.sqrtm(self._data),
+        return Qobj(_data.sqrtm(self._data, isherm=self._isherm),
                     dims=self._dims,
                     copy=False)
 
@@ -1534,7 +1555,7 @@ class Qobj:
         Overlap between two state vectors or two operators.
 
         Gives the overlap (inner product) between the current bra or ket Qobj
-        and and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
+        and another bra or ket Qobj. It gives the Hilbert-Schmidt overlap
         when one of the Qobj is an operator/density matrix.
 
         Parameters

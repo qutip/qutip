@@ -400,6 +400,7 @@ def test_CoeffEq(style):
     assert coeff * coeff3 != coeff * coeff2
     assert coeff.conj() == coeff2.conj()
     assert coeff.conj() != coeff3.conj()
+    assert coeff.conj().conj() == coeff
     assert norm(coeff) == norm(coeff2)
     assert norm(coeff) != norm(coeff3)
 

@@ -29,7 +29,15 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinxcontrib.bibtex']
+              'sphinxcontrib.bibtex',
+              'sphinx_copybutton']
+
+# Strips out the following prompts while copying
+# Standard Python REPL prompts (>>>  and ... )
+# Standard bash/terminal prompts ($ )
+# IPython/Jupyter Notebook prompts (e.g., In [1]: )
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -128,6 +136,7 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
+    'changes/*.rst',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.

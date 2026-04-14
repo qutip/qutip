@@ -333,7 +333,6 @@ def test_tidyup(data_diag):
     min_r = np.abs(before.real[np.abs(before.real) > 0]).min()
     min_i = np.abs(before.imag[np.abs(before.imag) > 0]).min()
     smallest = min(min_r, min_i)
-    print(largest, smallest)
     if largest == smallest:
         return
     tol = (largest + smallest) / 2
@@ -342,12 +341,18 @@ def test_tidyup(data_diag):
     np.testing.assert_array_equal(data_diag.to_array(), before)
     np.testing.assert_array_equal(data_diag.as_scipy().toarray(), sp_before)
     # Is tidyup
-    assert not np.allclose(tidy.to_array(), before)
-    assert not np.allclose(tidy.as_scipy().toarray(), sp_before)
+    assert not np.allclose(tidy.to_array(), before, atol=smallest/2, rtol=0)
+    assert not np.allclose(
+        tidy.as_scipy().toarray(), sp_before, atol=smallest/2, rtol=0
+    )
 
     data.tidyup_dia(data_diag, tol, True)
-    assert not np.allclose(data_diag.to_array(), before)
-    assert not np.allclose(data_diag.as_scipy().toarray(), sp_before)
+    assert not np.allclose(
+        data_diag.to_array(), before, atol=smallest/2, rtol=0
+    )
+    assert not np.allclose(
+        data_diag.as_scipy().toarray(), sp_before, atol=smallest/2, rtol=0
+    )
 
 
 def test_autotidyup():

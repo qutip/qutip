@@ -393,28 +393,10 @@ def test_feedback():
     assert np.all(results.expect[0][-20:] < 6.7)
 
 
-def test_deprecation_warnings():
-    with pytest.warns(FutureWarning, match=r'map_func'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
-
-    with pytest.warns(FutureWarning, match=r'progress_bar'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], progress_bar=None)
-
-    with pytest.warns(FutureWarning, match=r'nsubsteps'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], nsubsteps=None)
-
-    with pytest.warns(FutureWarning, match=r'map_func'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
-
-    with pytest.warns(FutureWarning, match=r'store_all_expect'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_all_expect=1)
-
-    with pytest.warns(FutureWarning, match=r'store_measurement'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_measurement=1)
-
+def test_error():
     with pytest.raises(TypeError) as err:
         ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], m_ops=1)
-    assert '"m_ops" and "dW_factors"' in str(err.value)
+    assert 'm_ops' in str(err.value)
 
 
 @pytest.mark.parametrize("method", ["euler", "rouchon"])
@@ -442,14 +424,16 @@ def test_run_from_experiment_close(method, heterodyne):
         "store_states": True,
         "method": method,
     }
-    solver = SSESolver(H, sc_ops, heterodyne, options=options)
-    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
-    res_backward = solver.run_from_experiment(
-        psi0, tlist, res_forward.dW[0], e_ops=[H]
-    )
-    res_measure = solver.run_from_experiment(
-        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
-    )
+    with CoreOptions(auto_real_casting=False):
+        solver = SSESolver(H, sc_ops, heterodyne, options=options)
+        res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+        res_backward = solver.run_from_experiment(
+            psi0, tlist, res_forward.dW[0], e_ops=[H]
+        )
+        res_measure = solver.run_from_experiment(
+            psi0, tlist, res_forward.measurement[0],
+            e_ops=[H], measurement=True
+        )
 
     np.testing.assert_allclose(
         res_backward.measurement, res_forward.measurement[0], atol=1e-10

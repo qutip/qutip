@@ -830,18 +830,6 @@ class BosonicEnvironment(abc.ABC):
 
         return cls, fit_info
 
-    def approx_by_cf_fit(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn('The API has changed. Please use approximate("cf", ...)'
-                      ' instead of approx_by_cf_fit(...).', FutureWarning)
-        return self.approximate("cf", *args, **kwargs)
-
-    def approx_by_sd_fit(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn('The API has changed. Please use approximate("sd", ...)'
-                      ' instead of approx_by_sd_fit(...).', FutureWarning)
-        return self.approximate("sd", *args, **kwargs)
-
 
 class _BosonicEnvironment_fromCF(BosonicEnvironment):
     def __init__(self, C, tlist, tMax, T, tag, args):
@@ -1303,20 +1291,6 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
-    def approx_by_matsubara(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn(
-            'The API has changed. Please use approximate("matsubara", ...)'
-            ' instead of approx_by_matsubara(...).', FutureWarning)
-        return self.approximate("matsubara", *args, **kwargs)
-
-    def approx_by_pade(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn(
-            'The API has changed. Please use approximate("pade", ...)'
-            ' instead of approx_by_pade(...).', FutureWarning)
-        return self.approximate("pade", *args, **kwargs)
-
 
 class UnderDampedEnvironment(BosonicEnvironment):
     r"""
@@ -1595,13 +1569,6 @@ class UnderDampedEnvironment(BosonicEnvironment):
         vk_imag = [-1j * Om + Gamma, 1j * Om + Gamma]
 
         return ck_real, vk_real, ck_imag, vk_imag
-
-    def approx_by_matsubara(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn(
-            'The API has changed. Please use approximate("matsubara", ...)'
-            ' instead of approx_by_matsubara(...).', FutureWarning)
-        return self.approximate("matsubara", *args, **kwargs)
 
 
 class OhmicEnvironment(BosonicEnvironment):

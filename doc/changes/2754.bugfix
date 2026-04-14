@@ -1,0 +1,1 @@
+Fix color ordering for single points in Bloch sphere. Previously, when plotting a single point on a Bloch sphere via `Bloch.add_points(colors=...)` or by modifying `Bloch.point_color`, the color list could become mismatched with the point order after internal sorting. This fix ensures colors are reordered correctly, eliminating miscoloring. (Fixes #2681)

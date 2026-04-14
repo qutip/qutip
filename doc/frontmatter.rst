@@ -32,7 +32,7 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Neill Lambert
 
-:Author: Eric Giguere
+:Author: Eric Giguère
 
 :Author: Boxi Li
 
@@ -60,6 +60,10 @@ Citing This Project
 
 If you find this project useful, then please cite:
 
+.. centered:: Neill Lambert , Eric Giguère, Paul Menczel, Boxi Li, Patrick Hopf, Gerardo Suárez, Marc Gali, Jake Lishman, Rushiraj Gadhvi, Rochisha Agarwal, Asier Galicia, Nathan Shammah, Paul Nation, J.R. Johansson, Shahnawaz Ahmed, Simon Cross, Alexander Pitchford and Franco Nori, "QuTiP 5: The Quantum Toolbox in Python", Physics Reports, Volume 1153, Pages 1-62 (2026).
+
+or
+
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP 2: A Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **184**, 1234 (2013).
 
 or
@@ -67,7 +71,9 @@ or
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **183**, 1760 (2012).
 
 
-which may also be downloaded from https://arxiv.org/abs/1211.6518 or https://arxiv.org/abs/1110.0573, respectively.
+which may also be downloaded from https://www.sciencedirect.com/science/article/pii/S0370157325002704 or https://arxiv.org/abs/1211.6518 or https://arxiv.org/abs/1110.0573, respectively.
+
+The function ``qutip.cite()`` will print the bibtex entry.
 
 .. _funding-qutip:
 
