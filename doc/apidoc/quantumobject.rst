@@ -71,7 +71,7 @@ Tensor
 ------
 
 .. automodule:: qutip.core.tensor
-    :members: tensor, super_tensor, composite, tensor_contract
+    :members: tensor, super_tensor, composite, tensor_swap, tensor_contract, expand_operator
 
 .. automodule:: qutip.core.qobj
     :members: ptrace
@@ -83,7 +83,7 @@ Superoperators and Liouvillians
 -------------------------------
 
 .. automodule:: qutip.core.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, lindblad_dissipator
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator,lindblad_dissipator
 
 Superoperators and Liouvillians
 -------------------------------
