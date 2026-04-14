@@ -1,0 +1,485 @@
+# -*- coding: utf-8 -*-
+
+import numbers
+from typing import Literal
+import pytest
+import collections
+import numpy as np
+import qutip
+from qutip.core.dimensions import (
+    flatten, unflatten, enumerate_flat, deep_remove, deep_map,
+    dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
+    einsum, to_tensor_rep, from_tensor_rep,
+    Dimensions, Compound, Field, Space, SumSpace, SuperSpace, _homtuple
+)
+from qutip.core.energy_restricted import EnrSpace
+
+
+@pytest.mark.parametrize(["base", "flat"], [
+    pytest.param([[[0], 1], 2], [0, 1, 2], id="standard"),
+    pytest.param(SuperSpace(Dimensions(Space(Space(2), Space(3)), Space(1))),
+                 [1, 2, 3], id="space"),
+    pytest.param([1, 2, [3, [4]], [5, 6], [7, [[[[[[[8]]]]]]]]],
+                 [1, 2, 3, 4, 5, 6, 7, 8], id="deep nested"),
+    pytest.param([1, 2, 3], [1, 2, 3], id="already flat"),
+    pytest.param([], [], id="empty list"),
+    pytest.param([[], [], [[[], [], []]]], [], id="nested empty lists"),
+])
+class TestFlattenUnflatten:
+    def test_flatten(self, base, flat):
+        assert flatten(base) == flat
+
+    def test_unflatten(self, base, flat):
+        labels = enumerate_flat(base)
+        expected = base.as_list() if isinstance(base, Space) else base
+        assert unflatten(flat, labels) == expected
+
+
+@pytest.mark.parametrize(["base", "expected"], [
+    pytest.param([1, 2, 3], [0, 1, 2], id="flat"),
+    pytest.param([[1], [2], [3]], [[0], [1], [2]], id="nested"),
+    pytest.param([[[1], [2, 3]], 4], [[[0], [1, 2]], 3], id="nested"),
+    pytest.param([], [], id="empty"),
+    pytest.param([[], [], [[[], [], []]]],
+                 [[], [], [[[], [], []]]], id="nested empty lists"),
+])
+def test_enumerate_flat(base, expected):
+    assert enumerate_flat(base) == expected
+
+
+@pytest.mark.parametrize(["base", "to_remove", "expected"], [
+    pytest.param([[[0], 1], 2], (1,), [[[0]], 2], id="simple"),
+    pytest.param([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], (0, 5),
+                 [[[[1, 2]], [3, 4], [], [6, 7]]], id="harder"),
+    pytest.param([1, 2, 3], (), [1, 2, 3], id="no-op"),
+    pytest.param([], (), [], id="empty"),
+])
+def test_deep_remove(base, to_remove, expected):
+    assert deep_remove(base, *to_remove) == expected
+
+
+@pytest.mark.parametrize("mapping", [
+    pytest.param(lambda x: x*2, id="(x -> 2x)"),
+    pytest.param(lambda x: [x], id="(x -> [x])"),
+])
+@pytest.mark.parametrize("base", [
+    pytest.param([[[0], 1], 2], id="standard"),
+    pytest.param([1, 2, [3, [4]], [7, [[[[[[[8]]]]]]]]], id="standard"),
+    pytest.param([1, 2, 3], id="flat"),
+    pytest.param([], id="empty list"),
+    pytest.param([[], [], [[[], [], []]]], id="nested empty lists"),
+])
+def test_deep_map(base, mapping):
+    """
+    Test the deep mapping.  To simplify generation of edge-cases, this tests
+    against an equivalent (but slower) operation of flattening and unflattening
+    the list.  We can get false negatives if the `flatten` or `unflatten`
+    functions are broken, but other tests should catch those.
+    """
+    # This function might not need to be public, and consequently might not
+    # need to be tested here.
+    labels = enumerate_flat(base)
+    expected = unflatten([mapping(x) for x in flatten(base)], labels)
+    assert deep_map(mapping, base) == expected
+
+
+_Indices = collections.namedtuple('_Indices', ['base', 'permutation', 'shape'])
+
+
+@pytest.mark.parametrize("indices", [
+    pytest.param(_Indices([[2], [1]], [0, 1], (2, 1)), id="ket preserved"),
+    pytest.param(_Indices([[2, 3], [1]], [0, 1, 2], (2, 3, 1)),
+                 id="tensor-ket preserved"),
+    pytest.param(_Indices([[1], [2]], [0, 1], (1, 2)), id="bra preserved"),
+    pytest.param(_Indices([[1], [2, 2]], [0, 1, 2], (1, 2, 2)),
+                 id="tensor-bra preserved"),
+    pytest.param(_Indices([[2], [3]], [0, 1], (2, 3)), id="oper preserved"),
+    pytest.param(_Indices([[2, 3], [1, 2]], [0, 1, 2, 3], (2, 3, 1, 2)),
+                 id="tensor-oper preserved"),
+    pytest.param(_Indices([[[2, 4], [6, 8]], [[1, 3], [5, 7]]],
+                          [2, 3, 0, 1, 6, 7, 4, 5],
+                          (6, 8, 2, 4, 5, 7, 1, 3)),
+                 id="super-oper"),
+    pytest.param(_Indices([[[1], [2, 3]], [[4, 5], [6]]],
+                          [2, 0, 1, 4, 5, 3],
+                          (2, 3, 1, 6, 4, 5)),
+                 id="super-oper-uneven"),
+    pytest.param(_Indices([[[2, 4], [6, 8]], [1]],
+                          [2, 3, 0, 1, 4], (6, 8, 2, 4, 1)),
+                 id="operator-ket"),
+    pytest.param(_Indices([[1], [[2, 4], [6, 8]]],
+                          [0, 3, 4, 1, 2], (1, 6, 8, 2, 4)),
+                 id="operator-bra"),
+])
+class TestSuperOperatorDimsModification:
+    def test_dims_to_tensor_perm(self, indices):
+        # This function might not need to be public, and consequently might not
+        # need to be tested here.
+        assert dims_to_tensor_perm(indices.base) == indices.permutation
+
+    def test_dims_idxs_to_tensor_idxs(self, indices):
+        test_indices = list(range(len(flatten(indices.base))))
+        assert (dims_idxs_to_tensor_idxs(indices.base, test_indices)
+                == indices.permutation)
+
+    def test_dims_to_tensor_shape(self, indices):
+        assert dims_to_tensor_shape(indices.base) == indices.shape
+
+
+@pytest.mark.parametrize("dims", [
+    pytest.param([[2, 3], [1]], id="ket"),
+    pytest.param([[1], [2, 3]], id="bra"),
+    pytest.param([[2, 3], [5, 7]], id="oper"),
+    pytest.param([[[2], [3]], [[5], [7]]], id="super-oper"),
+    pytest.param([[[2], [3]], [1]], id="oper-ket"),
+    pytest.param([[1], [[2, 3], [5, 7]]], id="oper-bra"),
+    pytest.param([[[2], [3, 5]], [[7], [11]]], id="super-oper-uneven"),
+])
+class TestToTensorRep:
+    class mylist(list):
+        def at(self, i, j):
+            out = self.copy()
+            out[i] = j
+            return tuple(out)
+
+    def _build_qobj(self, dims, idx=-1):
+        """
+        Create an Qobj with given dims which values only increment for the
+        `idx` dims.
+        """
+        if isinstance(dims[0], int):
+            ket = qutip.tensor([
+                (
+                    qutip.Qobj(np.arange(N))
+                    if i == idx else (qutip.Qobj(np.ones(N)))
+                ) for i, N in enumerate(dims)
+            ])
+            ket.dims = [ket.dims[0], [1]]
+            return ket
+
+        left = self._build_qobj(dims[0], idx)
+        right = self._build_qobj(dims[1], idx - len(flatten(dims[0])))
+        if left.isoper and left.type != 'scalar':
+            left = qutip.operator_to_vector(left)
+            left.dims = [left.dims[0], [1]]
+        if right.isoper and right.type != 'scalar':
+            right = qutip.operator_to_vector(right)
+            left.dims = [left.dims[0], [1]]
+        return left @ right.dag()
+
+    def test_tensor_shape(self, dims):
+        qobj = self._build_qobj(dims)
+        array = to_tensor_rep(qobj)
+        assert array.shape == tuple(flatten(dims))
+
+    def test_tensor_rep(self, dims):
+        N = len(flatten(dims))
+        for i in range(N):
+            qobj = self._build_qobj(dims, i)
+            array = to_tensor_rep(qobj)
+            slices = self.mylist([slice(j) for j in array.shape])
+            assert all(
+                np.all(array.__getitem__(slices.at(i, j)) == j)
+                for j in range(array.shape[i])
+            )
+
+    def from_tensor_rep(self, dims):
+        qobj = self._build_qobj(dims)
+        array = to_tensor_rep(qobj)
+        back = from_tensor_rep(array, dims)
+        assert qobj == back
+
+
+class TestTypeFromDims:
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[2], [2]], 'oper'),
+        pytest.param([[2, 3], [2, 3]], 'oper'),
+        pytest.param([([2], [2]), ([2], [3])], 'oper'),
+        pytest.param([[2], [3]], 'oper'),
+        pytest.param([[2], [1]], 'ket'),
+        pytest.param([([2], [1]), [1]], 'ket'),
+        pytest.param([[1], [2]], 'bra'),
+        pytest.param([[1], ([2], [1])], 'bra'),
+        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket'),
+        pytest.param([([[2], [3]], [[2], [3]]), [1]], 'operator-ket'),
+        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra'),
+        pytest.param([[1], ([[2], [3]], [[2], [3]])], 'operator-bra'),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super'),
+        pytest.param([([[3], [3]]), ([[2, 3], [2, 3]])], 'super'),
+    ])
+    def test_Dimensions_type(self, base, expected):
+        assert Dimensions(base).type == expected
+
+
+class TestCollapseDims:
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[1], [3]], [[1], [3]], id="ket trivial"),
+        pytest.param([[1, 1], [2, 3]], [[1], [6]], id="ket tensor"),
+        pytest.param(Dimensions(Field(), EnrSpace([2, 2], 1)),
+                     Dimensions(Field(), Space(3)), id="ket ENR"),
+        pytest.param(Dimensions(Field(), SumSpace(Space(2), Field())),
+                     Dimensions(Field(), Space(3)), id="ket sum space"),
+        pytest.param([[2], [1]], [[2], [1]], id="bra trivial"),
+        pytest.param([[2, 3], [1, 1]], [[6], [1]], id="bra tensor"),
+        pytest.param([[5], [5]], [[5], [5]], id="oper trivial"),
+        pytest.param([[2, 3], [2, 3]], [[6], [6]], id="oper tensor"),
+    ])
+    def test_oper(self, base, expected):
+        assert Dimensions(base).collapse() == Dimensions(expected)
+
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[[1]], [[2, 3], [2, 3]]],
+                     [[[1]], [[6], [6]]], id="operator-ket"),
+        pytest.param([[[2, 3], [2, 3]], [[1]]],
+                     [[[6], [6]], [[1]]], id="operator-bra"),
+        pytest.param([[[2, 3], [2, 3]], [[2, 3], [2, 3]]],
+                     [[[6], [6]], [[6], [6]]], id="super"),
+    ])
+    def test_super(self, base, expected):
+        assert Dimensions(base).collapse() == Dimensions(expected)
+
+
+class TestSumSpace:
+    def test_repeat(self):
+        repeat_space = SumSpace(Space(3), repeat=5)
+        assert Space(([3], [3], [3], [3], [3])) is repeat_space
+        assert Space(repeat_space.as_list()) is repeat_space
+        assert repr(repeat_space.as_list()) == "([3],) * 5"
+        assert repr(repeat_space) == "Sum((Space(3),) * 5)"
+
+        assert SumSpace(Space(([2], [3])), repeat=1) is Space((([2], [3]),))
+
+    @pytest.mark.parametrize("space_arg", [
+        pytest.param(1, id="field"),
+        pytest.param(3, id="ket"),
+        pytest.param([3], id="ket-from-list"),
+        pytest.param([2, 3], id="compound"),
+        pytest.param([[2], [3]], id="superket"),
+    ])
+    @pytest.mark.parametrize("repeat", [None, 1, 3])
+    def test_repeat_space(self, space_arg, repeat):
+        assert (
+            Space(space_arg, repeat=repeat)
+            is SumSpace(Space(space_arg), repeat=repeat)
+        )
+
+    def test_simplification(self):
+        assert Space(([1],)) is Field()
+        assert Space(([3, 2],)) is Space([3, 2])
+        assert Space((([2],),)) is Space([2])
+        assert Space((([2], [3]),)) is not Space(([2], [3]))
+
+    @pytest.mark.parametrize(["base", "flat"], [
+        pytest.param(Space((2, 1)), [3], id="single"),
+        pytest.param(Space((2, (3, 3), 4)), [12], id="nested"),
+    ])
+    def test_flatten_collapses(self, base, flat):
+        assert flatten(base) == flat
+        assert base.flat() == flat
+
+    @pytest.mark.parametrize(["space", "expected"], [
+        pytest.param(Space((2, 2)), Space((2, 2)), id="no-scalars"),
+        pytest.param(Space((2, [3, 1], 1)), Space((2, 3, 1)), id="simple"),
+        pytest.param(
+            Space((2, 1, (1, [1, 1]))), Space((2, 1, (1, 1))), id="nested")
+    ])
+    def test_drop_scalar_dims(self, space, expected):
+        assert space.drop_scalar_dims() == expected
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["one-sum", "one-other", "hom", "inhom"])
+    @pytest.mark.parametrize(
+            "repeat", [None, 1])
+    def test_construct_norepeat(self, space_container, space_type, repeat):
+        if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
+            return
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        sum_space = SumSpace(*args, repeat=repeat)
+
+        if space_type == "one-other":
+            # SumSpace(space) == space if space is not a sum itself
+            assert sum_space == spaces[0]
+            return
+
+        assert len(sum_space.spaces) == len(spaces)
+        assert all(
+            sum_space.spaces[i] == space
+            for i, space in enumerate(list(spaces))
+        )
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["one-sum", "one-other", "hom", "inhom"])
+    def test_construct_repeat(self, space_container, space_type):
+        repeat = 3
+
+        if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
+            return
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        if len(spaces) != 1:
+            with pytest.raises(ValueError, match="Invalid arguments"):
+                SumSpace(*args, repeat=repeat)
+            return
+
+        sum_space = SumSpace(*args, repeat=repeat)
+
+        assert len(sum_space.spaces) == len(spaces) * repeat
+        assert all(sum_space.spaces[i] == spaces[0] for i in range(repeat))
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "space_type", ["none", "one-sum", "one-other", "hom", "inhom"])
+    @pytest.mark.parametrize(
+            "repeat", [0, -1, 3.14])
+    def test_invalid_repeat(self, space_container, space_type, repeat):
+        if space_container == "homtuple" and space_type == "inhom":
+            # can't have inhomogeneous homtuple
+            return
+        spaces, args = self._make_spaces_and_args(space_container, space_type)
+
+        with pytest.raises(ValueError, match="must be a positive integer"):
+            SumSpace(*args, repeat=repeat)
+
+    @pytest.mark.parametrize(
+            "space_container", ["list", "tuple", "homtuple", "varargs"])
+    @pytest.mark.parametrize(
+            "repeat", [None, 1, 3])
+    def test_no_spaces(self, space_container, repeat):
+        spaces, args = self._make_spaces_and_args(space_container, "none")
+
+        with pytest.raises(ValueError, match="at least one space"):
+            SumSpace(*args, repeat=repeat)
+
+    def test_super_validation(self):
+        with pytest.raises(ValueError,
+                           match="Cannot mix super and regular spaces"):
+            SumSpace(
+                Space(3),
+                Space([[3], [2]])
+            )
+
+        with pytest.raises(ValueError, match="super representation"):
+            SumSpace(
+                Field(),
+                Space([[3], [2]], rep="choi")
+            )
+
+        with pytest.raises(ValueError, match="super representation"):
+            space = Space(([1], [[3], [2]]))
+            space.replace_superrep("choi")
+
+    def _make_spaces_and_args(
+        self,
+        space_container: Literal["list", "tuple", "homtuple", "varargs"],
+        space_type: Literal["none", "one-sum", "one-other", "hom", "inhom"],
+    ):
+        if space_type == "none":
+            spaces = []
+        elif space_type == "one-sum":
+            spaces = [SumSpace(Space(2), Space(3))]
+        elif space_type == "one-other":
+            spaces = [Space(3)]
+        elif space_type == "hom":
+            spaces = [Space(3), Space(3)]
+        elif space_type == "inhom":
+            spaces = [Space(3), Space(4)]
+
+        if space_container == "tuple":
+            spaces = tuple(spaces)
+        elif space_container == "homtuple":
+            spaces = _homtuple(
+                None if len(spaces) == 0 else spaces[0], len(spaces))
+        args = spaces if space_container == "varargs" else [spaces]
+
+        return spaces, args
+
+
+@pytest.mark.parametrize("dims_list", [
+    pytest.param([0], id="zero"),
+    pytest.param([], id="empty"),
+    pytest.param([1, [2]], id="mixed depth"),
+    pytest.param([[2], [3], [4]], id="bay type"),
+    pytest.param((), id="empty sum")
+])
+def test_bad_dims(dims_list):
+    with pytest.raises(ValueError):
+        Dimensions([dims_list, [1]])
+
+
+@pytest.mark.parametrize("space_l", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_m", [[1], [2], [2, 3]])
+@pytest.mark.parametrize("space_r", [[1], [2], [2, 3]])
+def test_dims_matmul(space_l, space_m, space_r):
+    dims_l = Dimensions([space_l, space_m])
+    dims_r = Dimensions([space_m, space_r])
+    assert dims_l @ dims_r == Dimensions([space_l, space_r])
+
+
+def test_dims_matmul_bad():
+    dims_l = Dimensions([[1], [3]])
+    dims_r = Dimensions([[2], [2]])
+    with pytest.raises(TypeError):
+        dims_l @ dims_r
+
+
+def test_dims_comparison():
+    assert Dimensions([[1], [2]]) == Dimensions([[1], [2]])
+    assert not Dimensions([[1], [2]]) != Dimensions([[1], [2]])
+    assert Dimensions([[1], [2]]) != Dimensions([[2], [1]])
+    assert not Dimensions([[1], [2]]) == Dimensions([[2], [1]])
+    assert Dimensions([[1], [2]])[1] == Dimensions([[1], [2]])[1]
+    assert Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[1] != Dimensions([[1], [2]])[1]
+    assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]
+
+
+@pytest.mark.parametrize(["subscripts", "operands", "expected"], [
+    pytest.param("ii", [qutip.sigmaz()], 0),
+    pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
+    pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
+    pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
+    pytest.param("ijij", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
+    pytest.param("ikjl,jm->ikml", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()),
+                             qutip.sigmaz()], qutip.tensor(qutip.qeye(2), qutip.sigmaz())),
+    pytest.param("ijkl->kjil", [qutip.tensor(qutip.sigmam(), qutip.sigmaz())], qutip.tensor(qutip.sigmap(), qutip.sigmaz()))
+])
+def test_einsum(subscripts, operands, expected):
+    assert einsum(subscripts, *operands) == expected
+
+
+@pytest.mark.parametrize(["list_dims", "expected"], [
+    pytest.param([[4, 4], [1, 1, 1]], [[4, 4], [1]]),
+    pytest.param([[1, 1], [1, 1, 1]], [[1], [1]]),
+    pytest.param([[1, 1, 1, 1], [5, 5, 2, 6]], [[1], [5, 5, 2, 6]]),
+    pytest.param(
+        [[[2, 3, 5], [2, 3, 5]], [[1, 1, 1], [1, 1, 1]]],
+        [[[2, 3, 5], [2, 3, 5]], [1]]
+    ),
+    pytest.param(
+        [([4, 4], [1, 1, 1]), ([1, 1], [1, 1, 1])], [([4, 4], [1]), ([1], [1])]
+    )
+])
+def test_scalar_dims(list_dims, expected):
+    with qutip.CoreOptions(auto_tidyup_dims=True):
+        assert Dimensions(list_dims).as_list() == expected
+    with qutip.CoreOptions(auto_tidyup_dims=False):
+        assert Dimensions(list_dims).as_list() == list_dims
+
+
+@pytest.mark.parametrize(["cls", "args", "kwargs"], [
+    pytest.param(SuperSpace, [Dimensions([[2], [3]])], {"superrep": "choi"},
+                 id="typo"),
+    pytest.param(Compound, [Space(2), Space(3)], {"repeat": 5},
+                 id="unsupported")
+])
+def test_extra_kwargs(cls, args, kwargs):
+    with pytest.raises(ValueError, match="Unexpected keyword arguments"):
+        cls(*args, **kwargs)
