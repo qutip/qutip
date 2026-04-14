@@ -136,6 +136,7 @@ exclude_patterns = [
     '_build',
     'Thumbs.db',
     '.DS_Store',
+    'changes/*.rst',
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
