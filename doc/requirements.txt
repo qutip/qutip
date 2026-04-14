@@ -48,7 +48,7 @@ pybtex-docutils==1.0.3
 pycparser==3.0
 Pygments==2.20.0
 pyparsing==3.3.2
-pytest==9.0.2
+pytest==9.0.3
 pytest-rerunfailures==16.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
