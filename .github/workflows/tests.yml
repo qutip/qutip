@@ -152,6 +152,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
 
+      # TODO remove this once conda supports windows arm
+      - uses: actions/setup-python@v6
+        if: matrix.os == 'windows-11-arm'
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
         # rather than in the GitHub Actions file directly, because bash gives us
