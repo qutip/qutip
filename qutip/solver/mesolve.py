@@ -15,7 +15,7 @@ from .. import Qobj, QobjEvo, liouvillian, lindblad_dissipator
 from ..typing import EopsLike, QobjEvoLike
 from ..core import data as _data
 from ..core.cy.lindblad_matrix_form import LindbladMatrixForm
-from .solver_base import Solver, _solver_deprecation, _kwargs_migration
+from .solver_base import Solver
 from .sesolve import sesolve, SESolver
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
@@ -26,14 +26,10 @@ def mesolve(
     rho0: Qobj,
     tlist: ArrayLike,
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
-    _e_ops=None,
-    _args=None,
-    _options=None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
-    options: dict[str, Any] = None,
-    **kwargs
+    options: dict[str, Any] = None
 ) -> Result:
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
@@ -149,10 +145,6 @@ def mesolve(
         is an empty list of ``store_states=True`` in options].
 
     """
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    args = _kwargs_migration(_args, args, "args")
-    options = _kwargs_migration(_options, options, "options")
-    options = _solver_deprecation(kwargs, options)
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []

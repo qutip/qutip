@@ -15,7 +15,6 @@ from .multitraj import MultiTrajSolver
 from .multitrajresult import NmmcResult
 from .mcsolve import MCSolver, MCIntegrator
 from .mesolve import MESolver, mesolve
-from .solver_base import _kwargs_migration
 from .cy.nm_mcsolve import RateShiftCoefficient, SqrtRealCoefficient
 from ..core.coefficient import ConstantCoefficient, Coefficient
 from ..core import (
@@ -38,8 +37,6 @@ def nm_mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     ops_and_rates: list[tuple[Qobj, CoefficientLike]] = (),
-    _e_ops = None,
-    _ntraj = None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
@@ -47,8 +44,7 @@ def nm_mcsolve(
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
     target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
-    timeout: float = None,
-    **kwargs,
+    timeout: float = None
 ) -> NmmcResult:
     """
     Monte-Carlo evolution corresponding to a Lindblad equation with "rates"
@@ -189,8 +185,6 @@ def nm_mcsolve(
         condition is mixed, the result has additional attributes
         ``initial_states`` and ``ntraj_per_initial_state``.
     """
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
     H = QobjEvo(H, args=args, tlist=tlist)
 
     if len(ops_and_rates) == 0:
