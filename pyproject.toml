@@ -14,7 +14,7 @@ name = "qutip"
 dynamic = ["version"]
 description = "QuTiP: The Quantum Toolbox in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "BSD-3-Clause"
 keywords = ["quantum", "physics", "dynamics"]
 authors = [
@@ -63,8 +63,7 @@ semidefinite = ["cvxpy>=1.0", "cvxopt"]
 tests = ["pytest>=5.2", "pytest-rerunfailures"]
 ipython = ["ipython"]
 extras = [
-  "loky; python_version>='3.11'",
-  "loky!=3.5.0; python_version<='3.10'",
+  "loky",
   "tqdm",
   "mpmath",
 ]
