@@ -198,7 +198,7 @@ def composite(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
 def composite(*args):
     """
-    Given two or more operators, kets or bras, returns the Qobj
+    Given two or more operators, kets or bras, returns the :class:`.Qobj`
     corresponding to a composite system over each argument.
     For ordinary operators and vectors, this is the tensor product,
     while for superoperators and vectorized operators, this is
@@ -268,7 +268,7 @@ def _tensor_contract_dense(arr, *pairs):
 
 
 def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
-    """Transposes one or more pairs of indices of a Qobj.
+    """Transposes one or more pairs of indices of a :class:`.Qobj`.
 
     .. note::
 
@@ -277,7 +277,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    q_oper : Qobj
+    q_oper : :class:`.Qobj`
         Operator to swap dims.
 
     pairs : tuple
@@ -288,8 +288,9 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    sqobj : Qobj
-        The original Qobj with all named index pairs swapped with each other
+    sqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs swapped with
+        each other
     """
     q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
@@ -322,7 +323,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    qobj: Qobj
+    qobj: :class:`.Qobj`
         Operator to contract subspaces on.
 
     pairs : tuple
@@ -333,8 +334,8 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    cqobj : Qobj
-        The original Qobj with all named index pairs contracted
+    cqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs contracted
         away.
 
     """
@@ -455,15 +456,16 @@ def expand_operator(
     targets: int,
     dtype: LayerType = None
 ) -> QobjOrQobjEvo:
-    """
-    Expand an operator to one that acts on a system with desired dimensions.
-    e.g.
-    ```
-    expand_operator(oper, [2, 3, 4, 5], 2) ==
-        tensor(qeye(2), qeye(3), oper, qeye(5))
-    expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
-        tensor(oper2, qeye(3), oper1, qeye(5))
-    ```
+    """Expand an operator to one that acts on a system with desired dimensions.
+
+    Example
+
+    .. code-block:: python
+
+        expand_operator(oper, [2, 3, 4, 5], 2) ==
+            tensor(qeye(2), qeye(3), oper, qeye(5))
+        expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
+            tensor(oper2, qeye(3), oper1, qeye(5))
 
     Parameters
     ----------
