@@ -11,6 +11,7 @@ a roadmap for upcoming releases and ideas for future improvements.
    :maxdepth: 3
 
    contributing.rst
+   contribution_guidelines.rst
    roadmap.rst
    ideas.rst
    docs.rst
