@@ -448,6 +448,14 @@ class _InitialConditions:
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
+
+        # Normalize weights so they sum to 1, preventing too few trajectories
+        # when the input density matrix is not perfectly normalized.
+        total_weight = sum(w for _, w in filtered_states)
+        if total_weight > 0 and abs(total_weight - 1.0) > 1e-10:
+            filtered_states = [(idx, w / total_weight)
+                               for idx, w in filtered_states]
+
         if len(filtered_states) > ntraj_total:
             raise ValueError(f'{ntraj_total} trajectories is not enough for '
                              f'initial mixture of {len(filtered_states)} '
