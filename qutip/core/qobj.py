@@ -455,6 +455,13 @@ class Qobj:
 
     def __matmul__(self, other: Qobj) -> Qobj:
         if not isinstance(other, Qobj):
+            warnings.warn(
+                "Support for Qobj @ numpy.array has been deprecated "
+                "and will be removed in qutip 5.4. "
+                "Please use Qobj(A) @ B instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             try:
                 other = Qobj(other)
             except TypeError:
