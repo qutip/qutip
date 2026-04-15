@@ -656,3 +656,30 @@ def test_mixed_equals_merged(improved_sampling, p):
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
     )
+
+
+@pytest.mark.parametrize("weights,ntraj", [
+    pytest.param([(0.5, 0.25)], 10, id="sub-unity"),
+    pytest.param([(0.1, 0.05)], 10, id="very-sub-unity"),
+    pytest.param([(0.6, 0.3)], 10, id="slightly-sub-unity"),
+])
+@pytest.mark.parametrize("improved_sampling", [True, False])
+def test_non_normalized_mixed_state(improved_sampling, weights, ntraj):
+    """
+    Regression test for gh-2880: mcsolve should not crash when the weights
+    of the mixed initial state do not sum exactly to 1 (e.g. due to
+    numerical error or user input).
+    """
+    states = [qutip.fock_dm(2, 0), qutip.fock_dm(2, 1)]
+    initial_state = sum(w * s for w, s in zip(weights, states))
+
+    H = qutip.sigmaz()
+    tlist = [0, 1]
+    L = qutip.sigmam()
+
+    solver = qutip.MCSolver(
+        H, [L], options={'improved_sampling': improved_sampling})
+    result = solver.run(initial_state, tlist, ntraj)
+
+    assert result.num_trajectories == ntraj
+    assert len(result.states) == 2  # initial + final

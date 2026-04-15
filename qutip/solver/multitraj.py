@@ -448,6 +448,16 @@ class _InitialConditions:
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
+
+        # Normalize weights so they sum to 1, guarding against numerical
+        # errors that could leave the sum < 1 and cause too few trajectories
+        # to be allocated (leading to an IndexError crash).
+        weight_sum = sum(w for _, w in filtered_states)
+        if weight_sum > 0 and abs(weight_sum - 1.0) > 1e-10:
+            filtered_states = [
+                (index, weight / weight_sum)
+                for index, weight in filtered_states
+            ]
         if len(filtered_states) > ntraj_total:
             raise ValueError(f'{ntraj_total} trajectories is not enough for '
                              f'initial mixture of {len(filtered_states)} '
