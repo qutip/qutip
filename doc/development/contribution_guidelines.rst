@@ -13,7 +13,7 @@ In QuTiP's test there are two common sources of randomness in tests:
 
   The functions tested is itself deterministic, but the inputs are generated randomly.
   It is generally good practice to include some tests with random inputs as these
-  can allows to find unexpected edge cases. **Do no fix the seed**, instead
+  can allows to find unexpected edge cases. **Do not fix the seed**, instead
   ensure you also include tests with hand crafted inputs for known common and edge cases.
 
 - Random functions:
@@ -38,12 +38,12 @@ In QuTiP's test there are two common sources of randomness in tests:
 
     If the failure comes from an edge cases that is not, but should be supported,
     please fix it if it is within the scope of your contribution. Otherwise add an
-    ``XFAIL`` test as and open an GitHub issue for a future fix.
+    ``XFAIL`` test and open an GitHub issue for a future fix.
 
     Example:
 
       Monte Carlo evolution could detect a "jump" after reaching the ground state
-      due to the finite precision of the ODE solver instead of the rather than
+      due to the finite precision of the ODE solver instead of the
       the underlying physics.
 
   - Input Edge Cases:
@@ -60,9 +60,9 @@ In QuTiP's test there are two common sources of randomness in tests:
 
 Numerical Tolerance Issues:
 
-  Sometime, either through accumulation of numerical error or finite precision
-  of iterative method, a test may fail occasionally if the tolerance is too tight.
-  In this situation estimate the distribution of the result over multiple runs
+  Sometimes, either through accumulation of numerical error or the finite precision
+  of an iterative method, a test may fail occasionally if the tolerance is too tight.
+  In this situation, estimate the distribution of the result over multiple runs
   and set the tolerance to 4-sigma level (failing less than 1 in 10000).
 
 .. note::
