@@ -656,3 +656,15 @@ def test_mixed_equals_merged(improved_sampling, p):
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
     )
+
+
+def test_mcsolve_non_normalized_mixed_state():
+    """Regression test for issue #2880: mcsolve should handle a mixed
+    initial state whose weights do not sum to exactly one."""
+    initial_state = 0.5 * qutip.fock_dm(2, 0) + 0.25 * qutip.fock_dm(2, 1)
+    result = qutip.mcsolve(
+        qutip.sigmaz(), initial_state,
+        np.linspace(0, 1, 100), [qutip.sigmam()],
+        ntraj=10, options={'progress_bar': False},
+    )
+    assert result.num_trajectories == 10

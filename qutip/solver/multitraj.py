@@ -444,10 +444,18 @@ class _InitialConditions:
         Calculate a list ntraj from the given total number, under contraints
         explained above. Algorithm based on https://stackoverflow.com/a/792490
         """
-        # First we throw out zero-weight states
+        # First we throw out zero-weight states and normalize the
+        # remaining weights so they sum to one. This is necessary because
+        # the input density matrix may not be perfectly normalized due to
+        # numerical error. Without normalization, the algorithm can assign
+        # too few trajectories, leading to an IndexError later.
         filtered_states = [(index, weight)
                            for index, (_, weight) in enumerate(state_list)
                            if weight > 0]
+        total_weight = sum(weight for _, weight in filtered_states)
+        if total_weight > 0 and abs(total_weight - 1.0) > 1e-12:
+            filtered_states = [(index, weight / total_weight)
+                               for index, weight in filtered_states]
         if len(filtered_states) > ntraj_total:
             raise ValueError(f'{ntraj_total} trajectories is not enough for '
                              f'initial mixture of {len(filtered_states)} '
