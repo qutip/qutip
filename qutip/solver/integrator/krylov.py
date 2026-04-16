@@ -72,7 +72,7 @@ class IntegratorKrylov(Integrator):
     def _lanczos_full_reorth_algorithm(self, psi):
         return self._lanczos_core(psi)
 
-    def _lanczos_core(self, psi , max_orthog_steps=0):
+    def _lanczos_core(self, psi, max_orthog_steps=0):
         """
         Computes a basis of the Krylov subspace for the time independent
         Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
@@ -85,7 +85,7 @@ class IntegratorKrylov(Integrator):
         psi: np.ndarray
             State used to calculate Krylov subspace (= first basis state).
         max_orthog_steps: int
-            Maximum number of previous basis vectors to reorthogonalize against.
+            Max. number of previous basis vectors to reorthogonalize against.
 
         Returns
         ------------
@@ -128,7 +128,7 @@ class IntegratorKrylov(Integrator):
         """
         Orthogonalizes a new vector `v` against the previous `max_orthog_steps`
         number of Krylov basis vectors in the list `Q`.
-        
+
         Parameters
         ------------
         Q: list of np.ndarray
@@ -147,15 +147,15 @@ class IntegratorKrylov(Integrator):
             The orthogonalized vector = new Krylov basis vector.
         ol: float
             The overlap of the orthogonalized vector with the last basis vector
-            in `Q`. This will be the new off diagonal element of the tridiagonal
-            matrix. 
+            in `Q`. This is the new off diagonal element of the tridiagonal
+            matrix.
         """
         ol = 0
         for q in Q[-steps:]:
             ol = _data.inner(q, v) / p0
             v = _data.add(v, q, -ol)
         return v, ol
-        
+
     def _arnoldi_algorithm(self, psi):
         """
         Computes the Krylov subspace basis for a Hamiltonian 'H', a system
@@ -168,7 +168,7 @@ class IntegratorKrylov(Integrator):
         ------------
         psi: np.ndarray
             State used to calculation Krylov subspace (= first basis state).
-        
+
         Returns
         ------------
         krylov_hesse: np.ndarray
@@ -228,7 +228,7 @@ class IntegratorKrylov(Integrator):
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step( self, krylov_tridiag):
+    def _compute_max_step(self, krylov_tridiag):
         """
         Compute the maximum step length to stay under the desired tolerance.
         """
@@ -243,12 +243,13 @@ class IntegratorKrylov(Integrator):
         if dt < self.options["min_step"]:
             raise ValueError(
                 f"With the krylov dimension of {self.options['krylov_dim']} "
-                f"and desired tolerance of {self.options['atol']}, the maximum "
-                f"possible time step size is {dt}. But is smaller than the "
-                f"minimum desired time step size of {self.options['min_step']}."
+                f"and desired tolerance of {self.options['atol']}, the "
+                f"maximum possible time step size is {dt}. But is smaller "
+                f"than the minimum desired time step size of "
+                f"{self.options['min_step']}."
             )
         return min(dt, self.options["max_step"])
-        
+
     def set_state(self, t, state0):
         self._t_0 = t
 
@@ -306,7 +307,7 @@ class IntegratorKrylov(Integrator):
         min_step, max_step : float, default: (1e-5, 1e5)
             Minimum and maximum time step size before the Krylov basis is
             recalculated.
-        
+
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
             evolution approximation.
@@ -314,8 +315,8 @@ class IntegratorKrylov(Integrator):
         algorithm: str, default: "auto"
             Algorithm for Krylov space constructions. The default ``auto`` will
             choose ``lanczos_fro`` for Hermitian and ``arnoldi`` for
-            non-Hermitian systems. Alternatively the standard ``lanczos`` can be
-            set.
+            non-Hermitian systems. Alternatively the standard ``lanczos`` can
+            be set.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs
