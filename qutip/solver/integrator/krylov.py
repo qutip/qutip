@@ -235,8 +235,11 @@ class IntegratorKrylov(Integrator):
         n = krylov_tridiag.shape[0]
         facto = np.arange(2, n+1)
         bsprod = np.diag(krylov_tridiag.as_ndarray(), k=-1)
-        num = np.prod(np.power(facto / bsprod, 1 / n))
-        dt = np.power(self.options["atol"], 1 / n) * np.real(num)
+
+        lnum = np.log(self.options["atol"]) + np.sum(np.log(facto))
+        lden = np.sum(np.log(bsprod))
+        dt = np.exp(np.real((lnum - lden) / n))
+
         if dt < self.options["min_step"]:
             raise ValueError(
                 f"With the krylov dimension of {self.options['krylov_dim']} "
