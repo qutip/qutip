@@ -1,7 +1,8 @@
 __all__ = [
     'liouvillian', 'lindblad_dissipator', 'operator_to_vector',
     'vector_to_operator', 'stack_columns', 'unstack_columns', 'stacked_index',
-    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle',
+    'unstacked_index', 'spost', 'spre', 'sprepost', 'reshuffle', 'scommutator',
+    'santicommutator'
 ]
 
 import functools
@@ -214,11 +215,13 @@ def lindblad_dissipator(
     if chi:
         D = (
             spre(a) * spost(b.dag()) * np.exp(1j * chi)
-            - 0.5 * spre(ad_b)
-            - 0.5 * spost(ad_b)
+            - 0.5 * santicommutator(ad_b)  # -0.5*spre(ad_b) - 0.5*spost(ad_b)
         )
     else:
-        D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
+        D = (
+            spre(a) * spost(b.dag())
+            - 0.5 * santicommutator(ad_b)  # -0.5*spre(ad_b) - 0.5*spost(ad_b)
+        )
 
     if isinstance(D, QobjEvo):
         D.compress()
@@ -449,6 +452,52 @@ def sprepost(A, B):
                 dims=dims,
                 isherm=A._isherm and B._isherm,
                 copy=False)
+
+
+@_map_over_compound_operators
+def scommutator(A: AnyQobj) -> AnyQobj:
+    r"""Generates the commutator superoperator for a given quantum object.
+
+    This superoperator represents the linear map that takes an operator
+    (such as a density matrix) to its commutator with the given operator `A`.
+    Mathematically, it represents the operation:
+    :math:`[A, \rho] = A \rho - \rho A`
+
+    Parameters
+    ----------
+    A : Qobj or QobjEvo
+        Quantum operator for which the commutator superoperator is generated.
+
+    Returns
+    -------
+    super :Qobj or QobjEvo
+        The commutator superoperator formed from the input quantum object.
+    """
+    return spre(A) - spost(A)
+
+
+@_map_over_compound_operators
+def santicommutator(A: AnyQobj) -> AnyQobj:
+    r"""Generates the anticommutator superoperator for a given quantum object.
+
+    This superoperator represents the linear map that takes an operator
+    (such as a density matrix) to its anticommutator with the
+    given operator `A`.
+    Mathematically, it represents the operation:
+    :math:`{A, \rho} = A \rho + \rho A`
+
+    Parameters
+    ----------
+    A : Qobj or QobjEvo
+        Quantum operator for which the anticommutator superoperator
+        is generated.
+
+    Returns
+    -------
+    super :Qobj or QobjEvo
+        The anticommutator superoperator formed from the input quantum object.
+    """
+    return spre(A) + spost(A)
 
 
 def _to_super_of_tensor(q_oper):
