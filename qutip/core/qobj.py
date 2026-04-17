@@ -310,11 +310,10 @@ class Qobj:
                       isunitary=self._isunitary,
                       dtype=self.dtype,
                       copy=True)
-        # use get_attr for jax
-        result._ishp = getattr(self, '_ishp', None)
-        result._iscp = getattr(self, '_iscp', None)
-        result._istp = getattr(self, '_istp', None)
-        result._iscptp = getattr(self, '_iscptp', None)
+        result._ishp = self._ishp
+        result._iscp = self._iscp
+        result._istp = self._istp
+        result._iscptp = self._iscptp
         return result
 
     @property
