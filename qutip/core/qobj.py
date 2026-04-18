@@ -457,7 +457,7 @@ class Qobj:
         if isinstance(other, np.ndarray):
             warnings.warn(
                 "Support for Qobj @ numpy.array has been deprecated "
-                "and will be removed in qutip 5.4. "
+                "and will be removed in qutip 5.5 or later. "
                 "Please use Qobj(A) @ B instead.",
                 DeprecationWarning,
                 stacklevel=2
