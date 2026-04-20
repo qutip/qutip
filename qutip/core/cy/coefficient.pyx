@@ -5,6 +5,7 @@ import inspect
 import pickle
 import typing
 import scipy
+import warnings
 from scipy.interpolate import make_interp_spline
 import numpy as np
 cimport numpy as cnp
@@ -66,6 +67,17 @@ def coefficient_function_parameters(func, style=None):
             # if the signature is exactly f(t, args), then assume parameters
             # are supplied in an argument dictionary
             style = "dict"
+            warnings.warn(
+                "From QuTiP 5.5, signature detection of time-depend QobjEvo "
+                "will be removed. All python function passed to coefficient "
+                "and QobjEvo will expect to be pythonic: use the signature "
+                "'f(t, **args)'.\n"
+                "To use v4's signature (f(t, args: dict)) manually passing "
+                "the keyword 'function_style' will be required: \n"
+                "    QobjEvo(..., function_style='dict') \n"
+                "    coefficient(..., function_style='dict')",
+                FutureWarning
+            )
         else:
             style = "pythonic"
     if style == "dict" or f_has_kw:

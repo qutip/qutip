@@ -270,6 +270,7 @@ cdef class QobjEvo:
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args, order=order,
+                            function_style=function_style,
                             boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
