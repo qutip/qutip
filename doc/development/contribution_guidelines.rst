@@ -69,7 +69,7 @@ Numerical Tolerance Issues:
 
   A Note on Floating Point Non-determinism:
 
-  Even if nothing use random number, some computation can return slightly different
-  results with across calls. This is usually caused by floating-point arithmetic
+  Even if nothing uses random number, some computations may return slightly different
+  results across calls. This is usually caused by floating-point arithmetic
   ``(A + B) + C != A + (B + C)`` and asynchronous computation associated with
-  parallel maps.  These should generally be treated as tolerance issues.
+  parallel maps.  These case should be treated as tolerance issues.
