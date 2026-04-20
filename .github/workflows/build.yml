@@ -105,11 +105,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # mac has 2 chipsets that need different build.
-        os: [ubuntu-latest, windows-latest, macos-15-intel, macos-latest]
+        # Each os has two instruction set (x86, arm) that needs different build.
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.10--3.14 for all OS targets.
-      CIBW_BUILD: "cp3{10,11,12,13,14}-*"
+      # Set up wheels matrix.  This is CPython 3.11--3.14 for all OS targets.
+      CIBW_BUILD: "cp3{11,12,13,14}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
