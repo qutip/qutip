@@ -11,7 +11,7 @@ from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     )
 
 pytest.mark.filterwarnings(
-    "ignore:The signature f\(t, args\) is deprecated:FutureWarning"
+    "ignore:The signature f(t, args) is deprecated:FutureWarning"
 )
 
 # Ensure the latest version is tested
