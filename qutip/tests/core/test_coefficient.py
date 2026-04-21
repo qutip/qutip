@@ -10,10 +10,6 @@ from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     WARN_MISSING_MODULE,
                                     )
 
-pytest.mark.filterwarnings(
-    "ignore:The signature f(t, args) is deprecated:FutureWarning"
-)
-
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
 
@@ -120,6 +116,7 @@ def coeff_generator(style, func):
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
+@pytest.mark.filterwarnings("ignore:The signature:FutureWarning")
 def test_CoeffCreationCall(base, kwargs, tol):
     opt = CompilationOptions(recompile=True)
     expected = lambda t: np.exp(1j * t * np.pi)
@@ -137,6 +134,7 @@ def test_CoeffCreationCall(base, kwargs, tol):
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
+@pytest.mark.filterwarnings("ignore:The signature:FutureWarning")
 def test_CoeffCallArgs(base, kwargs, tol):
     w = np.e + 0.5j
     expected = lambda t: np.exp(w * t * np.pi)
@@ -150,6 +148,7 @@ def test_CoeffCallArgs(base, kwargs, tol):
     pytest.param(h_qtv4, 1e-10, id="func_qutip_v4"),
     pytest.param("a + b + t", 1e-10, id="string")
 ])
+@pytest.mark.filterwarnings("ignore:The signature:FutureWarning")
 def test_CoeffCallArguments(base, tol):
     # Partial args update
     args = {"a": 1, "b": 1}
