@@ -15,6 +15,7 @@ from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
 from scipy.linalg import hankel, lstsq, eigvals, svd, eig
 from scipy.fft import fft
+from scipy.special import bernoulli, factorial
 
 
 def n_thermal(w, w_th):
@@ -345,6 +346,65 @@ def _version2int(version_string):
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])
 
+
+# -----------------------------------------------------------------------------
+#  special function
+# -----------------------------------------------------------------------------
+
+# Scipy does not support complex `q`
+def zeta(s, q, N=20, M=15):
+    """
+    Evaluates the Hurwitz zeta function for complex s and q using the
+    Euler-Maclaurin summation formula.
+
+    zeta(s, q) = sum(1 / (k + q)**s for k in range(inf))
+
+    Parameters
+    ----------
+    s : complex
+        The exponent. Cannot be 1.
+    q : complex
+        The shift parameter (q in standard notation).
+    N : int, default: 20
+        Number of direct terms to sum before the asymptotic expansion.
+        When ``q.real < 0``, should be larger than ``-q``.
+    M : int, default: 15
+        Number of Bernoulli terms for the tail approximation.
+
+    Note
+    ----
+    Only tested for s.real > 1.
+    """
+    q = np.complex128(q)
+    if np.isclose(s, 1.0):
+        raise ValueError("The Hurwitz zeta function has a pole at x = 1.")
+
+    # Direct Summation of the first N terms
+    # sum_{k=0}^{N} (k + q)^(-s)
+    direct_sum = sum((k + q)**-s for k in range(N + 1))
+
+    # Integral term: int_N^\inf (k + q)^(-s) dk
+    a = N + 1 + q
+    integral_term = (a**(1 - s)) / (s - 1)
+
+    # Boundary term: 1/2 * f(0)
+    half_term = 0.5 * (a**-s)
+
+    # Bernoulli series terms
+    B = bernoulli(2 * M)
+    bernoulli_sum = 0
+    factor = 1.0
+
+    for j in range(1, M + 1):
+        if j == 1:
+            factor = s
+        else:
+            factor *= (s + 2*j - 3) * (s + 2*j - 2)
+
+        term = (B[2*j] / factorial(2*j)) * factor * (a**(-s - 2*j + 1))
+        bernoulli_sum += term
+
+    return direct_sum + integral_term + half_term + bernoulli_sum
 
 # -----------------------------------------------------------------------------
 # Fitting utilities
