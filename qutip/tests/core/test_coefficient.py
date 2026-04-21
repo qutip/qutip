@@ -10,6 +10,9 @@ from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     WARN_MISSING_MODULE,
                                     )
 
+pytest.mark.filterwarnings(
+    "ignore:The signature f\(t, args\) is deprecated:FutureWarning"
+)
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -489,3 +492,10 @@ def test_coefficient_parallel(map_func):
     for coeff in coeffs:
         assert isinstance(coeff, Coefficient)
         _assert_eq_over_interval(coeff, expected)
+
+
+def test_warning():
+    with pytest.warns(FutureWarning, match="The signature"):
+        coeff = coefficient(f_qtv4, args={"w":1})
+
+    assert isinstance(coeff, Coefficient)

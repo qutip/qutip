@@ -67,19 +67,16 @@ def coefficient_function_parameters(func, style=None):
             # if the signature is exactly f(t, args), then assume parameters
             # are supplied in an argument dictionary
             style = "dict"
-            warnings.warn(
-                "From QuTiP 5.5, signature detection of time-depend QobjEvo "
-                "will be removed. All python function passed to coefficient "
-                "and QobjEvo will expect to be pythonic: use the signature "
-                "'f(t, **args)'.\n"
-                "To use v4's signature (f(t, args: dict)) manually passing "
-                "the keyword 'function_style' will be required: \n"
-                "    QobjEvo(..., function_style='dict') \n"
-                "    coefficient(..., function_style='dict')",
-                FutureWarning
-            )
         else:
             style = "pythonic"
+    if style == "dict":
+        warnings.warn(
+            "The signature f(t, args) is deprecated and will be removed in "
+            "QuTiP 5.5. Please update your function to the pythonic signature "
+            "f(t, **kwargs) to maintain compatibility.",
+            FutureWarning
+        )
+
     if style == "dict" or f_has_kw:
         # f might accept any parameter
         f_parameters = None
