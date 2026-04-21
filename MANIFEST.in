@@ -1,0 +1,12 @@
+include README.md
+include LICENSE.txt
+include VERSION
+include requirements.txt
+include CITATION.bib
+include pyproject.toml
+recursive-include qutip *.pyx
+recursive-include qutip *.pxd
+recursive-include qutip *.hpp
+recursive-include qutip *.cpp
+recursive-include qutip *.ini
+recursive-include qutip *.h

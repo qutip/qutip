@@ -1,0 +1,2 @@
+Align the Read the Docs build with the shared pip-based documentation
+requirements and remove the stale RTD-specific environment file.
