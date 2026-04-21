@@ -418,11 +418,18 @@ class Qobj:
 
     def __mul__(self, other: complex) -> Qobj:
         """
-        If other is a Qobj, we dispatch to __matmul__. If not, we
-        check that other is a valid complex scalar, i.e., we can do
-        complex(other). Otherwise, we return NotImplemented.
-        """
+        Product of a Qobj with a scalar.
 
+        Per default, only python complex are supported (``complex(other)``
+        works), but qutip's plug-in could add additional supported types
+        (jax tracer, cupy complex, etc.)
+
+        Note
+        ----
+        Product between Qobj is supported for backward compatibility, but could
+        be removed in a future major release. ``@`` is prefered for these
+        operations.
+        """
         if isinstance(other, Qobj):
             return self.__matmul__(other)
 
@@ -1604,7 +1611,7 @@ class Qobj:
         return out
 
     @overload
-    def eigenstates(self, 
+    def eigenstates(self,
         sparse: bool  = False,
         sort: Literal["low", "high"] = 'low',
         eigvals: int = 0,
@@ -1616,7 +1623,7 @@ class Qobj:
         ...
 
     @overload
-    def eigenstates(self, 
+    def eigenstates(self,
         sparse: bool  = False,
         sort: Literal["low", "high"] = 'low',
         eigvals: int = 0,
