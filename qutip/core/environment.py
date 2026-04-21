@@ -26,6 +26,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import eigvalsh
 from scipy.interpolate import CubicSpline
+import scipy.special
 
 try:
     from mpmath import mp
@@ -1581,8 +1582,6 @@ class OhmicEnvironment(BosonicEnvironment):
         J(\omega)
         = \alpha \frac{\omega^s}{\omega_c^{s-1}} e^{-\omega / \omega_c} .
 
-    This class requires the `mpmath` module to be installed.
-
     Parameters
     ----------
     T : float
@@ -1609,11 +1608,6 @@ class OhmicEnvironment(BosonicEnvironment):
         self.alpha = alpha
         self.wc = wc
         self.s = s
-
-        if _mpmath_available is False:
-            warnings.warn(
-                "The mpmath module is required for some operations on "
-                "Ohmic environments, but it is not installed.")
 
     def spectral_density(self, w: float | ArrayLike) -> (float | ArrayLike):
         r"""
@@ -1679,6 +1673,13 @@ class OhmicEnvironment(BosonicEnvironment):
         t : array_like or float
             The time at which to evaluate the correlation function.
         """
+        if _mpmath_available:
+            zeta = mp.zeta
+            gamma = mp.gamma
+        else:
+            gamma = scipy.special.gamma
+            from qutip.utilities import zeta
+
         t = np.asarray(t, dtype=float)
         t_was_array = t.ndim > 0
         if not t_was_array:
@@ -1686,18 +1687,18 @@ class OhmicEnvironment(BosonicEnvironment):
 
         if self.T != 0:
             corr = (self.alpha * self.wc ** (1 - self.s) / np.pi
-                    * mp.gamma(self.s + 1) * self.T ** (self.s + 1))
+                    * gamma(self.s + 1) * self.T ** (self.s + 1))
             z1_u = ((1 + self.wc / self.T - 1j * self.wc * t)
                     / (self.wc / self.T))
             z2_u = (1 + 1j * self.wc * t) / (self.wc / self.T)
             result = np.asarray(
-                [corr * (mp.zeta(self.s + 1, u1) + mp.zeta(self.s + 1, u2))
+                [corr * (zeta(self.s + 1, u1) + zeta(self.s + 1, u2))
                  for u1, u2 in zip(z1_u, z2_u)],
                 dtype=np.cdouble
             )
         else:
             corr = (self.alpha * self.wc**2 / np.pi
-                    * mp.gamma(self.s + 1)
+                    * gamma(self.s + 1)
                     * (1 + 1j * self.wc * t) ** (-self.s - 1))
             result = np.asarray(corr, dtype=np.cdouble)
 
