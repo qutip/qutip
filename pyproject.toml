@@ -78,10 +78,8 @@ full = [
 packages = { find = { include = ["qutip*"] } }
 
 [tool.cibuildwheel]
-manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
-# Change in future version to "build"
-build-frontend = "pip"
+manylinux-x86_64-image = "manylinux_2_28"
+build-frontend = "build"
 
 [tool.towncrier]
 directory = "doc/changes"
