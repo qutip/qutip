@@ -193,6 +193,18 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         An 2-dimensional array (matrix) of correlation values for the times
         specified by ``tlist`` (first index) and ``taulist`` (second index).
 
+    Notes
+    -----
+    This function supports two performance optimization strategies:
+
+    *Limit computation with ``max_t_plus_tau``:*
+        Skip computing entries where ``t + tau`` exceeds a threshold.
+        This is useful when correlations decay quickly.
+
+    *Parallel execution with ``map``:*
+        Use ``map='parallel'`` with ``map_kw={'num_cpus': N}`` to utilize
+        multiple CPU cores.
+
     See Also
     --------
     :func:`correlation_3op` :
@@ -338,6 +350,18 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     corr_mat : array
         An 2-dimensional array (matrix) of correlation values for the times
         specified by ``tlist`` (first index) and ``taulist`` (second index).
+
+    Notes
+    -----
+    This function supports two performance optimization strategies:
+
+    *Limit computation with ``max_t_plus_tau``:*
+        Skip computing entries where ``t + tau`` exceeds a threshold.
+        This is useful when correlations decay quickly.
+
+    *Parallel execution with ``map``:*
+        Use ``map='parallel'`` with ``map_kw={'num_cpus': N}`` to utilize
+        multiple CPU cores.
 
     See Also
     --------
@@ -536,13 +560,16 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         to be all provided. For exemple, if ``A`` is not provided,
         ``<B(t+\tau)C(t)>`` is computed.
     max_t_plus_tau : float, optional
-        If provided, skip computation where ``t + tau > max_t_plus_tau``.
-        Skipped entries are filled with ``0``. Default ``None`` means compute
-        all entries (equivalent to ``np.inf``).
+        Maximum value of ``t + tau`` to compute. If provided, entries where
+        ``t + tau > max_t_plus_tau`` are skipped and filled with ``0``.
+        This is useful for reducing computation when correlations decay
+        quickly and long-time behavior is not needed.
+        Default ``None`` means compute all entries (equivalent to ``np.inf``).
     map : str, default: ``'serial'``
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
-        ``'parallel'``, ``'loky'``).
+        ``'parallel'``, ``'loky'``). Use ``'parallel'`` for multi-core
+        parallelization to speed up computation.
     map_kw : dict, optional
         Keyword arguments passed to the map function via its ``map_kw``
         parameter, e.g. ``{'num_cpus': 4}``.
@@ -554,6 +581,62 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         specified by ``tlist`` (first index) and `taulist` (second index). If
         ``tlist`` is ``None``, then a 1-dimensional array of correlation values
         is returned instead.
+
+    Notes
+    -----
+    Performance Optimization
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+    This function can be computationally expensive for large ``tlist`` and
+    ``taulist``. Two strategies can help reduce computation time:
+
+    *Limit computation with ``max_t_plus_tau``:*
+        If correlations decay quickly, you can skip computing entries where
+        ``t + tau`` is large. For example, if you only need correlations
+        up to total time ``T_max``::
+
+            corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                   max_t_plus_tau=T_max)
+
+    *Parallel execution with ``map``:*
+        Use multiple CPU cores to parallelize the computation::
+
+            corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                                   map='parallel', map_kw={'num_cpus': 4})
+
+    These options can be combined for maximum performance::
+
+        corr = correlation_3op(solver, rho0, tlist, taulist, A, B, C,
+                               max_t_plus_tau=T_max,
+                               map='parallel', map_kw={'num_cpus': 4})
+
+    Examples
+    --------
+    Compute a simple two-time correlation:
+
+    >>> import numpy as np  # doctest: +SKIP
+    >>> from qutip import sigmam, sigmap, basis, sigmax, correlation_3op  # doctest: +SKIP
+    >>> from qutip.solver import MESolver  # doctest: +SKIP
+    >>> H = 0.5 * 2 * np.pi * sigmax()  # doctest: +SKIP
+    >>> c_ops = [np.sqrt(0.1) * sigmam()]  # doctest: +SKIP
+    >>> solver = MESolver(H, c_ops)  # doctest: +SKIP
+    >>> rho0 = basis(2, 0)  # doctest: +SKIP
+    >>> tlist = np.linspace(0, 10, 100)  # doctest: +SKIP
+    >>> taulist = np.linspace(0, 5, 50)  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap())  # doctest: +SKIP
+
+    Compute with performance optimization:
+
+    >>> # Only compute up to t + tau = 12  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),  # doctest: +SKIP
+    ...                         max_t_plus_tau=12.0)  # doctest: +SKIP
+    >>>  # doctest: +SKIP
+    >>> # Use 4 CPU cores for parallel computation  # doctest: +SKIP
+    >>> corr = correlation_3op(solver, rho0, tlist, taulist,  # doctest: +SKIP
+    ...                         A=sigmap(), B=sigmam(), C=sigmap(),  # doctest: +SKIP
+    ...                         map='parallel', map_kw={'num_cpus': 4})  # doctest: +SKIP
     """
     taulist = np.asarray(taulist)
     if isket(state0):
