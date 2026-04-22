@@ -28,9 +28,9 @@ def target_mode_matmul_data_dense(
     """
     Apply the operator to the target modes.
 
-    Roughtly equivalent to:
+    Roughly equivalent to:
 
-        expend_operator(operator, hilbert, modes) @ state
+        expand_operator(operator, hilbert, modes) @ state
 
     Parameters
     ----------
@@ -74,10 +74,10 @@ def target_mode_matmul_data_dense(
             operator, state, hilbert, modes, new_hilbert, transpose, conj
         )
     else:
-        # For product from the right, we take the expend the hilbert space to
-        # includ the first index as an extra space.
-        # dims = [[2, 3], [5, 7]] -> hilbert [6, 5, 7] (C order)
-        # then contract with the operator transposed.
+        # For a product from the right, we take the expanded hilbert space to
+        # include the first index as an extra space, e.g.
+        # dims = [[2, 3], [5, 7]] -> hilbert [6, 5, 7] (C order),
+        # and then contract with the transposed operator.
         shape = (state.shape[0], math.prod(new_hilbert))
         if state.fortran:
             hilbert = hilbert + [state.shape[0]]

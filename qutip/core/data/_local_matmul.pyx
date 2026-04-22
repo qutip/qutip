@@ -223,7 +223,7 @@ cdef class NModeMeta:
         if not square_oper:
             if len(hilbert) != len(hilbert_out):
                 raise ValueError(
-                    "The number of hilbert subspaces the must stay constant."
+                    "The number of hilbert subspaces must stay constant."
                 )
             for i, (N_in, N_out) in enumerate(zip(hilbert, hilbert_out)):
                 if i not in mode and N_in != N_out:

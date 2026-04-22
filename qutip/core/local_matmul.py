@@ -15,11 +15,11 @@ def local_matmul(
     Applies an operator to specific modes of a quantum state or operator.
 
     This function performs a tensor product operation where a smaller
-    `operator` acts only on the specified `modes` of a larger `state`.
+    `operator` acts only on the specified `modes` of a larger `state` (or density matrix).
 
-    Super operator are applied on the same mode on both side of a density
-    matrix at once. The state must be a density matrix
-    (operator-ket are not supported).
+    Super operators are supported but must be applied to a density matrix. Apply a super
+    operator to an operator-ket is not supported. The pre- and post- actions of the super
+    operator are applied to the same modes.
 
     Parameters
     ----------
@@ -42,6 +42,16 @@ def local_matmul(
     Qobj
         Updated state as a Qobj.
 
+    Raises
+    ------
+    ValueError:
+       When a target mode index is out of bounds for the state's dimensions, or the
+       operator's input dimensions do not match the state's dimensions on the specified modes.
+    TypeError:
+        When the operator's input dimensions do not match the state's dimensions on the
+        specified modes.
+    NotImplementedError:
+        When `local_matmul` is performed on a dimension that is not a tensor product space (e.g. an `ENR` state or a direct sum).
     Examples
     --------
     Applying a CNOT gate to a multi-qubit state:
