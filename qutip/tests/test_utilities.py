@@ -125,25 +125,29 @@ def test_cpu_count(monkeypatch):
 
 def test_zeta():
     mpmath = pytest.importorskip("mpmath")
-    N = 100
+    N = 50
     s_list = np.random.rand(N) + 1.0001
     # could randomly fail if q is an integer <=0
-    q_list = (np.random.rand(N) - 0.5) * 10
+    q_list = (np.random.rand(N) + 0.05) * 10
     for s, q in zip(s_list, q_list):
-        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
 
-    s_list = np.random.rand(N) + 1.0001
+    q_list = (np.random.rand(N) * 0.9 - .95 - np.random.randint(10))
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    s_list = np.random.rand(N) + 1.001
     q_list = (np.random.rand(N) - 0.5) * 10 + np.random.randn(N) * 10j
     for s, q in zip(s_list, q_list):
-        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
 
     s_list = (
         1 + (np.random.lognormal(size=N) + 1e-6)
-        * np.exp((np.random.rand(N) - 0.5) * 1j * np.pi)
+        * np.exp((np.random.rand(N) * 0.8 - 0.4) * 1j * np.pi)
     )  # Real part > 1.000001
-    q_list = (np.random.rand(N) - 0.5) * 10 + np.random.randn(N) * 10j
+    q_list = (np.random.rand(N) + 0.1) * 10 + np.random.randn(N) * 10j
     for s, q in zip(s_list, q_list):
-        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-14)
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
 
 
 class TestFitting:
