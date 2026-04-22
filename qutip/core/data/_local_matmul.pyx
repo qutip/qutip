@@ -70,7 +70,7 @@ cdef Dense _null_dense(int rows, int cols, bint fortran=True):
     return out
 
 
-cdef void _cut_dense(Dense base, Dense out, int loc):
+cdef void _view_sliced_dense(Dense base, Dense out, int loc):
     out.data = &base.data[loc]
 
 
@@ -112,8 +112,8 @@ cdef void _one_mode_matmul_kernel(
 
     for i in range(loop_count):
         # Set the data pointers for the current block views
-        _cut_dense(state, state_loc, i * step_state)
-        _cut_dense(out, out_loc, i * step_out)
+        _view_sliced_dense(state, state_loc, i * step_state)
+        _view_sliced_dense(out, out_loc, i * step_out)
 
         if not is_dual:
             # oper @ state_loc -> out_loc

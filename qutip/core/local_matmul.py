@@ -15,27 +15,30 @@ def local_matmul(
     Applies an operator to specific modes of a quantum state or operator.
 
     This function performs a tensor product operation where a smaller
-    `operator` acts only on the specified `modes` of a larger `state` (or density matrix).
+    `operator` acts only on the specified `modes` of a larger `state`.
 
-    Super operators are supported but must be applied to a density matrix. Apply a super
-    operator to an operator-ket is not supported. The pre- and post- actions of the super
-    operator are applied to the same modes.
+    Super operators are supported but must be applied to a density matrix.
+    Apply a super operator to an operator-ket is not supported. The pre- and
+    post- actions of the super operator are applied to the same modes.
 
     Parameters
     ----------
     operator: Qobj
         The operator to apply. Its Hilbert space dimensions must correspond to
-        the dimensions of the state on the targeted modes.
+        the dimensions of the state on the targeted modes. It is not restricted
+        to square operator.
 
     state: Qobj
-        The quantum state to be acted upon.
+        The quantum state to be acted upon. It will be converted to a dense
+        representation. Any dense Qobj with dimensions consistant with the
+        operator is supported, ket, density matrices, rectangular operators,
+        etc. Density matrices must be in operator form, not operator-ket form.
 
     modes: int | list[int]
         The indices specifying the modes on which the operator should act.
 
     dual: bool, default: False
         If True, the operator is applied from the right (state @ operator).
-        Ignored for superoperators.
 
     Returns
     -------
@@ -45,13 +48,20 @@ def local_matmul(
     Raises
     ------
     ValueError:
-       When a target mode index is out of bounds for the state's dimensions, or the
-       operator's input dimensions do not match the state's dimensions on the specified modes.
+       When a target mode index is out of bounds for the state's dimensions, or
+       the operator's input dimensions do not match the state's dimensions on
+       the specified modes.
+
+       When dual is True with a super operator.
+
     TypeError:
-        When the operator's input dimensions do not match the state's dimensions on the
-        specified modes.
+        When the operator's input dimensions do not match the state's
+        dimensions on the specified modes.
+
     NotImplementedError:
-        When `local_matmul` is performed on a dimension that is not a tensor product space (e.g. an `ENR` state or a direct sum).
+        When `local_matmul` is performed on a dimension that is not a tensor
+        product space (e.g. an `ENR` state or a direct sum).
+
     Examples
     --------
     Applying a CNOT gate to a multi-qubit state:
@@ -70,6 +80,8 @@ def local_matmul(
     >>> local_matmul(super_operator, rho, modes=[0])
     """
     if operator.issuper:
+        if dual:
+            raise ValueError("'dual' cannot be used with superoperator.")
         return _local_super_apply(operator, state, modes)
     if not dual:
         hilbert_state = state.dims[0]
@@ -91,7 +103,7 @@ def local_matmul(
         raise ValueError(
             "Target mode index is out of bounds for the state's dimensions."
         )
-    if not len(operator.dims[1]) == len(modes):
+    if not len(hilbert_oper_in) == len(modes):
         raise ValueError("Number of modes do not match operator dimensions.")
     if not all(
         hilbert_oper_in[i] == hilbert_state[mode]
