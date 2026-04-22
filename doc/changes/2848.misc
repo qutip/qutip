@@ -1,0 +1,1 @@
+Add type annotations to `core.qobj._require_equal_type` to ensure proper typing for `Qobj.__add__` and `Qobj.__sub__`.
