@@ -407,17 +407,18 @@ def test_mul_vec(all_qevo):
 def test_matmul(all_qevo):
     "QobjEvo matmul oper"
     mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    matQobj = Qobj(mat)
     matDense = Qobj(mat).to(_data.Dense)
     matF = Qobj(np.asfortranarray(mat)).to(_data.Dense)
     matCSR = Qobj(mat).to(_data.CSR)
     op = all_qevo
     for t in TESTTIMES:
         Qo1 = op(t)
-        assert_allclose((Qo1 @ mat).full(),
+        assert_allclose((Qo1 @ matQobj).full(),
                         op.matmul(t, matF).full(), atol=1e-14)
-        assert_allclose((Qo1 @ mat).full(),
+        assert_allclose((Qo1 @ matQobj).full(),
                         op.matmul(t, matDense).full(), atol=1e-14)
-        assert_allclose((Qo1 @ mat).full(),
+        assert_allclose((Qo1 @ matQobj).full(),
                         op.matmul(t, matCSR).full(), atol=1e-14)
 
 

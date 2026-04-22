@@ -463,11 +463,21 @@ class Qobj:
         return self.__mul__(other)
 
     def __matmul__(self, other: Qobj) -> Qobj:
-        if not isinstance(other, Qobj):
+        if isinstance(other, np.ndarray):
+            warnings.warn(
+                "Support for Qobj @ numpy.array has been deprecated "
+                "and will be removed in qutip 5.5 or later. "
+                "Please use Qobj(A) @ B instead.",
+                FutureWarning
+            )
             try:
                 other = Qobj(other)
-            except TypeError:
+            except Exception:
                 return NotImplemented
+
+        if not isinstance(other, Qobj):
+            return NotImplemented
+
         new_dims = self._dims @ other._dims
         if new_dims.type == 'scalar':
             return _data.inner(self._data, other._data)
