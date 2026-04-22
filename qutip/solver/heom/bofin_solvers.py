@@ -441,6 +441,9 @@ def heomsolve(
     using :class:`HEOMSolver` directly to avoid having to continually
     reconstruct the equation hierarchy for every evolution.
 
+    See the Users Guide on :ref:`heom` for an introduction and worked
+    examples.
+
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`
@@ -573,6 +576,9 @@ class HEOMSolver(Solver):
 
     Each bath must be either bosonic or fermionic, but bosonic and fermionic
     baths can be mixed.
+
+    See the Users Guide on :ref:`heom` for an introduction and worked
+    examples.
 
     Parameters
     ----------
