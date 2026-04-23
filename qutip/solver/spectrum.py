@@ -64,6 +64,15 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
 
+    This function computes the discrete Fourier transform of the correlation
+    data. For a physically accurate spectrum, the correlation function should
+    ideally include both positive and negative time delays (i.e., a symmetric
+    correlation around :math:`t=0`). If only positive times are provided,
+    the spectrum may exhibit artifacts due to the implicit periodicity assumed
+    by the FFT. For exponentially decaying correlations, ensure the time range
+    is long enough that the correlation has decayed to near zero at the
+    maximum time.
+
     Parameters
     ----------
     tlist : array_like
