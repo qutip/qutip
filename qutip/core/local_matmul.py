@@ -43,7 +43,7 @@ def local_matmul(
     Returns
     -------
     Qobj
-        Updated state as a Qobj.
+        Updated solver state as a Qobj
 
     Raises
     ------
