@@ -103,16 +103,15 @@ def _n_correlation(times, n):
                      for t in range(times.shape[0])])
 
 
-def _coefficient_function(t, args):
-    t_off, tp = args['t_off'], args['tp']
-    return np.exp(-(t-t_off)*(t-t_off) / (2*tp*tp))
+def _coefficient_function(t, t_off, tp, **kw):
+    return np.exp(-(t - t_off) * (t - t_off) / (2 * tp * tp))
 
 
 _coefficient_string = "exp(-(t-t_off)**2 / (2 * tp*tp))"
 
 
-def _h_qobj_function(t, args):
-    return args['H0'] * _coefficient_function(t, args)
+def _h_qobj_function(t, H0, **args):
+    return H0 * _coefficient_function(t, **args)
 
 
 # 2LS and 3LS stand for two- and three-level system respectively.
@@ -142,7 +141,7 @@ def _2ls_g2_0(H, c_ops):
 
 @pytest.fixture(params=[
     pytest.param(_coefficient_string, id="string"),
-    pytest.param(_coefficient_function(_2ls_times, _2ls_args), id="numpy"),
+    pytest.param(_coefficient_function(_2ls_times, **_2ls_args), id="numpy"),
     pytest.param(_coefficient_function, id="function"),
 ])
 def dependence_2ls(request):
@@ -171,7 +170,9 @@ class TestTimeDependence:
     @pytest.mark.slow
     @pytest.mark.parametrize("dependence_3ls", [
         pytest.param(_coefficient_string, id="string"),
-        pytest.param(_coefficient_function(_3ls_times, _3ls_args), id="numpy"),
+        pytest.param(
+            _coefficient_function(_3ls_times, **_3ls_args), id="numpy"
+        ),
         pytest.param(_coefficient_function, id="function"),
     ])
     def test_coefficient_c_ops_3ls(self, dependence_3ls):

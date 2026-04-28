@@ -173,7 +173,7 @@ class _eigen_qevo:
         # are flat.
         self.out_dims = [qevo.dims[0], [qevo.shape[1]]]
 
-    def __call__(self, t, args):
+    def __call__(self, t, **args):
         if args is not self.args:
             self.args = args
             self.qevo.arguments(self.args)

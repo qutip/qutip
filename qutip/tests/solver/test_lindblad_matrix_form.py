@@ -31,7 +31,7 @@ class TestLindbladMatrixFormInit:
         N = 10
         H0 = qutip.num(N)
         H1 = 0.1 * qutip.create(N)
-        H_td = [H0, [H1, lambda t, args: np.cos(t)]]
+        H_td = [H0, [H1, lambda t: np.cos(t)]]
         c_ops = [np.sqrt(0.1) * qutip.destroy(N)]
 
         rhs = LindbladMatrixForm(QobjEvo(H_td), [QobjEvo(c) for c in c_ops])
