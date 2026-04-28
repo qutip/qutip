@@ -40,9 +40,7 @@ def propagator_piecewise(
     Parameters
     ----------
     H : :obj:`.QobjEvo`
-        Time-dependent Hamiltonian or Liouvillian. Must be callable with
-        signature ``H(t, args)`` that returns the constant operator valid at
-        time ``t``.
+        Time-dependent Hamiltonian or Liouvillian.
 
     tlist : list of float
         List of times at which to evaluate the propagator.

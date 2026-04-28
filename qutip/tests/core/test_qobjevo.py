@@ -26,12 +26,12 @@ class Pseudo_qevo:
 
     def array(self):
         tlist = np.linspace(0, 10, 10001)
-        coeff = self.func(tlist, self.args)
+        coeff = self.func(tlist, **self.args)
         return ([self.cte, [self.qobj, coeff]], {}, tlist)
 
     def logarray(self):
         tlist = np.logspace(-3, 1, 10001)
-        coeff = self.func(tlist, self.args)
+        coeff = self.func(tlist, **self.args)
         return ([self.cte, [self.qobj, coeff]], {}, tlist)
 
     def func_coeff(self):
@@ -43,9 +43,9 @@ class Pseudo_qevo:
     def func_call(self):
         return (self.__call__, self.args)
 
-    def __call__(self, t, args={}):
+    def __call__(self, t, **args):
         args = args or self.args
-        return self.cte + self.qobj * self.func(t, args)
+        return self.cte + self.qobj * self.func(t, **args)
 
     def __getitem__(self, which):
         return getattr(self, which)()
@@ -60,12 +60,12 @@ args = {'w1': 1, "w2": 2}
 TESTTIMES = np.linspace(0.001, 1.0, 10)
 
 
-def _real(t, args):
-    return np.sin(t*args['w1'])
+def _real(t, w1, **kw):
+    return np.sin(t * w1)
 
 
-def _cplx(t, args):
-    return np.exp(1j*t*args['w2'])
+def _cplx(t, w2, **kw):
+    return np.exp(1j * t * w2)
 
 
 real_qevo = Pseudo_qevo(
@@ -189,7 +189,7 @@ def test_QobjEvo_repr():
                          ['func_coeff', 'string', 'array', 'logarray'])
 def test_product_coeff(pseudo_qevo, coeff_type):
     # test creation of QobjEvo with Qobj * Coefficient
-    # Skip pure func: QobjEvo(f(t, args) -> Qobj)
+    # Skip pure func: QobjEvo(f(t, **args) -> Qobj)
     base = pseudo_qevo[coeff_type]
     cte, [qobj, coeff] = base[0]
     args = base[1] if len(base) >= 2 else {}
@@ -331,8 +331,8 @@ def test_args(pseudo_qevo, args_coeff_type):
     args = {'w1': 3, "w2": 3}
 
     for t in TESTTIMES:
-        _assert_qobj_almost_eq(obj(t, args), pseudo_qevo(t, args))
-        _assert_qobj_almost_eq(obj(t, **args), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t, args), pseudo_qevo(t, **args))
+        _assert_qobj_almost_eq(obj(t, **args), pseudo_qevo(t, **args))
 
     # Did it modify original args
     _assert_qobjevo_equivalent(obj, pseudo_qevo)
@@ -340,13 +340,13 @@ def test_args(pseudo_qevo, args_coeff_type):
     obj.arguments(args)
     _assert_qobjevo_different(obj, pseudo_qevo)
     for t in TESTTIMES:
-        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, **args))
 
     args = {'w1': 4, "w2": 4}
     obj.arguments(**args)
     _assert_qobjevo_different(obj, pseudo_qevo)
     for t in TESTTIMES:
-        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, **args))
 
 
 def test_copy_side_effects(all_qevo):

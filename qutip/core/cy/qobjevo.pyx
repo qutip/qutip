@@ -128,8 +128,8 @@ cdef class QobjEvo:
 
     .. code-block::
 
-        def f(t, args):
-            return qutip.qeye(N) * np.exp(args['w'] * t)
+        def f(t, w):
+            return qutip.qeye(N) * np.exp(w * t)
 
         QobjEvo(f, args={'w': 1j})
 
@@ -150,8 +150,8 @@ cdef class QobjEvo:
 
     .. code-block::
 
-        def f1_t(t, args):
-            return np.exp(-1j * t * args["w1"])
+        def f1_t(t, w1):
+            return np.exp(-1j * t * w1)
 
         QobjEvo([[H1, f1_t]], args={"w1": 1.})
 
@@ -270,6 +270,7 @@ cdef class QobjEvo:
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args, order=order,
+                            function_style=function_style,
                             boundary_conditions=boundary_conditions)
             )
             qobj = op[0]

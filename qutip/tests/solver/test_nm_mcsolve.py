@@ -135,12 +135,12 @@ def _assert_functions_equal(f1, f2):
     np.testing.assert_allclose(values1, values2)
 
 
-def _return_constant(t, args):
-    return args['constant']
+def _return_constant(t, constant):
+    return constant
 
 
-def _return_decay(t, args):
-    return args['constant'] * np.exp(-args['rate'] * t)
+def _return_decay(t, constant, rate):
+    return constant * np.exp(-rate * t)
 
 
 class callable_qobj:
@@ -148,9 +148,9 @@ class callable_qobj:
         self.oper = oper
         self.coeff = coeff
 
-    def __call__(self, t, args):
+    def __call__(self, t, **args):
         if self.coeff is not None:
-            return self.oper * self.coeff(t, args)
+            return self.oper * self.coeff(t, **args)
         return self.oper
 
 
@@ -678,8 +678,8 @@ def test_NonMarkovianMCSolver_stepping():
 
 
 # Defined in module-scope so it's pickleable.
-def _dynamic(t, args):
-    return 0 if args["collapse"] else 1
+def _dynamic(t, collapse):
+    return 0 if collapse else 1
 
 
 @pytest.mark.xfail(reason="current limitation of NonMarkovianMCSolver")
