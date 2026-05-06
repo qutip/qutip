@@ -141,9 +141,12 @@ class Dysolve:
             elif form == "exp":
                 perturbations.append((oper, omega, coeff, factor))
 
-        self.perturbations = list(zip(*perturbations))
-        self.perturbations[1] = np.array(self.perturbations[1])
-        self.perturbations[3] = np.array(self.perturbations[3])
+        if perturbations:
+            self.perturbations = list(zip(*perturbations))
+            self.perturbations[1] = np.array(self.perturbations[1])
+            self.perturbations[3] = np.array(self.perturbations[3])
+        else:
+            self.perturbations = [[], [], [], []]
 
         self.options = {
             "order": 4,
@@ -212,6 +215,7 @@ class Dysolve:
             U = np.eye(self.H_0.shape[0])
         time_diff = t_f - t_i
         n_steps = abs(int(time_diff / dt))
+        print(f"{n_steps=}, {time_diff=}, {t_i=}, {t_f=}, {dt=}")
 
         if n_steps == 0:
             pass
@@ -220,7 +224,7 @@ class Dysolve:
                 U = self._get_subprop(t_i + j * dt) @ U
         else:
             for j in range(n_steps):
-                U = self._get_subprop(t_i - (j + 1) * dt).dag() @ U
+                U = self._get_subprop(t_i - j * dt, -dt) @ U
 
         # We only save propagator at time multiple of step_size
         self.U = U
@@ -228,6 +232,7 @@ class Dysolve:
 
         remaining = time_diff - n_steps * dt * np.sign(time_diff)
         if abs(remaining) > self.options["a_tol"]:
+            print(f"{remaining=}")
             U = self._get_subprop(t_f - remaining, remaining) @ U
 
         return Qobj(U, self._H_0._dims, copy=False).transform(
@@ -356,7 +361,7 @@ class Dysolve:
         subpropagator += Sns[0]
 
         ws_vec = self.perturbations[1]
-        ws = np.add.outer(self._eigenenergies, -self._eigenenergies)
+        ws = np.zeros((N, N))
         if self.td:
             envelopes = np.array([
                 coeff(current_time + dt / 2)

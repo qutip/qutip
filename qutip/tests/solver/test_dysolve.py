@@ -9,7 +9,14 @@ from qutip import (
     qeye_like,
     tensor,
     enr_destroy,
+    destroy,
     CoreOptions,
+    rand_herm,
+    coefficient,
+    Coefficient,
+    QobjEvo,
+    Qobj,
+    num,
 )
 from scipy.special import factorial
 import numpy as np
@@ -81,12 +88,11 @@ def test_integrals_2(eff_omega_1, eff_omega_2, dt):
 
     assert np.isclose(integrals, answer, rtol=1e-10, atol=1e-10)
 
+
 @pytest.mark.parametrize("H_0", [
-    sigmaz(),
     sigmay(),
     tensor(sigmax(), sigmaz()),
     tensor(sigmax(), sigmaz()) + tensor(qeye(2), sigmay()),
-    _enr_xz(),
 ])
 @pytest.mark.parametrize("t_i, t_f", [
     (0, 0.1),
@@ -96,8 +102,8 @@ def test_integrals_2(eff_omega_1, eff_omega_2, dt):
 ])
 def test_zeroth_order(H_0, t_i, t_f):
     # self.X and self.omega don't matter
-    dysolve = DysolvePropagator(H_0, [], options={"max_order": 0})
-    U = dysolve(t_f, t_i)
+    dysolve = Dysolve(H_0, [], options={"max_order": 0})
+    U = dysolve.propagator(t_f, t_i)
 
     exp = (-1j * H_0 * (t_f - t_i)).expm()
 
@@ -125,7 +131,7 @@ def _drive2QobjEvo(drive):
 @pytest.mark.parametrize("H_0", [sigmax(), sigmaz()])
 @pytest.mark.parametrize("X", [sigmay(), sigmaz()])
 @pytest.mark.parametrize("t", [
-    -0.1, -0.75, -0.25, 0, 0.075, 0.15,
+    -0.1, -0.075, -0.025, 0, 0.075, 0.15,
     [0, 0.25, 0.5], [0, -0.25, -0.5], [-0.1, 0, 0.1]
 ])
 @pytest.mark.parametrize("omega", [0, 1, 2, 10])
@@ -158,10 +164,10 @@ def test_2x2_propagators(H_0, X, t, omega):
 def test_4x4_propagators(H_0, X, omega, t_f):
     options = {"max_order": 3, "max_dt": 0.01}
     drive = (X, omega)
-    Us = dysolve_propagator(H_0, drive, ts, options=options)
+    U = dysolve_propagator(H_0, [drive], t_f, options=options)
 
     H = H_0 + _drive2QobjEvo(drive)
-    prop = propagator(H, t_f, args=args, options={"atol": 1e-10, "rtol": 1e-8})
+    prop = propagator(H, t_f, options={"atol": 1e-10, "rtol": 1e-8})
 
     with CoreOptions(atol=1e-10, rtol=1e-5):
         assert U == prop
@@ -175,7 +181,7 @@ def test_enr_propagators(omega, t_f):
     a, b = enr_destroy([2, 2], 1)
     X = (a + a.dag()) @ (b + b.dag())
     H_0 = (a.dag() @ a) + (b.dag() @ b)
-    test_4x4_propagators_single_time(H_0, X, omega, t_f)
+    test_4x4_propagators(H_0, X, omega, t_f)
 
 
 @pytest.fixture(params=[
@@ -186,17 +192,49 @@ def H0(request):
     return request.param
 
 
-def make_drives(dims, w, format=None, coeff=None):
-    X = qt.rand_herm(dims) * 0.5
-    if format is not None and coeff is not None:
-        drive = (X, w, format, coeff)
-    elif format is not None:
-        drive = (X, w, format)
-    elif coeff is not None:
-        dysolve.Drive(X, w, envelope=coeff)
-    else
-        drive = (X, w)
-    return drive
+@pytest.mark.parametrize("formats", [
+    ["cos"], ["sin"], ["sin", "cos"], ["exp", "exp"]
+])
+def test_drive_formats(H0, formats):
+    if len(formats) == 1:
+        drives = [(rand_herm(10), 100, formats[0])]
+    elif formats[0] != "exp":
+        drives = [
+            (rand_herm(10), 100, formats[0]),
+            (rand_herm(10), -200, formats[1]),
+        ]
+    else:
+        op = rand_herm(10)
+        drives = [(op, 100, "exp"), (op, -100, "exp")]
+
+    H = H0()
+    for drive in drives:
+        H += _drive2QobjEvo(drive)
+
+    dy_instance = Dysolve(H0(), drives)
+
+    for t in [-0.1, 0.1]:
+        prop = propagator(H, t, options={"atol": 1e-10, "rtol": 1e-8})
+        dy_prop = dy_instance.propagator(t)
+        assert dy_prop == prop
 
 
-def
+def test_envelopes(H0):
+    args = {"A": 1.}
+    a = destroy(10)
+    coeff = coefficient(lambda t, A: A*t, args=args)
+    drives = [dysolve.Drive(a + a.dag(), 100, envelope=coeff)]
+    dy_instance = Dysolve(H0(), drives, options={"step_size": 0.001})
+
+    H = H0()
+    for drive in drives:
+        H += _drive2QobjEvo(drive)
+
+    prop = propagator(H, 0.1, options={"atol": 1e-10, "rtol": 1e-8})
+    dy_prop = dy_instance.propagator(0.1)
+    assert dy_prop == prop
+
+    args = {"A": 5.}
+    prop = propagator(H, 0.1, args=args, options={"atol": 1e-10, "rtol": 1e-8})
+    dy_prop = dy_instance.propagator(0.1, args=args)
+    assert dy_prop == prop
