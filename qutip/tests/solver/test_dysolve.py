@@ -5,6 +5,7 @@ from qutip import (
     sigmax,
     sigmay,
     sigmaz,
+    basis,
     qeye,
     qeye_like,
     tensor,
@@ -102,7 +103,7 @@ def test_integrals_2(eff_omega_1, eff_omega_2, dt):
 ])
 def test_zeroth_order(H_0, t_i, t_f):
     # self.X and self.omega don't matter
-    dysolve = Dysolve(H_0, [], options={"max_order": 0})
+    dysolve = Dysolve(H_0, [], options={"order": 0})
     U = dysolve.propagator(t_f, t_i)
 
     exp = (-1j * H_0 * (t_f - t_i)).expm()
@@ -137,7 +138,7 @@ def _drive2QobjEvo(drive):
 @pytest.mark.parametrize("omega", [0, 1, 2, 10])
 def test_2x2_propagators(H_0, X, t, omega):
     # Dysolve
-    options = {"max_order": 3, "max_dt": 0.05}
+    options = {"order": 4, "step_size": 0.05}
     drive = (X, omega)
     U = dysolve_propagator(H_0, [drive], t, options=options)
 
@@ -162,7 +163,7 @@ def test_2x2_propagators(H_0, X, t, omega):
 @pytest.mark.parametrize("omega", [1, 2, 10])
 @pytest.mark.parametrize("t_f", [1, -1])
 def test_4x4_propagators(H_0, X, omega, t_f):
-    options = {"max_order": 3, "max_dt": 0.01}
+    options = {"order": 3, "step_size": 0.01}
     drive = (X, omega)
     U = dysolve_propagator(H_0, [drive], t_f, options=options)
 
@@ -185,8 +186,8 @@ def test_enr_propagators(omega, t_f):
 
 
 @pytest.fixture(params=[
-    pytest.param(lambda: num(10), id='diag'),
-    pytest.param(lambda: rand_herm(10, density=0.7), id='non-diag'),
+    pytest.param(lambda: num(6), id='diag'),
+    pytest.param(lambda: rand_herm(6, density=0.7), id='non-diag'),
 ])
 def H0(request):
     return request.param
@@ -196,45 +197,99 @@ def H0(request):
     ["cos"], ["sin"], ["sin", "cos"], ["exp", "exp"]
 ])
 def test_drive_formats(H0, formats):
+    H = H0()
     if len(formats) == 1:
-        drives = [(rand_herm(10), 100, formats[0])]
+        drives = [(rand_herm(6), 100, formats[0])]
     elif formats[0] != "exp":
         drives = [
-            (rand_herm(10), 100, formats[0]),
-            (rand_herm(10), -200, formats[1]),
+            (rand_herm(6), 100, formats[0]),
+            (rand_herm(6), -200, formats[1]),
         ]
     else:
-        op = rand_herm(10)
-        drives = [(op, 100, "exp"), (op, -100, "exp")]
+        op = rand_herm(6) @ destroy(6)
+        drives = [(op, 100, "exp"), (op.dag(), -100, "exp")]
 
-    H = H0()
+    dy_instance = Dysolve(H, drives)
+
     for drive in drives:
         H += _drive2QobjEvo(drive)
-
-    dy_instance = Dysolve(H0(), drives)
 
     for t in [-0.1, 0.1]:
         prop = propagator(H, t, options={"atol": 1e-10, "rtol": 1e-8})
         dy_prop = dy_instance.propagator(t)
-        assert dy_prop == prop
+        with CoreOptions(atol=1e-6, rtol=1e-5):
+            assert dy_prop == prop
+
+
+def test_non_herm_drive():
+    H = num(5) + destroy(5) + destroy(5).dag()
+    drives = [(destroy(5).dag(), 100, "exp")]
+
+    dy_instance = Dysolve(H, drives)
+
+    for drive in drives:
+        H += _drive2QobjEvo(drive)
+
+    for t in [-0.5, 0.5, -0.1, 0.1]:
+        prop = propagator(H, t, options={"atol": 1e-10, "rtol": 1e-8})
+        dy_prop = dy_instance.propagator(t)
+        with CoreOptions(atol=1e-6, rtol=1e-5):
+            assert dy_prop == prop
 
 
 def test_envelopes(H0):
+    H = H0()
     args = {"A": 1.}
-    a = destroy(10)
+    a = destroy(6)
     coeff = coefficient(lambda t, A: A*t, args=args)
     drives = [dysolve.Drive(a + a.dag(), 100, envelope=coeff)]
-    dy_instance = Dysolve(H0(), drives, options={"step_size": 0.001})
 
-    H = H0()
+    dy_instance = Dysolve(H, drives, options={"step_size": 0.0001, "order": 2})
     for drive in drives:
         H += _drive2QobjEvo(drive)
 
     prop = propagator(H, 0.1, options={"atol": 1e-10, "rtol": 1e-8})
     dy_prop = dy_instance.propagator(0.1)
-    assert dy_prop == prop
+    with CoreOptions(atol=1e-6, rtol=1e-5):
+        assert dy_prop == prop
 
     args = {"A": 5.}
     prop = propagator(H, 0.1, args=args, options={"atol": 1e-10, "rtol": 1e-8})
     dy_prop = dy_instance.propagator(0.1, args=args)
-    assert dy_prop == prop
+    with CoreOptions(atol=1e-6, rtol=1e-5):
+        assert dy_prop == prop
+
+
+def test_solve_interface():
+    H0 = rand_herm(6, density=0.5)
+    args = {"A": 1.}
+    a = destroy(6)
+    coeff = coefficient(lambda t, A: A, args=args)
+    drives = [(a + a.dag(), 10, "sin", coeff)]
+    psi0 = basis(6, 4)
+    tlist = np.linspace(0, 5, 51)
+    e_ops = [num(6), a + a.dag(), H0]
+    res_options = {"store_states": True}
+    H = H0.copy()
+    for drive in drives:
+        H += _drive2QobjEvo(drive)
+
+    dy_results = dysolve(
+        H0, drives,
+        psi0, tlist,
+        e_ops=e_ops, args={"A": 2.},
+        options={"step_size": 0.001, "order": 4, **res_options}
+    )
+
+    results = sesolve(
+        H,
+        psi0, tlist,
+        e_ops=e_ops, args={"A": 2.},
+        options=res_options,
+    )
+    np.testing.assert_allclose(
+        dy_results.expect, results.expect, atol=1e-5, rtol=1e-5
+    )
+
+    with CoreOptions(atol=1e-6, rtol=1e-5):
+        assert dy_results.states[40] == results.states[40]

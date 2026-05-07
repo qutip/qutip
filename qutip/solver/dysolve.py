@@ -72,6 +72,8 @@ class Dysolve:
         envelope : Coefficient, optional
             If provided, a slowly varying envelope to the drive. The envelope
             is estimated to be flat over each step of ``options["step_size"]``.
+            Note that when used, it is usually good to use very small step size
+            with a lower order.
 
         A namedtuple with these elements is available as `qutip.dysolve.Drive`.
 
@@ -101,8 +103,7 @@ class Dysolve:
     Note
     ----
     The effective Hamiltonian is expected to be hermitian, but this is only
-    needed when computing the propagator with negative times differences:
-    ``Dysolve.propagator(-1)`` or ``Dysolve.propagator(0, 1)``.
+    required for the base part ``H_0``. The drive can be non-hermitian.
     """
 
     def __init__(
@@ -235,7 +236,7 @@ class Dysolve:
             print(f"{remaining=}")
             U = self._get_subprop(t_f - remaining, remaining) @ U
 
-        return Qobj(U, self._H_0._dims, copy=False).transform(
+        return Qobj(U, self._H_0._dims, copy=None).transform(
             self._basis, inverse=False
         )
 
@@ -484,11 +485,12 @@ class Dysolve:
                 ws_matrix = np.zeros((len(amplitudes), n))
                 for i in range(n):
                     ws_matrix[:, i] = (
-                        current_omegas[i] + dE[paths[:, i], paths[:, i + 1]]
+                        current_omegas[i]
+                        + dE[paths[:, i], paths[:, i + 1]]
                     )
 
                 integrals = np.array(
-                    [cy_compute_integrals(row, dt) for row in ws_matrix]
+                    [cy_compute_integrals(row[::-1], dt) for row in ws_matrix]
                 )
                 start_indices = paths[:, 0]
                 end_indices = paths[:, -1]
@@ -551,6 +553,8 @@ def dysolve_propagator(
         envelope : Coefficient, optional
             If provided, a slowly varying envelope to the drive. The envelope
             is estimated to be flat over each step of ``options["step_size"]``.
+            Note that when used, it is usually good to use very small step size
+            with a lower order.
 
         A namedtuple with these elements is available as `qutip.dysolve.Drive`.
 
@@ -662,6 +666,8 @@ def dysolve(
         envelope : Coefficient, optional
             If provided, a slowly varying envelope to the drive. The envelope
             is estimated to be flat over each step of ``options["step_size"]``.
+            Note that when used, it is usually good to use very small step size
+            with a lower order.
 
         A namedtuple with these elements is available as `qutip.dysolve.Drive`.
 
