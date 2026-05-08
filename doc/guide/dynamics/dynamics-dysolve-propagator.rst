@@ -4,81 +4,126 @@
 Dysolve
 *******
 
-The following guide explains what Dysolve [1]_ is and how to use its implementation in QuTiP.
+The ``dysolve`` solver [1]_ provides an efficient way to compute the time evolution of closed quantum systems under high-frequency drives.
+It uses a Dyson series expansion in the interaction picture, offering a significant performance advantage over standard methods like :func:`sesolve`
+when the drive frequency is large compared to the system's internal energy scales.
 
-Time evolution of a quantum system
-==================================
-It is common knowledge that the time evolution of a closed quantum system is given by the Schrödinger equation (:math:`\hbar = 1`) :
-
-.. math::
-
- \displaystyle i \frac{d}{dt}\left|\psi(t)\right> = H(t)\left|\psi(t)\right>
-
-When solving this equation, a time evolution operator :math:`U(t_f, t_i)` (often called a propagator) is introduced and allows a quantum state to evolve from time :math:`t_i` to time :math:`t_f` when applied. When the hamiltonian is time dependent, the propagator has the following form [2]_ : 
+The Time Evolution Operator
+===========================
+The time evolution of a closed quantum system is governed by the Schrödinger equation (:math:`\hbar = 1`):
 
 .. math::
 
- \displaystyle U(t_f, t_i) = e^{-i\int_{t_i}^{t_f}H(t)dt}
+  \displaystyle i \frac{d}{dt}\left|\psi(t)\right> = H(t)\left|\psi(t)\right>
 
-There are many ways to compute such a propagator with code depending on what the system's hamiltonian is.
 
-.. _DysolvePropagator:
-
-Calculating propagators with Dysolve
-====================================
-
-For Hamiltonians of the form :math:`H(t) = H_0 + \cos(\omega t)X`, where a perturbation :math:`X` is added to some quantum system with Hamiltonian :math:`H_0`, Dysolve is an excellent method to compute time propagators. Indeed, the calculations can be done in parallel and certain quantities can be reused throughout the whole process. Futhermore, Dysolve can be generalized to more complicated perturbations, offering a wide range of possible applications. Also, because this method is specifically designed for oscillating perturbations, it gives more precise results quicker compared to more general methods. This effect is accentuated the bigger the frequency is.
-
-After plugging in :math:`H(t) = H_0 + \cos(\omega t)X` in the equation for the propagator, the idea is to develop the exponential as a power series of :math:`X`. Furthermore, the cosine is rewritten using its exponential equivalent. From that, a propagator will consist of a sum of subpropagators :math:`U^{(n)}`
+For a time-dependent Hamiltonian, the solution is expressed via the time-evolution operator (propagator) :math:`U(t_f, t_i)`,
+which maps an initial state to a final state: :math:`\left|\psi(t_f)\right> = U(t_f, t_i)\left|\psi(t_i)\right>`.
+Generally, this operator takes the form of a time-ordered exponential:
 
 .. math::
 
- \displaystyle U(t+\delta t,t) = \sum_{n=0}^{\infty} U^{(n)}(t + \delta t, t)
+  \displaystyle U(t_f, t_i) = \mathcal{T} \exp\left(-i \int_{t_i}^{t_f} H(t) dt \right)
 
-where 
+
+where :math:`\mathcal{T}` is the time-ordering operator.
+While standard solvers compute this by numerically integrating the ODE,
+``dysolve`` uses a perturbative expansion that is particularly powerful for oscillatory drives.
+
+
+.. _DysolveMethod:
+
+The Dyson Series Method
+=======================
+
+``dysolve`` is designed for Hamiltonians that can be decomposed into a static part
+:math:`H_0` and a sum of periodic perturbations:
 
 .. math::
 
- \displaystyle U^{(n)}(t + \delta t, t) = \sum_{\left\{\boldsymbol{\omega}_n\right\}}e^{i\sum_{p=1}^{n}\boldsymbol{\omega}_n[p]t}S^{(n)}(\boldsymbol{\omega}_n, \delta t)
+    H(t) = H_0 + \sum_j V_j(t) = H_0 + \sum_j \mathcal{E}_j(t) X_j e^{i \omega_j t}
 
-Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n` of the form :math:`\boldsymbol{\omega}_n = \left[±\omega, ..., ±\omega\right]`, :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` is a matrix and it is assumed that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. In practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`\tau` being the time ordering operator,
+where :math:`X_j` are drive operators, :math:`\omega_j` are frequencies,
+and :math:`\mathcal{E}_j(t)` are (potentially) slow-moving envelopes.
+
+By moving to the interaction picture defined by :math:`H_0`,
+the propagator over a small time step :math:`\delta t` can be expanded as a Dyson series:
 
 .. math::
- \displaystyle U(T,0) = \tau\prod_{p=0}^{P}U((p+1)\delta t, p\delta t) = \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{\infty}U^{(n)}((p+1)\delta t, p\delta t)\right)
 
-.. math::
- \displaystyle \approx  \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{r}U^{(n)}((p+1)\delta t, p\delta t)\right)
+    U(t+\delta t, t) \approx \sum_{n=0}^{r} U^{(n)}(t + \delta t, t)
 
-As we can see, computing :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` for a given range on :math:`n` once allows us to calculate as many propagators as we want because this quantity depends on the time increment :math:`\delta t` and not the current time in the evolution. Therefore, in the long run and with the right ressources, Dysolve can be an extremely useful and efficient method for calculating propagators of systems with the form described at the beginning of this section.
+The expansion terms :math:`U^{(n)}` are computed analytically.
+A key advantage of this method is that for a constant envelope :math:`\mathcal{E}_j`,
+the heavy lifting of the expansion—specifically the multidimensional integrals—depends only on
+:math:`\delta t` and the frequencies, not on the absolute time :math:`t`.
+
+Why use Dysolve?
+----------------
+
+1. **High-Frequency Efficiency**: Standard ODE solvers require a time step much smaller than the shortest period in the system (:math:`\delta t \ll 1/\omega_{max}`).
+   In contrast, the Dyson expansion converges **faster** as the frequency increases.
+2. **Memoization**: Because the core tensors (:math:`S^{(n)}`) are independent of the current time :math:`t`, they are computed once and cached.
+   This makes long-time simulations or calculations with many time-steps extremely fast after the first step.
+
+.. _dysolve_usage:
+
+Using Dysolve
+=============
+
+The solver is accessed via the :func:`dysolve` function or the :class:`Dysolve` class for more granular control.
+
+**Key Options:**
+
+* ``order``: The truncation order of the Dyson series (default is 4).
+  Higher orders increase accuracy but require more precomputation.
+* ``step_size``: The time increment :math:`\delta t`.
+  The envelope :math:`\mathcal{E}(t)` is assumed to be constant over this interval.
+* ``eigen``: How to get the Hamiltonian in the interaction picture.
+  If true, the Hamiltonian will be diagonalized.
+  If false, the non-diagonal parts will be computed as a drive with frequency of zeros.
+  Precomputation is much slower with full diagonalization, but the numerical error is much smaller.
 
 .. _dysolve_code_example:
 
-Code example
+Code Example
 ============
 
-The following code shows a simple example on how to use QuTiP's implementation of Dysolve. Here, :math:`H(t) = \sigma_z + \cos(t)\sigma_x`.
+In this example, we compare ``dysolve`` to the standard ``sesolve`` for a
+Rabi oscillation under a high-frequency drive.
 
-.. code-block:: Python
-    
-    from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
-    from qutip import sigmax, sigmaz
+.. code-block:: python
 
-    H_0 = sigmaz()
-    X = sigmax()
-    omega = 1
-    options = {'max_order': 5, 'max_dt': 0.05}
+    import numpy as np
+    from qutip import sigmaz, sigmax, basis, dysolve, sesolve, CoreOptions
 
-    #Initialize an instance and call it to compute a time propagator.
-    #Give a final time and, optionally, an initial time.
-    t_f = 1
-    dy = DysolvePropagator(H_0, X, omega, options)
-    U = dy(t_f)
-    
-    #Another option is to use the dysolve_propagator function.
-    #A final time or a list of times can be given.
-    #For the latter, [U(t[i], t[0])] is returned.
-    times = [0, 1, 2]
-    Us = dysolve_propagator(H_0, X, omega, times, options)
+    # Parameters
+    omega_q = 1.0 * 2 * np.pi
+    omega_d = 1000.0 * 2 * np.pi
+    A = 0.5
+    tlist = np.linspace(0, 10, 201)
 
+    # Hamiltonian components
+    H0 = 0.5 * omega_q * sigmaz()
+    # Drive format: (Operator, Frequency, Form)
+    drives = [(A * sigmax(), omega_d, "cos")]
+
+    # Initial state
+    psi0 = basis(2, 0)
+
+    # Solve using Dyson series
+    result_dy = dysolve(
+        H0, drives, psi0, tlist, 
+        options={"order": 4, "step_size": 0.1}
+    )
+
+    # Solve using sesolve (for comparison)
+    H_td = [H0, [sigmax(), lambda t, args: A * np.cos(omega_d * t)]]
+    result_se = sesolve(H_td, psi0, tlist)
+
+    with CoreOptions(atol=1e-7, rtol=1e-7):
+      print(result_se.states == result_dy.states)
+
+References
+==========
 .. [1] Ross Shillito, Jonathan A. Gross, Agustin Di Paolo, Élie Genois, and Alexandre Blais. Fast and differentiable simulation of driven quantum systems. *Physical Review Research*, 3(3), September 2021. https://arxiv.org/abs/2012.09282
-.. [2] H.P. Breuer and F. Petruccione. *The theory of open quantum systems*. Oxford University Press, Great Clarendon Street, 2002.
