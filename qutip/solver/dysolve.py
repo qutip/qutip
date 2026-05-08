@@ -7,6 +7,7 @@ from ..core import data as _data
 from numpy.typing import ArrayLike
 import numpy as np
 import scipy.sparse
+from scipy.linalg import polar
 from numbers import Number
 from typing import Literal, NamedTuple, Any
 from collections import namedtuple
@@ -99,6 +100,16 @@ class Dysolve:
             given.
         - | normalize_output : bool, False
           | Normalize output state to hide ODE numerical errors.
+        - | eigen : bool, False
+          | Whether to diagonalize the base Hamiltonian ``H_0``using eigen
+            states or extracting the diagonal and using the non-diagonal as
+            a drive with frequency 0. Precomputation is much faster without
+            using the eigen basis, but the extra drive increase the numerical
+            error significantly.
+        - | polar : bool, False
+          | Whether to use polar decomposition on the propagator. Improve
+            accuracy for low odd order.
+            *Can't be used with non-hermitian Hamiltonian.*
 
     Note
     ----
@@ -113,9 +124,40 @@ class Dysolve:
         options: dict[str] = None,
     ):
         # System
-        self._eigenenergies, self._basis = H_0.eigenstates(output_type="oper")
-        self.H_0 = H_0
-        self._H_0 = H_0.transform(self._basis, inverse=True)
+
+        self.options = {
+            "order": 4,
+            "a_tol": 1e-10,
+            "step_size": 0.1,
+            "store_final_state": False,
+            "store_states": None,
+            "normalize_output": False,
+            "polar": False,
+            "eigen": False,
+        }
+        if options:
+            self.options.update(options)
+
+        self._dims = H_0._dims
+        self.dims = H_0.dims
+        if not isinstance(drives, list):
+            raise TypeError("drives must be a list of tuple")
+        drives = drives.copy()
+
+        if self.options["eigen"]:
+            self._eigenenergies, self._basis = H_0.eigenstates(
+                output_type="oper"
+            )
+            self._Ddims = H_0.transform(self._basis, inverse=True)._dims
+        else:
+            self._eigenenergies = np.diag(H_0.full()).real
+            self._H_0 = np.diag(self._eigenenergies)
+            offdiag = H_0 - Qobj(self._H_0, dims=H_0._dims)
+            if offdiag.norm():
+                drives.append((offdiag, 0, "exp"))
+            self._basis = None
+            self._Ddims = H_0._dims
+
         self.td = False
         perturbations = []
         for perturbation in drives:
@@ -131,7 +173,7 @@ class Dysolve:
             elif given_coeff is not None:
                 factor = given_coeff
 
-            oper = oper.transform(self._basis, inverse=True)
+            oper = self._transform(oper, inverse=True)
             if form == "cos":
                 oper = oper * 0.5
                 perturbations.append((oper, omega, coeff, factor))
@@ -149,24 +191,18 @@ class Dysolve:
         else:
             self.perturbations = [[], [], [], []]
 
-        self.options = {
-            "order": 4,
-            "a_tol": 1e-10,
-            "step_size": 0.1,
-            "store_final_state": False,
-            "store_states": None,
-            "normalize_output": False,
-            # "envelope_order" : 0,
-        }
-        if options:
-            self.options.update(options)
-
         # Memoization
         self._dt_Sns = {}
 
         # Time propagator
-        self.U = np.eye(self.H_0.shape[0])
+        self.U = np.eye(len(self._eigenenergies))
         self.t = 0
+
+    def _transform(self, oper, inverse):
+        if self.options["eigen"]:
+            return oper.transform(self._basis, inverse=inverse)
+        else:
+            return oper
 
     def propagator(
         self, t_f: float, t_i: float = 0.0, *, args: dict[str, Any] = None
@@ -206,17 +242,16 @@ class Dysolve:
                 for coeff in self.perturbations[2]
             ]
             self.t = 0
-            self.U = np.eye(self.H_0.shape[0])
+            self.U = np.eye(len(self._eigenenergies))
 
         dt = self.options["step_size"]
         if t_i == 0 and abs(t_f - self.t) < abs(t_f - t_i):
             t_i = self.t
             U = self.U
         else:
-            U = np.eye(self.H_0.shape[0])
+            U = np.eye(len(self._eigenenergies))
         time_diff = t_f - t_i
         n_steps = abs(int(time_diff / dt))
-        print(f"{n_steps=}, {time_diff=}, {t_i=}, {t_f=}, {dt=}")
 
         if n_steps == 0:
             pass
@@ -233,12 +268,12 @@ class Dysolve:
 
         remaining = time_diff - n_steps * dt * np.sign(time_diff)
         if abs(remaining) > self.options["a_tol"]:
-            print(f"{remaining=}")
             U = self._get_subprop(t_f - remaining, remaining) @ U
 
-        return Qobj(U, self._H_0._dims, copy=None).transform(
-            self._basis, inverse=False
-        )
+        if self.options["polar"]:
+            U = polar(U)[0]
+
+        return self._transform(Qobj(U, self._Ddims, copy=None), False)
 
     def run(
         self,
@@ -287,12 +322,12 @@ class Dysolve:
                 for coeff in self.perturbations[2]
             ]
             self.t = 0
-            self.U = np.eye(self.H_0.shape[0])
+            self.U = np.eye(len(self._eigenenergies))
 
         dt = self.options["step_size"]
-        if state0._dims[0] != self.H_0._dims[1]:
+        if state0._dims[0] != self._dims[1]:
             raise TypeError(
-                f"incompatible dimensions {self.H_0.dims}"
+                f"incompatible dimensions {self.dims}"
                 f" and {state0.dims}"
             )
 
@@ -306,7 +341,8 @@ class Dysolve:
 
         t_state = tlist[0]
 
-        state = state0.transform(self._basis, inverse=True).data
+        state = self._transform(state0, inverse=True).data
+
         for t in tlist[1:]:
             time_diff = t - t_state
             n_steps = int(time_diff / dt)
@@ -326,8 +362,8 @@ class Dysolve:
                 state_t = state
             results.add(
                 t,
-                Qobj(state_t, dims=[self._H_0._dims[0], [1]]).transform(
-                    self._basis, inverse=False
+                self._transform(
+                    Qobj(state_t, dims=[self._Ddims[0], [1]]), inverse=False
                 ),
             )
 
