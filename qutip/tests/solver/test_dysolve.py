@@ -214,7 +214,7 @@ def test_drive_formats(H0, formats):
         op = rand_herm(6) @ destroy(6)
         drives = [(op, 100, "exp"), (op.dag(), -100, "exp")]
 
-    dy_instance = Dysolve(H, drives, )
+    dy_instance = Dysolve(H, drives, options={"eigen": True})
 
     for drive in drives:
         H += _drive2QobjEvo(drive)
