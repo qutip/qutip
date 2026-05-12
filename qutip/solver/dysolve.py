@@ -76,7 +76,8 @@ class Dysolve:
             Note that when used, it is usually good to use very small step size
             with a lower order.
 
-        A namedtuple with these elements is available as `qutip.dysolve.Drive`.
+        A namedtuple with these elements is available as
+        ``qutip.dysolve.Drive``.
 
     options : dict, optional
         Extra parameters.
@@ -101,7 +102,7 @@ class Dysolve:
         - | normalize_output : bool, False
           | Normalize output state to hide ODE numerical errors.
         - | eigen : bool, False
-          | Whether to diagonalize the base Hamiltonian ``H_0``using eigen
+          | Whether to diagonalize the base Hamiltonian ``H_0`` using eigen
             states or extracting the diagonal and using the non-diagonal as
             a drive with frequency 0. Precomputation is much faster without
             using the eigen basis, but the extra drive increase the numerical
@@ -111,8 +112,8 @@ class Dysolve:
             accuracy for low odd order.
             *Can't be used with non-hermitian Hamiltonian.*
 
-    Note
-    ----
+    Notes
+    -----
     The effective Hamiltonian is expected to be hermitian, but this is only
     required for the base part ``H_0``. The drive can be non-hermitian.
     """
@@ -556,7 +557,7 @@ def dysolve_propagator(
 
     Compute the propagator for an Hamiltonian of the form:
 
-        H = H0 + sum_i X_i exp(1j * w_i * t) * E_i(t)
+    .. math:: H = H_0 + \\sum_i X_i \\exp(1j \\omega_i t) E_i(t)
 
     This method computes analytically the propagator over a time interval.
     This allows very fast computation of driven system. It converge faster the
@@ -592,7 +593,8 @@ def dysolve_propagator(
             Note that when used, it is usually good to use very small step size
             with a lower order.
 
-        A namedtuple with these elements is available as `qutip.dysolve.Drive`.
+        A namedtuple with these elements is available as
+        ``qutip.dysolve.Drive``.
 
     t : float | list[float]
         Time or list of times for which to evaluate the propagator(s). If t
@@ -619,6 +621,16 @@ def dysolve_propagator(
         - | "step_size"
           | The maximum time increment used when computing propagators
             (default is 0.1).
+        - | eigen : bool, False
+          | Whether to diagonalize the base Hamiltonian ``H_0`` using eigen
+            states or extracting the diagonal and using the non-diagonal as
+            a drive with frequency 0. Precomputation is much faster without
+            using the eigen basis, but the extra drive increase the numerical
+            error significantly.
+        - | polar : bool, False
+          | Whether to use polar decomposition on the propagator. Improve
+            accuracy for low odd order.
+            *Can't be used with non-hermitian Hamiltonian.*
 
     Returns
     -------
@@ -626,8 +638,8 @@ def dysolve_propagator(
         The time evolution propagator U(t,0) if t is a single number or else
         a list of propagators [U(t[i], t[0])] for all elements t[i] in t.
 
-    Note
-    ----
+    Notes
+    -----
     The effective Hamiltonian is expected to be hermitian, but this is only
     needed when computing the propagator with negative times differences:
     ``Dysolve.propagator(-1)`` or ``Dysolve.propagator(0, 1)``.
@@ -705,7 +717,8 @@ def dysolve(
             Note that when used, it is usually good to use very small step size
             with a lower order.
 
-        A namedtuple with these elements is available as `qutip.dysolve.Drive`.
+        A namedtuple with these elements is available as
+        ``qutip.dysolve.Drive``.
 
     psi0 : :obj:`.Qobj`
         initial state vector (ket)
@@ -744,6 +757,16 @@ def dysolve(
             given.
         - | normalize_output : bool, False
           | Normalize output state to hide ODE numerical errors.
+        - | eigen : bool, False
+          | Whether to diagonalize the base Hamiltonian ``H_0`` using eigen
+            states or extracting the diagonal and using the non-diagonal as
+            a drive with frequency 0. Precomputation is much faster without
+            using the eigen basis, but the extra drive increase the numerical
+            error significantly.
+        - | polar : bool, False
+          | Whether to use polar decomposition on the propagator. Improve
+            accuracy for low odd order.
+            *Can't be used with non-hermitian Hamiltonian.*
 
     Returns
     -------
