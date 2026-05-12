@@ -14,7 +14,7 @@ name = "qutip"
 dynamic = ["version"]
 description = "QuTiP: The Quantum Toolbox in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "BSD-3-Clause"
 keywords = ["quantum", "physics", "dynamics"]
 authors = [
@@ -44,8 +44,8 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
-    "numpy>=1.22",
-    "scipy>=1.9,!=1.16.0,!=1.17.0",
+    "numpy>=1.23.2",
+    "scipy>=1.9.2,!=1.16.0,!=1.17.0",
     "packaging",
 ]
 
@@ -58,14 +58,13 @@ Documentation = "https://qutip.readthedocs.io/en/stable/"
 Funding = "https://github.com/sponsors/qutip"
 
 [project.optional-dependencies]
-graphics = ["matplotlib>=3.5"]
-runtime_compilation = ["cython>=0.29.20", "filelock", "setuptools"]
-semidefinite = ["cvxpy>=1.0", "cvxopt"]
-tests = ["pytest>=5.2", "pytest-rerunfailures"]
+graphics = ["matplotlib>=3.6"]
+runtime_compilation = ["cython>=0.29.34", "filelock", "setuptools"]
+semidefinite = ["cvxpy>=1.3", "cvxopt"]
+tests = ["pytest>=7.2", "pytest-rerunfailures"]
 ipython = ["ipython"]
 extras = [
-  "loky; python_version>='3.11'",
-  "loky!=3.5.0; python_version<='3.10'",
+  "loky",
   "tqdm",
   "mpmath",
 ]
