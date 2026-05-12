@@ -73,21 +73,11 @@ jobs:
             pypi: 1
             oldmpl: 1
             coveralls: 1
-
-          - case-name: p311, numpy fallback, no mkl
-            os: ubuntu-latest
-            python-version: "3.11"
-            numpy-build: ">=2.0.0,<2.1.0"
-            numpy-requirement: ">=1.23,<1.24"
-            scipy-requirement: ">=1.11,<1.12"
-            pypi: 1
-            oldmpl: 1
             nomkl: 1
-            coveralls: 1
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
-            python-version: "3.10"
+            python-version: "3.11"
             numpy-build: ">=1.22.0,<1.23.0"
             numpy-requirement: ">=1.22.0,<1.23.0"
             scipy-requirement: ">=1.9,<1.10"
@@ -130,11 +120,10 @@ jobs:
 
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.10"
+            python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.24,<1.25"
             semidefinite: 1
-            oldcython: 1
             oldmpl: 1
             nocython: 1
             condaforge: 1
