@@ -15,7 +15,7 @@ from numbers import Number
 import numpy as np
 
 
-def _ramp(t, args):
+def _ramp(t):
     return t
 
 

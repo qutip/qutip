@@ -114,8 +114,6 @@ jobs:
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
       # Force recent version of manylinux
-      # manylinux2014 no longer supported by scipy and numpy
-      CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
@@ -167,7 +165,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 20 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 24 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 

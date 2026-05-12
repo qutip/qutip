@@ -5,12 +5,12 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
-def _return_constant(t, args):
-    return args['constant']
+def _return_constant(t, constant):
+    return constant
 
 
-def _return_decay(t, args):
-    return args['constant'] * np.exp(-args['rate'] * t)
+def _return_decay(t, constant, rate):
+    return constant * np.exp(-rate * t)
 
 
 class callable_qobj:
@@ -18,9 +18,9 @@ class callable_qobj:
         self.oper = oper
         self.coeff = coeff
 
-    def __call__(self, t, args):
+    def __call__(self, t, **args):
         if self.coeff is not None:
-            return self.oper * self.coeff(t, args)
+            return self.oper * self.coeff(t, **args)
         return self.oper
 
 
@@ -649,7 +649,7 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
     assert (
-        sum(mixed_result.runs_weights + mixed_result.deterministic_weights) 
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
         == pytest.approx(1.)
     )
     assert (

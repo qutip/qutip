@@ -418,11 +418,18 @@ class Qobj:
 
     def __mul__(self, other: complex) -> Qobj:
         """
-        If other is a Qobj, we dispatch to __matmul__. If not, we
-        check that other is a valid complex scalar, i.e., we can do
-        complex(other). Otherwise, we return NotImplemented.
-        """
+        Product of a Qobj with a scalar.
 
+        Per default, only python complex are supported (``complex(other)``
+        works), but qutip's plug-in could add additional supported types
+        (jax tracer, cupy complex, etc.)
+
+        Note
+        ----
+        Product between Qobj is supported for backward compatibility, but could
+        be removed in a future major release. ``@`` is prefered for these
+        operations.
+        """
         if isinstance(other, Qobj):
             return self.__matmul__(other)
 
@@ -456,11 +463,21 @@ class Qobj:
         return self.__mul__(other)
 
     def __matmul__(self, other: Qobj) -> Qobj:
-        if not isinstance(other, Qobj):
+        if isinstance(other, np.ndarray):
+            warnings.warn(
+                "Support for Qobj @ numpy.array has been deprecated "
+                "and will be removed in qutip 5.5 or later. "
+                "Please use Qobj(A) @ B instead.",
+                FutureWarning
+            )
             try:
                 other = Qobj(other)
-            except TypeError:
+            except Exception:
                 return NotImplemented
+
+        if not isinstance(other, Qobj):
+            return NotImplemented
+
         new_dims = self._dims @ other._dims
         if new_dims.type == 'scalar':
             return _data.inner(self._data, other._data)
@@ -1604,7 +1621,7 @@ class Qobj:
         return out
 
     @overload
-    def eigenstates(self, 
+    def eigenstates(self,
         sparse: bool  = False,
         sort: Literal["low", "high"] = 'low',
         eigvals: int = 0,
@@ -1616,7 +1633,7 @@ class Qobj:
         ...
 
     @overload
-    def eigenstates(self, 
+    def eigenstates(self,
         sparse: bool  = False,
         sort: Literal["low", "high"] = 'low',
         eigvals: int = 0,

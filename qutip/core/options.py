@@ -140,6 +140,7 @@ class CoreOptions(QutipOptions):
         - "pythonic": the signature should be ``f(t, ...)`` where ``t``
           is the time and the ``...`` are the remaining arguments passed
           directly into the function. E.g. ``f(t, w, b=5)``.
+          Keyword arguments are supported: ``f(t, **args)``.
 
         - "dict": the signature shoule be ``f(t, args)`` where ``t`` is
           the time and ``args`` is a dict containing the remaining arguments.
@@ -149,6 +150,9 @@ class CoreOptions(QutipOptions):
           on the signature of the supplied function. If the function signature
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
+
+        From QuTiP 5.5, this options will be removed and only pythonic
+        siganture will be supported.
 
     default_dtype : str, type {"core"}
         The specified data type will be used as output for different qutip

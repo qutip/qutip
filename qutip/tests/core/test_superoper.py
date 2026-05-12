@@ -6,7 +6,7 @@ from qutip.core import data as _data
 import pytest
 
 
-def f(t, args):
+def f(t):
     return t * (1 - 0.5j)
 
 

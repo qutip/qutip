@@ -223,7 +223,7 @@ def test_steadystate_fourier(sparse):
 
     H = 0.5 * w_c * sz
 
-    H_t = [H, [sx, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
+    H_t = [H, [sx, lambda t, **args: args["A_l"] * np.cos(args["w_l"] * t)]]
 
     psi0 = qutip.basis(2, 0)
 

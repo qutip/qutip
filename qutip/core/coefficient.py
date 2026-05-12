@@ -84,9 +84,11 @@ def coefficient(
     For function based coefficients, the function signature must be either:
 
     * ``f(t, ...)`` where the other arguments are supplied as ordinary
-      "pythonic" arguments (e.g. ``f(t, w, a=5)``)
+      "pythonic" arguments (e.g. ``f(t, w, a=5)``) or keyword arguments
+      (e.g. ``f(t, w, **args)``)
     * ``f(t, args)`` where the arguments are supplied in a "dict" named
       ``args``
+      This format is deprecated, to be remove in QuTiP 5.5.
 
     By default the signature style is controlled by the
     ``qutip.settings.core["function_coefficient_style"]`` setting, but it
@@ -622,7 +624,7 @@ def compile_code(code, file_name, parsed, c_opt):
             qutip_root = Path(__file__).resolve().parents[2]
 
             ext_modules = cythonize(
-                coeff_file, force=True, build_dir=c_opt['build_dir'], 
+                coeff_file, force=True, build_dir=c_opt['build_dir'],
                 include_path=[str(qutip_root)]
             )
             setup(ext_modules=ext_modules)

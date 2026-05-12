@@ -157,14 +157,14 @@ simple Harmonic oscillator with time-varying decay rate
 
     kappa = 0.5
 
-    def col_coeff(t, args):  # coefficient function
+    def col_coeff(t, kappa):  # coefficient function
         return np.sqrt(kappa * np.exp(-t))
 
     N = 10  # number of basis states
     a = destroy(N)
     H = a.dag() * a  # simple HO
     psi0 = basis(N, 9)  # initial state
-    c_ops = [QobjEvo([a, col_coeff])]  # time-dependent collapse term
+    c_ops = [QobjEvo([a, col_coeff], args={"kappa": kappa})]  # time-dependent collapse term
     times = np.linspace(0, 10, 100)
     output = mesolve(H, psi0, times, c_ops, e_ops=[a.dag() * a])
 
@@ -242,8 +242,8 @@ function that make the :obj:`.QobjEvo`. For instance, instead of explicitly writ
 
 .. code-block:: python
 
-    >>> def H1_coeff(t, args):
-    >>>     return args['A'] * np.exp(-(t/args['sigma'])**2)
+    >>> def H1_coeff(t, A, sigma):
+    >>>     return A * np.exp(-(t / sigma)**2)
 
 
 or, new from v5, add the extra parameter directly:
@@ -365,13 +365,35 @@ but QuTiP support multiple formats: ``callable``, ``strings``, ``array``.
 
 **Function coefficients** :
 Use a callable with the signature ``f(t: double, ...) -> double`` as coefficient.
-Any function or method that can be called by ``f(t, args)``, ``f(t, **args)`` is accepted.
-
+The function signature must start with the time and have no positional no other positional arguments:
 
 .. code-block:: python
 
     def coeff(t, A, sigma):
         return A * np.exp(-(t / sigma)**2)
+
+    H = QobjEvo([H0, [H1, coeff]], args=args)
+
+Unused arguments will be filtered. In the previous example, if ``args``
+contained an extra ``w`` key, it would not be passed to the ``coeff`` function,
+allowing mixing function with different signatures in the same QobjEvo.
+If the function has a ``**kwargs``, it will receive all the arguments passed to
+the time dependent operator.
+
+Any callable are supported, this include classes with a __call__ methods or
+bound methods.
+
+.. code-block:: python
+
+    class My_Coeff:
+        def __init__(self):
+            self.num_calls = 0
+
+        def __call__(self, t, A, sigma):
+            self.num_calls += 1
+            if self.num_calls % 100 == 0:
+                print(f"After {self.num_calls} the time is as {t}")
+            return A * np.exp(-(t / sigma)**2)
 
     H = QobjEvo([H0, [H1, coeff]], args=args)
 

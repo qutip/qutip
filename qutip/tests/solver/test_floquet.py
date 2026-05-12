@@ -81,7 +81,7 @@ class TestFloquet:
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
-        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+        H = [H0, [H1, lambda t, w: np.sin(w * t)]]
         e_ops = [num(2)]
         gamma1 = 0
 

@@ -37,7 +37,7 @@ class TestSeSolve():
         pytest.param(lambda t, alpha: (np.pi * qutip.sigmax()
                                        * np.exp(-alpha * t)),
                      _analytic, id='func_H'),
-        pytest.param([[H1, lambda t, args: np.exp(-args['alpha'] * t)]],
+        pytest.param([[H1, lambda t, alpha: np.exp(-alpha * t)]],
                      _analytic, id='list_func_H'),
         pytest.param([[H1, 'exp(-alpha*t)']],
                      _analytic, id='list_str_H'),
@@ -166,8 +166,8 @@ class TestSeSolve():
              np.cos(w_a * t) * np.pi * qutip.sigmax()
          ), {'a':a, 'w_a':w_a}, id='func_H'),
          pytest.param([
-             [H0, lambda t, args: args['a']*t],
-             [H1, lambda t, args: np.cos(args['w_a']*t)]
+             [H0, lambda t, a: a * t],
+             [H1, lambda t, w_a: np.cos(w_a * t)]
          ], {'a':a, 'w_a':w_a}, id='list_func_H'),
          pytest.param([H0, [H1, 'cos(w_a*t)']], {'w_a':w_a}, id='list_str_H'),
     ])

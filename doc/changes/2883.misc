@@ -1,0 +1,3 @@
+Update manylinux-x86_64-image from manylinux2014 to manylinux_2_28.
+Update build-frontend to build from pip. This allows to use custom build frontends like uv in the future.
+Update wheel number from 20 to 24 while deploying.
