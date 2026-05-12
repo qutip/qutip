@@ -2,6 +2,7 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 import numpy as np
 cimport cython
+from libc.math cimport fabs as abs
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex exp(double complex x)
