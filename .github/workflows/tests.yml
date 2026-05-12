@@ -140,6 +140,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
+        run: conda install pip
 
       # TODO remove this once conda supports windows arm
       - uses: actions/setup-python@v6
@@ -185,7 +186,7 @@ jobs:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock matplotlib==3.5
+            python -m pip install cython==0.29.36 filelock matplotlib==3.6
           else
             python -m pip install cython filelock
           fi
