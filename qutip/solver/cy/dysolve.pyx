@@ -13,11 +13,42 @@ for i in range(1, 21):
     inv_factorial[i] = inv_factorial[i-1] / i
 
 
-cpdef complex cy_compute_integrals(double[:] ws, double dt, double a_tol=1e-10) noexcept nogil:
+cpdef complex cy_compute_integrals(
+    double[:] ws, double dt, double a_tol=1e-10
+) noexcept nogil:
+    """
+        Computes the value of the nested integrals for a given array of
+        effective omegas. See eq. (7) in Ref.
+
+        Parameters
+        ----------
+        ws : double[:]
+            An array of effective omegas. ws[0] is the omega for the rightmost
+            integral.
+
+        dt : double
+            The time increment.
+
+        a_tol : double, default = 1e-10
+            The absolute tolerance used.
+
+        Returns
+        -------
+        value : complex
+            The value of the nested integrals.
+
+        Notes
+        -----
+        Integrals are done analytically from right to left with integration
+        by parts.
+
+    """
     return cy_compute_core(ws[1:], dt, a_tol, ws[0])
 
 
-cdef complex cy_compute_core(double[:] ws, double dt, double a_tol, double w0) noexcept nogil:
+cdef complex cy_compute_core(
+    double[:] ws, double dt, double a_tol, double w0
+) noexcept nogil:
     if ws.shape[0] == 0:
         if abs(w0) < a_tol:
             return dt
@@ -32,7 +63,16 @@ cdef complex cy_compute_core(double[:] ws, double dt, double a_tol, double w0) n
                 - cy_compute_core(ws[1:], dt, a_tol, ws[0])
             )
 
-cdef complex cy_compute_tn_integrals(double[:] ws, int n, double dt, double a_tol, double _cum_shift) noexcept nogil:
+
+cdef complex cy_compute_tn_integrals(
+    double[:] ws, int n, double dt, double a_tol, double _cum_shift
+) noexcept nogil:
+    """
+        Helper function to compute nested integrals when the function to
+        integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
+        some effective omegas are 0. In that case, the recursion differs a
+        bit from _compute_integrals().
+    """
     cdef complex factor, term1, term2, inv, acc
     cdef int j
 
