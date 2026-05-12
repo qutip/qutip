@@ -140,7 +140,11 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
-        run: conda install pip
+
+      - name: Install pip
+        if: matrix.os != 'windows-11-arm'
+        shell: bash -l {0}
+        run: conda install pip -y -n test
 
       # TODO remove this once conda supports windows arm
       - uses: actions/setup-python@v6
