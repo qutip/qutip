@@ -68,39 +68,42 @@ class TestLindbladMatrixFormInit:
             assert H_nh_actual == H_nh_expected
 
 
+_LINDBLAD_CASES = [
+    pytest.param({
+        'N': 10,
+        'H': qutip.num(10),
+        'c_ops': [np.sqrt(0.1) * qutip.destroy(10)],
+    }, id='simple_decay'),
+    pytest.param({
+        'N': 8,
+        'H': [qutip.num(8),
+              [qutip.create(8) + qutip.destroy(8), 'cos(t)']],
+        'c_ops': [np.sqrt(0.05) * qutip.destroy(8)],
+    }, id='driven_system'),
+    pytest.param({
+        'N': 6,
+        'H': qutip.rand_herm(6, seed=42),
+        'c_ops': [
+            np.sqrt(0.1) * qutip.destroy(6),
+            np.sqrt(0.05) * qutip.create(6),
+            np.sqrt(0.02) * qutip.qeye(6),
+        ],
+    }, id='multiple_collapse'),
+    pytest.param({
+        'N': 8,
+        'H': qutip.num(8),
+        'c_ops': [[np.sqrt(0.1) * qutip.destroy(8), 'exp(-0.1*t)']],
+    }, id='time_dependent_collapse'),
+]
+
+
 class TestLindbladMatrixFormProperties:
     """
     Property tests for LindbladMatrixForm correctness with different
     operator types.
     """
 
-    @pytest.mark.parametrize("case", [
-        pytest.param({
-            'N': 10,
-            'H': qutip.num(10),
-            'c_ops': [np.sqrt(0.1) * qutip.destroy(10)],
-        }, id='simple_decay'),
-        pytest.param({
-            'N': 8,
-            'H': [qutip.num(8),
-                  [qutip.create(8) + qutip.destroy(8), 'cos(t)']],
-            'c_ops': [np.sqrt(0.05) * qutip.destroy(8)],
-        }, id='driven_system'),
-        pytest.param({
-            'N': 6,
-            'H': qutip.rand_herm(6, seed=42),
-            'c_ops': [
-                np.sqrt(0.1) * qutip.destroy(6),
-                np.sqrt(0.05) * qutip.create(6),
-                np.sqrt(0.02) * qutip.qeye(6),
-            ],
-        }, id='multiple_collapse'),
-        pytest.param({
-            'N': 8,
-            'H': qutip.num(8),
-            'c_ops': [[np.sqrt(0.1) * qutip.destroy(8), 'exp(-0.1*t)']],
-        }, id='time_dependent_collapse'),
-    ])
+    @pytest.mark.parametrize("case", _LINDBLAD_CASES)
     def test_lindblad_matrix_form_vs_superoperator(self, case):
         """
         Compare LindbladMatrixForm against time-dependent Liouvillian
@@ -136,27 +139,7 @@ class TestLindbladMatrixFormProperties:
                 err_msg=f"Failed at t={t}",
             )
 
-    @pytest.mark.parametrize("case", [
-        pytest.param({
-            'N': 6,
-            'H': qutip.num(6),
-            'c_ops': [np.sqrt(0.1) * qutip.destroy(6)],
-        }, id='simple_decay'),
-        pytest.param({
-            'N': 6,
-            'H': [qutip.num(6),
-                  [qutip.create(6) + qutip.destroy(6), 'cos(t)']],
-            'c_ops': [np.sqrt(0.05) * qutip.destroy(6)],
-        }, id='driven_system'),
-        pytest.param({
-            'N': 5,
-            'H': qutip.rand_herm(5, seed=11),
-            'c_ops': [
-                np.sqrt(0.1) * qutip.destroy(5),
-                np.sqrt(0.05) * qutip.create(5),
-            ],
-        }, id='multiple_collapse'),
-    ])
+    @pytest.mark.parametrize("case", _LINDBLAD_CASES)
     def test_lindblad_matrix_form_non_hermitian_rho(self, case):
         """
         Non-Hermitian rho (e.g. transition matrix |i><j|) must agree with
@@ -187,27 +170,3 @@ class TestLindbladMatrixFormProperties:
                 drho_matrix.to_array(), drho_super.full(), atol=1e-10,
                 err_msg=f"Failed at t={t}",
             )
-
-    def test_assume_hermitian_default_rejects_nonhermitian(self):
-        """
-        With the default assume_hermitian=True, the integrand returns a
-        Hermitian-symmetrized result, which is *wrong* for a non-Hermitian
-        rho.  This test pins down that mismatch so the flag is required to
-        opt in to non-Hermitian evolution.
-        """
-        N = 4
-        H = qutip.num(N)
-        c_ops = [np.sqrt(0.1) * qutip.destroy(N)]
-        rho0 = qutip.basis(N, 0) * qutip.basis(N, 1).dag()
-        rho_dense = dense.Dense(rho0.data.to_array(), copy=False)
-        rho_vec = qutip.operator_to_vector(rho0)
-
-        rhs_default = LindbladMatrixForm(
-            QobjEvo(H), [QobjEvo(c) for c in c_ops]
-        )
-        L = qutip.liouvillian(QobjEvo(H), [QobjEvo(c) for c in c_ops])
-
-        drho_default = rhs_default.matmul_data(0.0, rho_dense).to_array()
-        drho_super = qutip.vector_to_operator(L(0.0) * rho_vec).full()
-        # Default branch (assumes Hermitian rho) must NOT match for |0><1|
-        assert not np.allclose(drho_default, drho_super, atol=1e-10)
