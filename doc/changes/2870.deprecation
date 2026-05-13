@@ -1,0 +1,3 @@
+Remove support for position entry of options, e_ops and args.
+Remove passing solver options as kwargs instead of in options dict.
+Remove deprecated Environment approximation methods.

@@ -1,0 +1,1 @@
+Fix bug in ``Propagator`` used for negative times.

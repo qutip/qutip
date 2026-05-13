@@ -1,0 +1,1 @@
+Fix missing binding of docstrings of tensor_swap and expand_operator into APIdoc
