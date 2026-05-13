@@ -56,7 +56,7 @@ cdef class LindbladMatrixForm(QobjEvo):
         Shape of operators (n, n)
     """
 
-    def __init__(self, H, c_ops, *, _H_nh=None):
+    def __init__(self, H, c_ops, *, assume_hermitian=True, _H_nh=None):
         """
         Initialize matrix-form Lindblad system.
 
@@ -66,6 +66,11 @@ cdef class LindbladMatrixForm(QobjEvo):
             Hamiltonian
         c_ops : list of QobjEvo
             Collapse operators
+        assume_hermitian : bool, optional
+            When True (default), the integrand assumes the state ``rho``
+            passed to :meth:`matmul_data` is Hermitian and halves the work
+            by computing ``A + A.dag()``.  Set to False to evolve
+            non-Hermitian states such as transition matrices ``|i><j|``.
         _H_nh : QobjEvo, optional
             Pre-computed non-Hermitian Hamiltonian. If provided, skips the
             H_nh computation. This is used internally for pickling.
@@ -79,6 +84,7 @@ cdef class LindbladMatrixForm(QobjEvo):
 
         self.c_ops = list(c_ops) if c_ops else []
         self.num_collapse = len(self.c_ops)
+        self.assume_hermitian = assume_hermitian
 
         # Use pre-computed H_nh if provided (e.g., from unpickling)
         if _H_nh is not None:
@@ -101,13 +107,21 @@ cdef class LindbladMatrixForm(QobjEvo):
         """
         Compute ``out += scale * L[rho]`` where L is the Lindblad superoperator.
 
-        Exploits Hermiticity of rho to compute A + A.dag() where:
+        When ``self.assume_hermitian`` is True, exploits Hermiticity of rho
+        by computing A + A.dag() where:
 
         .. math::
 
             A = -i H_{nh} \\rho + \\frac{1}{2} \\sum_i c_i \\rho c_i^\\dagger
 
-        and H_nh = H - (i/2) sum(c_i^dag c_i).
+        Otherwise computes the full RHS:
+
+        .. math::
+
+            \\frac{d\\rho}{dt} = -i (H_{nh} \\rho - \\rho H_{nh}^\\dagger)
+            + \\sum_i c_i \\rho c_i^\\dagger
+
+        with H_nh = H - (i/2) sum(c_i^dag c_i).
 
         Parameters
         ----------
@@ -128,6 +142,8 @@ cdef class LindbladMatrixForm(QobjEvo):
         cdef Dense rho_dense, out_dense, temp_dense
         cdef int i
         cdef int n = rho.shape[0]
+        cdef double complex c_scale
+        cdef QobjEvo c_op
 
         if type(rho) is not Dense:
             raise TypeError(
@@ -152,22 +168,37 @@ cdef class LindbladMatrixForm(QobjEvo):
         temp_dense = <Dense>self._temp_buffer
         temp_dense.fortran = rho_dense.fortran
 
-        # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
-        # Then drho/dt = A + A.dag()
+        if self.assume_hermitian:
+            # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
+            # Then drho/dt = A + A.dag()
+            c_scale = 0.5 * scale
 
-        # -i * scale * H_nh @ rho
-        out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense, -1j * scale)
+            # -i * scale * H_nh @ rho
+            out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense,
+                                              -1j * scale)
 
-        # +0.5 * scale * sum(L @ rho @ Ld)
-        cdef QobjEvo c_op
-        for i in range(self.num_collapse):
-            c_op = <QobjEvo>self.c_ops[i]
-            temp_dense = imul_dense(temp_dense, 0)
-            temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, 0.5 * scale)
-            out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
+            # +0.5 * scale * sum(L @ rho @ Ld)
+            for i in range(self.num_collapse):
+                c_op = <QobjEvo>self.c_ops[i]
+                temp_dense = imul_dense(temp_dense, 0)
+                temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, c_scale)
+                out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
 
-        # Add Hermitian conjugate: out += out.dag()
-        out_dense = iadd_adjoint_dense(out_dense, temp_dense)
+            # Add Hermitian conjugate: out += out.dag()
+            out_dense = iadd_adjoint_dense(out_dense, temp_dense)
+        else:
+            # Full non-Hermitian RHS:
+            # -i scale (H_nh @ rho - rho @ H_nh.dag()) + scale sum(L @ rho @ Ld)
+            out_dense = self.H_nh.matmul_data(t, rho_dense, out_dense,
+                                              -1j * scale)
+            out_dense = self.H_nh.adjoint_rmatmul_data(t, rho_dense, out_dense,
+                                                       1j * scale)
+
+            for i in range(self.num_collapse):
+                c_op = <QobjEvo>self.c_ops[i]
+                temp_dense = imul_dense(temp_dense, 0)
+                temp_dense = c_op.matmul_data(t, rho_dense, temp_dense, scale)
+                out_dense = c_op.adjoint_rmatmul_data(t, temp_dense, out_dense)
 
         return out_dense
 
@@ -221,7 +252,9 @@ cdef class LindbladMatrixForm(QobjEvo):
         recomputing it on unpickle.
         """
         return (
-            partial(LindbladMatrixForm, _H_nh=self.H_nh),
+            partial(LindbladMatrixForm,
+                    assume_hermitian=self.assume_hermitian,
+                    _H_nh=self.H_nh),
             (self.H_nh, self.c_ops)
         )
 

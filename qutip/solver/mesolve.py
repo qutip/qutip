@@ -252,12 +252,12 @@ class MESolver(SESolver):
         Solver.__init__(self, rhs, options=options)
 
     def _prepare_state(self, state):
-        # Kets skip this check: ket2dm (in super) always produces a
-        # Hermitian dm.  Only explicit dm inputs need validation.
-        if not self._vectorize_state and state.isoper and not state.isherm:
-            raise ValueError(
-                "matrix_form=True requires a Hermitian density matrix"
-            )
+        # In matrix_form mode the integrand has a fast path that assumes rho
+        # is Hermitian (drho/dt = A + A.dag()).  Kets always become a
+        # Hermitian dm via ket2dm, so only explicit dm inputs can deviate;
+        # detect that and switch the integrand to the full-RHS branch.
+        if not self._vectorize_state and state.isoper:
+            self.rhs.assume_hermitian = bool(state.isherm)
         return super()._prepare_state(state)
 
     def _initialize_stats(self):
