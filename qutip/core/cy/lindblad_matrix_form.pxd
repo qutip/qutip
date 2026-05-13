@@ -10,7 +10,7 @@ cdef class LindbladMatrixForm(QobjEvo):
     # When True, exploit Hermiticity of rho to halve the matmul work
     # (drho/dt = A + A.dag()).  When False, compute the full RHS so the
     # solver can handle non-Hermitian states such as |i><j|.
-    cdef public bint assume_hermitian
+    cdef public bint assume_hermitian_state
 
     # Pre-allocated temporary buffer
     cdef Dense _temp_buffer

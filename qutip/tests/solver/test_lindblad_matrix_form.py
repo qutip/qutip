@@ -143,7 +143,7 @@ class TestLindbladMatrixFormProperties:
     def test_lindblad_matrix_form_non_hermitian_rho(self, case):
         """
         Non-Hermitian rho (e.g. transition matrix |i><j|) must agree with
-        the Liouvillian superoperator when assume_hermitian=False.
+        the Liouvillian superoperator when assume_hermitian_state=False.
         """
         N = case['N']
         H = case['H']
@@ -156,7 +156,7 @@ class TestLindbladMatrixFormProperties:
 
         rhs_matrix = LindbladMatrixForm(
             QobjEvo(H), [QobjEvo(c) for c in c_ops],
-            assume_hermitian=False,
+            assume_hermitian_state=False,
         )
         L = qutip.liouvillian(QobjEvo(H), [QobjEvo(c) for c in c_ops])
 

@@ -257,7 +257,7 @@ class MESolver(SESolver):
         # Hermitian dm via ket2dm, so only explicit dm inputs can deviate;
         # detect that and switch the integrand to the full-RHS branch.
         if not self._vectorize_state and state.isoper:
-            self.rhs.assume_hermitian = state.isherm
+            self.rhs.assume_hermitian_state = state.isherm
         return super()._prepare_state(state)
 
     def _initialize_stats(self):

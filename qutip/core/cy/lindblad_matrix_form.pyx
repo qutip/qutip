@@ -56,7 +56,7 @@ cdef class LindbladMatrixForm(QobjEvo):
         Shape of operators (n, n)
     """
 
-    def __init__(self, H, c_ops, *, assume_hermitian=True, _H_nh=None):
+    def __init__(self, H, c_ops, *, assume_hermitian_state=True, _H_nh=None):
         """
         Initialize matrix-form Lindblad system.
 
@@ -66,7 +66,7 @@ cdef class LindbladMatrixForm(QobjEvo):
             Hamiltonian
         c_ops : list of QobjEvo
             Collapse operators
-        assume_hermitian : bool, optional
+        assume_hermitian_state : bool, optional
             When True (default), the integrand assumes the state ``rho``
             passed to :meth:`matmul_data` is Hermitian and halves the work
             by computing ``A + A.dag()``.  Set to False to evolve
@@ -84,7 +84,7 @@ cdef class LindbladMatrixForm(QobjEvo):
 
         self.c_ops = list(c_ops) if c_ops else []
         self.num_collapse = len(self.c_ops)
-        self.assume_hermitian = assume_hermitian
+        self.assume_hermitian_state = assume_hermitian_state
 
         # Use pre-computed H_nh if provided (e.g., from unpickling)
         if _H_nh is not None:
@@ -107,7 +107,7 @@ cdef class LindbladMatrixForm(QobjEvo):
         """
         Compute ``out += scale * L[rho]`` where L is the Lindblad superoperator.
 
-        When ``self.assume_hermitian`` is True, exploits Hermiticity of rho
+        When ``self.assume_hermitian_state`` is True, exploits Hermiticity of rho
         by computing A + A.dag() where:
 
         .. math::
@@ -168,7 +168,7 @@ cdef class LindbladMatrixForm(QobjEvo):
         temp_dense = <Dense>self._temp_buffer
         temp_dense.fortran = rho_dense.fortran
 
-        if self.assume_hermitian:
+        if self.assume_hermitian_state:
             # Compute A = -i H_nh @ rho + 0.5 sum(L @ rho @ Ld)
             # Then drho/dt = A + A.dag()
             c_scale = 0.5 * scale
@@ -253,7 +253,7 @@ cdef class LindbladMatrixForm(QobjEvo):
         """
         return (
             partial(LindbladMatrixForm,
-                    assume_hermitian=self.assume_hermitian,
+                    assume_hermitian_state=self.assume_hermitian_state,
                     _H_nh=self.H_nh),
             (self.H_nh, self.c_ops)
         )
