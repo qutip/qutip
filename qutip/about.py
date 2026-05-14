@@ -4,9 +4,9 @@ Command line output of information on QuTiP and dependencies.
 __all__ = ['about']
 
 import sys
-import os
 import importlib.metadata
 import platform
+from pathlib import Path
 import numpy
 import scipy
 import inspect
@@ -58,8 +58,8 @@ def about():
     print(f"BLAS Info:          {_blas_info()}")
     # print(f"OPENMP Installed:   {str(qutip.settings.has_openmp)}")
     print(f"INTEL MKL Ext:      {settings.mkl_lib_location}")
-    print(f"Plat    form Info:      {platform.system()} ({platform.machine()})")
-    qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
+    print(f"Platform Info:      {platform.system()} ({platform.machine()})")
+    qutip_install_path = Path(inspect.getsourcefile(qutip)).parent
     print(f"Installation path:  {qutip_install_path}")
     print()
 

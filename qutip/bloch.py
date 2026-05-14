@@ -1,6 +1,6 @@
 __all__ = ['Bloch']
 
-import os
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -1020,19 +1020,12 @@ class Bloch:
 
         """
         self.render()
-        # Conditional variable for first argument to savefig
-        # that is set in subsequent if-elses
-        complete_path = ""
-        if dirc:
-            if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
-                os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
+            base = Path.cwd()
             if dirc:
-                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-                                + str(self.savenum) + '.' + format
-            else:
-                complete_path = os.getcwd() + '/bloch_' + \
-                                str(self.savenum) + '.' + format
+                base = base / str(dirc)
+                base.mkdir(parents=True, exist_ok=True)
+            complete_path = base / f'bloch_{self.savenum}.{format}'
         else:
             complete_path = name
 
