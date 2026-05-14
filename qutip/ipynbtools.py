@@ -17,6 +17,7 @@ import sys
 import os
 import time
 import inspect
+from pathlib import Path
 
 import qutip
 import numpy
@@ -74,7 +75,7 @@ def version_table(verbose=False):
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"
-        qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
+        qutip_install_path = Path(inspect.getsourcefile(qutip)).parent
         html += f"<tr><td>Installation path</td><td>{qutip_install_path}</td></tr>"
         try:
             import getpass
