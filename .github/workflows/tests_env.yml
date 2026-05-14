@@ -25,8 +25,8 @@ jobs:
         repo: [qutip-qip, qutip-jax, qutip-qoc, qutip-qtrl]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/checkout@v6
+      - uses: conda-incubator/setup-miniconda@v4
         with:
           auto-update-conda: true
           python-version: 3.11
