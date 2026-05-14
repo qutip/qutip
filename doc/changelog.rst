@@ -15,14 +15,14 @@ Features
 
 **Matrix operations**
 
-- Adds `local_matmul`: applying a smaller operator on a state on an extended Hilbert space. (#2743)
-- Support for direct sums: create direct sum objects using qt.direct_sum, extract blocks with qt.direct_component, and overwrite blocks with qt.set_direct_component. Added new qt.dimensions.SumSpace to describe dimensions of direct sum objects. (#2785)
-- Adds operator overloading for functions `mean_nonzero` and `mean_abs_nonzero` (mean of absolute values) for complex matrices (qutip.data.Dia, qutip.data.CSR, qutip.data.Dense). (#2817, by Veronika Kurth)
+- Adds ``local_matmul``: applying a smaller operator on a state on an extended Hilbert space. (#2743)
+- Support for direct sums: create direct sum objects using ``qt.direct_sum``, extract blocks with ``qt.direct_component``, and overwrite blocks with ``qt.set_direct_component``. Added new ``qt.dimensions.SumSpace`` to describe dimensions of direct sum objects. (#2785)
+- Adds operator overloading for functions ``mean_nonzero`` and ``mean_abs_nonzero`` (mean of absolute values) for complex matrices (qutip.data.Dia, qutip.data.CSR, qutip.data.Dense). (#2817, by Veronika Kurth)
 
 **Solvers improvements**
 
 - Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis construction. (#2725, by Maximilian MM)
-- Uses the `mean_abs_nonzero` function from `qutip/core/data/mean.pyx` module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
+- Uses the ``mean_abs_nonzero`` function from qutip/core/data/mean.pyx module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
 - Adds ``plot_expect()`` to ``Result`` and ``MultiTrajResult``, and ``plot_photocurrent()`` to ``McResult``, for visualising solver output directly from result objects. Based on initial work by @famous111 in PR #2724. (#2837, by Chinmay-Tangal)
 
 **Superoperators improvements**
@@ -32,29 +32,29 @@ Features
 
 **Other improvements**
 
-- Adds `propagator_piecewise` function and `piecewise_t` parameter to `propagator` for efficient computation of propagators for piecewise constant Hamiltonians and Liouvillians. This optimization uses direct matrix exponentiation on each constant interval instead of numerical ODE integration, providing significant speedup for systems with discontinuous time-dependence. (#2774, by Rafael Haenel)
+- Adds ``propagator_piecewise`` function and ``piecewise_t`` parameter to ``propagator`` for efficient computation of propagators for piecewise constant Hamiltonians and Liouvillians. This optimization uses direct matrix exponentiation on each constant interval instead of numerical ODE integration, providing significant speedup for systems with discontinuous time-dependence. (#2774, by Rafael Haenel)
 - Adds adjoint (dag) in-place matmul for QobjEvo and optimize matmul ops on Apple Silicon. (#2802, Ashley Milsted)
-- Adds max_t_plus_tau and map parameters to correlation_3op, correlation_3op_2t, and correlation_2op_2t for improved performance. Solves #2315 (#2831, by Chinmay-Tangal).
+- Adds ``max_t_plus_tau`` and map parameters to ``correlation_3op``, ``correlation_3op_2t``, and ``correlation_2op_2t`` for improved performance. Solves #2315 (#2831, by Chinmay-Tangal).
 - Adds the offset parameter to the wigner function and other visualization functions. (#2839, by Mudit Maheshwari)
 - Adds ``Qobj.full_tensor()`` to return a dense ndarray reshaped according to the quantum object's tensor dimensions. (#2841, by K Soveet Kumar Prusty)
-- Adds `**kwargs` to arguments of: add_state, add_vector, add_points to pass to underlying matplotlib function (#2847, by Mudit Maheshwari)
+- Adds ``**kwargs`` to arguments of: ``add_state``, ``add_vector``, ``add_points`` to pass to underlying matplotlib function (#2847, by Mudit Maheshwari)
 - Adds ubuntu-24-arm64, windows-11-arm64 to wheels build target (#2855, by Mayank Goel)
 
 Bug Fixes
 ---------
 
-- Fixes color ordering for single points in Bloch sphere. Previously, when plotting a single point on a Bloch sphere via `Bloch.add_points(colors=...)` or by modifying `Bloch.point_color`, the color list could become mismatched with the point order after internal sorting. This fix ensures colors are reordered correctly, eliminating miscoloring. Fixes #2681 (#2754, by QiLin Xue)
-- Fixes missing binding of docstrings of tensor_swap and expand_operator into APIdoc (#2775, by Clemens Possel)
+- Fixes color ordering for single points in Bloch sphere. Previously, when plotting a single point on a Bloch sphere via ``Bloch.add_points(colors=...)`` or by modifying ``Bloch.point_color``, the color list could become mismatched with the point order after internal sorting. This fix ensures colors are reordered correctly, eliminating miscoloring. Fixes #2681 (#2754, by QiLin Xue)
+- Fixes missing binding of docstrings of ``tensor_swap`` and ``expand_operator`` into APIdoc (#2775, by Clemens Possel)
 - Enables performing computations on sparse matrices of high dimensionalities in the "direct" method of the steady-state solver without running into out-of-memory allocation problems. Fixes issue #2747. (#2803, by Veronika Kurth)
 - Fixes scipy.linalg.LinAlgWarning: Matrix is singular when calculating the fidelity of pure state denisty matrix. (#2822, by Tim Liao)
-- Fixes UnboundLocalError in plot_spin_distribution and improved function by changing cmap implementation and adding kwargs. (#2834, by Mudit Maheshwarih)
+- Fixes UnboundLocalError in ``plot_spin_distribution`` and improved function by changing cmap implementation and adding kwargs. (#2834, by Mudit Maheshwarih)
 - Fixes bug in ``Propagator`` used for negative times. (#2858)
 - Fixes overflow error occuring in krylovsolve when calculating large krylov dimensions (#2885, by Maximilian MM)
 
 Documentation
 -------------
 
-- Clarifies the x and y axis order for the arrays returned by the phase-space functions wigner, spin_wigner, qfunc and spin_q_function. Fixes #1532. (#2830, by harsshg31085)
+- Clarifies the x and y axis order for the arrays returned by the phase-space functions wigner, ``spin_wigner``, ``qfunc`` and ``spin_q_function``. Fixes #1532. (#2830, by harsshg31085)
 - Adds user-guide documentation for solver progress bar options, including available values and ``progress_kwargs`` usage. (#2846, by DeconBear)
 - Adds the sphinx-copybutton extension. This shows a copy button towards the right corner for codeblocks in the documentation. (#2851, by Mayank Goel)
 - Aligns the Read the Docs build with the shared pip-based documentation requirements and remove the stale RTD-specific environment file. (#2866, by Asish Kumar)
@@ -63,8 +63,8 @@ Documentation
 Deprecations
 ------------
 - Removes support for Python 3.10 (#2875)
-- Updates Qobj.__matmul__ to throw deprecation warning for Qobj @ numpy.array operation (#2829, by Mudit Maheshwari)
-- Renames steadystate_floquet to steadystate_fourier. The old name is deprecated and will be removed in a future release. (#2823, by Chinmay-Tangal)
+- Updates ``Qobj.__matmul__`` to throw deprecation warning for Qobj @ numpy.array operation (#2829, by Mudit Maheshwari)
+- Renames ``steadystate_floquet`` to ``steadystate_fourier``. The old name is deprecated and will be removed in a future release. (#2823, by Chinmay-Tangal)
 - Removes support for position entry of options, e_ops and args. (#2870)
 - Removes passing solver options as kwargs instead of in options dict. (#2870)
 - Removes deprecated Environment approximation methods. (#2870)
@@ -73,7 +73,7 @@ Deprecations
 Miscellaneous
 -------------
 
-- Adds type annotations to `core.qobj._require_equal_type` to ensure proper typing for `Qobj.__add__` and `Qobj.__sub__`. (#2848, by JacobHast)
+- Adds type annotations to ``core.qobj._require_equal_type`` to ensure proper typing for ``Qobj.__add__`` and ``Qobj.__sub__``. (#2848, by JacobHast)
 - Adds fallback for missing mpmath module for OhmicEnvironment (#2859)
 - Adds GitHub Sponsors button. (#2869)
 - Updates manylinux-x86_64-image from manylinux2014 to manylinux_2_28. Update build-frontend to build from pip. This allows to use custom build frontends like uv in the future. Update wheel number from 20 to 24 while deploying. (#2883, by Mayank Goel)
