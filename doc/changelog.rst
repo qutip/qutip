@@ -4,6 +4,8 @@
 Change Log
 **********
 
+.. towncrier release notes start
+
 QuTiP 5.3.0 (2026-05-14)
 ========================
 
