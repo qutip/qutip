@@ -1516,7 +1516,7 @@ def plot_expectation_values(results, ylabels=None, *,
     for _, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
             axes[e_idx].plot(result.times, e,
-                             label="%s [%d]" % (result.solver, e_idx))
+                             label=f"{result.solver} [{e_idx}]")
 
     axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):

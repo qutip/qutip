@@ -38,30 +38,29 @@ def about():
     print("Currently developed through wide collaboration. "
           "See https://github.com/qutip for details.")
     print("")
-    print("QuTiP Version:      %s" % qutip.__version__)
-    print("Numpy Version:      %s" % numpy.__version__)
-    print("Scipy Version:      %s" % scipy.__version__)
+    print(f"QuTiP Version:      {qutip.__version__}")
+    print(f"Numpy Version:      {numpy.__version__}")
+    print(f"Scipy Version:      {scipy.__version__}")
     try:
         import Cython
         cython_ver = Cython.__version__
     except ImportError:
         cython_ver = 'None'
-    print("Cython Version:     %s" % cython_ver)
+    print(f"Cython Version:     {cython_ver}")
     try:
         import matplotlib
         matplotlib_ver = matplotlib.__version__
     except ImportError:
         matplotlib_ver = 'None'
-    print("Matplotlib Version: %s" % matplotlib_ver)
-    print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
-    print("Number of CPUs:     %s" % settings.num_cpus)
-    print("BLAS Info:          %s" % _blas_info())
-    # print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
-    print("INTEL MKL Ext:      %s" % settings.mkl_lib_location)
-    print("Platform Info:      %s (%s)" % (platform.system(),
-                                           platform.machine()))
+    print(f"Matplotlib Version: {matplotlib_ver}")
+    print(f"Python Version:     {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}")
+    print(f"Number of CPUs:     {settings.num_cpus}")
+    print(f"BLAS Info:          {_blas_info()}")
+    # print(f"OPENMP Installed:   {str(qutip.settings.has_openmp)}")
+    print(f"INTEL MKL Ext:      {settings.mkl_lib_location}")
+    print(f"Plat    form Info:      {platform.system()} ({platform.machine()})")
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
-    print("Installation path:  %s" % qutip_install_path)
+    print(f"Installation path:  {qutip_install_path}")
     print()
 
     # family packages
@@ -81,7 +80,7 @@ def about():
             pkg, version = family_mod.version()
         except Exception as exc:
             pkg, version = ep.name, [str(exc)]
-        print("%s: %s" % (pkg, version))
+        print(f"{pkg}: {version}")
 
     print()
 

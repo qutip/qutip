@@ -64,28 +64,25 @@ def version_table(verbose=False):
                 ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
-                ("OS", "%s [%s]" % (os.name, sys.platform))
+                ("OS", f"{os.name} [{sys.platform}]")
                 ]
     if _cython_available:
         packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
-        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
+        html += f"<tr><td>{name}</td><td>{version}</td></tr>"
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"
         qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
-        html += ("<tr><td>Installation path</td><td>%s</td></tr>" %
-                 qutip_install_path)
+        html += f"<tr><td>Installation path</td><td>{qutip_install_path}</td></tr>"
         try:
             import getpass
-            html += ("<tr><td>User</td><td>%s</td></tr>" %
-                     getpass.getuser())
+            html += f"<tr><td>User</td><td>{getpass.getuser()}</td></tr>"
         except:
             pass
 
-    html += "<tr><td colspan='2'>%s</td></tr>" % time.strftime(
-        '%a %b %d %H:%M:%S %Y %Z')
+    html += f"<tr><td colspan='2'>{time.strftime('%a %b %d %H:%M:%S %Y %Z')}</td></tr>"
     html += "</table>"
 
     return HTML(html)
@@ -304,7 +301,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     plt.close(fig)
 
     if verbose:
-        print("Created %s.m4v" % name)
+        print(f"Created {name}.m4v")
 
     video = open(name + '.mp4', "rb").read()
     video_encoded = b64encode(video).decode("ascii")

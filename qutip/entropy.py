@@ -143,7 +143,7 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
         l = rho_pt.eigenenergies()
         N = ((abs(l)-l)/2).sum()
     else:
-        raise ValueError("Unknown method %s" % method)
+        raise ValueError(f"Unknown method {method}")
 
 # Return the negativity value (or its logarithm if specified)
     if logarithmic:
