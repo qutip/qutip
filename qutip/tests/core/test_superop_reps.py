@@ -121,10 +121,12 @@ class TestSuperopReps:
         Superoperator: Check that the Pauli basis contains the usual Y
         operator, not its complex conjugate.
         """
-        y_ket = operator_to_vector(sigmay()).full().ravel()
-        y_column = to_superpauli(sprepost(sigmay(), identity(2))).full()
+        from qutip.core.superop_reps import _superpauli_basis
 
-        np.testing.assert_allclose(y_column[:, 2], y_ket, atol=1e-12)
+        y_ket = operator_to_vector(sigmay()).full().ravel()
+        y_column = _superpauli_basis(1).full()[:, 2]
+
+        np.testing.assert_allclose(y_column, y_ket, atol=1e-12)
 
     def test_SuperChoiSuper(self, superoperator):
         """
