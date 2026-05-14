@@ -1,3 +1,5 @@
+.. _changelog:
+
 **********
 Change Log
 **********
