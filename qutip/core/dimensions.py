@@ -1,0 +1,1146 @@
+"""
+Internal use module for manipulating dims specifications.
+"""
+# Required for Sphinx to follow autodoc_type_aliases
+from __future__ import annotations
+
+from collections.abc import Sequence
+import numpy as np
+import numbers
+from operator import getitem
+from functools import partial
+from typing import Any, Literal
+from qutip.settings import settings
+from qutip.typing import SpaceLike, DimensionLike
+
+
+__all__ = ["to_tensor_rep", "from_tensor_rep", "einsum", "Space", "Dimensions"]
+
+
+def flatten(l):
+    """Flattens a list of lists to the first level.
+
+    Given a list containing a mix of scalars and lists or a dimension object,
+    flattens it down to a list of the scalars within the original list.
+
+    Parameters
+    ----------
+    l : scalar, list, Space, Dimension
+        Object to flatten.
+
+    Examples
+    --------
+
+    >>> flatten([[[0], 1], 2]) # doctest: +SKIP
+    [0, 1, 2]
+
+    Notes
+    -----
+    Any scalar will be returned wrapped in a list: ``flatten(1) == [1]``.
+    A non-list iterable will not be treated as a list by flatten. For example,
+    flatten would treat a tuple as a scalar.
+    Spaces with "non-pure" dimensions will be collapsed:
+    ``flatten(EnrSpace([2,2],1)) == [3]``
+    """
+    if isinstance(l, Space):
+        return l.flat()
+    if isinstance(l, Dimensions):
+        return sum(l.flat(), [])
+    if not isinstance(l, list):
+        return [l]
+    else:
+        return sum(map(flatten, l), [])
+
+
+def deep_remove(l, *what):
+    """Removes scalars from all levels of a nested list.
+
+    Given a list containing a mix of scalars and lists,
+    returns a list of the same structure, but where one or
+    more scalars have been removed.
+
+    Examples
+    --------
+
+    >>> deep_remove([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], 0, 5) # doctest: +SKIP
+    [[[[1, 2]], [3, 4], [], [6, 7]]]
+
+    """
+    if isinstance(l, list):
+        # Make a shallow copy at this level.
+        l = l[:]
+        for to_remove in what:
+            if to_remove in l:
+                l.remove(to_remove)
+            else:
+                l = [deep_remove(elem, to_remove) for elem in l]
+    return l
+
+
+def unflatten(l, idxs):
+    """Unflattens a list by a given structure.
+
+    Given a list of scalars and a deep list of indices
+    as produced by `flatten`, returns an "unflattened"
+    form of the list. This perfectly inverts `flatten`.
+
+    Examples
+    --------
+
+    >>> l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]] # doctest: +SKIP
+    >>> idxs = enumerate_flat(l) # doctest: +SKIP
+    >>> unflatten(flatten(l), idxs) == l # doctest: +SKIP
+    True
+
+    """
+    acc = []
+    for idx in idxs:
+        if isinstance(idx, list):
+            acc.append(unflatten(l, idx))
+        else:
+            acc.append(l[idx])
+    return acc
+
+
+def _enumerate_flat(l, idx=0):
+    if not isinstance(l, list):
+        # Found a scalar, so return and increment.
+        return idx, idx + 1
+    else:
+        # Found a list, so append all the scalars
+        # from it and recurse to keep the increment
+        # correct.
+        acc = []
+        for elem in l:
+            labels, idx = _enumerate_flat(elem, idx)
+            acc.append(labels)
+        return acc, idx
+
+
+def enumerate_flat(l):
+    """Labels the indices at which scalars occur in a flattened list.
+
+    Given a list containing a mix of scalars and lists,
+    returns a list of the same structure, where each scalar
+    has been replaced by an index into the flattened list.
+
+    Examples
+    --------
+
+    >>> print(enumerate_flat([[[10], [20, 30]], 40])) # doctest: +SKIP
+    [[[0], [1, 2]], 3]
+
+    """
+    if isinstance(l, (Space, Dimensions)):
+        l._require_pure_dims("enumerate_flat")
+        l = l.as_list()
+    return _enumerate_flat(l)[0]
+
+
+def deep_map(fn, collection, over=(tuple, list)):
+    if isinstance(collection, over):
+        return type(collection)(deep_map(fn, el, over) for el in collection)
+    else:
+        return fn(collection)
+
+
+def dims_to_tensor_perm(dims):
+    """
+    Given the dims of a Qobj instance, returns a list representing
+    a permutation from the flattening of that dims specification to
+    the corresponding tensor indices.
+
+    Parameters
+    ----------
+
+    dims : list, Dimensions
+        Dimensions specification for a Qobj.
+
+    Returns
+    -------
+
+    perm : list
+        A list such that ``data[flatten(dims)[idx]]`` gives the
+        index of the tensor ``data`` corresponding to the ``idx``th
+        dimension of ``dims``.
+    """
+    if isinstance(dims, list):
+        dims = Dimensions(dims)
+    return dims._get_tensor_perm()
+
+
+def dims_to_tensor_shape(dims):
+    """
+    Given the dims of a Qobj instance, returns the shape of the
+    corresponding tensor. This helps, for instance, resolve the
+    column-stacking convention for superoperators.
+
+    Parameters
+    ----------
+
+    dims : list, Dimensions
+        Dimensions specification for a Qobj.
+
+    Returns
+    -------
+
+    tensor_shape : tuple
+        NumPy shape of the corresponding tensor.
+    """
+    perm = np.argsort(dims_to_tensor_perm(dims))
+    dims = flatten(dims)
+    return tuple(map(partial(getitem, dims), perm))
+
+
+def dims_idxs_to_tensor_idxs(dims, indices):
+    """
+    Given the dims of a Qobj instance, and some indices into
+    dims, returns the corresponding tensor indices. This helps
+    resolve, for instance, that column-stacking for superoperators,
+    oper-ket and oper-bra implies that the input and output tensor
+    indices are reversed from their order in dims.
+
+    Parameters
+    ----------
+
+    dims : list, Dimensions
+        Dimensions specification for a Qobj.
+
+    indices : int, list or tuple
+        Indices to convert to tensor indices. Can be specified
+        as a single index, or as a collection of indices.
+        In the latter case, this can be nested arbitrarily
+        deep. For instance, [0, [0, (2, 3)]].
+
+    Returns
+    -------
+
+    tens_indices : int, list or tuple
+        Container of the same structure as indices containing
+        the tensor indices for each element of indices.
+    """
+    perm = dims_to_tensor_perm(dims)
+    return deep_map(partial(getitem, perm), indices)
+
+
+def to_tensor_rep(q_oper):
+    """
+    Transform a ``Qobj`` to a numpy array whose shape is the flattened
+    dimensions.
+
+    Parameters
+    ----------
+    q_oper: Qobj
+        Object to reshape
+
+    Returns
+    -------
+    ndarray:
+        Numpy array with one dimension for each index in dims.
+
+    Examples
+    --------
+    >>> ket.dims
+    [[2, 3], [1]]
+    >>> to_tensor_rep(ket).shape
+    (2, 3, 1)
+
+    >>> oper.dims
+    [[2, 3], [2, 3]]
+    >>> to_tensor_rep(oper).shape
+    (2, 3, 2, 3)
+
+    >>> super_oper.dims
+    [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+    >>> to_tensor_rep(super_oper).shape
+    (2, 3, 2, 3, 2, 3, 2, 3)
+    """
+    q_oper._dims._require_pure_dims("conversion to tensor representation")
+    dims = q_oper._dims
+    data = q_oper.full().reshape(dims._get_tensor_shape())
+    return data.transpose(dims._get_tensor_perm())
+
+
+def from_tensor_rep(tensorrep, dims):
+    """
+    Reverse operator of :func:`to_tensor_rep`.
+    Create a Qobj From a N-dimensions numpy array and dimensions with N
+    indices.
+
+    Parameters
+    ----------
+    tensorrep: ndarray
+        Numpy array with one dimension for each index in dims.
+
+    dims: list of list, Dimensions
+        Dimensions of the Qobj.
+
+    Returns
+    -------
+    Qobj
+        Re constructed Qobj
+    """
+    from . import Qobj
+    dims = Dimensions(dims)
+    dims._require_pure_dims("conversion from tensor representation")
+    data = tensorrep.transpose(np.argsort(dims._get_tensor_perm()))
+    return Qobj(data.reshape(dims.shape), dims=dims)
+
+
+def _frozen(*args, **kwargs):
+    raise RuntimeError("Dimension cannot be modified.")
+
+
+def einsum(subscripts, *operands):
+    """
+    Implementation of numpy.einsum for Qobj.
+    Evaluates the Einstein summation convention on the operands.
+
+    Parameters
+    ----------
+    subscripts: str
+        Specifies the subscripts for summation as comma
+        separated list of subscript labels.
+    operands: list of array_like
+        These are the arrays for the operation.
+
+    Returns
+    -------
+    Qobj (numpy.complex128)
+        Result of einsum as Qobj (numpy.complex128 if result is scalar)
+    """
+    for op in operands:
+        op._dims._require_pure_dims("einsum")
+
+    operands_array = [to_tensor_rep(op) for op in operands]
+    result = np.einsum(subscripts, *operands_array)
+    if result.shape == ():
+        return result
+    dims = [
+        [d for d in result.shape[:result.ndim // 2]],
+        [d for d in result.shape[result.ndim // 2:]]
+    ]
+    return from_tensor_rep(result, dims)
+
+
+class _homtuple(Sequence):
+    """
+    Sequence where all elements are the same.
+
+    We use this instead of tuple in the list representation of a ``SumSpace``
+    if all spaces are the same. Makes the string representation of such Qobj
+    more sightly, and may save a bit of memory. (For example, the dimensions of
+    the HEOM generator can contain extremely many copies of the same space.)
+    """
+
+    def __init__(self, elem, count):
+        self.elem = elem
+        self.count = count
+
+    def __getitem__(self, i):
+        if type(i) is slice:
+            num_selected = len(range(*i.indices(self.count)))
+            return _homtuple(self.elem, num_selected)
+        if i < 0 or i >= self.count:
+            raise IndexError
+        return self.elem
+
+    def __len__(self):
+        return self.count
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if isinstance(other, _homtuple):
+            return self.count == other.count and self.elem == other.elem
+        if isinstance(other, tuple):
+            return (
+                self.count == len(other)
+                and all(self.elem == x for x in other)
+            )
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.elem, self.count))
+
+    def __repr__(self):
+        return f"({repr(self.elem)},) * {self.count}"
+
+
+def _map_tuple(fun, tup):
+    if type(tup) is _homtuple:
+        return _homtuple(fun(tup.elem), tup.count)
+    return tuple(fun(x) for x in tup)
+
+
+class MetaDims(type):
+    """Caching and type resolution for Space and Dimensions types."""
+
+    def __init__(cls, name, bases, attrs):
+        cls._stored_dims = {}
+
+    def __call__(cls, *args: SpaceLike, **kwargs: Any) -> "Space":
+        proc_cls, proc_args, proc_kwargs = cls._process_args(*args, **kwargs)
+        if proc_cls is not cls:
+            # _process_args has detected that another type is better
+            # start over with the new type
+            return proc_cls(*proc_args, **proc_kwargs)
+
+        if (
+            len(proc_args) == 1
+            and isinstance(proc_args[0], (Space, Dimensions))
+        ):
+            # Already a Space / Dimensions
+            rep = proc_kwargs.pop('rep', None)
+            if rep:
+                return proc_args[0].replace_superrep(rep)
+            else:
+                return proc_args[0]
+
+        # check for extra kwargs
+        proc_kwargs.pop("rep", None)  # extra "rep" is allowed
+        if len(proc_kwargs) > 0:
+            raise ValueError(f"Unexpected keyword arguments: {proc_kwargs}")
+
+        proc_args = tuple([
+            tuple(arg) if isinstance(arg, list) else arg
+            for arg in proc_args
+        ])
+        if proc_args not in cls._stored_dims:
+            instance = cls.__new__(cls)
+            instance.__init__(*proc_args)
+            cls._stored_dims[proc_args] = instance
+        return cls._stored_dims[proc_args]
+
+
+class Space(metaclass=MetaDims):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if "repeat" in kwargs:
+            repeat = kwargs.pop("repeat")
+            inner_space = Space(*args, **kwargs)
+            return SumSpace, [inner_space], {"repeat": repeat}
+
+        if len(args) == 1 and isinstance(args[0], (list, tuple, _homtuple)):
+            # From a list (or tuple) of int
+            rep = kwargs.pop("rep", None)
+            return cls._process_list(args[0], rep=rep)
+
+        if len(args) == 0:
+            # Empty space: a Field
+            return Field, (), {}
+        if len(args) == 1 and args[0] == 1:
+            # Space(1): a Field
+            return Field, (), {}
+        if len(args) == 1 and isinstance(args[0], Dimensions):
+            # Making a Space out of a Dimensions object: Super Operator
+            return SuperSpace, args, kwargs
+        if len(args) > 1 and all(isinstance(arg, Space) for arg in args):
+            # list of space: tensor product space
+            return Compound, args, kwargs
+
+        return cls, args, kwargs
+
+    @classmethod
+    def _process_list(
+        cls,
+        list_dims: list[int] | list[list[int]] | tuple[SpaceLike, ...],
+        rep: str = None
+    ) -> "Space":
+        if isinstance(list_dims, (tuple, _homtuple)):
+            # direct sum
+            return (
+                SumSpace,
+                _map_tuple(lambda dim: Space(dim, rep=rep), list_dims),
+                {}
+            )
+        if len(list_dims) == 0:
+            raise ValueError("Empty list can't be used as dims.")
+        elif (
+            sum(isinstance(entry, (list, tuple, _homtuple))
+                for entry in list_dims) not in [0, len(list_dims)]
+        ):
+            raise ValueError(f"Format dims not understood {list_dims}.")
+        elif not isinstance(list_dims[0], (list, tuple, _homtuple)):
+            # Tensor
+            spaces = [Space(size) for size in list_dims]
+        elif len(list_dims) == 1:
+            # [[2, 3]]: tensor with an extra layer of list.
+            spaces = [Space(size) for size in list_dims[0]]
+        elif len(list_dims) % 2 == 0:
+            # Superoperators or tensor of Superoperators
+            spaces = [
+                Space(Dimensions(
+                    Space(list_dims[i+1]),
+                    Space(list_dims[i])
+                ), rep=rep)
+                for i in range(0, len(list_dims), 2)
+            ]
+        else:
+            raise ValueError(f'Format not understood {list_dims}')
+
+        if not spaces:
+            raise ValueError(f'Format not understood {list_dims}')
+
+        return Compound, spaces, {}
+
+    def __init__(self, dims):
+        idims = int(dims)
+        if idims <= 0 or idims != dims:
+            raise ValueError("Dimensions must be integers > 0")
+        # Size of the hilbert space
+        self.size = dims
+        self.issuper = False
+        # Super representation, should be an empty string except for SuperSpace
+        self.superrep = None
+        # Does the size and dims match directly: size == prod(dims)
+        self._pure_dims = True
+        self.__setitem__ = _frozen
+
+    def __eq__(self, other) -> bool:
+        return self is other or (
+            type(other) is type(self)
+            and other.size == self.size
+        )
+
+    def __hash__(self):
+        return hash(self.size)
+
+    def __repr__(self) -> str:
+        return f"Space({self.size})"
+
+    def as_list(self) -> list[int]:
+        return [self.size]
+
+    def __str__(self) -> str:
+        return str(self.as_list())
+
+    def dims2idx(self, dims: list[int]) -> int:
+        """
+        Transform dimensions indices to full array indices.
+        """
+        if not isinstance(dims, list) or len(dims) != 1:
+            raise ValueError("Dimensions must be a list of one element")
+        if not (0 <= dims[0] < self.size):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return dims[0]
+
+    def idx2dims(self, idx: int) -> list[int]:
+        """
+        Transform full array indices to dimensions indices.
+        """
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
+        return [idx]
+
+    def step(self) -> list[int]:
+        """
+        Get the step in the array between for each dimensions index.
+
+        If element ``[i, j, k]`` is ``ket.full()[m, 0]`` then element
+        ``[i, j+1, k]`` is ``ket.full()[m + ket._dims.step()[1], 0]``.
+        """
+        return [1]
+
+    def flat(self) -> list[int]:
+        """
+        Dimensions as a flat list.
+
+        Notes
+        -----
+        Spaces with "non-pure" dimensions will be collapsed:
+        ``EnrSpace([2,2],1).flat() == [3]``
+        """
+        return [self.size]
+
+    def collapse(self) -> "Space":
+        """
+        Space with the same number of states, forgetting about the internal
+        structure. However, the distinction between super- and regular spaces
+        is preserved.
+
+        For example, a composite space with dimensions [2, 3] collapses to a
+        single space with dimension [6].
+        A superspace describing maps from a composite [2, 3] space to another
+        composite [2, 3] space collapses to a superspace mapping
+        from [6] to [6].
+        An ENR space containing N states collapses to a regular space with
+        dimension [N].
+        """
+        return Space(self.size)
+
+    def drop_scalar_dims(self) -> "Space":
+        """
+        Eliminate subsystems that has been collapsed to only one state due to
+        a projection. For example, ``[2, 1, 3]`` becomes ``[2, 3]``.
+        """
+        return self
+
+    def replace_superrep(self, super_rep: str) -> "Space":
+        return self
+
+    def scalar_like(self) -> "Space":
+        return Field()
+
+    def _require_pure_dims(self, operation):
+        if not self._pure_dims:
+            raise NotImplementedError(
+                f"The requested operation ({operation}) is not implemented for"
+                f" the type of Hilbert space used here (e.g., excitation"
+                f" number restricted space). A separate, specialized function"
+                f" may be available in the corresponding module."
+            )
+
+
+class Field(Space):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        return Field, (), {}
+
+    def __init__(self):
+        self.size = 1
+        self.issuper = False
+        self.superrep = None
+        self._pure_dims = True
+        self.__setitem__ = _frozen
+
+    def __eq__(self, other) -> bool:
+        return type(other) is Field
+
+    def __hash__(self):
+        return hash(0)
+
+    def __repr__(self) -> str:
+        return "Field()"
+
+    def as_list(self) -> list[int]:
+        return [1]
+
+    def step(self) -> list[int]:
+        return [1]
+
+    def flat(self) -> list[int]:
+        return [1]
+
+
+class Compound(Space):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if (
+            settings.core['auto_tidyup_dims']
+            and all(arg.size == 1 for arg in args)
+        ):
+                return Field, (), {}
+        return cls, args, kwargs
+
+    def __init__(self, *spaces: Space):
+        spaces_ = []
+        if len(spaces) <= 1:
+            raise ValueError("Compound need multiple space to join.")
+        for space in spaces:
+            if isinstance(space, Compound):
+                spaces_ += space.spaces
+            else:
+                spaces_ += [space]
+        self.spaces = tuple(spaces_)
+        self.size = np.prod([space.size for space in self.spaces])
+        self.issuper = all(space.issuper for space in self.spaces)
+        if not self.issuper and any(space.issuper for space in self.spaces):
+            raise TypeError(
+                "Cannot create compound space of super and non super."
+            )
+        self._pure_dims = all(space._pure_dims for space in self.spaces)
+        superrep = [space.superrep for space in self.spaces]
+        if all(superrep[0] == rep for rep in superrep):
+            self.superrep = superrep[0]
+        else:
+            raise TypeError(
+                "Cannot create compound space of of super operators "
+                "with different representation."
+            )
+        self.__setitem__ = _frozen
+
+    def __eq__(self, other) -> bool:
+        return self is other or (
+            type(other) is type(self) and
+            self.spaces == other.spaces
+        )
+
+    def __hash__(self):
+        return hash(self.spaces)
+
+    def __repr__(self) -> str:
+        parts_rep = ", ".join(repr(space) for space in self.spaces)
+        return f"Compound({parts_rep})"
+
+    def as_list(self) -> list[int]:
+        return sum([space.as_list() for space in self.spaces], [])
+
+    def dims2idx(self, dims: list[int]) -> int:
+        if len(dims) != len(self.spaces):
+            raise ValueError("Length of supplied dims does not"
+                             " match the number of subspaces.")
+        pos = 0
+        step = 1
+        for space, dim in zip(self.spaces[::-1], dims[::-1]):
+            pos += space.dims2idx([dim]) * step
+            step *= space.size
+        return pos
+
+    def idx2dims(self, idx: int) -> list[int]:
+        dims = []
+        for space in self.spaces[::-1]:
+            idx, dim = divmod(idx, space.size)
+            dims = space.idx2dims(dim) + dims
+        return dims
+
+    def step(self) -> list[int]:
+        steps = []
+        step = 1
+        for space in self.spaces[::-1]:
+            steps = [step * N for N in space.step()] + steps
+            step *= space.size
+        return steps
+
+    def flat(self) -> list[int]:
+        return sum([space.flat() for space in self.spaces], [])
+
+    def drop_scalar_dims(self) -> "Space":
+        new_spaces = [
+            space.drop_scalar_dims()
+            for space in self.spaces if space.size > 1
+        ]
+        if len(new_spaces) == 0:
+            return Field()
+        if len(new_spaces) == 1:
+            return new_spaces[0]
+        return Compound(*new_spaces)
+
+    def replace_superrep(self, super_rep: str) -> Space:
+        return Compound(
+            *[space.replace_superrep(super_rep) for space in self.spaces]
+        )
+
+    def scalar_like(self) -> Space:
+        return Space([space.scalar_like() for space in self.spaces])
+
+
+class SumSpace(Space):
+    # Implementation note:
+    # Should SumSpace(x) (with only one argument) be simplified to just x?
+    # Answer: we perform the simplification *if x is not a SumSpace itself*.
+    #
+    # The reason is the following. (a) With nested direct sums, for
+    # direct_component to always work as expected, we need to keep track of
+    # the order in which direct sums were taken. We therefore can't simplify
+    # SumSpace(SumSpace(...)) to SumSpace(...). (b) We expect that
+    # direct_sum(ket, scalar) always works, even if ket is a direct sum itself.
+    # Therefore, SumSpace(Field()) must simplify to Field().
+    #
+    # Simplifying if x is not a SumSpace itself allows the maximum flexibility
+    # while still allowing direct_component to function.
+
+    @classmethod
+    def _process_args(cls, *args, repeat=None, **kwargs):
+        if repeat == 1:
+            repeat = None
+        if repeat is not None and (
+            not isinstance(repeat, numbers.Integral) or repeat <= 0
+        ):
+            raise ValueError("Repeat must be a positive integer")
+
+        # Spaces provided as list / tuple / _homtuple instead of varargs
+        if len(args) == 1 and not isinstance(args[0], Space):
+            args = args[0]
+
+        if len(args) == 0:
+            raise ValueError("Need at least one space for direct sum.")
+
+        if len(args) == 1:
+            if repeat is not None:
+                proc_args = (_homtuple(args[0], repeat),)
+            elif isinstance(args[0], SumSpace):
+                # prevent simplification (see implementation note above)
+                proc_args = (tuple(args),)
+            else:
+                # simplify
+                proc_args = args
+
+        else:
+            if repeat is not None:
+                raise ValueError("Invalid arguments for sum space")
+            elif type(args) is _homtuple:
+                proc_args = (args,)
+            elif all(arg == args[0] for arg in args):
+                proc_args = (_homtuple(args[0], len(args)),)
+            else:
+                proc_args = (tuple(args),)
+
+        return cls, proc_args, kwargs
+
+    def _check_super(self):
+        spaces = [self.spaces[0]] if self._repeat else self.spaces
+        if all(not space.issuper for space in spaces):
+            return False, None
+        if all(space.size == 1 or space.issuper for space in spaces):
+            if not all(space.size == 1 or space.superrep == 'super'
+                       for space in spaces):
+                raise ValueError("Direct sums only accept superoperators"
+                                 " in super representation.")
+            return True, 'super'
+        raise ValueError("Cannot mix super and regular spaces in direct sum.")
+
+    def __init__(self, spaces: tuple[Space] | _homtuple[Space]):
+        """
+        Direct sum of the constituent spaces.
+
+        ``SumSpace`` instances can be constructed as follows:
+        * Varargs: ``SumSpace(space1, space2, ...)``.
+        * From list or tuple: ``SumSpace(spaces)`` where ``spaces`` is
+            ``list[Space]`` or ``tuple[Space]``.
+        * Using many copies of the same space: ``SumSpace(space, repeat=n)``
+            where n is a positive integer.
+            This is functionally equivalent to ``SumSpace([space] * n)``.
+        (The arguments are processed in the metaclass.)
+        """
+        if type(spaces) is _homtuple:
+            self._repeat = len(spaces)
+        else:
+            self._repeat = None
+
+        self.spaces = spaces
+        self._space_dims = _map_tuple(lambda space: space.size, spaces)
+        if self._repeat:
+            self.size = spaces[0].size * self._repeat
+        else:
+            self._space_cumdims_array = np.cumsum((0,) + self._space_dims)
+            self.size = self._space_cumdims_array[-1]
+
+        self.issuper, self.superrep = self._check_super()
+        self._pure_dims = False
+
+    def _space_cumdim(self, i):
+        if self._repeat:
+            return self._space_dims[0] * i
+        return self._space_cumdims_array[i]
+
+    def __eq__(self, other) -> bool:
+        return self is other or (
+            type(self) is type(other) and
+            self.spaces == other.spaces
+        )
+
+    def __hash__(self):
+        return hash(self.spaces)
+
+    def __repr__(self) -> str:
+        if self._repeat:
+            return f"Sum({repr(self.spaces)})"
+        return f"Sum{repr(self.spaces)}"
+
+    def as_list(self) -> tuple[SpaceLike, ...]:
+        return _map_tuple(lambda space: space.as_list(), self.spaces)
+
+    def dims2idx(self, dims: list[int]) -> int:
+        if not isinstance(dims, list) or len(dims) != 2:
+            raise ValueError("Dimensions must be a list of two elements")
+        if not (0 <= dims[0] < len(self.spaces)):
+            raise IndexError("Dimensions out of range")
+        if not isinstance(dims[0], numbers.Integral):
+            raise TypeError("Dimensions must be integers")
+        return (
+            self._space_cumdim(dims[0])
+            + self.spaces[dims[0]].dims2idx(dims[1])
+        )
+
+    def idx2dims(self, idx: int) -> list[int]:
+        if not (0 <= idx < self.size):
+            raise IndexError("Index out of range")
+        for i in range(len(self.spaces)):
+            if (
+                self._space_cumdim(i) <= idx
+                and self._space_cumdim(i + 1) > idx
+            ):
+                return [
+                    i, self.spaces[i].idx2dims(idx - self._space_cumdim(i))
+                ]
+
+    def drop_scalar_dims(self):
+        return SumSpace(
+            _map_tuple(lambda space: space.drop_scalar_dims(), self.spaces)
+        )
+
+    def replace_superrep(self, super_rep: str) -> "Space":
+        if super_rep != 'super':
+            raise ValueError("Direct sums only accept superoperators"
+                             " in super representation.")
+        return self
+
+    def scalar_like(self) -> "Space":
+        return Field()
+
+
+class SuperSpace(Space):
+    @classmethod
+    def _process_args(cls, *args, rep='super', **kwargs):
+        if settings.core['auto_tidyup_dims'] and args[0].type == 'scalar':
+            return Field, (), {}
+        return cls, (*args, rep or 'super'), kwargs
+
+    def __init__(self, oper: "Dimensions", rep: str = 'super'):
+        self.oper = oper
+        self.superrep = rep
+        self.size = oper.shape[0] * oper.shape[1]
+        self.issuper = True
+        self._pure_dims = oper._pure_dims
+        self.__setitem__ = _frozen
+
+    def __eq__(self, other) -> bool:
+        return (
+            self is other
+            or self.oper == other
+            or (
+                type(other) is type(self)
+                and self.oper == other.oper
+                and self.superrep == other.superrep
+            )
+        )
+
+    def __hash__(self):
+        return hash((self.oper, self.superrep))
+
+    def __repr__(self) -> str:
+        return f"Super({repr(self.oper)}, rep={self.superrep})"
+
+    def as_list(self) -> list[list[int]]:
+        return self.oper.as_list()
+
+    def dims2idx(self, dims: list[int]) -> int:
+        posl, posr = self.oper.dims2idx(dims)
+        return posl + posr * self.oper.shape[0]
+
+    def idx2dims(self, idx: int) -> list[int]:
+        posl = idx % self.oper.shape[0]
+        posr = idx // self.oper.shape[0]
+        return self.oper.idx2dims(posl, posr)
+
+    def step(self) -> list[int]:
+        stepl, stepr = self.oper.step()
+        step = self.oper.shape[0]
+        return stepl + [step * N for N in stepr]
+
+    def flat(self) -> list[int]:
+        return sum(self.oper.flat(), [])
+
+    def collapse(self) -> Space:
+        return SuperSpace(self.oper.collapse(), rep=self.superrep)
+
+    def drop_scalar_dims(self) -> "Space":
+        return SuperSpace(self.oper.drop_scalar_dims(), rep=self.superrep)
+
+    def replace_superrep(self, super_rep: str) -> Space:
+        return SuperSpace(self.oper, rep=super_rep)
+
+    def scalar_like(self) -> Space:
+        return SuperSpace(self.oper.scalar_like(), rep=self.superrep)
+
+
+class Dimensions(metaclass=MetaDims):
+    @classmethod
+    def _process_args(cls, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], list):
+            # from list representation
+            if len(args[0]) != 2:
+                raise ValueError(f"Format dims not understood {args[0]}.")
+            args = (
+                Space(args[0][1], **kwargs),
+                Space(args[0][0], **kwargs)
+            )
+
+        if len(args) != 1 and len(args) != 2:
+            raise NotImplementedError('No Dual, Ket, Bra...', args)
+        return cls, args, kwargs
+
+    def __init__(self, from_: Space, to_: Space):
+        self.from_ = from_
+        self.to_ = to_
+        self.shape = to_.size, from_.size
+        self.issuper = from_.issuper
+        self._pure_dims = from_._pure_dims and to_._pure_dims
+        self.issquare = False
+        if self.from_.size == 1 and self.to_.size == 1:
+            self.type = 'scalar'
+            self.issquare = True
+            self.superrep = None
+        elif self.from_.size == 1:
+            self.issuper = self.to_.issuper
+            self.type = 'operator-ket' if self.issuper else 'ket'
+            self.superrep = self.to_.superrep
+        elif self.to_.size == 1:
+            self.issuper = self.from_.issuper
+            self.type = 'operator-bra' if self.issuper else 'bra'
+            self.superrep = self.from_.superrep
+        elif self.from_ == self.to_:
+            self.issuper = self.from_.issuper
+            self.type = 'super' if self.issuper else 'oper'
+            self.superrep = self.from_.superrep
+            self.issquare = True
+        else:
+            if from_.issuper != to_.issuper:
+                raise NotImplementedError(
+                    "Operator with both space and superspace dimensions are "
+                    "not supported. Please open an issue if you have an use "
+                    f"case for these: {from_}, {to_}]"
+                )
+            self.type = 'super' if self.from_.issuper else 'oper'
+            if self.from_.superrep == self.to_.superrep:
+                self.superrep = self.from_.superrep
+            else:
+                self.superrep = 'mixed'
+        self.__setitem__ = _frozen
+
+    def __eq__(self, other: "Dimensions") -> bool:
+        if isinstance(other, Dimensions):
+            return (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
+            )
+        return NotImplemented
+
+    def __ne__(self, other: "Dimensions") -> bool:
+        if isinstance(other, Dimensions):
+            return not (
+                self is other
+                or (
+                    self.to_ == other.to_
+                    and self.from_ == other.from_
+                )
+            )
+        return NotImplemented
+
+    def __matmul__(self, other: "Dimensions") -> "Dimensions":
+        if self.from_ != other.to_:
+            raise TypeError(f"incompatible dimensions {self} and {other}")
+        args = other.from_, self.to_
+        if args in Dimensions._stored_dims:
+            return Dimensions._stored_dims[args]
+        return Dimensions(*args)
+
+    def __hash__(self):
+        return hash((self.to_, self.from_))
+
+    def __repr__(self) -> str:
+        return f"Dimensions({repr(self.from_)}, {repr(self.to_)})"
+
+    def __str__(self) -> str:
+        return str(self.as_list())
+
+    def as_list(self) -> list:
+        """
+        Return the list representation of the Dimensions object.
+        """
+        return [self.to_.as_list(), self.from_.as_list()]
+
+    def __getitem__(self, key: Literal[0, 1]) -> Space:
+        if key == 0:
+            return self.to_
+        elif key == 1:
+            return self.from_
+        raise IndexError("Dimensions index out of range")
+
+    def dims2idx(self, dims):
+        """
+        Transform dimensions indices to full array indices.
+        """
+        return self.to_.dims2idx(dims[0]), self.from_.dims2idx(dims[1])
+
+    def idx2dims(self, idxl, idxr):
+        """
+        Transform full array indices to dimensions indices.
+        """
+        return [self.to_.idx2dims(idxl), self.from_.idx2dims(idxr)]
+
+    def step(self) -> list[list[int]]:
+        """
+        Get the step in the array between for each dimensions index.
+
+        If element ``[i, j, k]`` is ``ket.full()[m, 0]`` then element
+        ``[i, j+1, k]`` is ``ket.full()[m + ket._dims.step()[1], 0]``.
+        """
+        return [self.to_.step(), self.from_.step()]
+
+    def flat(self) -> list[list[int]]:
+        """ Dimensions as a flat list. """
+        return [self.to_.flat(), self.from_.flat()]
+
+    def _get_tensor_shape(self):
+        """
+        Get the shape to of the Nd tensor with one dimensions for each
+        Dimension index. The order of the space values are not in the order of
+        the Dimension index.
+        """
+        # dims_to_tensor_shape
+        stepl = self.to_.step()
+        flatl = self.to_.flat()
+        stepr = self.from_.step()
+        flatr = self.from_.flat()
+        return tuple(np.concatenate([
+            np.array(flatl)[np.argsort(stepl)[::-1]],
+            np.array(flatr)[np.argsort(stepr)[::-1]],
+        ]))
+
+    def _get_tensor_perm(self):
+        """
+        Get the permutation of a tensor created using ``_get_tensor_shape`` to
+        reorder the tensor dimensions with those of the Dimensions object.
+        """
+        # dims_to_tensor_perm
+        stepl = self.to_.step()
+        stepr = self.from_.step()
+        return list(np.argsort(np.concatenate([
+            np.argsort(stepl)[::-1],
+            np.argsort(stepr)[::-1] + len(stepl)
+        ])))
+
+    def replace_superrep(self, super_rep: str) -> "Dimensions":
+        if not self.issuper and super_rep is not None:
+            raise TypeError("Can't set a superrep of a non super object.")
+        return Dimensions(
+            self.from_.replace_superrep(super_rep),
+            self.to_.replace_superrep(super_rep)
+        )
+
+    def collapse(self) -> "Dimensions":
+        """
+        Dimensions describing object of the same shape, but forgetting about
+        the internal structure of the spaces. However, the distinction between
+        super- and regular spaces is preserved.
+
+        For instance, the bra-type dimensions specification ``[[2, 3], [1]]``
+        collapses to ``[[6], [1]]``. The super-type dimensions specification
+        ``[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]`` collapses to
+        ``[[[6], [6]], [[6], [6]]]``.
+        """
+        return Dimensions(self.from_.collapse(), self.to_.collapse())
+
+    def drop_scalar_dims(self) -> "Dimensions":
+        """
+        Eliminate subsystems that has been collapsed to only one state due to
+        a projection. For example, ``[2, 1, 3]`` becomes ``[2, 3]``.
+        """
+        return Dimensions(
+            self.from_.drop_scalar_dims(),
+            self.to_.drop_scalar_dims()
+        )
+
+    def scalar_like(self) -> "Dimensions":
+        return Dimensions([self.to_.scalar_like(), self.from_.scalar_like()])
+
+    def _require_pure_dims(self, operation):
+        self.from_._require_pure_dims(operation)
+        self.to_._require_pure_dims(operation)
