@@ -1,1 +1,0 @@
-Qobj: Updated __matmul__ to throw deprecation warning for Qobj @ numpy.array operation
