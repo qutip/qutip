@@ -114,6 +114,18 @@ class TestSuperopReps:
         with pytest.raises(ValueError, match="must be a square."):
             superpauli_to_super(non_square)
 
+
+
+    def test_superpauli_basis_uses_positive_y_column(self):
+        """
+        Superoperator: Check that the Pauli basis contains the usual Y
+        operator, not its complex conjugate.
+        """
+        y_ket = operator_to_vector(sigmay()).full().ravel()
+        y_column = to_superpauli(sprepost(sigmay(), identity(2))).full()
+
+        np.testing.assert_allclose(y_column[:, 2], y_ket, atol=1e-12)
+
     def test_SuperChoiSuper(self, superoperator):
         """
         Superoperator: Converting superoperator to Choi matrix and back.

@@ -33,7 +33,7 @@ from ..typing import DimensionLike
 _SINGLE_QUBIT_PAULI_BASIS = (
     identity(2).to(_data.CSR),
     sigmax().to(_data.CSR),
-    sigmay().to(_data.CSR),
+    (-sigmay()).to(_data.CSR),
     sigmaz().to(_data.CSR),
 )
 
@@ -53,7 +53,7 @@ def _superpauli_basis(nq=1):
         basis = paulis[0].data
         for pauli in paulis[1:]:
             basis = _data.kron_csr(basis, pauli.data)
-        basis_ket_sci = _data.column_stack_csr(basis).transpose().as_scipy()
+        basis_ket_sci = _data.column_stack_csr(basis).adjoint().as_scipy()
         sci.data[ptr : ptr+ptr_inc] = basis_ket_sci.data
         sci.indices[ptr : ptr+ptr_inc] = basis_ket_sci.indices
         sci.indptr[i] = ptr
