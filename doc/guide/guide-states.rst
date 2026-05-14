@@ -1529,9 +1529,12 @@ the :math:`\chi`-matrix representation,
 
 where :math:`\{B_\alpha\}` is a basis for the space of matrices acting
 on :math:`\mathcal{H}`. In QuTiP, this basis is taken to be the Pauli
+basis ordered as :math:`I, X, Y, Z`, with each tensor-product basis
+operator column-stacked internally.  The :math:`\chi` matrix returned by
+QuTiP uses the unnormalised Pauli convention, so its entries are scaled by
+the system dimension relative to coefficients written in the normalised
 basis :math:`B_\alpha = \sigma_\alpha / \sqrt{2}`. Conversion to the
-:math:`\chi` formalism is handled by the :func:`.to_chi`
-function.
+:math:`\chi` formalism is handled by the :func:`.to_chi` function.
 
 .. testcode:: [states]
 
@@ -1549,6 +1552,26 @@ function.
      [0. +0.j  0.1+0.j  0. +0.1j 0. +0.j ]
      [0. +0.j  0. -0.1j 0.1+0.j  0. +0.j ]
      [0.1+0.j  0. +0.j  0. +0.j  0.1+0.j ]]
+
+For example, a channel containing only
+``sprepost(sigmay(), sigmay())`` has a single non-zero entry at the
+:math:`Y,Y` position in this convention:
+
+.. testcode:: [states]
+
+    print(to_chi(sprepost(sigmay(), sigmay())))
+
+**Output**:
+
+.. testoutput:: [states]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = chi
+    Qobj data =
+    [[0.+0.j 0.+0.j 0.+0.j 0.+0.j]
+     [0.+0.j 0.+0.j 0.+0.j 0.+0.j]
+     [0.+0.j 0.+0.j 4.+0.j 0.+0.j]
+     [0.+0.j 0.+0.j 0.+0.j 0.+0.j]]
 
 
 One convenient property of the :math:`\chi` matrix is that the average
