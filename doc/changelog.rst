@@ -14,21 +14,23 @@ Features
 
 
 **Matrix operations**
+
 - Adds `local_matmul`: applying a smaller operator on a state on an extended Hilbert space. (#2743)
 - Support for direct sums: create direct sum objects using qt.direct_sum, extract blocks with qt.direct_component, and overwrite blocks with qt.set_direct_component. Added new qt.dimensions.SumSpace to describe dimensions of direct sum objects. (#2785)
 - Adds operator overloading for functions `mean_nonzero` and `mean_abs_nonzero` (mean of absolute values) for complex matrices (qutip.data.Dia, qutip.data.CSR, qutip.data.Dense). (#2817, by Veronika Kurth)
 
 **Solvers improvements**
-- Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis
-  construction. (#2725, by Maximilian MM)
+- Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis construction. (#2725, by Maximilian MM)
 - Uses the `mean_abs_nonzero` function from `qutip/core/data/mean.pyx` module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
 - Adds ``plot_expect()`` to ``Result`` and ``MultiTrajResult``, and ``plot_photocurrent()`` to ``McResult``, for visualising solver output directly from result objects. Based on initial work by @famous111 in PR #2724. (#2837, by Chinmay-Tangal)
 
 **Superoperators improvements**
+
 - Adds the commutator and anticommutator for superoperators. (#2861, by Mudit Maheshwari)
 - Adds support for constructing superoperators to/from Pauli using to_superpauli() and from_superpauli() (#2835, by Mudit Maheshwari)
 
 **Other improvements**
+
 - Adds `propagator_piecewise` function and `piecewise_t` parameter to `propagator` for efficient computation of propagators for piecewise constant Hamiltonians and Liouvillians. This optimization uses direct matrix exponentiation on each constant interval instead of numerical ODE integration, providing significant speedup for systems with discontinuous time-dependence. (#2774, by Rafael Haenel)
 - Adds adjoint (dag) in-place matmul for QobjEvo and optimize matmul ops on Apple Silicon. (#2802, Ashley Milsted)
 - Adds max_t_plus_tau and map parameters to correlation_3op, correlation_3op_2t, and correlation_2op_2t for improved performance. Solves #2315 (#2831, by Chinmay-Tangal).
