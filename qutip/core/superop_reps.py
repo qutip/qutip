@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # This module was initially contributed by Ben Criger.
 #

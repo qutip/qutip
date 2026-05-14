@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numbers
 from typing import Literal
 import pytest
