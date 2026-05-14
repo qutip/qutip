@@ -2,7 +2,6 @@ __all__ = ['file_data_store', 'file_data_read', 'qsave', 'qload']
 
 import pickle
 import numpy as np
-import sys
 from .core import Qobj
 from pathlib import Path
 
@@ -249,9 +248,5 @@ def qload(filename):
     path = path.with_suffix(path.suffix + ".qu")
 
     with open(path, "rb") as fileObject:
-        if sys.version_info >= (3, 0):
-            out = pickle.load(fileObject, encoding='latin1')
-        else:
-            out = pickle.load(fileObject)
-
+        out = pickle.load(fileObject)
     return out
