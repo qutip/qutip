@@ -101,7 +101,7 @@ class EnhancedTextProgressBar(BaseProgressBar):
         prog_bar = ('[' + self.fill_char * num_hashes +
                     ' ' * (all_full - num_hashes) + ']')
         pct_place = (len(prog_bar) // 2) - len(str(percent_done))
-        pct_string = '%d%%' % percent_done
+        pct_string = f"{percent_done}%"
         prog_bar = (prog_bar[0:pct_place] +
                     (pct_string + prog_bar[pct_place + len(pct_string):]))
         prog_bar += f" Elapsed {self.time_elapsed()} / Remaining {self.time_remaining_est(percent_done)}"

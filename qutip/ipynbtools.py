@@ -100,7 +100,7 @@ def _visualize_parfor_data(metadata):
     tmin = min(res[:, 1])
     for n, pid in enumerate(numpy.unique(res[:, 0])):
         yticks.append(n)
-        yticklabels.append("%d" % pid)
+        yticklabels.append(f"{pid}")
         for m in numpy.where(res[:, 0] == pid)[0]:
             ax.add_patch(plt.Rectangle((res[m, 1] - tmin, n - 0.25),
                          res[m, 2] - res[m, 1], 0.5, color="green", alpha=0.5))
@@ -303,8 +303,9 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     if verbose:
         print(f"Created {name}.m4v")
 
-    video = open(name + '.mp4', "rb").read()
-    video_encoded = b64encode(video).decode("ascii")
-    video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
-        video_encoded)
+    with open(name + '.mp4', "rb") as f:
+        video = f.read()
+        video_encoded = b64encode(video).decode("ascii")
+        video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
+            video_encoded)
     return HTML(video_tag)

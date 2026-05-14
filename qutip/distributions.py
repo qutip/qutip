@@ -130,8 +130,9 @@ class Distribution:
                                       show_xlabel=show_xlabel,
                                       show_ylabel=show_ylabel)
         else:
-            raise NotImplementedError("Distribution visualization in " +
-                                      "%d dimensions is not implemented." % n)
+            raise NotImplementedError(
+                f"Distribution visualization in {n} dimensions is not implemented."
+            )
 
     def _visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
                                colorbar=True, cmap=None,
