@@ -1,36 +1,18 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.ui.progressbar import BaseProgressBar, HTMLProgressBar
+from qutip.ui.progressbar import HTMLProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
 
-#IPython parallel routines moved to ipyparallel in V4
-#IPython parallel routines not in Anaconda by default
-if IPython.version_info[0] >= 4:
-    try:
-        from ipyparallel import Client
-        __all__ = ['version_table', 'plot_animation',
-                    'parallel_map']
-    except:
-         __all__ = ['version_table', 'plot_animation']
-else:
-    try:
-        from IPython.parallel import Client
-        __all__ = ['version_table', 'plot_animation',
-                    'parallel_map']
-    except:
-         __all__ = ['version_table', 'plot_animation']
-
-
-from IPython.display import HTML, Javascript, display
+from ipyparallel import Client
+from IPython.display import HTML, display
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from base64 import b64encode
 
 import datetime
-import uuid
 import sys
 import os
 import time
@@ -41,6 +23,8 @@ import numpy
 import scipy
 import matplotlib
 import IPython
+
+__all__ = ['version_table', 'plot_animation', 'parallel_map']
 
 try:
     import Cython
