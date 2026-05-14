@@ -38,7 +38,8 @@ try:
     else:
         def _axes3D(*args, **kwargs):
             return Axes3D(*args, **kwargs)
-except:
+
+except ImportError:
     pass
 
 

@@ -28,7 +28,8 @@ try:
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap
     from mpl_toolkits.mplot3d import Axes3D
-except:
+
+except ImportError:
     # Type when matplotlib is not installed
     from typing import Any
     Figure = Any
