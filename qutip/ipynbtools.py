@@ -4,8 +4,6 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 from qutip.ui.progressbar import HTMLProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
-
-from ipyparallel import Client
 from IPython.display import HTML, display
 
 import matplotlib.pyplot as plt
@@ -25,7 +23,12 @@ import scipy
 import matplotlib
 import IPython
 
-__all__ = ['version_table', 'plot_animation', 'parallel_map']
+try:
+    from ipyparallel import Client
+    __all__ = ['version_table', 'plot_animation',
+                    'parallel_map']
+except:
+    __all__ = ['version_table', 'plot_animation']
 
 try:
     import Cython

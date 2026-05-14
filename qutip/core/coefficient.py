@@ -595,7 +595,7 @@ cdef class StrCoefficient(Coefficient):
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    pwd = os.cwd()
+    pwd = os.getcwd()
     os.chdir(qset.coeffroot)
     # Files with the same name, but differents extension than the pyx file, are
     # erased during cythonization process, breaking filelock.
