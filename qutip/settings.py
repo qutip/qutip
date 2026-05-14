@@ -2,6 +2,7 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
+import os
 import sys
 from ctypes import cdll, CDLL
 import platform
@@ -143,8 +144,8 @@ def _find_mkl():
         scipy_lapack,
         numpy_blas,
         numpy_lapack,
-        python_dir + lib_dir_anaconda,
-        python_dir + lib_dir_intel_python,
+        str(python_dir) + lib_dir_anaconda,
+        str(python_dir) + lib_dir_intel_python,
     ]
 
     if plat == 'darwin':
