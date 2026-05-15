@@ -43,12 +43,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
 
                 for m in range(M):
                     for n in range(N):
-                        if np.imag(data[m, n]) >= 0.0:
-                            f.write("%.10e+%.10ej" % (np.real(data[m, n]),
-                                                    np.imag(data[m, n])))
-                        else:
-                            f.write("%.10e%.10ej" % (np.real(data[m, n]),
-                                                    np.imag(data[m, n])))
+                        f.write(f"{np.real(data[m, n]):.10e}{np.imag(data[m, n]):+.10e}j")
                         if n != N - 1:
                             f.write(sep)
                     f.write("\n")
@@ -57,12 +52,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
 
                 for m in range(M):
                     for n in range(N):
-                        if np.imag(data[m, n]) >= 0.0:
-                            f.write("%.10f+%.10fj" % (np.real(data[m, n]),
-                                                    np.imag(data[m, n])))
-                        else:
-                            f.write("%.10f%.10fj" % (np.real(data[m, n]),
-                                                    np.imag(data[m, n])))
+                        f.write(f"{np.real(data[m, n]):.10f}{np.imag(data[m, n]):+.10f}j")
                         if n != N - 1:
                             f.write(sep)
                     f.write("\n")
@@ -77,7 +67,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
 
                 for m in range(M):
                     for n in range(N):
-                        f.write("%.10e" % (np.real(data[m, n])))
+                        f.write(f"{np.real(data[m, n]):.10e}")
                         if n != N - 1:
                             f.write(sep)
                     f.write("\n")
@@ -86,7 +76,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
 
                 for m in range(M):
                     for n in range(N):
-                        f.write("%.10f" % (np.real(data[m, n])))
+                        f.write(f"{np.real(data[m, n]):.10f}")
                         if n != N - 1:
                             f.write(sep)
                     f.write("\n")

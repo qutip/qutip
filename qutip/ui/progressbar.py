@@ -41,7 +41,7 @@ class BaseProgressBar(object):
         return self.t_done - self.t_start
 
     def time_elapsed(self):
-        return "%6.2fs" % (time.time() - self.t_start)
+        return f"{(time.time() - self.t_start):6.2f}s"
 
     def time_remaining_est(self, p):
         if 100 >= p > 0.0:
@@ -50,8 +50,7 @@ class BaseProgressBar(object):
             t_r_est = 0
 
         dd = datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=t_r_est)
-        time_string = "%02d:%02d:%02d:%02d" % \
-            (dd.day - 1, dd.hour, dd.minute, dd.second)
+        time_string = f"{dd.day - 1:02d}:{dd.hour:02d}:{dd.minute:02d}:{dd.second:02d}"
 
         return time_string
 

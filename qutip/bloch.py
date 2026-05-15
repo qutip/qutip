@@ -225,40 +225,48 @@ class Bloch:
             - "polarization stokes"
               see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
-        ketex = "$\\left.|%s\\right\\rangle$"
-        # \left.| is on purpose, so that every ket has the same size
+        ket = lambda state: rf"$\left.|{state}\right\rangle$"
 
-        if convention == "original":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "xyz":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$z$', '']
-        elif convention == "sx sy sz":
-            self.xlabel = ['$s_x$', '']
-            self.ylabel = ['$s_y$', '']
-            self.zlabel = ['$s_z$', '']
-        elif convention == "01":
-            self.xlabel = ['', '']
-            self.ylabel = ['', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "polarization jones":
-            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
-                           ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
-            self.ylabel = [ketex % "\\circlearrowleft", ketex %
-                           "\\circlearrowright"]
-            self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
-        elif convention == "polarization jones letters":
-            self.xlabel = [ketex % "D", ketex % "A"]
-            self.ylabel = [ketex % "L", ketex % "R"]
-            self.zlabel = [ketex % "H", ketex % "V"]
-        elif convention == "polarization stokes":
-            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$",
-                           "$\\nwarrow\\hspace{-1.46}\\searrow$"]
-            self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
-            self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
+        bloch_conventions = {
+            "original": (
+                ['$x$', ''], 
+                ['$y$', ''], 
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "xyz": (
+                ['$x$', ''], 
+                ['$y$', ''], 
+                ['$z$', '']
+            ),
+            "sx sy sz": (
+                ['$s_x$', ''], 
+                ['$s_y$', ''], 
+                ['$s_z$', '']
+            ),
+            "01": (
+                ['', ''], 
+                ['', ''], 
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "polarization stokes": (
+                ["$\\leftrightarrow$", "$\\updownarrow$"],
+                ["$\\nearrow\\hspace{-1.46}\\swarrow$", "$\\nwarrow\\hspace{-1.46}\\searrow$"],
+                ["$\\circlearrowleft$", "$\\circlearrowright$"],
+            ),
+            "polarization jones": (
+                [ket(r"\nearrow\hspace{-1.46}\swarrow"), ket(r"\nwarrow\hspace{-1.46}\searrow")],
+                [ket(r"\circlearrowleft"), ket(r"\circlearrowright")],
+                [ket(r"\leftrightarrow"), ket(r"\updownarrow")]
+            ),
+            "polarization jones letters": (
+                [ket("D"), ket("A")],
+                [ket("L"), ket("R")],
+                [ket("H"), ket("V")]
+            )
+        }
+
+        if convention in bloch_conventions:
+            self.xlabel, self.ylabel, self.zlabel = bloch_conventions[convention]
         else:
             raise Exception("No such convention.")
 
