@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed May 29 11:23:46 2013
 
 @author: dcriger
 """
-
-from __future__ import division
 
 import numpy as np
 import pytest

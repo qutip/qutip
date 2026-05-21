@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
