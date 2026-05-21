@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 This module implements internal-use functions for semidefinite programming.
 """

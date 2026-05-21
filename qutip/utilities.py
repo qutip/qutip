@@ -177,10 +177,10 @@ def convert_unit(value, orig="meV", to="GHz"):
         The energy in the new unit.
     """
     if orig not in _unit_factor_tbl:
-        raise TypeError("Unsupported unit %s" % orig)
+        raise TypeError(f"Unsupported unit {orig}")
 
     if to not in _unit_factor_tbl:
-        raise TypeError("Unsupported unit %s" % to)
+        raise TypeError(f"Unsupported unit {to}")
 
     return value * (_unit_factor_tbl[orig] / _unit_factor_tbl[to])
 
