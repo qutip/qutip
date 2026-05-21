@@ -24,14 +24,6 @@ from qutip.piqs._piqs import (
 from qutip.piqs._piqs import Dicke as _Dicke
 from qutip.piqs.piqs import *
 
-import sys
-import unittest
-
-
-# Disable tests for python2 as qutip.piqs does not support python2.
-if sys.version_info[0] < 3:
-    raise unittest.SkipTest("qutip.piqs module is not tested for Python 2")
-
 
 class TestDicke:
     """
