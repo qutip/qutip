@@ -20,7 +20,7 @@ Features
 - Adds operator overloading for functions ``mean_nonzero`` and ``mean_abs_nonzero`` (mean of absolute values) for complex matrices (qutip.data.Dia, qutip.data.CSR, qutip.data.Dense). (#2817, by Veronika Kurth)
 
 **Solvers improvements**
-
+- Introduces a matrix-form solver that leverages matrix-matrix products for better memory efficiency. It can be used by passing ``options={"matrix_form": True}`` to ``mesolve`` or ``MESolver``. (#2811, by Ashley Milsted)
 - Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis construction. (#2725, by Maximilian MM)
 - Uses the ``mean_abs_nonzero`` function from qutip/core/data/mean.pyx module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
 - Adds ``plot_expect()`` to ``Result`` and ``MultiTrajResult``, and ``plot_photocurrent()`` to ``McResult``, for visualising solver output directly from result objects. Based on initial work by @famous111 in PR #2724. (#2837, by Chinmay-Tangal)
