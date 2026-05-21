@@ -177,6 +177,28 @@ class TestMESolveDecay:
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
+    def testME_NonHermRho_matrix_form(self):
+        "mesolve: matrix_form solver evolves a non-Hermitian transition matrix"
+        # rho0 = |0><1| — explicitly non-Hermitian
+        rho0 = (qutip.basis(self.N, 0)
+                * qutip.basis(self.N, 1).dag())
+        H = self.ada
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+
+        tlist = np.linspace(0, 5, 51)
+        options_super = {"progress_bar": None, "matrix_form": False}
+        options_matrix = {"progress_bar": None, "matrix_form": True}
+
+        out_super = mesolve(H, rho0, tlist, c_op_list,
+                            options=options_super)
+        out_matrix = mesolve(H, rho0, tlist, c_op_list,
+                             options=options_matrix)
+
+        for s_super, s_matrix in zip(out_super.states, out_matrix.states):
+            np.testing.assert_allclose(
+                s_matrix.full(), s_super.full(), atol=1e-7,
+            )
+
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
         me_error = 2e-5
