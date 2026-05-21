@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import collections
 import os
 import pathlib
@@ -11,7 +9,6 @@ import warnings
 # Required third-party imports, must be specified in pyproject.toml.
 import packaging.version
 from setuptools import setup, Extension
-import distutils.sysconfig
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -102,7 +99,7 @@ def _determine_compilation_options(options):
     # Remove -Wstrict-prototypes from the CFLAGS variable that the Python build
     # process uses in addition to user-specified ones; the flag is not valid
     # for C++ compiles, but CFLAGS gets appended to those compiles anyway.
-    config = distutils.sysconfig.get_config_vars()
+    config = sysconfig.get_config_vars()
     if "CFLAGS" in config:
         config["CFLAGS"] = config["CFLAGS"].replace("-Wstrict-prototypes", "")
     options['cflags'] = []
