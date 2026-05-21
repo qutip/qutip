@@ -6,7 +6,7 @@ Change Log
 
 .. towncrier release notes start
 
-QuTiP 5.3.0 (2026-05-14)
+QuTiP 5.3.0 (2026-05-22)
 ========================
 
 Features
@@ -21,6 +21,7 @@ Features
 
 **Solvers improvements**
 - Introduces a matrix-form solver that leverages matrix-matrix products for better memory efficiency. It can be used by passing ``options={"matrix_form": True}`` to ``mesolve`` or ``MESolver``. (#2811, by Ashley Milsted)
+- Allow the matrix-form ``mesolve`` (``options={"matrix_form": True}``) to evolve non-Hermitian initial states such as transition matrices ``|i><j|``. (#2898, by Ashley Milsted)
 - Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis construction. (#2725, by Maximilian MM)
 - Uses the ``mean_abs_nonzero`` function from qutip/core/data/mean.pyx module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
 - Adds ``plot_expect()`` to ``Result`` and ``MultiTrajResult``, and ``plot_photocurrent()`` to ``McResult``, for visualising solver output directly from result objects. Based on initial work by @famous111 in PR #2724. (#2837, by Chinmay-Tangal)
@@ -78,6 +79,7 @@ Miscellaneous
 - Adds GitHub Sponsors button. (#2869)
 - Updates manylinux-x86_64-image from manylinux2014 to manylinux_2_28. Update build-frontend to build from pip. This allows to use custom build frontends like uv in the future. Update wheel number from 20 to 24 while deploying. (#2883, by Mayank Goel)
 - Adds AI Tool Usage Policy (#2891, by Mayank Goel)
+- Remove outdated code (#2899, by Mayank Goel)
 
 
 QuTiP 5.2.3 (2026-01-21)
