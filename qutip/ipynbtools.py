@@ -1,46 +1,34 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.ui.progressbar import BaseProgressBar, HTMLProgressBar
+from qutip.ui.progressbar import HTMLProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
-
-#IPython parallel routines moved to ipyparallel in V4
-#IPython parallel routines not in Anaconda by default
-if IPython.version_info[0] >= 4:
-    try:
-        from ipyparallel import Client
-        __all__ = ['version_table', 'plot_animation',
-                    'parallel_map']
-    except:
-         __all__ = ['version_table', 'plot_animation']
-else:
-    try:
-        from IPython.parallel import Client
-        __all__ = ['version_table', 'plot_animation',
-                    'parallel_map']
-    except:
-         __all__ = ['version_table', 'plot_animation']
-
-
-from IPython.display import HTML, Javascript, display
+from IPython.display import HTML, display
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from base64 import b64encode
 
 import datetime
-import uuid
 import sys
 import os
 import time
 import inspect
+from pathlib import Path
 
 import qutip
 import numpy
 import scipy
 import matplotlib
 import IPython
+
+try:
+    from ipyparallel import Client
+    __all__ = ['version_table', 'plot_animation',
+                    'parallel_map']
+except:
+    __all__ = ['version_table', 'plot_animation']
 
 try:
     import Cython
@@ -80,28 +68,25 @@ def version_table(verbose=False):
                 ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
-                ("OS", "%s [%s]" % (os.name, sys.platform))
+                ("OS", f"{os.name} [{sys.platform}]")
                 ]
     if _cython_available:
         packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
-        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
+        html += f"<tr><td>{name}</td><td>{version}</td></tr>"
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"
-        qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
-        html += ("<tr><td>Installation path</td><td>%s</td></tr>" %
-                 qutip_install_path)
+        qutip_install_path = Path(inspect.getsourcefile(qutip)).parent
+        html += f"<tr><td>Installation path</td><td>{qutip_install_path}</td></tr>"
         try:
             import getpass
-            html += ("<tr><td>User</td><td>%s</td></tr>" %
-                     getpass.getuser())
+            html += f"<tr><td>User</td><td>{getpass.getuser()}</td></tr>"
         except:
             pass
 
-    html += "<tr><td colspan='2'>%s</td></tr>" % time.strftime(
-        '%a %b %d %H:%M:%S %Y %Z')
+    html += f"<tr><td colspan='2'>{time.strftime('%a %b %d %H:%M:%S %Y %Z')}</td></tr>"
     html += "</table>"
 
     return HTML(html)
@@ -119,7 +104,7 @@ def _visualize_parfor_data(metadata):
     tmin = min(res[:, 1])
     for n, pid in enumerate(numpy.unique(res[:, 0])):
         yticks.append(n)
-        yticklabels.append("%d" % pid)
+        yticklabels.append(f"{pid}")
         for m in numpy.where(res[:, 0] == pid)[0]:
             ax.add_patch(plt.Rectangle((res[m, 1] - tmin, n - 0.25),
                          res[m, 2] - res[m, 1], 0.5, color="green", alpha=0.5))
@@ -320,10 +305,11 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     plt.close(fig)
 
     if verbose:
-        print("Created %s.m4v" % name)
+        print(f"Created {name}.m4v")
 
-    video = open(name + '.mp4', "rb").read()
-    video_encoded = b64encode(video).decode("ascii")
-    video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
-        video_encoded)
+    with open(name + '.mp4', "rb") as f:
+        video = f.read()
+        video_encoded = b64encode(video).decode("ascii")
+        video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
+            video_encoded)
     return HTML(video_tag)

@@ -1,11 +1,11 @@
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
+import os
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy
 import scipy.interpolate
-import os
 import sys
 import re
 import dis
@@ -334,7 +334,7 @@ qset.compile = CompilationOptions()
 COEFF_VERSION = "1.3"
 
 try:
-    root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
+    root = Path(qset.tmproot) / f"qutip_coeffs_{COEFF_VERSION}"
     qset.coeffroot = root
 except OSError:
     qset.coeffroot = "."
@@ -353,7 +353,7 @@ def clean_compiled_coefficient(all=False):
     import shutil
     tmproot = qset.tmproot
     active = qset.coeffroot
-    folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    folders = glob.glob(str(Path(tmproot) / 'qutip_coeffs_') + "*")
     if all:
         shutil.rmtree(active)
     for folder in folders:
@@ -605,9 +605,8 @@ def compile_code(code, file_name, parsed, c_opt):
         lock.acquire(timeout=0)
         for file in glob.glob(file_name + "*"):
             os.remove(file)
-        file_ = open(file_name + ".pyx", "w")
-        file_.writelines(code)
-        file_.close()
+        with open(file_name + ".pyx", "w") as file_:
+            file_.writelines(code)
         oldargs = sys.argv
         try:
             sys.argv = ["setup.py", "build_ext", "--inplace"]

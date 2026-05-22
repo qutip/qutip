@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # @author: Arne L. Grimsmo
 # @email1: arne.grimsmo@gmail.com
 # @organization: University of Sherbrooke

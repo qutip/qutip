@@ -688,8 +688,8 @@ def _f_op(n_sites, site, action, dtype: LayerType = None,):
     elif action.lower() == 'destruction':
         operator = destroy(2, dtype=dtype)
     else:
-        raise TypeError("Unknown operator '%s'. `action` must be \
-                        either 'creation' or 'destruction.'" % action)
+        raise TypeError(f"Unknown operator '{action}'. `action` must be \
+                        either 'creation' or 'destruction.'")
 
     eye = identity(2, dtype=dtype)
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
@@ -1095,7 +1095,7 @@ def commutator(
         return A @ B + B @ A
 
     else:
-        raise TypeError("Unknown commutator kind '%s'" % kind)
+        raise TypeError(f"Unknown commutator kind '{kind}'")
 
 
 def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:
