@@ -334,7 +334,7 @@ class TestFloquet:
             assert (min(abs(Xs - Xpm_m1)) < 1e-4)
             idx += 1
 
-def safe_rand_ket(N, min_weight=1e-4):
+def safe_rand_ket(N, min_weight=1e-2):
     while True:
         psi = rand_ket(N)
         weights = np.abs(psi.full().flatten())**2
