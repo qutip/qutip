@@ -8,10 +8,10 @@ from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 
 from qutip import (
-    basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz, sigmay,
-    tensor, Qobj, QobjEvo, fidelity, fdestroy
+    basis, destroy, direct_component, expect, fock_dm, liouvillian, mesolve,
+    qeye, rand_ket, sigmax, sigmaz, sigmay, tensor, vector_to_operator,
+    fidelity, fdestroy, Qobj, QobjEvo
 )
-from qutip.core import data as _data
 from qutip.solver.heom.bofin_baths import (
     BathExponent,
     Bath,
@@ -39,7 +39,6 @@ from qutip.solver.heom.bofin_solvers import (
     HEOMResult,
     HEOMSolver,
     HSolverDL,
-    _GatherHEOMRHS,
 )
 from qutip.solver import (
     IntegratorException,
@@ -211,15 +210,26 @@ class TestHierarchyADOsState:
         ados = HierarchyADOs(exponents, max_depth=max_depth)
         return ados
 
-    def mk_rho_and_soln(self, ados, rho_dims):
+    def mk_rho_and_soln(self, ados, rho_dims, format):
         n_ados = len(ados.labels)
-        ado_soln = np.random.rand(n_ados, *[np.prod(d) for d in rho_dims])
-        rho = Qobj(ado_soln[0, :], dims=rho_dims)
+        if format == "numpy":
+            ado_soln = np.random.rand(n_ados, *[np.prod(d) for d in rho_dims])
+            rho = Qobj(ado_soln[0, :].T, dims=rho_dims)
+        elif format == "ados-sum":
+            ados_space = (rho_dims,) * n_ados
+            ado_soln = rand_ket(ados_space)
+            rho = vector_to_operator(direct_component(ado_soln, 0))
+        else:
+            assert False
         return rho, ado_soln
 
-    def test_create(self):
+    @pytest.mark.parametrize("format", [
+        pytest.param("numpy", id="numpy"),
+        pytest.param("ados-sum", id="ados-sum"),
+    ])
+    def test_create(self, format):
         ados = self.mk_ados([2, 3], max_depth=2)
-        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]], format)
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
         assert ado_state.rho == rho
         assert ado_state.labels == ados.labels
@@ -227,14 +237,28 @@ class TestHierarchyADOsState:
         assert ado_state.idx((0, 0)) == ados.idx((0, 0))
         assert ado_state.idx((0, 1)) == ados.idx((0, 1))
 
-    def test_extract(self):
+    @pytest.mark.parametrize("format", [
+        pytest.param("numpy", id="numpy"),
+        pytest.param("ados-sum", id="ados-sum"),
+    ])
+    def test_extract(self, format):
         ados = self.mk_ados([2, 3], max_depth=2)
-        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]], format)
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
-        ado_state.extract((0, 0)) == rho
-        ado_state.extract(0) == rho
-        ado_state.extract((0, 1)) == Qobj(ado_soln[1, :], dims=rho.dims)
-        ado_state.extract(1) == Qobj(ado_soln[1, :], dims=rho.dims)
+        assert ado_state.extract((0, 0)) == rho
+        assert ado_state.extract(0) == rho
+        if format == "numpy":
+            assert (ado_state.extract((0, 1))
+                    == Qobj(ado_soln[1, :].T, dims=rho.dims))
+            assert (ado_state.extract(1)
+                    == Qobj(ado_soln[1, :].T, dims=rho.dims))
+        elif format == "ados-sum":
+            assert (ado_state.extract((0, 1))
+                    == vector_to_operator(direct_component(ado_soln, 1)))
+            assert (ado_state.extract(1)
+                    == vector_to_operator(direct_component(ado_soln, 1)))
+        else:
+            assert False
 
 
 class DrudeLorentzPureDephasingModel:
@@ -583,6 +607,12 @@ def hamiltonian_to_sys(H, evo, liouvillianize):
     return H
 
 
+def rect(t):
+    if 1 <= t < 2:
+        return 1
+    return 0
+
+
 class TestHEOMSolver:
     def test_create_bosonic(self):
         Q = sigmaz()
@@ -696,12 +726,13 @@ class TestHEOMSolver:
         assert str(err.value) == (
             "Initial state rho has dims [[3], [1]]"
             " but the system dims are [[2], [2]]"
+            " and the ADO dims are [([[2], [2]],) * 10, [1]]"
         )
 
         with pytest.raises(TypeError) as err:
             solve_method("batman")
         assert str(err.value) == (
-            "Initial ADOs passed have type <class 'str'> but a "
+            "Initial ADOs passed have type <class 'str'> but a Qobj, "
             "HierarchyADOsState or a numpy array-like instance was expected"
         )
 
@@ -833,6 +864,56 @@ class TestHEOMSolver:
         expected = udm.analytic_results([5000])
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_timedep_coupling(self, liouvillianize, atol=1e-5):
+        lam = 1
+        gamma = 0.05
+        T = 1
+        Nk = 2
+        depth = 12
+        options = {'max_step': 5e-3, 'store_final_state': True}
+        rho0 = fock_dm(2, 0)
+
+        bath = DrudeLorentzBath(
+            Q=QobjEvo([sigmaz(), rect]), lam=lam, gamma=gamma, T=T, Nk=Nk
+        )
+        hsolver = HEOMSolver(
+            liouvillian(sigmax()) if liouvillianize else sigmax(),
+            bath, depth, options=options
+        )
+        e_ops = [sigmax(), sigmay(), sigmaz()]
+
+        tlist = np.linspace(0, 3, 300, endpoint=False)
+        result = hsolver.run(rho0, tlist, e_ops=e_ops)
+
+        # the result above should be equivalent to the following:
+        interval1 = tlist[:101]
+        result1 = mesolve(
+            sigmax(), rho0, interval1, e_ops=e_ops, options=options)
+
+        const_bath = DrudeLorentzBath(
+            Q=sigmaz(), lam=lam, gamma=gamma, T=T, Nk=Nk
+        )
+        interval2 = tlist[100:201]
+        result2 = heomsolve(sigmax(), const_bath, depth, result1.final_state,
+                            interval2, e_ops=e_ops, options=options)
+
+        interval3 = tlist[200:]
+        result3 = mesolve(sigmax(), result2.final_state, interval3,
+                          e_ops=e_ops, options=options)
+
+        for i in range(3):
+            np.testing.assert_allclose(
+                result.expect[i],
+                np.concatenate([result1.expect[i][:-1],
+                                result2.expect[i][:-1],
+                                result3.expect[i]]),
+                atol=atol
+            )
 
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
@@ -1073,6 +1154,7 @@ class TestHEOMSolver:
     @pytest.mark.parametrize(['ado_format'], [
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
         pytest.param("numpy", id="numpy"),
+        pytest.param("ados-sum", id="ados-sum"),
     ])
     def test_ado_input_and_return(self, ado_format):
         dlm = DrudeLorentzPureDephasingModel(
@@ -1091,8 +1173,15 @@ class TestHEOMSolver:
 
         tlist_2 = [2, 3, 4]
         rho0 = result_1.ado_states[-1]
-        if ado_format == "numpy":
-            rho0 = rho0._ado_state  # extract the raw numpy array
+        if ado_format == "ados-sum":
+            rho0 = rho0._ado_state
+        elif ado_format == "numpy":
+            # extract the raw numpy array
+            rho_shape = dlm.H.shape
+            n, _ = rho_shape
+            hierarchy_shape = (len(rho0.labels), n, n)
+            rho0 = rho0._ado_state.full().reshape(hierarchy_shape)
+
         result_2 = hsolver.run(rho0, tlist_2)
 
         tlist_full = tlist_1 + tlist_2[1:]
@@ -1378,12 +1467,13 @@ class TestHEOMSolverWithEnv:
         assert str(err.value) == (
             "Initial state rho has dims [[3], [1]]"
             " but the system dims are [[2], [2]]"
+            " and the ADO dims are [([[2], [2]],) * 10, [1]]"
         )
 
         with pytest.raises(TypeError) as err:
             solve_method("batman")
         assert str(err.value) == (
-            "Initial ADOs passed have type <class 'str'> but a "
+            "Initial ADOs passed have type <class 'str'> but a Qobj, "
             "HierarchyADOsState or a numpy array-like instance was expected"
         )
 
@@ -1493,6 +1583,54 @@ class TestHEOMSolverWithEnv:
         expected = udm.analytic_results([5000])
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_timedep_coupling(self, liouvillianize, atol=1e-5):
+        lam = 1
+        gamma = 0.05
+        T = 1
+        Nk = 2
+        depth = 12
+        options = {'max_step': 5e-3, 'store_final_state': True}
+        rho0 = fock_dm(2, 0)
+
+        env = DrudeLorentzEnvironment(lam=lam, gamma=gamma, T=T)
+        approx_env = env.approximate("matsubara", Nk=Nk)
+        hsolver = HEOMSolver(
+            liouvillian(sigmax()) if liouvillianize else sigmax(),
+            (approx_env, QobjEvo([sigmaz(), rect])),
+            depth, options=options
+        )
+        e_ops = [sigmax(), sigmay(), sigmaz()]
+
+        tlist = np.linspace(0, 3, 300, endpoint=False)
+        result = hsolver.run(rho0, tlist, e_ops=e_ops)
+
+        # the result above should be equivalent to the following:
+        interval1 = tlist[:101]
+        result1 = mesolve(
+            sigmax(), rho0, interval1, e_ops=e_ops, options=options)
+
+        interval2 = tlist[100:201]
+        result2 = heomsolve(sigmax(), (approx_env, sigmaz()), depth,
+                            result1.final_state, interval2,
+                            e_ops=e_ops, options=options)
+
+        interval3 = tlist[200:]
+        result3 = mesolve(sigmax(), result2.final_state, interval3,
+                          e_ops=e_ops, options=options)
+
+        for i in range(3):
+            np.testing.assert_allclose(
+                result.expect[i],
+                np.concatenate([result1.expect[i][:-1],
+                                result2.expect[i][:-1],
+                                result3.expect[i]]),
+                atol=atol
+            )
 
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
@@ -1862,33 +2000,3 @@ class TestHEOMResult:
         assert result.final_state is rho
         assert result.ado_states == [ado_state]
         assert result.final_ado_state is ado_state
-
-
-class Test_GatherHEOMRHS:
-    def test_simple_gather(self):
-        def f(label):
-            return int(label.lstrip("o"))
-
-        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3)
-
-        for i in range(3):
-            for j in range(3):
-                base = 10 * (j * 2) + (i * 2)
-                block_op = _data.to(
-                    _data.CSR,
-                    _data.create(np.array([
-                        [base, base + 10],
-                        [base + 1, base + 11],
-                    ]))
-                )
-                gather_heoms.add_op(f"o{i}", f"o{j}", block_op)
-
-        op = gather_heoms.gather()
-
-        expected_op = np.array([
-            [10 * i + j for i in range(2 * 3)]
-            for j in range(2 * 3)
-        ], dtype=np.complex128)
-
-        np.testing.assert_array_equal(op.to_array(), expected_op)
-        assert isinstance(op, _data.CSR)

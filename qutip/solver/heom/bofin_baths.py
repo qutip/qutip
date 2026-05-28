@@ -23,6 +23,7 @@ the HEOM solver internally and in the result object describing its output.
 from qutip.core import data as _data
 from qutip.core import environment
 from qutip.core.qobj import Qobj
+from qutip.core.cy.qobjevo import QobjEvo
 
 __all__ = [
     "BathExponent",
@@ -164,7 +165,13 @@ class BathExponent(environment.CFExponent):
     def _can_combine(self, other, rtol, atol):
         if not super()._can_combine(other, rtol, atol):
             return False
-        if not _isequal(self.Q, other.Q, tol=atol):
+        if self.Q == other.Q:
+            return True
+        if (
+            isinstance(self.Q, QobjEvo)
+            or isinstance(other.Q, QobjEvo)
+            or not _isequal(self.Q, other.Q, tol=atol)
+        ):
             return False
         return True
 
@@ -256,7 +263,7 @@ class BosonicBath(environment.ExponentialBosonicEnvironment):
         return BathExponent(type, None, self._Q, ck, vk, ck2, tag=tag)
 
     def _check_coup_op(self, Q):
-        if not isinstance(Q, Qobj):
+        if not isinstance(Q, (Qobj, QobjEvo)):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
     def __init__(
@@ -615,7 +622,7 @@ class FermionicBath(environment.ExponentialFermionicEnvironment):
         return lists_provided
 
     def _check_coup_op(self, Q):
-        if not isinstance(Q, Qobj):
+        if not isinstance(Q, (Qobj, QobjEvo)):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
     def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=None):
