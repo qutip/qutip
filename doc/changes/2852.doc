@@ -1,0 +1,1 @@
+Improved the documentation of correlation_3op to explain performance optimization using max_t_plus_tau and parallel execution options.
