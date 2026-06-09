@@ -26,11 +26,14 @@ class IntegratorKrylov(Integrator):
         'sub_system_tol': 1e-7,
         'algorithm': 'auto',
     }
-    method = 'krylov'
+    RHS_format = "matrix"
 
-    def _prepare(self):
-        if not self.system.isconstant:
-            raise ValueError("Krylov method only supports constant systems.")
+    def __init__(self, rhs: _data.Data, options: dict):
+        self.rhs = rhs
+        self._is_set = False
+        self._back = (np.inf, None)
+        self._options = self.integrator_options.copy()
+        self.options = options
 
         if self.options["krylov_dim"] <= 0:
             raise ValueError("The option 'krylov_dim', must be an integer "
@@ -38,7 +41,7 @@ class IntegratorKrylov(Integrator):
 
         self._max_step = -np.inf
         self._krylov_dim = self.options["krylov_dim"]
-        self._hermitian = (1j*self.system(0)).isherm
+        self._hermitian = _data.isherm(self.rhs * 1j)
 
         if self.options['algorithm'] == 'auto':
             if self._hermitian:
@@ -93,7 +96,7 @@ class IntegratorKrylov(Integrator):
             The basis vectors of the Krylov subspace.
         """
         krylov_dim = self._krylov_dim
-        H = (1j * self.system(0)).data
+        H = (1j * self.rhs)
         p0 = _data.inner(psi, psi)  # purity
         sp0 = np.sqrt(p0)
 
@@ -175,7 +178,7 @@ class IntegratorKrylov(Integrator):
             The basis vectors of the Krylov subspace.
         """
         krylov_dim = self._krylov_dim
-        H = (1j * self.system(0)).data
+        H = (1j * self.rhs)
         p0 = _data.inner(psi, psi)  # purity
         sp0 = np.sqrt(p0)
 
@@ -248,7 +251,7 @@ class IntegratorKrylov(Integrator):
             )
         return min(dt, self.options["max_step"])
 
-    def set_state(self, t, state0):
+    def set_state(self, t: float, state0: _data.Data):
         self._t_0 = t
 
         krylov_tridiag, krylov_basis = self._algorithm(state0)
@@ -257,7 +260,7 @@ class IntegratorKrylov(Integrator):
 
         if (
             krylov_tridiag.shape[0] < self._krylov_dim
-            or krylov_tridiag.shape == self.system.shape
+            or krylov_tridiag.shape == self.rhs.shape
         ):
             # happy_breakdown
             self._max_step = np.inf
@@ -269,10 +272,10 @@ class IntegratorKrylov(Integrator):
         ):
             self._max_step = self._compute_max_step(krylov_tridiag)
 
-    def get_state(self, copy=True):
+    def get_state(self, copy=True) -> tuple[float, Data]:
         return self._t_0, self._compute_psi(0, *self._krylov_state)
 
-    def integrate(self, t, copy=True):
+    def integrate(self, t: float, copy: bool = True) -> tuple[float, Data]:
         step = 0
         while t > self._t_0 + self._max_step:
             # The approximation in only valid in the range t_0, t_0 + max step
@@ -292,7 +295,7 @@ class IntegratorKrylov(Integrator):
         return t, self._compute_psi(delta_t, *self._krylov_state)
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Supported options by krylov method:
 
@@ -329,7 +332,7 @@ class IntegratorKrylov(Integrator):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict):
         Integrator.options.fset(self, new_options)
 
 
