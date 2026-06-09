@@ -26,8 +26,6 @@ class IntegratorKrylov(Integrator):
         'sub_system_tol': 1e-7,
         'algorithm': 'auto',
     }
-    support_time_dependant = False
-    supports_blackbox = False
     method = 'krylov'
 
     def _prepare(self):
