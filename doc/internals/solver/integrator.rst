@@ -110,11 +110,11 @@ quantum equation in QuTiP can profit from alternative formats.
 Every integrator exposes an :attr:`RHS_format` class attribute string that dictates
 the type of RHS object required during initialization:
 
-* **"callable"**: The integrator expects a function matching the signature ``rhs(t, Data) -> Data``
-  or ``rhs(t, Data, out=Data)``. This is the default for most ODE methods.
+* **"callable"**: The integrator expects a function matching the signature
+  ``rhs(t: float, state: Data) -> Data``. This is the default for most ODE methods.
   For specific Cython-backed ODE implementations, if the passed function is a method of
   :class:`QobjEvo`, it will bypass standard Python overhead and hook directly into the
-  Cython bindings of ``QobjEvo.matmul``.
+  Cython bindings of ``QobjEvo.matmul`` using a ``RHS`` object.
 * **"matrix"**: The integrator accepts a complex matrix formatted as a
   :class:`qutip.core.data.Data` object, solving the linear matrix differential equation
   $\frac{dX}{dt} = \text{RHS} \times X$.
@@ -205,3 +205,46 @@ register it using the solver class's target method:
 Once added, the method is immediately accessible via the high-level functional
 wrappers by configuring the options map (e.g., ``options={"method": "linear"}``).
 Registering the class with the parent :class:`Solver` base class makes it globally available to all solvers except stochastic solver.
+
+
+The RHS class
+-------------
+To optimize performance, certain Cython-backed integrators reuse memory when
+computing derivatives by supporting an in-place functional signature:
+
+.. code-block:: python
+
+    rhs(t: float, state: Data, out: Data) -> Data
+
+In this paradigm, the operation should be interpreted as returning the computed
+derivative added directly into the existing ``out`` object. The function is
+permitted to reuse, modify, or overwrite the ``out`` container as needed.
+This pattern eliminates the considerable overhead of frequent memory allocations
+and deallocations inside tight numerical integration loops. The returned object
+does not need to the same as the ``out`` input if immutable or otherwise not reusable.
+
+These specialized integrators are marked as ``RHS_format="callable"``.
+Internally, they rely on the ``RHS`` helper class.
+This class acts as an interface layer that safely wraps an ordinary,
+out-of-place python derivative function and transforms it into one that behaves
+correctly when subjected to in-place calls.
+
+Within the QuTiP's solver, physical derivatives are usually
+computed via :meth:`QobjEvo.matmul_data`. The integrators automatically detects
+that method and bind directly to the low-level Cython implementation with
+in-place support.
+
+If you are providing a custom Python callable, you must explicitly wrap your
+function inside an ``RHS`` instance to leverage in-place performance optimizations:
+
+
+.. code-block:: python
+
+    from qutip.solver.integrator._rhs import RHS
+
+    def custom_diff(t, state, out):
+        # Perform in-place operations directly on the 'out' data object
+        out += ...
+        return out
+
+    derivative = RHS(custom_diff, inplace=True)

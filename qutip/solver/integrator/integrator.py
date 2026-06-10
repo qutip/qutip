@@ -2,6 +2,7 @@
 import numpy as np
 from collections.abc import Iterator, Callable
 from qutip.core import QobjEvo
+from ._rhs import RHS
 from qutip.core.data import Data
 
 __all__ = ['Integrator', 'IntegratorException']
@@ -44,7 +45,8 @@ class Integrator:
     RHS_format : {"callable", "matrix", "Solver"}
         Which format the ODE integrator rhs is used by the integration method.
         - "callable": The integrator expect a function with signature
-          ``rhs(t, Data) -> Data``, ``rhs(t, Data, out=Data)``.
+          ``rhs(t, Data) -> Data``.
+          Some cython integrator use ``RHS`` object for cython binding.
           "callable" is the default for most ODE methods.
         - "matrix": The integrator take a constant matrix as a ``Data`` object
           as the rhs and will solve the equation ``dX/dt = RHS @ X``.
