@@ -101,7 +101,7 @@ cdef class Explicit_RungeKutta:
         ):
         # Function to integrate.
         if not isinstance(deriv, RHS):
-            derivative = RHS(deriv)
+            deriv = RHS(deriv)
         self.deriv = deriv
         # tolerances
         self.atol = atol
