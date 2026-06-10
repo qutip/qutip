@@ -272,10 +272,12 @@ class IntegratorKrylov(Integrator):
         ):
             self._max_step = self._compute_max_step(krylov_tridiag)
 
-    def get_state(self, copy=True) -> tuple[float, Data]:
+    def get_state(self, copy=True) -> tuple[float, _data.Data]:
         return self._t_0, self._compute_psi(0, *self._krylov_state)
 
-    def integrate(self, t: float, copy: bool = True) -> tuple[float, Data]:
+    def integrate(
+        self, t: float, copy: bool = True
+    ) -> tuple[float, _data.Data]:
         step = 0
         while t > self._t_0 + self._max_step:
             # The approximation in only valid in the range t_0, t_0 + max step
