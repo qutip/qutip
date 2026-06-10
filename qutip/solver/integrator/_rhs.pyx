@@ -49,8 +49,8 @@ cdef class RHS:
         self.derivative = derivative
         self.inplace = inplace
         self.qevo_derr = False
-        if derivative.__func__ is QobjEvo.matmul_data:
-            self.qevo = derivative
+        if getattr(derivative, "__func__", None) is (<object> QobjEvo).matmul_data:
+            self.qevo = derivative.__self__
             self.qevo_derr = True
 
     def __call__(self, t: float, state: Data):
@@ -69,7 +69,7 @@ cdef class RHS:
         if self.inplace:
             if out is None:
                 out = zeros_like(state)
-            self.derivative(t, state, out)
+            out = self.derivative(t, state, out)
         elif out is not None:
             out = iadd(self.derivative(t, state), out)
         else:
