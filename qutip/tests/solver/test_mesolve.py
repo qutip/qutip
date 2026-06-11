@@ -15,7 +15,7 @@ WARN_MISSING_MODULE[0] = 0
 
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
-    if integrator.support_time_dependant
+    if integrator.RHS_format == "callable"
 ]
 
 def fidelitycheck(out1, out2, rho0vec):

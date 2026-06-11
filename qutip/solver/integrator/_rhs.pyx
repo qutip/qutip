@@ -49,7 +49,10 @@ cdef class RHS:
         self.derivative = derivative
         self.inplace = inplace
         self.qevo_derr = False
-        if getattr(derivative, "__func__", None) is (<object> QobjEvo).matmul_data:
+        if (
+            isinstance(getattr(derivative, "__self__", None), QobjEvo)
+            and getattr(derivative.__self__, "matmul_data", None) == derivative
+        ):
             self.qevo = derivative.__self__
             self.qevo_derr = True
 
