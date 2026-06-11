@@ -43,17 +43,18 @@ class IntegratorKrylov(Integrator):
         self._krylov_dim = self.options["krylov_dim"]
         self._hermitian = _data.isherm(self.rhs * 1j)
 
+    def _algorithm(self, psi):
         if self.options['algorithm'] == 'auto':
             if self._hermitian:
-                self._algorithm = self._lanczos_full_reorth_algorithm
+                _algorithm = self._lanczos_full_reorth_algorithm
             else:
-                self._algorithm = self._arnoldi_algorithm
+                _algorithm = self._arnoldi_algorithm
         elif self.options['algorithm'] == 'arnoldi':
-            self._algorithm = self._arnoldi_algorithm
+            _algorithm = self._arnoldi_algorithm
         elif self.options['algorithm'] == 'lanczos_fro':
-            self._algorithm = self._lanczos_full_reorth_algorithm
+            _algorithm = self._lanczos_full_reorth_algorithm
         elif self.options['algorithm'] == 'lanczos':
-            self._algorithm = self._lanczos_algorithm
+            _algorithm = self._lanczos_algorithm
         else:
             raise ValueError("The requested algorithm "
                              f"{self.options['algorithm']} "
@@ -61,11 +62,12 @@ class IntegratorKrylov(Integrator):
                              "Possible options are: \'lanczos\', "
                              "\'lanczos_fro\', \'arnoldi\'.")
 
-        if not self._hermitian and self._algorithm != self._arnoldi_algorithm:
+        if not self._hermitian and _algorithm != self._arnoldi_algorithm:
             # Arnoldi is the only algorithm for open systems in QuTiP atm
             raise ValueError(f"The requested Krylov algorithm "
                              f"{self.options['algorithm']} "
                              "is not supported for non-Hermitian systems.")
+        return _algorithm(psi)
 
     def _lanczos_algorithm(self, psi):
         return self._lanczos_core(psi, max_orthog_steps=2)
