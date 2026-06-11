@@ -59,10 +59,13 @@ behind high-level functional wrappers:
    :caption: Sections
 
    terminology
-   .. motivation
-   .. solver
    integrator
-   .. integrator_stochastic
-   .. result
-   .. solveroptions
-   .. feedback
+
+..
+  Sections to add later:
+  motivation
+  solver
+  integrator_stochastic
+  result
+  solveroptions
+  feedback
