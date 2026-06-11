@@ -795,7 +795,7 @@ class MCSolver(MultiTrajSolver):
                     "only support constant systems."
                 )
             integrator_instance = integrator(rhs(0).data, self.options)
-        elif integrator.RHS_format == "Solver":
+        elif integrator.RHS_format == "solver":
             integrator_instance = integrator(self, self.options)
         else:
             raise ValueError("Integrator entry point not supported.")

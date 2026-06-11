@@ -42,7 +42,7 @@ class Integrator:
     name : str
         The name of the integrator.
 
-    RHS_format : {"callable", "matrix", "Solver"}
+    RHS_format : {"callable", "matrix", "solver"}
         Which format the ODE integrator rhs is used by the integration method.
         - "callable": The integrator expect a function with signature
           ``rhs(t, Data) -> Data``.
