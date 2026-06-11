@@ -4,6 +4,7 @@ from qutip.core.data cimport Data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data.constant import zeros_like
 from qutip.core.data.add import iadd
+from collections.abc import Callable
 
 # Migrating integrator from supporting QobjEvo (matmul) only, to functions
 # with signature:
