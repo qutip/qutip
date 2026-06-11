@@ -40,12 +40,12 @@ Feedback
 
 Deterministic / Non-deterministic
     A categorization based on whether randomness is involved in the time-evolution.
-    * Deterministic evolution algorithms (like standard master equations or Schrödinger equations)
-    | always yield identical results (up to numerical imprecision) across separate
-    | runs given identical initial conditions.
 
+    * Deterministic evolution algorithms (like standard master equations or Schrödinger equations)
+      always yield identical results (up to numerical imprecision) across separate
+      runs given identical initial conditions.
     * Non-deterministic evolution introduces pseudo-random variables,
-    | yielding structurally unique trajectories on successive invocations.
+      yielding structurally unique trajectories on successive invocations.
 
 Stochastic
     While broadly synonymous with non-deterministic behavior, in this section,
