@@ -145,12 +145,6 @@ Every subclass inheriting from :class:`Integrator` must define the following cla
    (e.g., ``"SciPy zvode Adams solver"``) used primarily for populating metadata
    inside the final :class:`Result` container.
 
-.. attribute:: method
-
-   A unique short-string identifier key (e.g., ``"adams"`` or ``"bdf"``) registered
-   with the solver directory, mapping the option selections directly to the underlying
-   class implementation.
-
 
 Creating New Integrators
 ========================
