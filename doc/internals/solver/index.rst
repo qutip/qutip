@@ -5,7 +5,7 @@ Quantum Solvers and Integrators Architecture
 
 The solver framework in QuTiP is responsible for simulating the time-evolution of quantum systems.
 Built directly on top of the core data layer,
-the architecture enforces a separation of concerns between physical equations and numerical solvers.
+the architecture enforces a separation of concerns between physical model and numerical solvers.
 
 This document serves as an overview of the internal architecture of QuTiP's solvers,
 guiding core developers and contributors on how the system is structured,
@@ -31,7 +31,7 @@ tasks between two primary base classes:
    rules down to the :class:`Integrator`. The selection of which numerical scheme to run
    is entirely dictated by the solver's configuration options through the ``"method"`` parameter.
 
-Generally, integrators are general-purpose ODE solvers. However, to maximize performance,
+Usually, integrators are general-purpose ODE solvers. However, to maximize performance,
 certain integrators are specialized to specific physical representations,
 where the boundary between physical assumptions and numerical routines is intentionally blended.
 
