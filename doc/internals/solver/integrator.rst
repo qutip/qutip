@@ -8,7 +8,7 @@ time-evolution solvers. Because different quantum systems present varying behavi
 no single numerical algorithm is optimal for all scenarios.
 
 The :class:`Integrator` framework provides a unified, backend-agnostic interface
-that wraps external Ordinary Differential Equation (ODE) libraries. This design
+that wraps external or custom Ordinary Differential Equation (ODE) libraries. This design
 allows solvers to select routines from multiple distinct libraries through a single,
 interchangeable class.
 
@@ -106,7 +106,7 @@ Derivative Format
 =================
 
 While ordinary ODE interfaces strictly expect functions to represent the right-hand side (RHS),
-quantum equation in QuTiP can profit from alternative formats.
+quantum solvers in QuTiP can profit from alternative formats.
 Every integrator exposes an :attr:`RHS_format` class attribute string that dictates
 the type of RHS object required during initialization:
 
@@ -153,6 +153,8 @@ To implement a custom numerical backend, create a subclass derived from :class:`
 At a minimum, your class must override :meth:`integrate`, :meth:`set_state`, :meth:`get_state`,
 and either :meth:`__init__` or :meth:`_prepare`:
 
+Let's build a simple linear step integrator that updates the current state by adding `dt * derivative(t, state)`. This integrator won't provide very accurate results, but it will nicely illustrate what's required.
+
 .. code-block:: python
 
     from qutip.solver.integrator import Integrator
@@ -161,12 +163,14 @@ and either :meth:`__init__` or :meth:`_prepare`:
         RHS_format = "callable"
         name = "Simple Linear Step"
         method = "linear"
-        # Uses default empty dict if no specialized integrator_options are defined
+        # An integrator may also define `integrator_options` here. If the attribute is not set,
+        # a default empty dict is assumed, indicating that their are not special options for
+        # this integrator.
 
         def _prepare(self):
             # __init__ automatically prepares the local options dict,
             # stores the rhs in self.derivative, and initializes self._is_set to False.
-            # Apply option here!
+            # Apply any specialized options here!
             # This will be called from __init__ and reset.
             pass
 
@@ -198,6 +202,7 @@ register it using the solver class's target method:
 
 Once added, the method is immediately accessible via the high-level functional
 wrappers by configuring the options map (e.g., ``options={"method": "linear"}``).
+
 Registering the class with the parent :class:`Solver` base class makes it globally available to all solvers except stochastic solver.
 
 
@@ -224,7 +229,7 @@ out-of-place python derivative function and transforms it into one that behaves
 correctly when subjected to in-place calls.
 
 Within the QuTiP's solver, physical derivatives are usually
-computed via :meth:`QobjEvo.matmul_data`. The integrators automatically detects
+computed via :meth:`QobjEvo.matmul_data`. The integrators automatically detect
 that method and bind directly to the low-level Cython implementation with
 in-place support.
 
