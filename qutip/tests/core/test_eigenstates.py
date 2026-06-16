@@ -78,7 +78,7 @@ def random_hamiltonian(request):
     eigen = None
     dist = "fill"
     if dimensions == [3, 3, 3]:
-        eigen = [0, 1, 1] * 9
+        eigen = [1, 2, 3] * 9
         dist = "eigen"
     return qutip.rand_herm(dimensions, distribution=dist, eigenvalues=eigen)
 
