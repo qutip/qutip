@@ -12,7 +12,7 @@ class _SolverOptions():
     ----------
     default : dict
         Default dict, only keys in this will be accepted.
-    feedback : callable, ``f(keys : set) -> None``, optional
+    on_update : callable, ``f(keys : set) -> None``, optional
         Function to called when an item is updated.
     name : str, optional
         Name of the solver or integrator that use this. Used in __repr__ only.
@@ -24,7 +24,7 @@ class _SolverOptions():
     ):
         self._default = default
         self.__doc__ = doc
-        if feedback is None:
+        if on_update is None:
             self._on_update = lambda : None
         else:
             self._on_update = weakref.WeakMethod(on_update)
@@ -55,6 +55,21 @@ class _SolverOptions():
         if (updater := self._on_update()) is not None:
             updater(key)
 
+    def __contains__(self, key):
+        return key in self._dict
+
+    def keys(self):
+        return self._dict.keys()
+
+    def values(self):
+        return self._dict.values()
+
+    def items(self):
+        return self._dict.items()
+
+    def get(self, key, default):
+        return self._dict.get(key, default)
+
     def copy(self):
         return self.__class__(
             self._default,
@@ -83,8 +98,8 @@ class _SolverOptions():
             p.text(self.__str__())
 
     @classmethod
-    def _from_reduced(cls, default, feedback, name, doc, keys, args):
-        return cls(default, feedback, name, doc, **{
+    def _from_reduced(cls, default, on_update, name, doc, keys, args):
+        return cls(default, on_update, name, doc, **{
             key: arg for key, arg in zip(keys, args)
         })
 
