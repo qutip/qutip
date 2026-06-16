@@ -61,10 +61,11 @@ https://github.com/readthedocs/sphinx_rtd_theme/issues/1529
 }
 
 .survey-box {
+    margin: 1em;
+    padding: 0.75em;
     border: 1px solid #d9d9d9;
     border-radius: 4px;
-    padding: 0.8em;
-    margin-bottom: 1em;
+    font-size: 0.9em;
 }
 
 .survey-box p {

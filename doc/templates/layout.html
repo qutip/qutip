@@ -1,5 +1,21 @@
-{# Import the theme's layout. #}
 {% extends "!layout.html" %}
 
-{# Custom CSS overrides #}
 {% set bootswatch_css_custom = ['_static/site.css'] %}
+
+{% block menu %}
+
+<div class="survey-box">
+  <strong>📊 QuTiP User Survey 2026</strong>
+  <p>
+    Help shape the future of QuTiP.
+  </p>
+  <p>
+    <a href="https://forms.gle/BXbeT44N4immJykJ7" target="_blank" rel="noopener noreferrer">
+      Take the survey →
+    </a>
+  </p>
+</div>
+
+{{ super() }}
+
+{% endblock %}
