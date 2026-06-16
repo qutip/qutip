@@ -12,7 +12,7 @@ dictionaries directly, the framework utilizes an internal subclass,
 Motivation
 ==========
 
-Simple dictionary lacks the feature needed to
+Simple dictionary or dataclass lacks the feature needed to
 
 * **Preventing Silent Silent Bugs**: Raw Python dictionaries accept any key-value
   pair without validation. A simple typo, such as typing ``"abstol"`` instead of
