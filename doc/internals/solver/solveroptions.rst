@@ -6,10 +6,33 @@ Solver Options Infrastructure
 The configuration of QuTiP's physical solvers and numerical integrators is
 handled via specialized dictionary objects. Rather than exposing raw Python
 dictionaries directly, the framework utilizes an internal subclass,
-:class:`_SolverOptions`. This wrapper enforces strict parameter validation,
-provides dynamic docstrings, and drives reactive feedback behavior to 
-automatically adjust active integration states when parameters shift mid-run.
+:class:`_SolverOptions`.
 
+
+Motivation
+==========
+
+Simple dictionary lacks the feature needed to
+
+* **Preventing Silent Silent Bugs**: Raw Python dictionaries accept any key-value
+  pair without validation. A simple typo, such as typing ``"abstol"`` instead of
+  ``"atol"``, would be silently ignored by a standard dictionary, causing the
+  underlying integrator to fall back to default values without ever alerting the user.
+* **Integrator State Synchronization**: Modern differential equation solvers are
+  stateful; they maintain adaptive step histories, interpolation tables, and
+  multi-step coefficients. If a user modifies an integration parameter *after*
+  a simulation has started stepping forward, the internal state of the underlying
+  ODE engine must be forcefully reset to prevent numeric instability or crashes.
+  A standard dictionary cannot broadcast its updates to intercept these mid-run changes.
+* **Namespace Isolation**: Different integration backends support entirely
+  different sets of configuration options. For example, a specialized Krylov subspace
+  propagator expects parameters like Krylov dimension limits, which are completely
+  meaningless to a standard SciPy ``zvode`` integrator.
+
+The :class:`_SolverOptions` class acts as an intelligent configuration firewall.
+By operating as a reactive, validating proxy, it shields developers from managing
+manual synchronization loops and protects users from configuration errors, ensuring
+that options can safely change dynamically throughout a system's evolutionary life cycle.
 
 Core Features
 -------------
