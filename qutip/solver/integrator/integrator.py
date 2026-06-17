@@ -31,7 +31,7 @@ class Integrator:
     ----------
     derivative: callable | QobjEvo
         Function to integrate.
-        Note that specific integrator may require other input as controlled by
+        Note that specific integrators may require other input types. These types are specified by
         the ``RHS_format`` attribute.
 
     options: dict
@@ -43,16 +43,16 @@ class Integrator:
         The name of the integrator.
 
     RHS_format : {"callable", "matrix", "solver"}
-        Which format the ODE integrator rhs is used by the integration method.
-        - "callable": The integrator expect a function with signature
+        Which format the ODE integrator expects for its RHS:
+        - "callable": The integrator expects a function with the signature
           ``rhs(t, Data) -> Data``.
-          Some cython integrator use ``RHS`` object for cython binding.
+          Some cython integrators use the RHS object for cython binding.
           "callable" is the default for most ODE methods.
-        - "matrix": The integrator take a constant matrix as a ``Data`` object
-          as the rhs and will solve the equation ``dX/dt = RHS @ X``.
-        - "solver": The integrator take the Solver instance that created it and
-          build the RHS itself. These are limited to integration method that
-          mixes the physics of the problem and the numerics.
+        - "matrix": The integrator takes a constant matrix as a ``Data`` object
+          as the RHS and will solve the equation ``dX/dt = RHS @ X``.
+        - "solver": The integrator takes the Solver instance that created it and
+          builds the RHS itself. Typically used only by integration methods that
+          mix the system physics and the integrator numerics.
 
     integrator_options : dict
         A dictionary of options used by the integrator and their default
@@ -64,7 +64,7 @@ class Integrator:
     integrator_options = {}
     _options = None
     # How the rhs is passed to the integrator.
-    # "Solver", "matrix", or "callable".
+    # "solver", "matrix", or "callable".
     RHS_format = "callable"
     # The name of the integrator
     name = None
