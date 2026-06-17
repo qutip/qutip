@@ -53,7 +53,7 @@ cdef class Explicit_RungeKutta:
     ----------
     deriv : callable, RHS
         The system to integrate: ```dX = deriv(t, X)``, either as a callable
-        with signature (t, state) or a RHS objectself.
+        with signature (t, state) or a RHS object.
 
     butcher_tableau : dict
         The coefficients as butcher tableau:

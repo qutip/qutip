@@ -44,7 +44,7 @@ cdef class RHS:
     """
     def __init__(
         self,
-        derivative: Callable[[float, Data], Data] | QobjEvo,
+        derivative: Callable[[float, Data], Data] | Callable[[float, Data, Data], Data] | QobjEvo,
         inplace: bool=False
     ):
         self.derivative = derivative
