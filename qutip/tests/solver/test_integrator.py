@@ -52,7 +52,7 @@ class TestIntegratorCallable:
     @pytest.fixture(params=[
         method
         for method, integrator in Solver.avail_integrators().items()
-        if integrator.RHS_format == "callable"
+        if integrator.rhs_format == "callable"
     ])
     def method(self, request):
         # Callable are the general method that should all be registered with
@@ -155,9 +155,9 @@ class TestIntegratorMCstep():
 
     def test_mc_integration(self, mc_method):
         integrator = MCSolver.avail_integrators()[mc_method]
-        if integrator.RHS_format == "callable":
+        if integrator.rhs_format == "callable":
             evol = integrator(self.system.matmul_data, {})
-        elif integrator.RHS_format == "matrix":
+        elif integrator.rhs_format == "matrix":
             evol = integrator(self.system(0).data, {})
         else:
             pytest.skip()
@@ -185,9 +185,9 @@ class TestIntegratorMCstep():
     def test_mc_integration_mixed(self, start, mc_method):
         system = qutip.QobjEvo(qutip.qeye(1))
         integrator = MCSolver.avail_integrators()[mc_method]
-        if integrator.RHS_format == "callable":
+        if integrator.rhs_format == "callable":
             evol = integrator(system.matmul_data, {})
-        elif integrator.RHS_format == "matrix":
+        elif integrator.rhs_format == "matrix":
             evol = integrator(system(0).data, {})
         else:
             pytest.skip()
