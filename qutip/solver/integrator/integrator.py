@@ -32,7 +32,7 @@ class Integrator:
     derivative: callable | QobjEvo
         Function to integrate.
         Note that specific integrators may require other input types. These types are specified by
-        the ``RHS_format`` attribute.
+        the ``rhs_format`` attribute.
 
     options: dict
         Options for the integrator.
@@ -42,7 +42,7 @@ class Integrator:
     name : str
         The name of the integrator.
 
-    RHS_format : {"callable", "matrix", "solver"}
+    rhs_format : {"callable", "matrix", "solver"}
         Which format the ODE integrator expects for its RHS:
         - "callable": The integrator expects a function with the signature
           ``rhs(t, Data) -> Data``.
@@ -65,7 +65,7 @@ class Integrator:
     _options = None
     # How the rhs is passed to the integrator.
     # "solver", "matrix", or "callable".
-    RHS_format = "callable"
+    rhs_format = "callable"
     # The name of the integrator
     name = None
     method = ""
@@ -221,20 +221,6 @@ class Integrator:
             self._prepare()
         if self._is_set:
             self.set_state(*state)
-
-    def arguments(self, args):
-        """
-        Change the argument of the system.
-        Reset the ODE solver to ensure numerical validity.
-
-        Parameters
-        ----------
-        args : dict
-            New arguments
-        """
-        raise Exception("Remove this method")
-        self.system.arguments(args)
-        self.reset()
 
     @property
     def options(self) -> dict:

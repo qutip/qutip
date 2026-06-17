@@ -13,7 +13,7 @@ WARN_MISSING_MODULE[0] = 0
 
 all_ode_method = [
     method for method, integrator in SESolver.avail_integrators().items()
-    if integrator.RHS_format == "callable"
+    if integrator.rhs_format == "callable"
 ]
 
 def _analytic(t, alpha):

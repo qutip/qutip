@@ -26,7 +26,7 @@ class IntegratorKrylov(Integrator):
         'sub_system_tol': 1e-7,
         'algorithm': 'auto',
     }
-    RHS_format = "matrix"
+    rhs_format = "matrix"
 
     def __init__(self, rhs: _data.Data, options: dict):
         self.rhs = rhs

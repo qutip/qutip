@@ -190,7 +190,7 @@ class IntegratorDiag(Integrator):
     Usable with ``method="diag"``
     """
     integrator_options = {"eigensolver_dtype": "dense"}
-    RHS_format = "matrix"
+    rhs_format = "matrix"
 
     def __init__(self, rhs: _data.Data, options: dict):
         self.rhs = rhs

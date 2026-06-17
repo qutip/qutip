@@ -107,14 +107,14 @@ Derivative Format
 
 While ordinary ODE interfaces strictly expect functions to represent the right-hand side (RHS),
 quantum solvers in QuTiP can profit from alternative formats.
-Every integrator exposes an :attr:`RHS_format` class attribute string that dictates
+Every integrator exposes an :attr:`rhs_format` class attribute string that dictates
 the type of RHS object required during initialization:
 
 * **"callable"**: The integrator expects a function matching the signature
-  ``rhs(t: float, state: Data) -> Data``. This is the default for most ODE methods.
-  For specific Cython-backed ODE implementations, if the passed function is a method of
-  :class:`QobjEvo`, it will bypass standard Python overhead and hook directly into the
-  Cython bindings of ``QobjEvo.matmul`` using a ``RHS`` object.
+  ``rhs(t: float, state: Data) -> Data`` returning the derivative of the `state` at time `t`.
+  This is the default for most ODE methods. For specific Cython-backed ODE implementations,
+  if the passed function is the method of :meth:`QobjEvo.matmul_data`, it will bypass standard
+  Python overhead and hook directly into the Cython bindings of ``QobjEvo.matmul`` using a ``RHS`` object.
 * **"matrix"**: The integrator accepts a complex matrix formatted as a
   :class:`qutip.core.data.Data` object, solving the linear matrix differential equation
   $\frac{dX}{dt} = \text{RHS} \times X$.
@@ -134,7 +134,7 @@ Every subclass inheriting from :class:`Integrator` must define the following cla
    by the numerical backend along with their default values.
    Upon instantiation, this is copied to an instance-level ``options`` dictionary.
 
-.. attribute:: RHS_format
+.. attribute:: rhs_format
 
    A string identifier defining the expected structural format of the Right-Hand Side (RHS)
    derivative function (e.g., ``"callable"``, ``"matrix"``, or ``"solver"``).
@@ -160,7 +160,7 @@ Let's build a simple linear step integrator that updates the current state by ad
     from qutip.solver.integrator import Integrator
 
     class LinearStepODE(Integrator):
-        RHS_format = "callable"
+        rhs_format = "callable"
         name = "Simple Linear Step"
         method = "linear"
         # An integrator may also define `integrator_options` here. If the attribute is not set,
@@ -220,9 +220,9 @@ derivative added directly into the existing ``out`` object. The function is
 permitted to reuse, modify, or overwrite the ``out`` container as needed.
 This pattern eliminates the considerable overhead of frequent memory allocations
 and deallocations inside tight numerical integration loops. The returned object
-does not need to the same as the ``out`` input if immutable or otherwise not reusable.
+does not need to the same as the ``out`` input if it's immutable or otherwise not reusable.
 
-These specialized integrators are marked as ``RHS_format="callable"``.
+These specialized integrators are marked as ``rhs_format="callable"``.
 Internally, they rely on the ``RHS`` helper class.
 This class acts as an interface layer that safely wraps an ordinary,
 out-of-place python derivative function and transforms it into one that behaves

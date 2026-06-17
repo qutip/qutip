@@ -786,16 +786,16 @@ class MCSolver(MultiTrajSolver):
         else:
             raise ValueError("Integrator method not supported.")
         rhs = self.rhs()
-        if integrator.RHS_format == "callable":
+        if integrator.rhs_format == "callable":
             integrator_instance = integrator(rhs.matmul_data, self.options)
-        elif integrator.RHS_format == "matrix":
+        elif integrator.rhs_format == "matrix":
             if not rhs.isconstant:
                 raise TypeError(
                     f"The integration method {method} "
                     "only support constant systems."
                 )
             integrator_instance = integrator(rhs(0).data, self.options)
-        elif integrator.RHS_format == "solver":
+        elif integrator.rhs_format == "solver":
             integrator_instance = integrator(self, self.options)
         else:
             raise ValueError("Integrator entry point not supported.")
