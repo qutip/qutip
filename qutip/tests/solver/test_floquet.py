@@ -334,16 +334,9 @@ class TestFloquet:
             assert (min(abs(Xs - Xpm_m1)) < 1e-4)
             idx += 1
 
-def safe_rand_ket(N, min_weight=1e-2):
-    while True:
-        psi = rand_ket(N)
-        weights = np.abs(psi.full().flatten())**2
-        if np.min(weights) > min_weight:
-            return psi
-
 def test_fsesolve_fallback():
     H = [sigmaz(), lambda t: np.sin(t * 2 * np.pi)]
-    psi0 = safe_rand_ket(2)
+    psi0 = rand_ket(2)
     ffstate = fmmesolve(H, psi0, [0, 1], T=1.).final_state
-    fstate = sesolve(H, psi0, [0, 1]).final_state
+    fstate = sesolve(H, psi0, [0, 1], options={"atol": 1e-9}).final_state
     assert (ffstate - fstate).norm() < 1e-5
