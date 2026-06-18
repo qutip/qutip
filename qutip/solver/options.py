@@ -46,11 +46,7 @@ class _SolverOptions(dict):
             updater(key)
 
     def __delitem__(self, key):
-        if key not in self._default:
-            raise KeyError(f"Options {key} is not supported.")
-        self[key] = self._default[key]
-        if (updater := self._on_update()) is not None:
-            updater(key)
+        self[key] = None
 
     def pop(self):
         raise RuntimeError("Can't remove options")
