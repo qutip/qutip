@@ -4,7 +4,7 @@ import warnings
 import weakref
 
 
-class _SolverOptions():
+class _SolverOptions(dict):
     """
     Class to hold options for solver and integrator.
 
@@ -32,43 +32,41 @@ class _SolverOptions():
         extra_keys = kwargs.keys() - default.keys()
         if extra_keys:
             raise KeyError(f"Options {extra_keys} are not supported.")
-        self._dict = dict(**{**self._default, **kwargs})
-
-    def __getitem__(self, key):
-        return self._dict[key]
+        super().__init__(**{**self._default, **kwargs})
 
     def __setitem__(self, key, val):
         if key not in self._default:
             raise KeyError(f"Options {key} is not supported.")
         if val is None:
             val = self._default[key]
-        if val == self._dict[key]:
+        if val == self[key]:
             return
-        self._dict[key] = val
+        super().__setitem__(key, val)
         if (updater := self._on_update()) is not None:
             updater(key)
 
     def __delitem__(self, key):
         if key not in self._default:
             raise KeyError(f"Options {key} is not supported.")
-        self._dict[key] = self._default[key]
+        self[key] = self._default[key]
         if (updater := self._on_update()) is not None:
             updater(key)
 
-    def __contains__(self, key):
-        return key in self._dict
+    def pop(self):
+        raise RuntimeError("Can't remove options")
 
-    def keys(self):
-        return self._dict.keys()
+    def popitem(self):
+        raise RuntimeError("Can't remove options")
 
-    def values(self):
-        return self._dict.values()
+    def clear(self):
+        raise RuntimeError("Can't remove options")
 
-    def items(self):
-        return self._dict.items()
-
-    def get(self, key, default):
-        return self._dict.get(key, default)
+    def update(self, *args, **kwargs):
+        tmp = {}
+        tmp.update(*args, **kwargs)
+        for key, val in tmp.items():
+            # Ensure all keys are present
+            self[key] = val
 
     def copy(self):
         return self.__class__(
@@ -76,7 +74,7 @@ class _SolverOptions():
             None,
             self._name,
             self.__doc__,
-            **self._dict
+            **self
         )
 
     def __str__(self):
