@@ -781,10 +781,11 @@ class Bloch:
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
-        self.fig.canvas.draw()
+        if getattr(self.fig.canvas, "manager", None) is not None:
+            self.fig.canvas.draw()
 
     def plot_back(self):
-        # back half of sphere
+        # back half of sphere=
         u = np.linspace(0, np.pi, 25)
         v = np.linspace(0, np.pi, 25)
         w = np.linspace(-np.pi / 2, np.pi / 2, 25)
