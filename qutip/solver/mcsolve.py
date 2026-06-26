@@ -39,6 +39,9 @@ def mcsolve(
     given Hamiltonian and sets of collapse operators. Options for the
     underlying ODE solver are given by the Options class.
 
+    See the Users Guide on :ref:`monte-qutip` for an introduction and worked
+    examples.
+
     Parameters
     ----------
     H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
@@ -425,6 +428,9 @@ class MCSolver(MultiTrajSolver):
     Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
     underlying ODE solver are given by the Options class.
+
+    See the Users Guide on :ref:`monte-qutip` for an introduction and worked
+    examples.
 
     Parameters
     ----------
