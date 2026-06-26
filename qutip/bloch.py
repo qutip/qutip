@@ -781,7 +781,8 @@ class Bloch:
         self.plot_axes_labels()
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
-        self.fig.canvas.draw()
+        if getattr(self.fig.canvas, "manager", None) is not None:
+            self.fig.canvas.draw()
 
     def plot_back(self):
         # back half of sphere
