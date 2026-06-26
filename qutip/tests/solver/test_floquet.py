@@ -334,10 +334,9 @@ class TestFloquet:
             assert (min(abs(Xs - Xpm_m1)) < 1e-4)
             idx += 1
 
-
 def test_fsesolve_fallback():
     H = [sigmaz(), lambda t: np.sin(t * 2 * np.pi)]
     psi0 = rand_ket(2)
     ffstate = fmmesolve(H, psi0, [0, 1], T=1.).final_state
-    fstate = sesolve(H, psi0, [0, 1]).final_state
+    fstate = sesolve(H, psi0, [0, 1], options={"atol": 1e-9}).final_state
     assert (ffstate - fstate).norm() < 1e-5
