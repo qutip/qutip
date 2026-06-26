@@ -785,7 +785,7 @@ class Bloch:
             self.fig.canvas.draw()
 
     def plot_back(self):
-        # back half of sphere=
+        # back half of sphere
         u = np.linspace(0, np.pi, 25)
         v = np.linspace(0, np.pi, 25)
         w = np.linspace(-np.pi / 2, np.pi / 2, 25)
