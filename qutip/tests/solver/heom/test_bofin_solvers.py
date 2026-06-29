@@ -1559,11 +1559,11 @@ class TestHEOMSolverWithEnv:
             gamma=dlm.gamma, W=dlm.W, T=dlm.T, mu=-dlm.theta / 2
         )
         if approx == 'matsubara':
-            env_l = env_l.approx_by_matsubara(Nk=dlm.lmax)
-            env_r = env_r.approx_by_matsubara(Nk=dlm.lmax)
+            env_l = env_l.approximate("matsubara",Nk=dlm.lmax)
+            env_r = env_r.approximate("matsubara",Nk=dlm.lmax)
         else:
-            env_l = env_l.approx_by_pade(Nk=dlm.lmax)
-            env_r = env_r.approx_by_pade(Nk=dlm.lmax)
+            env_l = env_l.approximate("pade",Nk=dlm.lmax)
+            env_r = env_r.approximate("pade",Nk=dlm.lmax)
         # for a single impurity we converge with max_depth = 2
         hsolver = HEOMSolver(
             dlm.H, [(env_r, dlm.Q), (env_l, dlm.Q)], 2, options=options
@@ -1603,10 +1603,10 @@ class TestHEOMSolverWithEnv:
         L = liouvillian(H)
         env1 = LorentzianEnvironment(
             gamma=2 * Gamma, W=W, mu=mu, T=1 / beta, tag="Lead 1"
-        ).approx_by_pade(Nk=Nk)
+        ).approximate("pade",Nk=Nk)
         env2 = LorentzianEnvironment(
             gamma=2 * Gamma, W=W, mu=mu, T=1 / beta, tag="Lead 2"
-        ).approx_by_pade(Nk=Nk)
+        ).approximate("pade",Nk=Nk)
         solver = HEOMSolver(
             L, [(env1, d_1), (env2, d_2)], depth, odd_parity=True
         )

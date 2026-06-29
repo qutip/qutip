@@ -733,7 +733,7 @@ class LorentzianBath(FermionicBath):
     def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
         # See DrudeLorentzBath comment
         env = environment.LorentzianEnvironment(T, mu, gamma, w)
-        mats_approx = env.approx_by_matsubara(Nk, tag)
+        mats_approx = env.approximate("matsubara", Nk, tag)
         return FermionicBath.from_environment(mats_approx, Q)
 
 
@@ -798,5 +798,5 @@ class LorentzianPadeBath(FermionicBath):
     def __new__(self, Q, gamma, w, mu, T, Nk, tag=None):
         # See DrudeLorentzBath comment
         env = environment.LorentzianEnvironment(T, mu, gamma, w)
-        mats_approx = env.approx_by_pade(Nk, tag)
+        mats_approx = env.approximate("pade", Nk, tag)
         return FermionicBath.from_environment(mats_approx, Q)
