@@ -1,0 +1,4 @@
+Cache ``_ishp``, ``_iscp``, ``_istp`` and ``_iscptp`` on ``Qobj``, and
+invalidate all affected caches when ``dims``, ``superrep`` or ``data`` are
+mutated. Fixes stale-cache bug where accessing ``type`` before reassigning
+``dims``/``superrep`` would cause subsequent calls to return incorrect results.
