@@ -132,7 +132,7 @@ jobs:
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
         if: matrix.os != 'windows-11-arm'
         # Currently miniconda doesn't support window-11 arms
@@ -296,7 +296,7 @@ jobs:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
