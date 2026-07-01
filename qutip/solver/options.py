@@ -109,3 +109,79 @@ class _SolverOptions(dict):
                 tuple(self.values())
                 )
             )
+
+
+
+###############################################################################
+import weakref
+from typing import TypedDict, ClassVar, Optional
+from dataclasses import dataclass, MISSING, KW_ONLY, asdict, field
+
+from qutip import SESolver
+
+
+class _SolverDataOptions:
+    _on_update = staticmethod(lambda: None)
+
+    def _connect(self, solver):
+        """Binds a weak reference callback to the parent solver."""
+        self._on_update = weakref.WeakMethod(solver._apply_options)
+
+    @property
+    def _name(self):
+        # Strips 'rOptions' from class name: SESolverOptions -> sesolve
+        return self.__class__.__name__[:-8].lower()
+
+    def __setattr__(self, key, val):
+        _need_update = False
+        defaults = getattr(self, '_default', {})
+        if key in defaults:
+            if val is None:
+                val = defaults[key]
+            if val != getattr(self, key, None):
+                _need_update = True
+        super().__setattr__(key, val)
+        if _need_update and (updater := self._on_update()) is not None:
+            updater(key)
+
+    def __delattr__(self, key):
+        if key in self._default:
+            self.__setattr__(key, None)
+        else:
+            super().__delattr__(key)
+
+    def __str__(self):
+        lines = []
+        keys = [key for key in self._default.keys()]
+        vals = [repr(getattr(self, key)) for key in keys]
+        pad_key = max(len(key) for key in keys)
+        pad_val = max(len(val) for val in vals) + 3
+        lines.append(f"Options for {self._name}:")
+        for key, val in zip(keys, vals):
+            default = "(default)" if getattr(self, key) == self._default[key] else ""
+            lines.append(f"    {key:{pad_key}} : {val:<{pad_val}}{default}")
+        return "\n".join(lines)
+
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text(f"{self.__class__.__name__}(...)")
+        else:
+            p.text(self.__str__())
+
+
+class PBarSubOptions(TypedDict):
+    chunk_size: int
+
+
+@dataclass(repr=False)
+class SESolverOptions(_SolverDataOptions):
+    _ : KW_ONLY
+    progress_bar: Optional[str] = None
+    progress_kwargs: Optional[PBarSubOptions] = None
+    store_final_state: Optional[bool] = None
+    store_states: Optional[bool] = None
+    normalize_output: Optional[bool] = None
+    method: Optional[str] = None
+
+    _default = SESolver.solver_options
+    __doc__ = SESolver.options.__doc__
