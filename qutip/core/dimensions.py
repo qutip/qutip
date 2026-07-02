@@ -7,6 +7,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 import numpy as np
 import numbers
+from qutip.core.data import einsum as _data_einsum
 from operator import getitem
 from functools import partial
 from typing import Any, Literal
@@ -291,7 +292,7 @@ def _frozen(*args, **kwargs):
     raise RuntimeError("Dimension cannot be modified.")
 
 
-def einsum(subscripts, *operands):
+def einsum(subscripts, *operands, out_dims=None):
     """
     Implementation of numpy.einsum for Qobj.
     Evaluates the Einstein summation convention on the operands.
@@ -303,6 +304,8 @@ def einsum(subscripts, *operands):
         separated list of subscript labels.
     operands: list of array_like
         These are the arrays for the operation.
+    out_dims: tuple of int
+        The final 2D shape of the state.
 
     Returns
     -------
@@ -311,16 +314,36 @@ def einsum(subscripts, *operands):
     """
     for op in operands:
         op._dims._require_pure_dims("einsum")
+    
+    data_operands = tuple(op.data for op in operands)
 
-    operands_array = [to_tensor_rep(op) for op in operands]
-    result = np.einsum(subscripts, *operands_array)
-    if result.shape == ():
-        return result
-    dims = [
-        [d for d in result.shape[:result.ndim // 2]],
-        [d for d in result.shape[result.ndim // 2:]]
-    ]
-    return from_tensor_rep(result, dims)
+    tensor_shapes = tuple(
+        tuple(op.dims[0]) + tuple(op.dims[1])
+        for op in operands
+    )
+
+    out_shape = None
+    if out_dims is not None:
+        out_shape = (int(np.prod(out_dims[0])), int(np.prod(out_dims[1])))
+
+    result_data = _data_einsum(
+        data_operands[0],
+        subscripts,
+        data_operands[1:],
+        tensor_shapes,
+        out_shape=out_shape
+    )
+
+    if isinstance(result_data, complex):
+        return result_data
+
+    if out_dims is None:
+        rows, cols = result_data.shape
+        out_dims = [[rows], [cols]]
+
+    # Get Qobj class from operand to avoid circular import
+    Qobj_class = type(operands[0])
+    return Qobj_class(result_data, dims=out_dims, copy=False)
 
 
 class _homtuple(Sequence):
