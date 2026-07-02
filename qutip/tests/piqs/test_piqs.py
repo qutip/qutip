@@ -24,14 +24,16 @@ from qutip.piqs._piqs import (
 from qutip.piqs._piqs import Dicke as _Dicke
 from qutip.piqs.piqs import *
 
+
 def _sparse_block_diag(blocks):
     """Helper function (to be refactored to return scipy.sparray
     once the migration from spmatrix -> sparray is performed in qutip):
     Making one input to block_diag sparse in order to get a sparse matrix as a return type.
-    This would tackle dense->sparse-array deprecation warning). """
+    This would tackle dense->sparse-array deprecation warning)."""
     blocks = list(blocks)
     blocks[0] = coo_matrix(blocks[0])
     return block_diag(blocks)
+
 
 class TestDicke:
     """
