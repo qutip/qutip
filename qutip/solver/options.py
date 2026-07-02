@@ -117,7 +117,7 @@ import weakref
 from typing import TypedDict, ClassVar, Optional
 from dataclasses import dataclass, MISSING, KW_ONLY, asdict, field
 
-from qutip import SESolver
+
 
 
 class _SolverDataOptions:
@@ -173,6 +173,8 @@ class PBarSubOptions(TypedDict):
     chunk_size: int
 
 
+"""
+from . import SESolver
 @dataclass(repr=False)
 class SESolverOptions(_SolverDataOptions):
     _ : KW_ONLY
@@ -185,3 +187,4 @@ class SESolverOptions(_SolverDataOptions):
 
     _default = SESolver.solver_options
     __doc__ = SESolver.options.__doc__
+"""
