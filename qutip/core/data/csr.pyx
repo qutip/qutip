@@ -31,6 +31,18 @@ elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
 else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
+
+from scipy.sparse import csr_matrix as scipy_csr_matrix
+
+# csr_array was added in SciPy 1.8; guard the import so QuTiP still
+# builds against older SciPy pins during the transition period.
+try:
+    from scipy.sparse import csr_array as scipy_csr_array
+    _HAS_CSR_ARRAY = True
+except ImportError:
+    scipy_csr_array = None
+    _HAS_CSR_ARRAY = False
+
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -55,10 +67,20 @@ cdef int _ONE = 1
 
 cdef object _csr_matrix(data, indices, indptr, shape):
     """
-    Factory method of scipy csr_matrix: we skip all the index type-checking
+    Factory method of scipy csr_matrix/csr_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
+    cdef object cls
+    if use_sparray:
+        if not _HAS_CSR_ARRAY:
+            raise RuntimeError(
+                "csr_array support requires SciPy >= 1.8; "
+                "either upgrade SciPy or pass use_sparray=False."
+            )
+        cls = scipy_csr_array
+    else:
+        cls = scipy_csr_matrix
     cdef object out = scipy_csr_matrix.__new__(scipy_csr_matrix)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
