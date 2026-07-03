@@ -16,7 +16,7 @@ import numpy as np
 from scipy.integrate import odeint
 from scipy.linalg import eigvalsh
 from scipy.special import entr
-from scipy.sparse import dok_matrix, block_diag, lil_matrix
+from scipy.sparse import dok_matrix, coo_matrix, block_diag, lil_matrix
 from .. import (
     Qobj, spre, spost, tensor, identity, ket2dm, sigmax, sigmay, sigmaz,
     sigmap, sigmam,
@@ -1500,14 +1500,13 @@ def block_matrix(N, elements="ones"):
     k = 0
     for i in blocks_list:
         if elements == "ones":
-            square_blocks.append(np.ones((i, i)))
+            square_blocks.append(coo_matrix(np.ones((i, i))))
         elif elements == "degeneracy":
             j = N / 2 - k
             dj = state_degeneracy(N, j)
-            square_blocks.append(dj * np.ones((i, i)))
+            square_blocks.append(coo_matrix(dj * np.ones((i, i))))
         k = k + 1
     return block_diag(square_blocks)
-
 
 # ============================================================================
 # Adding a faster version to make a Permutational Invariant matrix
