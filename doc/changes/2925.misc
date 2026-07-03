@@ -1,0 +1,1 @@
+Ensures output of `block_diag` function in ``qutip/piqs/piqs.py`` and ``qutip/tests/piqs/test_piqs.py`` stays of type ``scipy.sparse.spmatrix`` in order to prevent pre-mature switch to ``scipy.sparse.sparray`` output before the migration to ``sparray`` is complete in qutip.
