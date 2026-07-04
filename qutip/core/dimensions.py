@@ -314,32 +314,88 @@ def einsum(subscripts, *operands, out_dims=None):
     """
     for op in operands:
         op._dims._require_pure_dims("einsum")
-    
+
     data_operands = tuple(op.data for op in operands)
 
+    if out_dims is None:
+        if "->" in subscripts:
+            inputs_part, output_part = subscripts.split("->")
+        else:
+            inputs_part = subscripts
+            from collections import Counter
+            all_labels = [c for c in inputs_part if c.isalnum()]
+            counts = Counter(all_labels)
+            output_part = "".join(sorted(
+                [c for c, count in counts.items() if count == 1]
+            ))
+
+        input_subs = inputs_part.split(",")
+        char_to_dim = {}
+        row_chars = set()
+        col_chars = set()
+
+        for op, sub in zip(operands, input_subs):
+            row_len = len(op.dims[0])
+            for i, char in enumerate(sub):
+                dim = op.dims[0][i] if i < row_len else op.dims[1][i - row_len]
+                char_to_dim[char] = dim
+                if i < row_len:
+                    row_chars.add(char)
+                else:
+                    col_chars.add(char)
+
+        # Count uncontracted row and col subsystems in the output
+        out_row_subs = [c for c in output_part if c in row_chars]
+        out_col_subs = [
+            c for c in output_part
+            if c in col_chars and c not in row_chars
+        ]
+
+        # Partition output subscripts
+        num_row_dims = len(out_row_subs)
+        num_col_dims = len(out_col_subs)
+
+        if len(output_part) > 0:
+            out_row_dims = [char_to_dim[c] for c in output_part[:num_row_dims]]
+            out_col_dims = [char_to_dim[c] for c in output_part[num_row_dims:]]
+            # Handle ket/bra edge cases where one of them is empty
+            if not out_row_dims:
+                out_row_dims = [1]
+            if not out_col_dims:
+                out_col_dims = [1]
+            out_dims = [out_row_dims, out_col_dims]
+        else:
+            out_dims = None
+
     tensor_shapes = tuple(
-        tuple(op.dims[0]) + tuple(op.dims[1])
+        dims_to_tensor_shape(op.dims)
         for op in operands
     )
 
-    out_shape = None
+    tensor_perms = tuple(
+        dims_to_tensor_perm(op.dims)
+        for op in operands
+    )
+
     if out_dims is not None:
+        out_perm = dims_to_tensor_perm(out_dims)
         out_shape = (int(np.prod(out_dims[0])), int(np.prod(out_dims[1])))
+    else:
+        out_perm = (0,)
+        out_shape = None
 
     result_data = _data_einsum(
         data_operands[0],
         subscripts,
         data_operands[1:],
         tensor_shapes,
+        tensor_perms,
+        out_perm,
         out_shape=out_shape
     )
 
     if isinstance(result_data, complex):
         return result_data
-
-    if out_dims is None:
-        rows, cols = result_data.shape
-        out_dims = [[rows], [cols]]
 
     # Get Qobj class from operand to avoid circular import
     Qobj_class = type(operands[0])

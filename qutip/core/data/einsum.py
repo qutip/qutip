@@ -10,17 +10,20 @@ def einsum_dense(
         subscripts,
         rest_operands,
         tensor_shapes,
+        tensor_perms,
+        out_perm,
         out_shape=None
 ):
     """
-    Dense CPU specialization for einsum.
+    Dense specialization for einsum.
     """
     operands = (op0,) + tuple(rest_operands)
+    from .convert import to as _to
 
-    tensors = [
-        op.as_ndarray().reshape(shape)
-        for op, shape in zip(operands, tensor_shapes)
-    ]
+    tensors = []
+    for op, shape, perm in zip(operands, tensor_shapes, tensor_perms):
+        dense_op = _to(Dense, op)
+        tensors.append(dense_op.as_ndarray().reshape(shape).transpose(perm))
 
     result = np.einsum(subscripts, *tensors)
 
@@ -28,13 +31,17 @@ def einsum_dense(
     if result.shape == ():
         return complex(result)
 
+    # Transpose logical layout back to physical layout
+    inv_out_perm = np.argsort(out_perm)
+    result_physical = result.transpose(inv_out_perm)
+
     if out_shape is None:
-        half = result.ndim // 2
-        rows = int(np.prod(result.shape[:half]))
-        cols = int(np.prod(result.shape[half:]))
+        half = result_physical.ndim // 2
+        rows = int(np.prod(result_physical.shape[:half]))
+        cols = int(np.prod(result_physical.shape[half:]))
         out_shape = (rows, cols)
 
-    return Dense(result.reshape(out_shape))
+    return Dense(result_physical.reshape(out_shape))
 
 
 einsum = _Dispatcher(
