@@ -656,3 +656,23 @@ def test_mixed_equals_merged(improved_sampling, p):
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
     )
+
+
+def test_mcsolve_unnormalized_mixed_state():
+    ntraj = 10
+    initial_state = 0.5 * qutip.fock_dm(2, 0) + 0.25 * qutip.fock_dm(2, 1)
+
+    result = mcsolve(
+        qutip.sigmaz(),
+        initial_state,
+        np.linspace(0, 1, 100),
+        [qutip.sigmam()],
+        ntraj=ntraj,
+        options={"progress_bar": False},
+        seeds=1234,
+    )
+
+    assert initial_state.tr() == 0.75
+    assert result.num_trajectories == ntraj
+    assert sum(result.ntraj_per_initial_state) == ntraj
+    

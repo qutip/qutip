@@ -667,8 +667,13 @@ class MCSolver(MultiTrajSolver):
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
                 eigenvalues, eigenstates = state.eigenstates()
-                state = [(psi, p) for psi, p
-                         in zip(eigenstates, eigenvalues) if p > 0]
+                state = []
+                total_weight = 0
+                for psi, p in zip(eigenstates, eigenvalues):
+                    if p > 0:
+                        state.append((psi, p))
+                        total_weight += p
+                state = [(psi, p / total_weight) for psi, p in state]
 
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
