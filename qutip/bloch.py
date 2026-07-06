@@ -782,7 +782,12 @@ class Bloch:
         self.plot_annotations()
         # Trigger an update of the Bloch sphere if it is already shown:
         if getattr(self.fig.canvas, "manager", None) is not None:
-            self.fig.canvas.draw()
+            try:
+                self.fig.canvas.draw()
+            except AttributeError as e:
+                # Catching matplotlib WebAgg backend initialization quirk in newer versions
+                if "refresh_all" not in str(e):
+                    raise
 
     def plot_back(self):
         # back half of sphere
