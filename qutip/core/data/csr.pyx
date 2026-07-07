@@ -16,9 +16,10 @@ import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import csr_matrix as scipy_csr_matrix
 from functools import partial
+
 from packaging.version import parse as parse_version
+
 if parse_version(scipy.version.version) >= parse_version("1.14.0"):
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
     # From scipy 1.14.0, a check that the input is not scalar was added for
@@ -33,16 +34,6 @@ else:
     scipy_data_matrix_init = scipy_data_matrix.__init__
 
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-
-# csr_array was added in SciPy 1.8; guard the import so QuTiP still
-# builds against older SciPy pins during the transition period.
-try:
-    from scipy.sparse import csr_array as scipy_csr_array
-    _HAS_CSR_ARRAY = True
-except ImportError:
-    scipy_csr_array = None
-    _HAS_CSR_ARRAY = False
-
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -72,6 +63,7 @@ cdef object _csr_matrix(data, indices, indptr, shape):
     a sensible format.
     """
     cdef object cls
+    use_sparray = True if settings.default_sparse_backend == "sparray" else False
     if use_sparray:
         if not _HAS_CSR_ARRAY:
             raise RuntimeError(
@@ -81,7 +73,7 @@ cdef object _csr_matrix(data, indices, indptr, shape):
         cls = scipy_csr_array
     else:
         cls = scipy_csr_matrix
-    cdef object out = scipy_csr_matrix.__new__(scipy_csr_matrix)
+    cdef object out = scipy_csr_matrix.__new__(cls)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix_init(out)
