@@ -237,6 +237,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solve method for solving with a given RHS vector.
 
     """
+    # TODO: replace with issparse check
     if not sp.isspmatrix_csr(A):
         raise TypeError('Input matrix must be in sparse CSR format.')
 

@@ -1297,7 +1297,7 @@ def test_groundstate():
 def test_data_as():
     qobj = qutip.qeye(2, dtype="CSR")
 
-    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix")) # TODO: remove usage of isspmatrix
     assert scipy.sparse.isspmatrix_csr(qobj.data_as(copy=False))
     with pytest.raises(ValueError) as err:
         qobj.data_as("ndarray")

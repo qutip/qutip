@@ -58,7 +58,7 @@ from . import _creator_utils
 import numpy as np
 create.add_creators([
     (_creator_utils.is_data, _creator_utils.data_copy, 100),
-    (_creator_utils.isspmatrix_csr, CSR, 80),
+    (_creator_utils.isspmatrix_csr, CSR, 80), # TODO: remove usage of isspmatrix
     (_creator_utils.isspmatrix_dia, Dia, 80),
     (_creator_utils.is_nparray, Dense, 80),
     (_creator_utils.issparse, CSR, 20),
