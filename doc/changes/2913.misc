@@ -1,0 +1,1 @@
+Tightens the absolute tolerance of ``sesolve`` by one order of magnitude in order to make Floquet solver tests with randomized inputs more robust.
