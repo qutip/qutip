@@ -82,7 +82,7 @@ cdef class Dia(base.Data):
         cdef object data, offsets
 
         #if isinstance(arg, scipy.sparse.spmatrix):
-        if scipy.sparse.issparse(rg):
+        if scipy.sparse.issparse(arg):
             arg = arg.todia()
             if shape is not None and shape != arg.shape:
                 raise ValueError("".join([
