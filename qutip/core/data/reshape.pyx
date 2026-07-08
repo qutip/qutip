@@ -157,8 +157,8 @@ cpdef list split_columns_dense(Dense matrix, copy=True):
             for k in range(matrix.shape[1])]
 
 
-cpdef list split_columns_csr(CSR matrix, copy=True):
-    return [CSR(matrix.as_scipy()[:, k], copy=copy)
+cpdef list split_columns_csr(CSR matrix, copy=True): # slicing of sparse array here of shape (1, 1) gives coordinate sparse array with shape (1, ) - hence the error in CSR init
+    return [CSR(matrix.as_scipy()[:, [k]], copy=copy)
             for k in range(matrix.shape[1])]
 
 
