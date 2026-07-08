@@ -33,7 +33,7 @@ else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
 
-from scipy.sparse import csr_matrix as scipy_csr_matrix
+from scipy.sparse import csr_matrix as scipy_csr_matrix, csr_array as scipy_csr_array
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -65,11 +65,6 @@ cdef object _csr_matrix(data, indices, indptr, shape):
     cdef object cls
     use_sparray = True if settings.default_sparse_backend == "sparray" else False
     if use_sparray:
-        if not _HAS_CSR_ARRAY:
-            raise RuntimeError(
-                "csr_array support requires SciPy >= 1.8; "
-                "either upgrade SciPy or pass use_sparray=False."
-            )
         cls = scipy_csr_array
     else:
         cls = scipy_csr_matrix
@@ -111,7 +106,7 @@ cdef class CSR(base.Data):
         cdef size_t ptr
         cdef base.idxint col
         cdef object data, col_index, row_index
-        if isinstance(arg, scipy.sparse.spmatrix):
+        if scipy.sparse.issparse(arg):
             arg = arg.tocsr()
             if shape is not None and shape != arg.shape:
                 raise ValueError("".join([
@@ -120,7 +115,7 @@ cdef class CSR(base.Data):
             shape = arg.shape
             arg = (arg.data, arg.indices, arg.indptr)
         if not isinstance(arg, tuple):
-            raise TypeError("arg must be a scipy matrix or tuple")
+            raise TypeError("arg must be a scipy sparse matrix or sparse array, or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
         if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
