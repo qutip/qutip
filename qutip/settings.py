@@ -182,7 +182,8 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
-        self._default_sparse_backend = "spmatrix"
+        #self._default_sparse_backend = "spmatrix"
+        self._default_sparse_backend = "sparray"
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
