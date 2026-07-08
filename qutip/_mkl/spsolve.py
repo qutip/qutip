@@ -223,8 +223,8 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     Parameters
     ----------
-    A : csr_matrix
-        Sparse input matrix.
+    A : csr_matrix or csr_array
+        Sparse input matrix or array.
     perm : ndarray (optional)
         User defined matrix factorization permutation.
     verbose : bool {False, True}
@@ -237,8 +237,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solve method for solving with a given RHS vector.
 
     """
-    # TODO: replace with issparse check
-    if not sp.isspmatrix_csr(A):
+    if not sp.issparse(A):
         raise TypeError('Input matrix must be in sparse CSR format.')
 
     if A.shape[0] != A.shape[1]:
@@ -351,9 +350,9 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
 
     Parameters
     ----------
-    A : csr_matrix
-        Sparse matrix.
-    b : ndarray or sparse matrix
+    A : csr_matrix or csr_array
+        Sparse matrix or array.
+    b : ndarray or sparse matrix or sparse array
         The vector or matrix representing the right hand side of the equation.
         If a vector, b.shape must be (n,) or (n, 1).
     perm : ndarray (optional)
@@ -361,14 +360,14 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
 
     Returns
     -------
-    x : ndarray or csr_matrix
+    x : ndarray or csr_matrix or csr_array
         The solution of the sparse linear equation.
         If b is a vector, then x is a vector of size A.shape[1]
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
 
     """
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
-    b_is_sparse = sp.isspmatrix(b)
+    b_is_sparse = sp.issparse(b)
     b_shp = b.shape
     if b_is_sparse and b.shape[1] == 1:
         b = b.toarray()

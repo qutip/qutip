@@ -81,7 +81,8 @@ cdef class Dia(base.Data):
         cdef base.idxint col
         cdef object data, offsets
 
-        if isinstance(arg, scipy.sparse.spmatrix):
+        #if isinstance(arg, scipy.sparse.spmatrix):
+        if scipy.sparse.issparse(rg):
             arg = arg.todia()
             if shape is not None and shape != arg.shape:
                 raise ValueError("".join([
@@ -256,7 +257,7 @@ cdef class Dia(base.Data):
 
 cpdef Dia fast_from_scipy(object sci):
     """
-    Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
+    Fast path construction from scipy.sparse.csr_matrix or scipy.sparse.csr_array.  This does _no_ type
     checking on any of the inputs, and should consequently be considered very
     unsafe.  This is primarily for use in the unpickling operation.
     """
