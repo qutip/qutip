@@ -258,7 +258,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         A = B  # This gets around making a full copy of A in triu
     is_complex = bool(A.dtype == np.complex128)
     if not is_complex:
-        A = sp.csr_matrix(A, dtype=np.float64, copy=False)
+        A = sp.csr_matrix(A, dtype=np.float64, copy=False) # TODO: csr_matrix to more general
     data_type = A.dtype
 
     # Create pointer to internal memory
