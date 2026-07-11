@@ -52,6 +52,9 @@ def mesolve(
     This allows the solution of master equations that are not in standard
     Lindblad form.
 
+    See the guide on the :ref:`master` for a derivation of the equations
+    solved here and a discussion of the conventions used.
+
     **Time-dependent operators**
 
     For time-dependent problems, ``H`` and ``c_ops`` can be a :obj:`.QobjEvo`
@@ -129,7 +132,7 @@ def mesolve(
         - | matrix_form : bool
           | Use matrix-form Lindblad solver instead of superoperator form.
             The matrix-form solver can be faster for denser systems.
-            Default: False.
+            Default: False. See :ref:`master-matrix-form` for details.
 
         Other options could be supported depending on the integration method,
         see `Integrator <./classes.html#classes-ode>`_.

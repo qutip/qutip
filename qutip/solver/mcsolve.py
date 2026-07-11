@@ -39,6 +39,9 @@ def mcsolve(
     given Hamiltonian and sets of collapse operators. Options for the
     underlying ODE solver are given by the Options class.
 
+    See the guide on the :ref:`monte` for a discussion of the method and
+    its conventions.
+
     Parameters
     ----------
     H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
