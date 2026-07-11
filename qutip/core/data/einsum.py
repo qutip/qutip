@@ -29,7 +29,7 @@ def einsum_dense(
 
     # Scalar result
     if result.shape == ():
-        return complex(result)
+        return Dense(np.array([[complex(result)]], dtype=np.complex128))
 
     # Transpose logical layout back to physical layout
     inv_out_perm = np.argsort(out_perm)
