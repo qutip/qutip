@@ -743,8 +743,10 @@ def qzero(
         size_right = dims_right.size
     dims = [dims_left, dims_right]
     # A sparse matrix with no data is equal to a zero matrix.
+    # A non-square zero operator is not Hermitian.
     return Qobj(_data.zeros[dtype](size_left, size_right), dims=dims,
-                isherm=True, isunitary=False, copy=False, dtype=dtype)
+                isherm=(size_left == size_right), isunitary=False,
+                copy=False, dtype=dtype)
 
 
 def qzero_like(qobj: Qobj) -> Qobj:
@@ -763,9 +765,11 @@ def qzero_like(qobj: Qobj) -> Qobj:
 
     """
 
+    # A non-square zero operator is not Hermitian.
     return Qobj(
         _data.zeros[qobj.dtype](*qobj.shape), dims=qobj._dims,
-        isherm=True, isunitary=False, copy=False, dtype=qobj.dtype
+        isherm=(qobj.shape[0] == qobj.shape[1]), isunitary=False,
+        copy=False, dtype=qobj.dtype
     )
 
 
