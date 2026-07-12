@@ -1863,6 +1863,23 @@ class TestHEOMResult:
         assert result.ado_states == [ado_state]
         assert result.final_ado_state is ado_state
 
+    def test_store_final_ado_state(self):
+        # store_final_state=True with store_states=False registers the
+        # final-state processor, so _final_ado_state is set directly.
+        # final_ado_state must return the ADO state, not the plain rho.
+        options = fill_options(
+            store_ados=True, store_final_state=True, store_states=False,
+        )
+        result = HEOMResult(e_ops=[], options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+        assert result.final_state is rho
+        assert result.final_ado_state is ado_state
+
 
 class Test_GatherHEOMRHS:
     def test_simple_gather(self):
