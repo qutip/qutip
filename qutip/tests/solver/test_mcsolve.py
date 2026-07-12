@@ -565,6 +565,21 @@ def test_feedback(func, kind):
     assert np.all(result.expect[0] > 4. - tol)
 
 
+def test_state_feedback():
+    # MCSolver evolves kets, so StateFeedback must resolve to ket dimensions
+    # like SESolver, and it must forward the ``prop`` flag.
+    dims = qutip.sigmaz()._dims
+
+    mc = qutip.MCSolver.StateFeedback()
+    mc.check_consistency(dims)
+    se = qutip.SESolver.StateFeedback()
+    se.check_consistency(dims)
+    assert mc.dims.shape == se.dims.shape == (2, 1)
+    assert mc.open is False
+
+    assert qutip.MCSolver.StateFeedback(prop=True).prop is True
+
+
 @pytest.mark.parametrize(["initial_state", "ntraj"], [
     pytest.param(qutip.maximally_mixed_dm(2), 5, id="dm"),
     pytest.param([(qutip.basis(2, 0), 0.3), (qutip.basis(2, 1), 0.7)],
