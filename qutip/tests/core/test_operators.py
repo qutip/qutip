@@ -154,6 +154,17 @@ def test_qzero_rectangular():
     assert qutip.qzero(qutip.dimensions.Space([2, 3]), qutip.dimensions.Space([3])).dims == [[2, 3], [3]]
 
 
+def test_qzero_isherm():
+    # A non-square zero operator cannot be Hermitian; a square one is.
+    assert qutip.qzero(3).isherm is True
+    assert qutip.qzero([2], [3]).isherm is False
+
+    square = qutip.Qobj(np.zeros((3, 3)))
+    rectangular = qutip.Qobj(np.zeros((2, 3)), dims=[[2], [3]])
+    assert qutip.qzero_like(square).isherm is True
+    assert qutip.qzero_like(rectangular).isherm is False
+
+
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
 def test_super_operator_creation(to_test):
     size = 2
