@@ -106,6 +106,18 @@ def test_diagonal_operators(oper_func, diag, offset, args):
     assert oper == qutip.Qobj(np.diag(diag, offset))
 
 
+@pytest.mark.parametrize(['diagonals', 'expected'], [
+    pytest.param([1, 1], True, id="unitary"),
+    pytest.param([1j, -1j], True, id="unitary_phase"),
+    pytest.param([0.5, 0.5], False, id="subunit"),
+    pytest.param([2, 2], False, id="superunit"),
+])
+def test_qdiags_isunitary(diagonals, expected):
+    # A main-diagonal Qobj is unitary iff every entry has modulus 1.
+    oper = qutip.qdiags(diagonals, 0)
+    assert bool(oper.isunitary) is expected
+
+
 @pytest.mark.parametrize(['function', 'message'], [
     (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
