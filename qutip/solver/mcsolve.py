@@ -927,8 +927,8 @@ class MCSolver(MultiTrajSolver):
         default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
-        prop : bool, default : False
-            Set to True when using mcsolve for computing propagators.
+        open : bool, default False
+            Set to ``True`` when using the monte carlo solver for open systems.
 
         raw_data : bool, default : False
             If True, the raw matrix will be passed instead of a Qobj.
@@ -936,8 +936,8 @@ class MCSolver(MultiTrajSolver):
             depending on the integration method.
         """
         if raw_data:
-            return _DataFeedback(default, open=False, prop=prop)
-        return _QobjFeedback(default, open=False, prop=prop)
+            return _DataFeedback(default, open=open)
+        return _QobjFeedback(default, open=open)
 
 
 class _unpack_arguments:
