@@ -1,20 +1,19 @@
 """
 Define functions to use as Data creator for `create` in `convert.py`.
 """
-# TODO: remove usage of spmatrix
-from scipy.sparse import isspmatrix_csr, issparse, isspmatrix_dia
 import numpy as np
 from .csr import CSR
 from .base import Data
 from .dense import Dense
+from ._scipy_sparse import is_csr, is_dia
 
 
 __all__ = [
     'data_copy',
     'is_data',
     'is_nparray',
-    'isspmatrix_csr',
-    'isspmatrix_dia',
+    'is_csr',
+    'is_dia',
     'issparse'
 ]
 
