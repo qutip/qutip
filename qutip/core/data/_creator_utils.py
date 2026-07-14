@@ -5,7 +5,7 @@ import numpy as np
 from .csr import CSR
 from .base import Data
 from .dense import Dense
-from ._scipy_sparse import is_csr, is_dia
+from ._scipy_sparse import is_csr, is_dia, issparse
 
 
 __all__ = [
