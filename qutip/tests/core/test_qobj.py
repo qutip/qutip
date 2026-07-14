@@ -1297,9 +1297,12 @@ def test_groundstate():
 def test_data_as():
     qobj = qutip.qeye(2, dtype="CSR")
 
-    #assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix")) # TODO: remove usage of isspmatrix
-    assert scipy.sparse.issparse(qobj.data_as("csr_matrix")) # TODO: remove usage of isspmatrix
-    #assert scipy.sparse.isspmatrix_csr(qobj.data_as(copy=False))
+    # Explicit format names select the scipy container type.
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    csr_arr = qobj.data_as("csr_array")
+    assert scipy.sparse.issparse(csr_arr) and csr_arr.format == "csr"
+    assert not scipy.sparse.isspmatrix_csr(csr_arr)
+    # Sparse types default to the sparray variant.
     assert scipy.sparse.issparse(qobj.data_as(copy=False))
     with pytest.raises(ValueError) as err:
         qobj.data_as("ndarray")
@@ -1324,7 +1327,12 @@ def test_data_as():
     qobj = qutip.qeye(2, dtype="Dia")
 
     assert scipy.sparse.isspmatrix_dia(qobj.data_as("dia_matrix"))
-    assert scipy.sparse.isspmatrix_dia(qobj.data_as(copy=False))
+    dia_arr = qobj.data_as("dia_array")
+    assert scipy.sparse.issparse(dia_arr) and dia_arr.format == "dia"
+    assert not scipy.sparse.isspmatrix_dia(dia_arr)
+    # Sparse types default to the sparray variant.
+    dia_default = qobj.data_as(copy=False)
+    assert scipy.sparse.issparse(dia_default) and dia_default.format == "dia"
 
     qobj.data_as(copy=False).data[:, 0] = 0
     qobj.data_as(copy=True).data[:, 0] = 2
