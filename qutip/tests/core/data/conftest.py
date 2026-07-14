@@ -66,19 +66,18 @@ def random_scipy_dia(shape, density, sort=False, gen=None):
     return scipy.sparse.diags(data, offsets, shape=shape).todia()
 
 
-def random_scipy_csr(shape, density, sorted_, gen=None, sparray=None):
+def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
     """
     Generate a random scipy CSR matrix with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
 
     An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
+    If not provided one will be created.  Pass ``sparray=False`` to generate a
+    legacy ``csr_matrix`` instead of a ``csr_array``.
     """
     if gen is None:
         gen = np.random.default_rng()
-    if sparray is None:
-        sparray = qutip.settings.default_sparse_backend == "sparray"
     nnz = int(shape[0] * shape[1] * density) or 1
     data = gen.uniform(size=nnz) + 1j * gen.uniform(size=nnz)
     rows = gen.choice(np.arange(shape[0]), nnz)
