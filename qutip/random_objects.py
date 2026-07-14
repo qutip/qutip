@@ -137,7 +137,7 @@ def _rand_jacobi_rotation(A, generator):
     diag = np.delete(np.arange(n), [i, j])
     rows = np.hstack(([i, i, j, j], diag))
     cols = np.hstack(([i, j, i, j], diag))
-    R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
+    R = sp.coo_array((data, (rows, cols)), shape=(n, n), dtype=complex)
     R = _data.create(R.tocsr())
     return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
@@ -197,7 +197,7 @@ def _merge_shuffle_blocks(blocks, generator):
         data = np.hstack(data)
         row = np.hstack(row)
         col = np.hstack(col)
-        matrix = sp.coo_matrix((data, (row, col)), shape=(N, N))
+        matrix = sp.coo_array((data, (row, col)), shape=(N, N))
     else:
         matrix = np.zeros((N,N), dtype=complex)
         for block in blocks:
@@ -307,7 +307,7 @@ def _rand_herm_sparse(N, density, pos_def, generator):
         divmod(index, N)
         for index in generator.choice(N*N, num_elems, replace=False)
     ])
-    M = sp.coo_matrix((data, (row_idx, col_idx)),
+    M = sp.coo_array((data, (row_idx, col_idx)),
                       dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     M.sort_indices()
@@ -905,7 +905,7 @@ def rand_stochastic(
                          generator.choice(N, num_elems-N)])
     col_idx = np.hstack([generator.permutation(N),
                          generator.choice(N, num_elems-N)])
-    M = sp.coo_matrix((data, (row_idx, col_idx)),
+    M = sp.coo_array((data, (row_idx, col_idx)),
                       dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
     num_rows = M.indptr.shape[0] - 1
