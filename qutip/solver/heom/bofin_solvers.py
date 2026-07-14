@@ -391,8 +391,9 @@ class HEOMResult(Result):
         super()._post_init()
 
         self.store_ados = self.options["store_ados"]
-        self._final_ado_state = None
-        self.ado_states = []
+        if self.store_ados:
+            self._final_ado_state = None
+            self.ado_states = []
 
     def _e_op_func(self, e_op):
         """ Convert an e_op into a function ``f(t, ado_state)``. """
