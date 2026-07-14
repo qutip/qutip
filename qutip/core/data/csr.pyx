@@ -58,17 +58,11 @@ cdef int _ONE = 1
 
 cdef object _csr_matrix(data, indices, indptr, shape):
     """
-    Factory method of scipy csr_matrix/csr_array: we skip all the index type-checking
+    Factory method of scipy csr_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object cls
-    use_sparray = True if settings.default_sparse_backend == "sparray" else False
-    if use_sparray:
-        cls = scipy_csr_array
-    else:
-        cls = scipy_csr_matrix
-    cdef object out = scipy_csr_matrix.__new__(cls)
+    cdef object out = scipy_csr_matrix.__new__(scipy_csr_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix_init(out)
