@@ -1,0 +1,1 @@
+Fix `to_choi` and `to_chi` raising `AttributeError` instead of `TypeError` for unsupported Qobj types, caused by formatting a nonexistent `Qobj.choi` attribute in the error message.
