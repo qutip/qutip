@@ -195,7 +195,7 @@ class TestClassMethods:
         input.
         """
         data_diag = dia.Dia(scipy_dia)
-        assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_matrix)
+        assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_array)
         assert _dia_eq(data_diag.as_scipy(), scipy_dia)
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape):
@@ -219,7 +219,7 @@ class TestFactoryMethods:
         base = dia.empty(shape[0], shape[1], ndiag)
         sci = base.as_scipy(full=True)
         assert isinstance(base, dia.Dia)
-        assert isinstance(sci, scipy.sparse.dia_matrix)
+        assert isinstance(sci, scipy.sparse.dia_array)
         assert base.shape == shape
         assert sci.data.shape == (ndiag, shape[1])
         assert sci.offsets.shape == (ndiag,)
