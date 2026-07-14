@@ -182,20 +182,9 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
-        #self._default_sparse_backend = "spmatrix"
-        self._default_sparse_backend = "sparray"
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
-
-    @property
-    def default_sparse_backend(self) -> str:
-        return self._default_sparse_backend
-
-    @default_sparse_backend.setter
-    def set_sparse_backend(self, new_type):
-        # TODO: validate values
-        self._default_sparse_backend = new_type
 
     @property
     def has_mkl(self) -> bool:
