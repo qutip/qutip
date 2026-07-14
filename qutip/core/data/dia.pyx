@@ -1,4 +1,5 @@
 #cython: language_level=3
+
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -16,7 +17,7 @@ import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import dia_matrix as scipy_dia_matrix
+from scipy.sparse import dia_matrix as scipy_dia_matrix, dia_array as scipy_dia_array
 from packaging.version import parse as parse_version
 from functools import partial
 if parse_version(scipy.version.version) >= parse_version("1.14.0"):
@@ -49,11 +50,11 @@ __all__ = ['Dia']
 
 cdef object _dia_matrix(data, offsets, shape):
     """
-    Factory method of scipy diag_matrix: we skip all the index type-checking
+    Factory method of scipy dia_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_dia_matrix.__new__(scipy_dia_matrix)
+    cdef object out = scipy_dia_matrix.__new__(scipy_dia_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix.__init__(out)
