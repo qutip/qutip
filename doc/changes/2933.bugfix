@@ -1,0 +1,1 @@
+Accessing `HEOMResult.final_ado_state` no longer raises an `AttributeError` when `store_ados` is not set; the attribute is now always initialized and returns `None` when ADOs were not stored.
