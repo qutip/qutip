@@ -421,7 +421,7 @@ class HEOMResult(Result):
     @property
     def final_ado_state(self):
         if self._final_ado_state is not None:
-            return self._final_state
+            return self._final_ado_state
         if self.ado_states:
             return self.ado_states[-1]
         return None
