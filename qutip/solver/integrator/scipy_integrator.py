@@ -473,7 +473,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         if self._ode_solver.successful():
             return
         messages = {
-            -1: "Excess work done on this call."
+            -1: "Excess work done on this call. "
                 "Try to increase the nsteps parameter in the Options class.",
             -2: "Excess accuracy requested (tolerances too small).",
             -3: "Illegal input detected (internal error).",

@@ -978,7 +978,7 @@ class Qobj:
             Quantum operator is not square.
         """
         if not self._dims.issquare:
-            raise TypeError("expm is only valid for square operators")
+            raise TypeError("logm is only valid for square operators")
         return Qobj(_data.logm(self._data),
                     dims=self._dims,
                     isherm=self._isherm,
