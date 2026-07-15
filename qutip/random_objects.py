@@ -181,32 +181,19 @@ def _merge_shuffle_blocks(blocks, generator):
     N = sum(block.shape[0] for block in blocks)
     D = sum(block.shape[0]**2 for block in blocks) / N**2
     idx = generator.permutation(N)
-    end = 0
     if D < 0.1:
-        # TODO: coo_array from sicpy 1.8 would allow to simplify this.
-        row = []
-        col = []
-        data = []
-        for block in blocks:
-            start = end
-            end = end + block.shape[0]
-            brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
-            row.append(brow.ravel())
-            col.append(bcol.ravel())
-            data.append(block.ravel())
-        data = np.hstack(data)
-        row = np.hstack(row)
-        col = np.hstack(col)
-        matrix = sp.coo_array((data, (row, col)), shape=(N, N))
+        # Use block_diag to assemble the (row, col, data) triplets
+        bd = sp.block_diag([sp.coo_array(b.T) for b in blocks], format="coo")
+        # Relabel existing indices (~permute)
+        matrix = sp.coo_array((bd.data, (idx[bd.row], idx[bd.col])), shape=(N, N))
     else:
-        matrix = np.zeros((N,N), dtype=complex)
+        matrix = np.zeros((N, N), dtype=complex)
+        end = 0
         for block in blocks:
-            start = end
-            end = end + block.shape[0]
+            start, end = end, end + block.shape[0]
             brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
             matrix[brow, bcol] = block
-    return _data.create(matrix, copy=True)
-
+    return _data.create(matrix, copy=False)
 
 def rand_herm(
     dimensions: SpaceLike,
