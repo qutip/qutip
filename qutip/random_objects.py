@@ -205,7 +205,7 @@ def _merge_shuffle_blocks(blocks, generator):
             end = end + block.shape[0]
             brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
             matrix[brow, bcol] = block
-    return _data.create(matrix, copy=False)
+    return _data.create(matrix, copy=True)
 
 
 def rand_herm(
@@ -905,7 +905,7 @@ def rand_stochastic(
                          generator.choice(N, num_elems-N)])
     col_idx = np.hstack([generator.permutation(N),
                          generator.choice(N, num_elems-N)])
-    M = sp.coo_array((data, (row_idx, col_idx)),
+    M = sp.coo_matrix((data, (row_idx, col_idx)),
                       dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
     num_rows = M.indptr.shape[0] - 1
