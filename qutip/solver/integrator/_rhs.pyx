@@ -35,17 +35,17 @@ cdef class RHS:
     derivative: Callable[[float, Data, ...], Data] | QobjEvo
         Function to integrate.
         Can be either a QobjEvo where QobjEvo @ state is the derivative or
-        a callable. This function can be both inplace or not.
+        a callable. This function may be either inplace or not.
 
     inplace: bool
-        If ``derivative`` is a callable, whether that function take the output
-        inplace or not.
+        When ``derivative`` is a callable, whether the function supplied takes the output
+        argument in-place or not.
 
     """
     def __init__(
         self,
         derivative: Callable[[float, Data], Data] | Callable[[float, Data, Data], Data] | QobjEvo,
-        inplace: bool=False
+        inplace: bool=False,
     ):
         self.derivative = derivative
         self.inplace = inplace
