@@ -67,33 +67,55 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     Parameters
     ----------
     tlist : array_like
-        list/array of times :math:`t` which the correlation function is given.
+        Equally spaced times at which the correlation function is given.
+        May be one-sided (:math:`t \\ge 0`) or already two-sided. When
+        one-sided, the two-sided signal is constructed internally using
+        :math:`C(-t) = C^*(t)`.
     y : array_like
-        list/array of correlations corresponding to time delays :math:`t`.
+        Correlations corresponding to ``tlist``.
     inverse: bool, default: False
-        boolean parameter for using a positive exponent in the Fourier
-        Transform instead. Default is False.
+        Use a positive exponent in the Fourier transform. Default is False.
 
     Returns
     -------
     w, S : tuple
-        Returns an array of angular frequencies 'w' and the corresponding
-        two-sided power spectrum 'S(w)'.
+        Angular frequencies ``w`` and the corresponding two-sided power
+        spectrum ``S(w)``.
 
+    Notes
+    -----
+    The transform uses a full two-sided FFT (same convention as the helper
+    in :mod:`qutip.core.environment`), which converges better than a
+    one-sided FFT with a factor-of-two correction.
     """
     tlist = np.asarray(tlist)
+    y = np.asarray(y, dtype=complex)
     N = tlist.shape[0]
+    if N < 2:
+        raise ValueError('tlist must contain at least two points for FFT.')
     dt = tlist[1] - tlist[0]
     if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
         raise ValueError('tlist must be equally spaced for FFT.')
-    F = (N * scipy.fftpack.ifft(y)) if inverse else scipy.fftpack.fft(y)
-    # calculate the frequencies for the components in F
+
+    # Expand one-sided input (t >= 0) to a Hermitian two-sided correlation.
+    if tlist[0] >= -np.finfo(float).eps:
+        tlist = np.concatenate((-tlist[:0:-1], tlist))
+        y = np.concatenate((np.conj(y[:0:-1]), y))
+        N = tlist.shape[0]
+
+    if inverse:
+        F = N * scipy.fftpack.ifft(y)
+    else:
+        F = scipy.fftpack.fft(y)
     f = scipy.fftpack.fftfreq(N, dt)
-    # re-order frequencies from most negative to most positive (centre on 0)
-    idx = np.array([], dtype='int')
-    idx = np.append(idx, np.where(f < 0.0))
-    idx = np.append(idx, np.where(f >= 0.0))
-    return 2 * np.pi * f[idx], 2 * dt * np.real(F[idx])
+    w = 2 * np.pi * f
+    # Phase factor for continuous FT when samples start at tlist[0] (typically
+    # -t_max after the one-sided expansion). Matches environment._fft.
+    F = F * np.exp(1j * w * (-tlist[0]))
+    idx = np.argsort(f)
+    # Two-sided sampling already includes both positive and negative times,
+    # so scale with dt (not 2*dt).
+    return w[idx], dt * np.real(F[idx])
 
 
 def _spectrum_es(L, wlist, a_op, b_op):

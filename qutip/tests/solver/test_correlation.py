@@ -88,6 +88,31 @@ def test_spectrum_solver_equivalence_to_es(spectrum):
     np.testing.assert_allclose(base, test, atol=1e-3)
 
 
+def test_spectrum_correlation_fft_lorentzian_from_onesided_exp():
+    """One-sided exp(-γt) input should yield a Lorentzian spectrum (#1537)."""
+    gamma = 1.0
+    taus = np.linspace(0.0, 50.0, 5000)
+    g1 = np.exp(-gamma * taus)
+    ws, spec = qutip.spectrum_correlation_fft(taus, g1)
+
+    # Analytical Fourier transform of exp(-γ|t|) is 2γ / (γ² + ω²).
+    expected = 2 * gamma / (gamma**2 + ws**2)
+    i0 = np.argmin(np.abs(ws))
+    i10 = np.argmin(np.abs(ws - 10.0))
+    # Shape check: Lorentzian peak-to-tail ratio (independent of overall scale).
+    # One-sided FFT + 2*Re() historically undershoots this (~68 vs 101).
+    np.testing.assert_allclose(
+        spec[i0] / spec[i10],
+        expected[i0] / expected[i10],
+        rtol=0.05,
+    )
+    scale = expected[i0] / spec[i0]
+    band = np.abs(ws) < 20.0
+    np.testing.assert_allclose(
+        spec[band] * scale, expected[band], rtol=0.02, atol=0.02,
+    )
+
+
 def _trapz_2d(z, xy):
     """2D trapezium-method integration assuming a square grid."""
     dx = xy[1] - xy[0]

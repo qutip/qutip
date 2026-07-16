@@ -1,0 +1,1 @@
+Use a two-sided FFT in ``spectrum_correlation_fft`` so one-sided exponential correlations produce Lorentzian spectra
