@@ -26,9 +26,8 @@ cdef class RHS:
 
     When it's a python callable, wrap it and add inplace support.
 
-    When it's a bound method of QobjEvo: bind the ``QobjEvo.matmul_data``
-    cython call directly as the derivative.
-    **This ignore the exact method used.**
+    When it's a the method ``QobjEvo.matmul_data``, it uses it directly as a
+    cython call.
 
     Parameters
     ----------
