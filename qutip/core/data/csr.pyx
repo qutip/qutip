@@ -56,7 +56,7 @@ __all__ = ['CSR']
 
 cdef int _ONE = 1
 
-cdef object _csr_matrix(data, indices, indptr, shape):
+cdef object _scipy_csr_obj(data, indices, indptr, shape):
     """
     Factory method of scipy csr_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
@@ -179,7 +179,7 @@ cdef class CSR(base.Data):
             self.shape = shape
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
-        self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
+        self._scipy = _scipy_csr_obj(data, col_index, row_index, self.shape)
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
@@ -259,7 +259,7 @@ cdef class CSR(base.Data):
         PyArray_ENABLEFLAGS(indices, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(indptr, cnp.NPY_ARRAY_OWNDATA)
         self._deallocate = False
-        self._scipy = _csr_matrix(data, indices, indptr, self.shape)
+        self._scipy = _scipy_csr_obj(data, indices, indptr, self.shape)
         return self._scipy
 
     cpdef CSR sort_indices(self):
