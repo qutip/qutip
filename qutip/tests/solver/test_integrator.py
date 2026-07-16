@@ -26,7 +26,8 @@ def derivative_1(t, state, out=None):
     ])
     der = _data.Dense(der)
     if out is not None:
-        der += out
+        out += der
+        der = out
     return der
 
 def analytical_1(t, x0):
@@ -75,9 +76,6 @@ class TestIntegratorCallable:
         t_in, state = integrator_instance.mcstep(t_target)
         assert t_in == t_target
         assert_allclose(analytical(t_in, state0), state.to_array(), atol=5e-5)
-
-    # When the derivative is C ordered, the messa
-    # @pytest.mark.filterwarnings("ignore:cannot stack columns")
 
     @pytest.mark.parametrize(['derivative', "analytical"], [
         (derivative_1, analytical_1),
