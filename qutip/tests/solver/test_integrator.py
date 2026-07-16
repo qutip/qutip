@@ -56,13 +56,13 @@ class TestIntegratorCallable:
         if integrator.rhs_format == "callable"
     ])
     def method(self, request):
-        # Callable are the general method that should all be registered with
-        # the general Solver
+        # The callables returned are the general method registered with
+        # the base Solver class.
         return request.param
 
     def _check_integrator(self, integrator_instance, state0, analytical):
-        integrator_instance.set_state(0, state0)
         tlist = np.linspace(0, 2, 21)
+        integrator_instance.set_state(tlist[0], state0)
         for (t, state), t_in in zip(integrator_instance.run(tlist), tlist[1:]):
             assert t == t_in
             assert_allclose(analytical(t, state0), state.to_array(), atol=5e-5)
@@ -77,7 +77,7 @@ class TestIntegratorCallable:
         assert t_in == t_target
         assert_allclose(analytical(t_in, state0), state.to_array(), atol=5e-5)
 
-    @pytest.mark.parametrize(['derivative', "analytical"], [
+    @pytest.mark.parametrize(["derivative", "analytical"], [
         (derivative_1, analytical_1),
         (derivative_2, analytical_2),
         (derivative_3, analytical_1),
