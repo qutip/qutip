@@ -17,39 +17,47 @@ from qutip.core.coefficient import WARN_MISSING_MODULE
 WARN_MISSING_MODULE[0] = 0
 
 
-def derivative_1(t, state, out=None):
-    x = state.to_array()
-    der = np.array([
-        [1, t],
-        [x[1, 0] * -0.1, t**2],
-        [-0.1j * t * x[2, 0], t**3],
-    ])
-    der = _data.Dense(der)
-    if out is not None:
-        out += der
-        der = out
-    return der
-
-def analytical_1(t, x0):
-    x0 = x0.to_array()
-    out = np.array([
-        [x0[0, 0] + t, x0[0, 1] + t**2/2],
-        [np.exp(t * -0.1) * x0[1, 0] , x0[1, 1] + t**3/3],
-        [np.exp(-0.1j * t**2/2) * x0[2, 0], x0[2, 1] + t**4/4],
-    ])
-    return out
-
-mat = qutip.rand_herm(3, density=0.75) * -1j
-
-derivative_2 = qutip.QobjEvo(mat).matmul_data
-
-def analytical_2(t, x0):
-    return ((t * mat).expm() @ qutip.Qobj(x0)).full()
-
-derivative_3 = RHS(derivative_1, inplace=True)
-
-
 class TestIntegratorCallable:
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        def derivative_1(t, state, out=None):
+            x = state.to_array()
+            der = np.array([
+                [1, t],
+                [x[1, 0] * -0.1, t**2],
+                [-0.1j * t * x[2, 0], t**3],
+            ])
+            der = _data.Dense(der)
+            if out is not None:
+                out += der
+                der = out
+            return der
+
+        def analytical_1(t, x0):
+            x0 = x0.to_array()
+            out = np.array([
+                [x0[0, 0] + t, x0[0, 1] + t**2/2],
+                [np.exp(t * -0.1) * x0[1, 0] , x0[1, 1] + t**3/3],
+                [np.exp(-0.1j * t**2/2) * x0[2, 0], x0[2, 1] + t**4/4],
+            ])
+            return out
+
+        mat = qutip.rand_herm(3, density=0.75) * -1j
+
+        derivative_2 = qutip.QobjEvo(mat).matmul_data
+
+        def analytical_2(t, x0):
+            return ((t * mat).expm() @ qutip.Qobj(x0)).full()
+
+        derivative_3 = RHS(derivative_1, inplace=True)
+
+        self.tests_cases = {
+            "function": (derivative_1, analytical_1),
+            "QobjEvo": (derivative_2, analytical_2),
+            "RHS": (derivative_3, analytical_1),
+        }
+
     @pytest.fixture(params=[
         method
         for method, integrator in Solver.avail_integrators().items()
@@ -77,12 +85,9 @@ class TestIntegratorCallable:
         assert t_in == t_target
         assert_allclose(analytical(t_in, state0), state.to_array(), atol=5e-5)
 
-    @pytest.mark.parametrize(["derivative", "analytical"], [
-        (derivative_1, analytical_1),
-        (derivative_2, analytical_2),
-        (derivative_3, analytical_1),
-    ], ids=["function", "QobjEvo", "RHS"])
-    def test_integration_func(self, derivative, analytical, method):
+    @pytest.mark.parametrize("case", ["function", "QobjEvo", "RHS"])
+    def test_integration_func(self, case, method):
+        derivative, analytical = self.tests_cases[case]
         integrator = Solver.avail_integrators()[method]
         integrator_instance = integrator(derivative, {})
         state0 = _data.Dense(np.array([
