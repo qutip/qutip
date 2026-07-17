@@ -65,6 +65,12 @@ cdef class RHS:
     cdef Data apply(self, double t, Data state, Data out=None):
         """
         Cython interface for the derivative function.
+
+        Notes
+        -----
+        When out is passed, the derivative is added to it.
+        In most cases, the derivative by itself is desired, in those case, it
+        is needed to zero the output buffer before using this function.
         """
         if self.qevo_derr:
             return self.qevo.matmul_data(t, state, out=out)
