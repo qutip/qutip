@@ -66,8 +66,6 @@ class RouchonSODE(SIntegrator):
             for j in range(self.num_collapses)
         ]
 
-        self.id = _data.identity[dtype](self.H.shape[0])
-
     def set_state(self, t, state0, generator):
         """
         Set the state of the SODE solver.
