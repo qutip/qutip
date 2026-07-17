@@ -227,7 +227,7 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
 
     W : array (2D)
         Values representing the Wigner function calculated over the specified
-        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to 
+        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to
         y-coordinate yvec[j] and x-coordinate xvec[k].
 
     yvex : array
@@ -813,18 +813,32 @@ class QFunc:
 
 
 def _qfunc_iterative_single(
-    vector: np.ndarray, alpha_grid: _QFuncCoherentGrid, g: float,
+    vector: np.ndarray,
+    alpha_grid: _QFuncCoherentGrid,
+    g: float,
+    cutoff: int = 170,
 ):
     r"""
     Get the Q function (without the :math:`\pi` scaling factor) of a single
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    ns = np.arange(vector.shape[0])
+    size = min(cutoff, vector.shape[0])
+    ns = np.arange(size)
     out = np.polyval(
-        (0.5*g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
+        (0.5 * g * vector[:size] / np.sqrt(scipy.special.factorial(ns)))[::-1],
         alpha_grid.grid,
     )
+    if vector.shape[0] > cutoff:
+        # scipy.special.factorial reach inf at 171
+        # So we use an approximation for large number.
+        e = np.e**(0.5)
+        pi = np.pi
+        idx = np.arange(cutoff, vector.shape[0])
+        coeffs = vector[idx] * 0.5 * g * ((2*idx + 1/3) * pi)**(-0.25)
+        grid = alpha_grid.grid[:, :, None] * e * idx[None, None, :]**-0.5
+        out += np.sum(grid**idx[None, None, :] * coeffs[None, None, :], axis=2)
+
     out *= alpha_grid.prefactor
     return np.abs(out)**2
 
