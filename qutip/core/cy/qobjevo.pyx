@@ -284,13 +284,13 @@ cdef class QobjEvo:
                 raise TypeError(
                     "Function based time-dependent elements must have the"
                     " signature f(t: double, args: dict) -> Qobj, but"
-                    " {op!r} returned: {qobj!r}"
+                    f" {op!r} returned: {qobj!r}"
                 )
         else:
             raise TypeError(
                 "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"
                 " or a function f(t: double, args: dict) -> Qobj, but"
-                " received: {op!r}"
+                f" received: {op!r}"
             )
 
         if self._dims is None:
