@@ -78,7 +78,7 @@ def _nq(dims):
     dim = np.prod(dims[0][0])
     nq = _int_log_two(dim)
     if 2 ** nq != dim:
-        raise ValueError("{} is not an integer power of 2.".format(dim))
+        raise ValueError(f"{dim} is not an integer power of 2.")
     return nq
 
 
@@ -454,8 +454,8 @@ def to_choi(q_oper: Qobj) -> Qobj:
         return _super_tofrom_choi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.superrep} to Choi not supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to Choi not supported."
         )
 
 
@@ -497,8 +497,8 @@ def to_chi(q_oper: Qobj) -> Qobj:
         return to_chi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.superrep} to Chi not supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to Chi not supported."
         )
 
 
@@ -535,14 +535,14 @@ def to_super(q_oper: Qobj) -> Qobj:
             return to_super(to_choi(q_oper))
         else:
             raise ValueError(
-                "Unrecognized superrep '{}'.".format(q_oper.superrep))
+                "Unrecognized superrep '{q_oper.superrep}'.")
     elif q_oper.type == 'oper':  # Assume unitary
         return sprepost(q_oper, q_oper.dag())
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.superrep} to supermatrix not "
-            "supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to supermatrix not "
+            "supported."
         )
 
 
@@ -579,9 +579,9 @@ def to_kraus(q_oper: Qobj, tol: float=1e-9) -> list[Qobj]:
     elif q_oper.isoper:  # Assume unitary
         return [q_oper]
     raise TypeError(
-        "Conversion of Qobj with type={0.type} "
-        "and superrep={0.superrep} to Kraus decomposition not "
-        "supported.".format(q_oper)
+        f"Conversion of Qobj with type={q_oper.type} "
+        f"and superrep={q_oper.superrep} to Kraus decomposition not "
+        "supported."
     )
 
 
