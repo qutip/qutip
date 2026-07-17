@@ -1,0 +1,1 @@
+Normalize mixed-state eigenvalue weights in ``mcsolve`` so that unnormalized density matrices correctly allocate the requested number of trajectories.
