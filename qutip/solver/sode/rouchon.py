@@ -95,6 +95,12 @@ class RouchonSODE(SIntegrator):
         self.rhs._register_feedback(self.wiener)
         self._make_operators()
         self._is_set = True
+        if self._issuper:
+            self._tmp = _data.zeros_like(unstack_columns(self.state))
+            self._out = _data.zeros_like(unstack_columns(self.state))
+        else:
+            self._tmp = _data.zeros_like(self.state)
+            self._out = _data.zeros_like(self.state)
 
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
@@ -118,7 +124,8 @@ class RouchonSODE(SIntegrator):
         if self._issuper:
             self.state = unstack_columns(self.state)
         for dw in dW:
-            self.state = self._step(self.t, self.state, dt, dw)
+            new_state = self._step(self.t, self.state, dt, dw)
+            self.state, self._out = new_state, self.state
             self.t += dt
         if self._issuper:
             self.state = stack_columns(self.state)
@@ -130,22 +137,30 @@ class RouchonSODE(SIntegrator):
             op.expect_data(t, state) * dt + dw
             for op, dw in zip(self.cpcds, dW)
         ]
-        M = _data.add(self.id, self.M._call(t), dt)
+        tmp = _data.imul(self._tmp, 0.)
+        tmp = _data.iadd(tmp, state)
+        tmp = self.M.matmul_data(t, state, out=tmp, scale=dt)
         for i in range(self.num_collapses):
-            M = _data.add(M, self.sc_ops[i]._call(t), dy[i])
-            M = _data.add(M, self.scc[i][i]._call(t), (dy[i]**2-dt)/2)
+            tmp = self.sc_ops[i].matmul_data(t, state, out=tmp, scale=dy[i])
+            tmp = self.scc[i][i].matmul_data(t, state, out=tmp, scale=(dy[i]**2-dt)/2)
             for j in range(i):
-                M = _data.add(M, self.scc[i][j]._call(t), dy[i]*dy[j])
-        out = _data.matmul(M, state)
+                tmp = self.scc[i][j].matmul_data(t, state, out=tmp, scale=dy[i]*dy[j])
         if self._issuper:
-            Mdag = M.adjoint()
-            out = _data.matmul(out, Mdag)
+            out = _data.imul(self._out, 0.)
+            out = _data.iadd(out, tmp)
+            out = self.M.adjoint_rmatmul_data(t, tmp, out=out, scale=dt)
+            for i in range(self.num_collapses):
+                out = self.sc_ops[i].adjoint_rmatmul_data(t, tmp, out=out, scale=dy[i])
+                out = self.scc[i][i].adjoint_rmatmul_data(t, tmp, out=out, scale=(dy[i]**2-dt)/2)
+                for j in range(i):
+                    out = self.scc[i][j].adjoint_rmatmul_data(t, tmp, out=out, scale=dy[i]*dy[j])
             for cop in self.c_ops:
-                op = cop._call(t)
-                out += op @ state @ op.adjoint() * dt
+                tmp = _data.imul(self._tmp, 0.)
+                tmp = cop.matmul_data(t, state, out=tmp)
+                out = cop.adjoint_rmatmul_data(t, tmp, out=out, scale=dt)
             out = out / _data.trace(out)
         else:
-            out = out / _data.norm.l2(out)
+            out = tmp / _data.norm.l2(tmp)
         return out
 
     @property
