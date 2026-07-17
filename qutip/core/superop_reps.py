@@ -534,8 +534,7 @@ def to_super(q_oper: Qobj) -> Qobj:
         elif q_oper.superrep == 'chi':
             return to_super(to_choi(q_oper))
         else:
-            raise ValueError(
-                "Unrecognized superrep '{q_oper.superrep}'.")
+            raise ValueError(f"Unrecognized superrep '{q_oper.superrep}'.")
     elif q_oper.type == 'oper':  # Assume unitary
         return sprepost(q_oper, q_oper.dag())
     else:
