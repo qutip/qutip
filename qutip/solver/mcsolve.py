@@ -655,6 +655,7 @@ class MCSolver(MultiTrajSolver):
         # We process the arguments and pass on to other functions depending on
         # whether "improved sampling" is turned on, and whether the initial
         # state is mixed.
+        allocation_state = None
         if isinstance(state, (list, tuple)):
             is_mixed = True
         else:  # state is Qobj, either pure state or dm
@@ -667,14 +668,20 @@ class MCSolver(MultiTrajSolver):
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
                 eigenvalues, eigenstates = state.eigenstates()
-                state = []
-                total_weight = 0
-                for psi, p in zip(eigenstates, eigenvalues):
-                    if p > 0:
-                        state.append((psi, p))
-                        total_weight += p
-                state = [(psi, p / total_weight) for psi, p in state]
 
+                # Preserve the original eigenvalues for result averaging.
+                state = [
+                    (psi, p)
+                    for psi, p in zip(eigenstates, eigenvalues)
+                    if p > 0
+                ]
+
+                # Normalized weights are used only for trajectory allocation.
+                total_weight = sum(p for _, p in state)
+                allocation_state = [
+                    (psi, p / total_weight)
+                    for psi, p in state
+                ]
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
                           'state do not support target tolerance')
@@ -685,6 +692,9 @@ class MCSolver(MultiTrajSolver):
                 ntraj = len(state)
             else:
                 ntraj = 1
+
+        if allocation_state is not None:
+            ntraj = _InitialConditions(allocation_state, ntraj).ntraj
 
         if not self.options["improved_sampling"]:
             if is_mixed:
