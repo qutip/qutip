@@ -63,9 +63,17 @@ class TestEinsum:
             ),
             pytest.param(
                 "ijkl->kjil",
-                [(2, 2, 2, 2)], [(0, 1, 2, 3)], (1, 0, 2, 3), (4, 4),
-                [np.zeros((16,), dtype=complex).reshape(4, 4)],
-                np.zeros((16,), dtype=complex).reshape(4, 4),
+                [(3, 2, 2, 2)], [(2, 0, 1, 3)], (1, 2, 0, 3), (4, 6),
+                [np.arange(24, dtype=complex).reshape(6, 4)],
+                np.array(
+                    [
+                        [0, 1, 8, 9, 16, 17],
+                        [4, 5, 12, 13, 20, 21],
+                        [2, 3, 10, 11, 18, 19],
+                        [6, 7, 14, 15, 22, 23],
+                    ],
+                    dtype=complex,
+                ),
                 id="tensor_permutation",
             ),
         ],
@@ -92,8 +100,8 @@ class TestEinsum:
 
         result = einsum_func(
             operands[0],
+            *operands[1:],
             subscripts=subscripts,
-            rest_operands=tuple(operands[1:]),
             tensor_shapes=tuple(shapes),
             tensor_perms=tuple(perms),
             out_perm=out_perm,

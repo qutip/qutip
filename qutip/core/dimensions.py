@@ -397,6 +397,10 @@ def einsum(subscripts, *operands, out_dims=None):
         for op in operands
     )
 
+    # tensor_perms and out_perm are required to map the physical matrix layout
+    # of the operands (which might be permuted due to column-stacking vectorization
+    # conventions for superoperators, operator-kets, or operator-bras) to and
+    # from the logical subsystem tensor layout used by einsum.
     tensor_perms = tuple(
         dims_to_tensor_perm(op.dims)
         for op in operands
@@ -411,12 +415,11 @@ def einsum(subscripts, *operands, out_dims=None):
         out_shape = (1, 1)
 
     result_data = _data_einsum(
-        data_operands[0],
-        subscripts,
-        data_operands[1:],
-        tensor_shapes,
-        tensor_perms,
-        out_perm,
+        *data_operands,
+        subscripts=subscripts,
+        tensor_shapes=tensor_shapes,
+        tensor_perms=tensor_perms,
+        out_perm=out_perm,
         out_shape=out_shape
     )
 

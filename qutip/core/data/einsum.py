@@ -7,8 +7,8 @@ __all__ = ['einsum', 'einsum_dense']
 
 def einsum_dense(
         op0, /,
+        *rest_operands,
         subscripts,
-        rest_operands,
         tensor_shapes,
         tensor_perms,
         out_perm,
@@ -17,7 +17,7 @@ def einsum_dense(
     """
     Dense specialization for einsum.
     """
-    operands = (op0,) + tuple(rest_operands)
+    operands = (op0,) + rest_operands
     from .convert import to as _to
 
     tensors = []
