@@ -60,11 +60,16 @@ class _SolverOptions(dict):
     def update(self, *args, **kwargs):
         tmp = {}
         tmp.update(*args, **kwargs)
+        if left_over := set(tmp.keys()) - set(self.keys()):
+            raise KeyError(f"Options {left_over} are not supported")
         for key, val in tmp.items():
-            # Ensure all keys are present
             self[key] = val
 
     def copy(self):
+        """
+        Create a copy of the options.
+        Copies are not attached to solver instance.
+        """
         return self.__class__(
             self._default,
             None,
