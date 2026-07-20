@@ -12,24 +12,24 @@ dictionaries directly, the framework utilizes an internal subclass,
 Motivation
 ==========
 
-Simple dictionary or dataclass lacks the feature needed to
+A simple dictionary or dataclass lacks the features needed to:
 
-* **Preventing Silent Silent Bugs**: Raw Python dictionaries accept any key-value
+* **Prevent silent bugs**: Raw Python dictionaries accept any key-value
   pair without validation. A simple typo, such as typing ``"abstol"`` instead of
   ``"atol"``, would be silently ignored by a standard dictionary, causing the
   underlying integrator to fall back to default values without ever alerting the user.
-* **Integrator State Synchronization**: Modern differential equation solvers are
+* **Integrator state synchronization**: Modern differential equation solvers are
   stateful; they maintain adaptive step histories, interpolation tables, and
   multi-step coefficients. If a user modifies an integration parameter *after*
   a simulation has started stepping forward, the internal state of the underlying
   ODE engine must be forcefully reset to prevent numeric instability or crashes.
   A standard dictionary cannot broadcast its updates to intercept these mid-run changes.
-* **Namespace Isolation**: Different integration backends support entirely
+* **Namespace isolation**: Different integration backends support entirely
   different sets of configuration options. For example, a specialized Krylov subspace
   propagator expects parameters like Krylov dimension limits, which are completely
   meaningless to a standard SciPy ``zvode`` integrator.
 
-The :class:`_SolverOptions` class acts as an intelligent configuration firewall.
+The :class:`_SolverOptions` class addresses these short comings.
 By operating as a reactive, validating proxy, it shields developers from managing
 manual synchronization loops and protects users from configuration errors, ensuring
 that options can safely change dynamically throughout a system's evolutionary life cycle.
@@ -38,8 +38,8 @@ Core Features
 -------------
 
 The :class:`_SolverOptions` class inherits directly from Python's built-in
-:repr:`dict`, behaving like a standard key-value map while injecting four
-crucial architectural features:
+:repr:`dict`, behaving like a standard key-value map while adding four
+important features:
 
 1. **Reactive State Reset Hooks**
    When an option is updated at runtime, the container calls an internal feedback
