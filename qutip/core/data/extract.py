@@ -114,23 +114,24 @@ extract = _Dispatcher(
     inputs=('matrix',),
     out=False,
 )
-extract.__doc__ =\
+
+extract.__doc__ = \
     """
     Return the common representation of the data layer object: scipy's
-    ``csr_array`` or ``csr_matrix`` (soon-to-be-deprecated; see https://docs.scipy.org/doc/scipy/dev/roadmap-detailed.html#sparse)  for ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for
-    ``JaxArray``, etc.
+    ``csr_array`` or ``csr_matrix`` (soon-to-be-deprecated; see
+    https://docs.scipy.org/doc/scipy/dev/roadmap-detailed.html#sparse) for
+    ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for ``JaxArray``,
+    etc.
 
     Parameters
     ----------
     matrix : Data
         The matrix to convert to common type.
-
     format : str, default: None
-        Type of the output: "ndarray" for ``Dense``; "csr_array"/"csr_matrix"
-        for ``CSR``; "dia_array"/"dia_matrix" for ``Dia``.  When ``None``, sparse
-        types return their native ``sparray`` backing.  A ValueError is raised if
-        the format is not supported.
-
+        Type of the output: "ndarray" for ``Dense``; "csr_array"/
+        "csr_matrix" for ``CSR``; "dia_array"/"dia_matrix" for ``Dia``.
+        When ``None``, sparse types return their native ``sparray``
+        backing. A ValueError is raised if the format is not supported.
     copy : bool, default: True
         Whether to pass a copy of the object.
     """
