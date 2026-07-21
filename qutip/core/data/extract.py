@@ -55,9 +55,8 @@ def extract_csr(matrix, format=None, copy=True):
         raise ValueError(
             "CSR can only be extracted to 'csr_array' or 'csr_matrix'"
         )
-    # The internal backing is always a csr_array; only an explicit request
-    # produces the legacy matrix.
     scipy_csr = matrix.as_scipy()
+    # TODO: remove upon SciPy deprecation of csr_matrix
     if format == "csr_matrix":
         scipy_csr = csr_as_matrix(scipy_csr)
     if copy:
@@ -87,9 +86,8 @@ def extract_dia(matrix, format=None, copy=True):
         raise ValueError(
             "Dia can only be extracted to 'dia_array' or 'dia_matrix'"
         )
-    # The internal backing is always a dia_array; only an explicit request
-    # produces the legacy matrix.
     scipy_dia = matrix.as_scipy()
+    # TODO: remove upon SciPy deprecation of dia_matrix
     if format == "dia_matrix":
         scipy_dia = dia_as_matrix(scipy_dia)
     if copy:
@@ -115,7 +113,7 @@ extract = _Dispatcher(
 extract.__doc__ =\
     """
     Return the common representation of the data layer object: scipy's
-    ``csr_array`` for ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for
+    ``csr_array`` or ``csr_matrix`` (soon-to-be-deprecated; see https://docs.scipy.org/doc/scipy/dev/roadmap-detailed.html#sparse)  for ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for
     ``JaxArray``, etc.
 
     Parameters
