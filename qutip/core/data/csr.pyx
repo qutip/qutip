@@ -33,7 +33,7 @@ else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
 
-from scipy.sparse import csr_matrix as scipy_csr_matrix, csr_array as scipy_csr_array
+from scipy.sparse import csr_array as scipy_csr_array
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -56,13 +56,13 @@ __all__ = ['CSR']
 
 cdef int _ONE = 1
 
-cdef object _scipy_csr_obj(data, indices, indptr, shape):
+cdef object _sparse_array(data, indices, indptr, shape):
     """
     Factory method of scipy csr_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_csr_matrix.__new__(scipy_csr_array)
+    cdef object out = scipy_csr_array.__new__(scipy_csr_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix_init(out)
@@ -77,9 +77,9 @@ cdef class CSR(base.Data):
     """
     Data type for quantum objects storing its data in compressed sparse row
     (CSR) format.  This is similar to the `scipy` type
-    `scipy.sparse.csr_matrix`, but significantly faster on many operations.
-    You can retrieve a `scipy.sparse.csr_matrix` which views onto the same data
-    using the `as_scipy()` method. TODO: update docstring to include csr_array
+    `scipy.sparse.csr_array`, but significantly faster on many operations.
+    You can retrieve a `scipy.sparse.csr_array` which views onto the same data
+    using the `as_scipy()` method.
     """
     def __cinit__(self, *args, **kwargs):
         # By default, we want CSR to deallocate its memory (we depend on Cython
@@ -177,7 +177,7 @@ cdef class CSR(base.Data):
             self.shape = shape
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
-        self._scipy = _scipy_csr_obj(data, col_index, row_index, self.shape)
+        self._scipy = _sparse_array(data, col_index, row_index, self.shape)
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
@@ -257,7 +257,7 @@ cdef class CSR(base.Data):
         PyArray_ENABLEFLAGS(indices, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(indptr, cnp.NPY_ARRAY_OWNDATA)
         self._deallocate = False
-        self._scipy = _scipy_csr_obj(data, indices, indptr, self.shape)
+        self._scipy = _sparse_array(data, indices, indptr, self.shape)
         return self._scipy
 
     cpdef CSR sort_indices(self):
