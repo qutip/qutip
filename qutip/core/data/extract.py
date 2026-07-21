@@ -60,7 +60,7 @@ def extract_csr(matrix, format=None, copy=True):
     scipy_csr = matrix.as_scipy()
     # TODO: remove upon SciPy deprecation of csr_matrix
     if format == "csr_matrix":
-        _warn_if_legacy_scipy_input("csr")
+        #_warn_if_legacy_scipy_input("csr")
         scipy_csr = csr_as_matrix(scipy_csr)
     if copy:
         scipy_csr = scipy_csr.copy()
@@ -92,7 +92,7 @@ def extract_dia(matrix, format=None, copy=True):
     scipy_dia = matrix.as_scipy()
     # TODO: remove upon SciPy deprecation of dia_matrix
     if format == "dia_matrix":
-        _warn_if_legacy_scipy_input("dia")
+        #_warn_if_legacy_scipy_input("dia")
         scipy_dia = dia_as_matrix(scipy_dia)
     if copy:
         scipy_dia = scipy_dia.copy()
