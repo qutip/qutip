@@ -310,7 +310,7 @@ cdef class CSR(base.Data):
 
 cpdef CSR fast_from_scipy(object sci):
     """
-    Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
+    Fast path construction from scipy.sparse.csr_array. This does _no_ type
     checking on any of the inputs, and should consequently be considered very
     unsafe.  This is primarily for use in the unpickling operation.
     """
