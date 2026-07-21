@@ -914,7 +914,7 @@ class Qobj:
         Returns
         -------
         data : numpy.ndarray, scipy.sparse.csr(dia)_array, or
-               scipy.sparse.csr(dia)_matrix
+               scipy.sparse.csr(dia)_matrix, etc.
             Matrix in the type of the underlying libraries.
         """
         return _data.extract(self._data, format, copy)
