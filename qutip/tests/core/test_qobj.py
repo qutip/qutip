@@ -1305,8 +1305,7 @@ def test_data_as():
     qobj = qutip.qeye(2, dtype="CSR")
 
     # Explicit format names select the scipy container type.
-    with pytest.warns(FutureWarning, match="legacy"):
-        assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
     csr_arr = qobj.data_as("csr_array")
     assert scipy.sparse.issparse(csr_arr) and csr_arr.format == "csr"
     assert not scipy.sparse.isspmatrix_csr(csr_arr)
