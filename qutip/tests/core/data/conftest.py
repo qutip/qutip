@@ -84,7 +84,6 @@ def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
     cols = gen.choice(np.arange(shape[1]), nnz)
     csr_container = scipy.sparse.coo_array if sparray else scipy.sparse.coo_matrix
     sci = csr_container((data, (rows, cols)), shape=shape).tocsr()
-    #sci = scipy.sparse.coo_matrix((data, (rows, cols)), shape=shape).tocsr()
     if not sorted_:
         sci = shuffle_indices_scipy_csr(sci, gen)
     return sci
@@ -115,6 +114,7 @@ def random_csr(shape, density, sorted_, gen=None):
     If not provided one will be created.
     """
     return qutip.core.data.CSR(random_scipy_csr(shape, density, sorted_, gen))
+
 
 def random_dense(shape, fortran, gen=None):
     """
