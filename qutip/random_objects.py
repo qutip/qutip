@@ -193,7 +193,7 @@ def _merge_shuffle_blocks(blocks, generator):
             start, end = end, end + block.shape[0]
             brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
             matrix[brow, bcol] = block
-    return _data.create(matrix, copy=False)
+    return _data.create(matrix, copy=None)
 
 def rand_herm(
     dimensions: SpaceLike,
