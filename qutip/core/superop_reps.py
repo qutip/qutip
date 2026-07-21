@@ -455,7 +455,7 @@ def to_choi(q_oper: Qobj) -> Qobj:
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to Choi not supported.".format(q_oper)
+            "and superrep = {0.superrep} to Choi not supported.".format(q_oper)
         )
 
 
@@ -498,7 +498,7 @@ def to_chi(q_oper: Qobj) -> Qobj:
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to Choi not supported.".format(q_oper)
+            "and superrep = {0.superrep} to Chi not supported.".format(q_oper)
         )
 
 

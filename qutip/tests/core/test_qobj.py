@@ -662,6 +662,13 @@ def test_QobjLogmZeroOper():
     assert B == qutip.qzero(5)
 
 
+def test_QobjLogmNonSquareError():
+    "qutip.Qobj logm raises with a logm-specific message on non-square input"
+    A = qutip.Qobj(np.zeros((2, 3)), dims=[[2], [3]])
+    with pytest.raises(TypeError, match="logm is only valid"):
+        A.logm()
+
+
 def test_Qobj_sqrtm():
     "qutip.Qobj sqrtm"
     data = _random_not_singular(5)
