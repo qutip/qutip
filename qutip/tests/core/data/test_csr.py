@@ -261,6 +261,7 @@ class TestClassMethods:
         """
         data_csr = data.CSR(scipy_csr)
         assert scipy.sparse.issparse(data_csr.as_scipy())
+        assert data_csr.as_scipy().format == "csr"
         assert (data_csr.as_scipy() - scipy_csr).nnz == 0
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape, density):

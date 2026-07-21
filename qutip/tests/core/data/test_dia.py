@@ -196,6 +196,7 @@ class TestClassMethods:
         """
         data_diag = dia.Dia(scipy_dia)
         assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_array)
+        assert data_diag.as_scipy().format == "dia"
         assert _dia_eq(data_diag.as_scipy(), scipy_dia)
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape):
