@@ -17,7 +17,6 @@ import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import dia_matrix as scipy_dia_matrix, dia_array as scipy_dia_array
 from packaging.version import parse as parse_version
 from functools import partial
 if parse_version(scipy.version.version) >= parse_version("1.14.0"):
@@ -30,8 +29,10 @@ elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
 else:
-    from scipy.sparse.data import _data_matrix as scipy_data_matrix # TODO: will we able to use these constructors when sparse matrix is dropped?
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
+
+from scipy.sparse import dia_array as scipy_dia_array
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, CSR
@@ -50,14 +51,13 @@ cdef extern from *:
 
 __all__ = ['Dia']
 
-# TODO: maybe we also want to leave the descriptions a bit more agnostic of specific data class from scipy. E.g. sparse arrays instead of csr_array/dia_array
-cdef object _scipy_dia_obj(data, offsets, shape):
+cdef object _dia_array(data, offsets, shape):
     """
     Factory method of scipy dia_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_dia_matrix.__new__(scipy_dia_array)
+    cdef object out = scipy_dia_array.__new__(scipy_dia_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix_init(out)
@@ -85,7 +85,6 @@ cdef class Dia(base.Data):
         cdef base.idxint col
         cdef object data, offsets
 
-        #if isinstance(arg, scipy.sparse.spmatrix):
         if scipy.sparse.issparse(arg):
             arg = arg.todia()
             if shape is not None and shape != arg.shape:
@@ -145,7 +144,7 @@ cdef class Dia(base.Data):
         self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
         self.offsets = <base.idxint *> cnp.PyArray_GETPTR1(offsets, 0)
 
-        self._scipy = _scipy_dia_obj(data, offsets, self.shape)
+        self._scipy = _dia_array(data, offsets, self.shape)
         if tidyup:
             tidyup_dia(self, settings.core['auto_tidyup_atol'], True)
 
@@ -217,7 +216,7 @@ cdef class Dia(base.Data):
         PyArray_ENABLEFLAGS(data, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(offsets, cnp.NPY_ARRAY_OWNDATA)
         self._deallocate = False
-        self._scipy = _scipy_dia_obj(data, offsets, self.shape)
+        self._scipy = _dia_array(data, offsets, self.shape)
         return self._scipy
 
     cpdef double complex trace(self):
