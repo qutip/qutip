@@ -10,12 +10,47 @@ In our migration strategy, we want to ensure (hence this module) that:
 * we correctly convert array to matrix views (upon user request). This is to ensure that before SciPy officially deprecates sparse matrix, users of qutip can still rely on its interface in their downstream code.
 """
 
+import warnings
+
 from scipy.sparse import issparse, csr_matrix, dia_matrix
 
 __all__ = [
     'is_csr', 'is_dia',
     'csr_as_matrix', 'dia_as_matrix',
 ]
+
+_SCIPY_SPARSE_ROADMAP = (
+    "https://docs.scipy.org/doc/scipy/dev/roadmap-detailed.html#sparse"
+)
+
+
+def _warn_if_legacy_scipy_input(kind, stacklevel=3):
+    """
+    Emit a warning that a legacy scipy sparse matrix type has been requested.
+
+    SciPy plans to deprecate the ``spmatrix`` types (``csr_matrix``,
+    ``dia_matrix``, ...) in favour of the ``sparray`` types (``csr_array``,
+    ``dia_array``, ...).  This helper is called from the user-facing
+    ``extract`` / ``Qobj.data_as`` methods whenever a user explicitly requests
+    a legacy matrix, so that downstream code can migrate ahead of the upstream
+    deprecation.
+
+    Parameters
+    ----------
+    kind : str {"csr", "dia"}
+        The sparse family being requested; used to name the recommended type.
+
+    stacklevel : int, default: 3
+        Passed through to :func:`warnings.warn` so the message points at the
+        user's call site rather than at qutip's internal dispatch.
+    """
+    warnings.warn(
+        f"'{kind}_matrix' is a legacy scipy sparse type that scipy plans to "
+        f"deprecate; prefer '{kind}_array' instead. See "
+        f"{_SCIPY_SPARSE_ROADMAP}.",
+        FutureWarning,
+        stacklevel=stacklevel,
+    )
 
 
 def is_csr(arg):
