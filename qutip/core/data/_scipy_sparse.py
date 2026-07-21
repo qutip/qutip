@@ -1,14 +1,12 @@
 """
-Helper for qutip's use of ``scipy.sparse`` containers.
+Helper module for the use of ``scipy.sparse`` backing containers in the data layer.
 
-qutip uses scipy sparse purely as a storage/interoperability container.
-
-In the light of SciPy's migration plans, ``spmatrix`` types will be replaced by the new (SciPy >= 1.8) ``sparray`` types.
-We adopt to this migration strategy by ensuring that qutip's data layer always builds ``sparray`` containers, and a legacy matrix is only produced when a user explicitly requests one at such public access points as ``extract`` / ``Qobj.data_as``.
+In the light of SciPy's migration plans, ``spmatrix`` types will be replaced by ``sparray`` types.
+We adopt to this migration strategy by ensuring that qutip's data layer always builds ``sparray`` containers, and a legacy matrix is only produced when a user explicitly requests one at such public methods as ``extract`` / ``Qobj.data_as``.
 
 In our migration strategy, we want to ensure (hence this module) that:
 
-* we do format-agnostic type detection. We aim to recognise a CSR/DIA object regardless of whether it is a legacy matrix or a new array. 
+* we detect SciPy's CSR/Dia objects regardless of the exact implementation (csr_matrix/csr_array or dia_matrix/dia_array).
 * we correctly convert array to matrix views (upon user request). This is to ensure that before SciPy officially deprecates sparse matrix, users of qutip can still rely on its interface in their downstream code.
 """
 
