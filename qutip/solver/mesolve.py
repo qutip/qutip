@@ -231,6 +231,12 @@ class MESolver(SESolver):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
         self._num_collapse = len(c_ops)
+        # The Liouvillian assembled from Hamiltonian and collapse operators
+        # preserves Hermiticity by construction.  User-supplied superoperators
+        # do not carry that guarantee.
+        self._rhs_preserves_hermiticity = (
+            not H.issuper and not any(c_op.issuper for c_op in c_ops)
+        )
 
         # Check for matrix_form option
         matrix_form = (options or {}).get('matrix_form', False)
