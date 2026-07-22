@@ -119,7 +119,10 @@ class Qobj:
     arg: array_like, data object or :obj:`.Qobj`
         Data for vector/matrix representation of the quantum object.
     dims: list
-        Dimensions of object used for tensor products.
+        Dimensions of object used for tensor products. Must be a **list** of
+        the form ``[to, from]``, e.g. ``[[2], [2]]``. Since QuTiP 5.3, tuples
+        inside dims denote direct-sum spaces (e.g. ``[(2, 3), (2, 3)]``), so
+        pass ``dims=[[2], [2]]`` rather than the tuple ``dims=([2], [2])``.
     copy: bool
         Flag specifying whether Qobj should get a copy of the
         input data, or use the original.

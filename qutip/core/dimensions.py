@@ -950,6 +950,18 @@ class SuperSpace(Space):
 class Dimensions(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], tuple) and len(args[0]) == 2:
+            # Common footgun after 5.3: dims=([2], [2]) is a tuple, not a list.
+            # Outer dims must be a list; tuples inside dims mean direct sums.
+            a0, a1 = args[0]
+            raise TypeError(
+                "Qobj dims must be a list [to, from], e.g. [[2], [2]] or "
+                f"[(2, 3), (2, 3)]. Got a tuple: {args[0]!r}. Since QuTiP 5.3, "
+                "tuples inside dims denote direct-sum spaces, so the outer "
+                f"container must be a list. Use dims=[{a0!r}, {a1!r}] instead "
+                f"of dims={args[0]!r}."
+            )
+
         if len(args) == 1 and isinstance(args[0], list):
             # from list representation
             if len(args[0]) != 2:

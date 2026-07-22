@@ -412,6 +412,22 @@ def test_bad_dims(dims_list):
         Dimensions([dims_list, [1]])
 
 
+@pytest.mark.parametrize("bad_dims", [
+    pytest.param(([2], [2]), id="tuple_of_lists"),
+    pytest.param(((2,), (2,)), id="tuple_of_tuples"),
+    pytest.param((2, 2), id="tuple_of_ints"),
+])
+def test_tuple_outer_dims_error_message(bad_dims):
+    """
+    Outer dims must be a list; a tuple is a common mistake after 5.3.
+    Regression for issue #2915.
+    """
+    with pytest.raises(TypeError, match="must be a list"):
+        Dimensions(bad_dims)
+    with pytest.raises(TypeError, match="must be a list"):
+        qutip.Qobj([[1, 0], [0, 0]], dims=bad_dims)
+
+
 @pytest.mark.parametrize("space_l", [[1], [2], [2, 3]])
 @pytest.mark.parametrize("space_m", [[1], [2], [2, 3]])
 @pytest.mark.parametrize("space_r", [[1], [2], [2, 3]])
