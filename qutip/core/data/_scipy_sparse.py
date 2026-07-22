@@ -2,28 +2,41 @@
 Helper module for the use of ``scipy.sparse`` backing containers in the
 data layer.
 
-In the light of SciPy's migration plans, ``spmatrix`` types will be
-replaced by ``sparray`` types. We adopt to this migration strategy by
-ensuring that qutip's data layer always builds ``sparray`` containers,
-and a legacy matrix is only produced when a user explicitly requests one
-at such public methods as ``extract`` / ``Qobj.data_as``.
+In the light of SciPy's migration plans, ``spmatrix`` types (``csr_matrix``,
+``dia_matrix``, ...) will be replaced by ``sparray`` types.
+We respond to this by ensuring that qutip's data layer always uses ``sparray``
+containers internally.
+A legacy matrix is only produced when a user explicitly requests one
+via such public methods as ``extract`` / ``Qobj.data_as``.
 
-In our migration strategy, we want to ensure (hence this module) that:
+In our migration strategy, we want to ensure (hence this helper module) that:
 
-* we detect SciPy's CSR/Dia objects regardless of the exact
+* We detect SciPy's CSR/Dia objects regardless of the exact
   implementation (csr_matrix/csr_array or dia_matrix/dia_array).
-* we correctly convert array to matrix views (upon user request). This
+* We correctly convert array to matrix views (upon user request). This
   is to ensure that before SciPy officially deprecates sparse matrix,
   users of qutip can still rely on its interface in their downstream
   code.
-"""
-import warnings
 
-from scipy.sparse import issparse, csr_matrix, dia_matrix
+We also introduce an additional guard that protects qutip's imports from breaking
+for the future scenario when SciPy will drop legacy matrix types
+(see ``_legacy_matrix_type``).
+"""
+
+from scipy.sparse import issparse
+
+try:
+    from scipy.sparse import csr_matrix, dia_matrix
+
+    _LEGACY_MATRIX_TYPES = {"csr": csr_matrix, "dia": dia_matrix}
+except ImportError:  # pragma: no cover - depends on a future SciPy release
+    _LEGACY_MATRIX_TYPES = {}
 
 __all__ = [
-    'is_csr', 'is_dia',
-    'csr_as_matrix', 'dia_as_matrix',
+    "is_csr",
+    "is_dia",
+    "csr_as_matrix",
+    "dia_as_matrix",
 ]
 
 _SCIPY_SPARSE_ROADMAP = (
@@ -31,34 +44,24 @@ _SCIPY_SPARSE_ROADMAP = (
 )
 
 
-def _warn_if_legacy_scipy_input(kind, stacklevel=3):
+def _legacy_matrix_type(kind):
     """
-    Emit a warning that a legacy scipy sparse matrix type has been
-    requested.
+    Return the legacy ``{kind}_matrix`` class, or raise a clear error if the
+    installed SciPy no longer ships it.
 
-    SciPy plans to deprecate the ``spmatrix`` types (``csr_matrix``,
-    ``dia_matrix``, ...) in favour of the ``sparray`` types
-    (``csr_array``, ``dia_array``, ...). This helper is called from the
-    user-facing ``extract`` / ``Qobj.data_as`` methods whenever a user
-    explicitly requests a legacy matrix, so that downstream code can
-    migrate ahead of the upstream deprecation.
-
-    Parameters
-    ----------
-    kind : str {"csr", "dia"}
-        The sparse family being requested; used to name the recommended
-        type.
-    stacklevel : int, default: 3
-        Passed through to :func:`warnings.warn` so the message points at
-        the user's call site rather than at qutip's internal dispatch.
+    Ensures qutip's forward compatibility with
+    SciPy's removal of the ``spmatrix`` types: as long as SciPy provides the
+    class we hand it back, and once SciPy drops it a user who explicitly asked
+    for a matrix gets an actionable exception message.
     """
-    warnings.warn(
-        f"'{kind}_matrix' is a legacy scipy sparse type that scipy plans to "
-        f"deprecate; prefer '{kind}_array' instead. See "
-        f"{_SCIPY_SPARSE_ROADMAP}.",
-        FutureWarning,
-        stacklevel=stacklevel,
-    )
+    try:
+        return _LEGACY_MATRIX_TYPES[kind]
+    except KeyError:
+        raise TypeError(
+            f"This SciPy build no longer provides "
+            f"'scipy.sparse.{kind}_matrix'; request the '{kind}_array' output "
+            f"instead. See {_SCIPY_SPARSE_ROADMAP}."
+        ) from None
 
 
 def is_csr(arg):
@@ -81,7 +84,7 @@ def csr_as_matrix(csr):
     ``data``/``indices``/``indptr`` (no copy) in case of a user
     explicitly requests a matrix.
     """
-    return csr_matrix(
+    return _legacy_matrix_type("csr")(
         (csr.data, csr.indices, csr.indptr), shape=csr.shape, copy=False
     )
 
@@ -93,4 +96,6 @@ def dia_as_matrix(dia):
 
     The ``dia_array`` counterpart of :func:`csr_as_matrix`.
     """
-    return dia_matrix((dia.data, dia.offsets), shape=dia.shape, copy=False)
+    return _legacy_matrix_type("dia")(
+        (dia.data, dia.offsets), shape=dia.shape, copy=False
+    )
