@@ -974,3 +974,38 @@ class TestMESolveMatrixForm:
         # Verify normalization (trace should be 1)
         for state in result_matrix.states:
             np.testing.assert_allclose(state.tr(), 1.0, atol=1e-10)
+
+
+def test_mesolve_isherm_reflects_output_data():
+    """
+    Output-state isherm must follow the evolved data, not the initial state.
+
+    Hermiticity-preserving evolution keeps isherm True; non-Hermiticity-
+    preserving generators must not leave a false-positive isherm flag.
+    Regression for issue #2410.
+    """
+    # Standard Lindblad dynamics: density matrix stays Hermitian.
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    res_herm = mesolve(
+        qutip.sigmaz(),
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+    assert res_herm.final_state.isherm is True
+    assert qutip.data.isherm(res_herm.final_state.data)
+
+    # Custom superoperator that does not preserve Hermiticity.
+    L = (
+        qutip.liouvillian(qutip.sigmaz())
+        + 1j * qutip.lindblad_dissipator(qutip.sigmap())
+    )
+    res_nonherm = mesolve(
+        L,
+        qutip.basis(2, 1),
+        [0, 1],
+        options={"progress_bar": None},
+    )
+    assert not qutip.data.isherm(res_nonherm.final_state.data)
+    assert res_nonherm.final_state.isherm is False
