@@ -56,7 +56,7 @@ requests==2.33.0
 roman-numerals==4.1.0
 scipy==1.16.3
 scs==3.2.11
-setuptools==80.10.2
+setuptools==83.0.0
 six==1.17.0
 snowballstemmer==3.0.1
 Sphinx==9.1.0
