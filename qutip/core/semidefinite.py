@@ -140,7 +140,7 @@ def dnorm_sparse_problem(dim, J_dat):
         A_cols = np.arange(A_nnz.size)
         # We are pushing the data on the location of the nonzero elements
         # to the nonzero rows of A_indexer
-        A_Indexer = sp.coo_matrix(
+        A_Indexer = sp.coo_array(
             (A_data, (A_rows, A_cols)), shape=(side_size**2, A_nnz.size)
         )
         # We get finaly the sparse matrix A which we wanted

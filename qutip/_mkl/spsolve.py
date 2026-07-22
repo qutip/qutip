@@ -360,7 +360,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
 
     Returns
     -------
-    x : ndarray or csr_matrix or csr_array
+    x : ndarray or csr_array
         The solution of the sparse linear equation.
         If b is a vector, then x is a vector of size A.shape[1]
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
@@ -374,10 +374,8 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         b_is_sparse = False
     elif b_is_sparse and b.shape[1] != 1:
         nrhs = b.shape[1]
-        if lu._is_complex:
-            b = sp.csc_matrix(b, dtype=np.complex128, copy=False)
-        else:
-            b = sp.csc_matrix(b, dtype=np.float64, copy=False)
+        dtype = np.complex128 if lu._is_complex else np.float64
+        b = sp.csc_array(b, dtype=dtype, copy=False)
 
     # Do dense RHS solving
     if not b_is_sparse:
@@ -398,7 +396,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         sp_data = np.concatenate(data_segs)
         sp_row = np.concatenate(row_segs)
         sp_col = np.concatenate(col_segs)
-        x = sp.csr_matrix((sp_data, (sp_row, sp_col)), shape=b_shp)
+        x = sp.csr_array((sp_data, (sp_row, sp_col)), shape=b_shp)
 
     info = lu.info()
     lu.delete()
