@@ -103,12 +103,12 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
+        # Do not copy isherm from the initial state. Evolution under a
+        # non-Hermitian Hamiltonian or non-Hermiticity-preserving superoperator
+        # can break Hermiticity of density operators; Qobj.isherm recomputes
+        # and caches from the actual data when needed (see issue #2410).
         self._state_metadata = {
             'dims': state._dims,
-            # This is herm flag take for granted that the liouvillian keep
-            # hermiticity.  But we do not check user passed super operator for
-            # anything other than dimensions.
-            'isherm': not (self.rhs._dims == state._dims) and state._isherm,
         }
         if state.isket:
             norm = state.norm()
