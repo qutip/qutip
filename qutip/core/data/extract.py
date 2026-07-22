@@ -57,7 +57,10 @@ def extract_csr(matrix, format=None, copy=True):
         )
     scipy_csr = matrix.as_scipy()
     # TODO: remove upon SciPy deprecation of csr_matrix
-    if format == "csr_matrix":
+    if format != "csr_array":
+        # For backward compatibility, if csr_array was not explicitly
+        # requested by a user, we keep returning csr_matrix as long as
+        # it's supported in the minimum version of SciPy for qutip
         scipy_csr = csr_as_matrix(scipy_csr)
     if copy:
         scipy_csr = scipy_csr.copy()
