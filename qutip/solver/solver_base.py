@@ -103,16 +103,15 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
-        # Do not copy isherm from the initial state. Evolution under a
-        # non-Hermitian Hamiltonian or non-Hermiticity-preserving superoperator
-        # can break Hermiticity of density operators; Qobj.isherm recomputes
-        # and caches from the actual data when needed (see issue #2410).
-        # TODO: recomputing isherm from data can be costly on large states;
-        # consider detecting Hermiticity-preserving dynamics, optimizing the
-        # check, or adding a solver option to propagate the flag when safe.
         self._state_metadata = {
             'dims': state._dims,
         }
+        if (
+            self.rhs.issuper
+            and state.isherm
+            and getattr(self, "_rhs_preserves_hermiticity", False)
+        ):
+            self._state_metadata['isherm'] = True
         if state.isket:
             norm = state.norm()
         elif state._dims.issquare:
