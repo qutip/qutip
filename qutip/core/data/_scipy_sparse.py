@@ -29,7 +29,7 @@ try:
     from scipy.sparse import csr_matrix, dia_matrix
 
     _LEGACY_MATRIX_TYPES = {"csr": csr_matrix, "dia": dia_matrix}
-except ImportError:  # pragma: no cover - depends on a future SciPy release
+except ImportError:
     _LEGACY_MATRIX_TYPES = {}
 
 __all__ = [
