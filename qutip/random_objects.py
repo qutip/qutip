@@ -892,7 +892,7 @@ def rand_stochastic(
                          generator.choice(N, num_elems-N)])
     col_idx = np.hstack([generator.permutation(N),
                          generator.choice(N, num_elems-N)])
-    M = sp.coo_matrix((data, (row_idx, col_idx)),
+    M = sp.coo_array((data, (row_idx, col_idx)),
                       dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
     num_rows = M.indptr.shape[0] - 1

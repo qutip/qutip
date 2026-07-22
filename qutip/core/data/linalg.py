@@ -27,7 +27,7 @@ def inv_csr(data, /):
                          'of a nonsquare matrix')
     inv = scipy.sparse.linalg.inv(data.as_scipy().tocsc())
     # scipy.sparse.linalg.inv can return dense or sparse arrays.
-    return CSR(scipy.sparse.csr_matrix(inv), copy=False)
+    return CSR(scipy.sparse.csr_array(inv), copy=False)
 
 
 from .dispatch import Dispatcher as _Dispatcher
