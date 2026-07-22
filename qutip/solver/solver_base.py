@@ -107,6 +107,9 @@ class Solver:
         # non-Hermitian Hamiltonian or non-Hermiticity-preserving superoperator
         # can break Hermiticity of density operators; Qobj.isherm recomputes
         # and caches from the actual data when needed (see issue #2410).
+        # TODO: recomputing isherm from data can be costly on large states;
+        # consider detecting Hermiticity-preserving dynamics, optimizing the
+        # check, or adding a solver option to propagate the flag when safe.
         self._state_metadata = {
             'dims': state._dims,
         }
