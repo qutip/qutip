@@ -1304,13 +1304,18 @@ def test_groundstate():
 def test_data_as():
     qobj = qutip.qeye(2, dtype="CSR")
 
-    # Explicit format names select the scipy container type.
+    # By default, `Qobj.data_as` returns csr_matrix for
+    # CSR data type despite sparse array based internal backing
+    # of CSR (as long as the minimum SciPy version supports it)
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as())
     assert scipy.sparse.isspmatrix_csr(qobj.data_as("csr_matrix"))
+    assert scipy.sparse.isspmatrix_csr(qobj.data_as(copy=False))
+    # Test array representation
     csr_arr = qobj.data_as("csr_array")
+    assert isinstance(csr_arr, scipy.sparse.csr_array)
     assert scipy.sparse.issparse(csr_arr) and csr_arr.format == "csr"
     assert not scipy.sparse.isspmatrix_csr(csr_arr)
-    # Sparse types default to the sparray variant.
-    assert scipy.sparse.issparse(qobj.data_as(copy=False))
+
     with pytest.raises(ValueError) as err:
         qobj.data_as("ndarray")
     assert "csr_matrix" in str(err.value)
@@ -1332,14 +1337,17 @@ def test_data_as():
     assert "ndarray" in str(err.value)
 
     qobj = qutip.qeye(2, dtype="Dia")
-
+    # By default, `Qobj.data_as` returns dia_matrix for
+    # Dia data type despite sparse array based internal backing
+    # of Dia (as long as the minimum SciPy version supports it)
+    assert scipy.sparse.isspmatrix_dia(qobj.data_as())
     assert scipy.sparse.isspmatrix_dia(qobj.data_as("dia_matrix"))
+    assert scipy.sparse.isspmatrix_dia(qobj.data_as(copy=False))
+    # Test array representation
     dia_arr = qobj.data_as("dia_array")
+    assert isinstance(dia_arr, scipy.sparse.dia_array)
     assert scipy.sparse.issparse(dia_arr) and dia_arr.format == "dia"
     assert not scipy.sparse.isspmatrix_dia(dia_arr)
-    # Sparse types default to the sparray variant.
-    dia_default = qobj.data_as(copy=False)
-    assert scipy.sparse.issparse(dia_default) and dia_default.format == "dia"
 
     qobj.data_as(copy=False).data[:, 0] = 0
     qobj.data_as(copy=True).data[:, 0] = 2

@@ -45,8 +45,8 @@ def extract_csr(matrix, format=None, copy=True):
     format : str or None, default: None
         The scipy container to return.  ``"csr_array"`` returns a ``csr_array``;
         ``"csr_matrix"`` returns the legacy ``csr_matrix``.  ``None`` (or
-        ``"scipy_csr"``) returns the native backing, which is always a
-        ``csr_array``.
+        ``"scipy_csr"``) returns ``csr_matrix`` as long as SciPy supports
+        this type.
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
@@ -66,7 +66,6 @@ def extract_csr(matrix, format=None, copy=True):
         scipy_csr = scipy_csr.copy()
     return scipy_csr
 
-
 def extract_dia(matrix, format=None, copy=True):
     """
     Return the scipy DIA representation of the data object.
@@ -79,8 +78,8 @@ def extract_dia(matrix, format=None, copy=True):
     format : str or None, default: None
         The scipy container to return.  ``"dia_array"`` returns a ``dia_array``;
         ``"dia_matrix"`` returns the legacy ``dia_matrix``.  ``None`` (or
-        ``"scipy_dia"``) returns the native backing, which is always a
-        ``dia_array``.
+        ``"scipy_dia"``) returns ``dia_matrix`` as long as SciPy supports
+        this type.
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
@@ -91,12 +90,14 @@ def extract_dia(matrix, format=None, copy=True):
         )
     scipy_dia = matrix.as_scipy()
     # TODO: remove upon SciPy deprecation of dia_matrix
-    if format == "dia_matrix":
+    if format != "dia_array":
+        # For backward compatibility, if dia_array was not explicitly
+        # requested by a user, we keep returning dia_matrix as long as
+        # it's supported in the minimum version of SciPy for qutip
         scipy_dia = dia_as_matrix(scipy_dia)
     if copy:
         scipy_dia = scipy_dia.copy()
     return scipy_dia
-
 
 extract = _Dispatcher(
     _inspect.Signature([
