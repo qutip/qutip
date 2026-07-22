@@ -479,6 +479,38 @@ def test_dims_comparison():
         ),
         id="superoperator_permutation",
     ),
+    pytest.param(
+        "abcd,cdef->abef",
+        [
+            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
+        ],
+        qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
+        @ qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
+        id="density_matrix_left_multiplication",
+    ),
+    pytest.param(
+        "cdef,ghef->cdgh",
+        [
+            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
+            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        ],
+        qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)))
+        @ qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        id="density_matrix_right_multiplication",
+    ),
+    pytest.param(
+        "abcd,cdef,ghef->abgh",
+        [
+            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
+            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        ],
+        qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
+        @ qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)))
+        @ qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        id="density_matrix_conjugation",
+    ),
 ])
 def test_einsum(subscripts, operands, expected):
     assert einsum(subscripts, *operands) == expected

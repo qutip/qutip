@@ -326,34 +326,67 @@ def _infer_out_dims(subscripts, operands):
 
     input_subs = inputs_part.split(",")
     char_to_dim = {}
-    row_chars = set()
-    col_chars = set()
 
     for op, sub in zip(operands, input_subs):
         row_len = len(op.dims[0])
         for i, char in enumerate(sub):
             dim = op.dims[0][i] if i < row_len else op.dims[1][i - row_len]
             char_to_dim[char] = dim
-            if i < row_len:
-                row_chars.add(char)
+
+    num_ops = len(operands)
+    adj = {i: [] for i in range(num_ops)}
+
+    char_occurrences = {}
+    for op_idx, sub in enumerate(input_subs):
+        row_len = len(operands[op_idx].dims[0])
+        for idx_in_op, char in enumerate(sub):
+            is_row = idx_in_op < row_len
+            t_val = 1 if is_row else -1
+            if char not in char_occurrences:
+                char_occurrences[char] = []
+            char_occurrences[char].append((op_idx, t_val))
+
+    for char, occurrences in char_occurrences.items():
+        for i in range(len(occurrences)):
+            for j in range(i + 1, len(occurrences)):
+                op1, t1 = occurrences[i]
+                op2, t2 = occurrences[j]
+                if op1 != op2:
+                    target_relation = - (t1 * t2)
+                    adj[op1].append((op2, target_relation))
+                    adj[op2].append((op1, target_relation))
+
+    s = {}
+    for root in range(num_ops):
+        if root not in s:
+            s[root] = 1
+            queue = [root]
+            while queue:
+                curr = queue.pop(0)
+                for neighbor, target_relation in adj[curr]:
+                    expected_sign = s[curr] * target_relation
+                    if neighbor not in s:
+                        s[neighbor] = expected_sign
+                        queue.append(neighbor)
+
+    out_row_subs = []
+    out_col_subs = []
+
+    for char in output_part:
+        if char in char_occurrences:
+            op_idx, t_val = char_occurrences[char][0]
+            op_sign = s.get(op_idx, 1)
+            eff_type = op_sign * t_val
+            if eff_type == 1:
+                out_row_subs.append(char)
             else:
-                col_chars.add(char)
-
-    # Count uncontracted row and col subsystems in the output
-    out_row_subs = [c for c in output_part if c in row_chars]
-    out_col_subs = [
-        c for c in output_part
-        if c in col_chars and c not in row_chars
-    ]
-
-    # Partition output subscripts
-    num_row_dims = len(out_row_subs)
-    num_col_dims = len(out_col_subs)
+                out_col_subs.append(char)
+        else:
+            out_col_subs.append(char)
 
     if len(output_part) > 0:
-        out_row_dims = [char_to_dim[c] for c in output_part[:num_row_dims]]
-        out_col_dims = [char_to_dim[c] for c in output_part[num_row_dims:]]
-        # Handle ket/bra edge cases where one of them is empty
+        out_row_dims = [char_to_dim[c] for c in out_row_subs]
+        out_col_dims = [char_to_dim[c] for c in out_col_subs]
         if not out_row_dims:
             out_row_dims = [1]
         if not out_col_dims:
