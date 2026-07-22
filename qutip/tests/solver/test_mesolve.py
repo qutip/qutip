@@ -993,6 +993,8 @@ def test_mesolve_isherm_reflects_output_data():
         c_ops=[qutip.sigmam()],
         options={"progress_bar": None},
     )
+    # Constant Hermiticity-preserving generators retain the fast cached path.
+    assert res_herm.final_state._isherm is True
     assert res_herm.final_state.isherm is True
     assert qutip.data.isherm(res_herm.final_state.data)
 
@@ -1007,5 +1009,46 @@ def test_mesolve_isherm_reflects_output_data():
         [0, 1],
         options={"progress_bar": None},
     )
+    # Unsafe generators leave the metadata unset until Qobj checks the data.
+    assert res_nonherm.final_state._isherm is None
     assert not qutip.data.isherm(res_nonherm.final_state.data)
     assert res_nonherm.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
+    """A single-time ishp check cannot prove a time-dependent RHS is safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    rhs = qutip.QobjEvo(
+        [
+            qutip.liouvillian(qutip.sigmaz()),
+            [1j * qutip.lindblad_dissipator(qutip.sigmap()), lambda t: t],
+        ]
+    )
+
+    result = mesolve(
+        rhs,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is None
+    assert result.final_state.isherm is False
+
+
+def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
+    """Hamiltonian and collapse-operator construction is known to be safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    hamiltonian = qutip.QobjEvo(
+        [qutip.sigmaz(), [qutip.sigmax(), lambda t: t]]
+    )
+
+    result = mesolve(
+        hamiltonian,
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
