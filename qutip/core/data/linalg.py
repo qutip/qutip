@@ -26,6 +26,9 @@ def inv_csr(data, /):
         raise ValueError('Cannot compute the matrix inverse '
                          'of a nonsquare matrix')
     inv = scipy.sparse.linalg.inv(data.as_scipy().tocsc())
+    # Handle scalar case (shape = (1,) )
+    if len(inv.shape) == 1:
+        inv = inv.reshape((1, 1))
     # scipy.sparse.linalg.inv can return dense or sparse arrays.
     return CSR(scipy.sparse.csr_array(inv), copy=False)
 
