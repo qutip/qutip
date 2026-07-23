@@ -10,6 +10,7 @@ from time import time
 from typing import Any
 import warnings
 
+from .. import settings
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
@@ -655,7 +656,6 @@ class MCSolver(MultiTrajSolver):
         # We process the arguments and pass on to other functions depending on
         # whether "improved sampling" is turned on, and whether the initial
         # state is mixed.
-        allocation_state = None
         if isinstance(state, (list, tuple)):
             is_mixed = True
         else:  # state is Qobj, either pure state or dm
@@ -669,19 +669,22 @@ class MCSolver(MultiTrajSolver):
                 # format, i.e., into eigenstates and eigenvalues
                 eigenvalues, eigenstates = state.eigenstates()
 
-                # Preserve the original eigenvalues for result averaging.
-                state = [
-                    (psi, p)
-                    for psi, p in zip(eigenstates, eigenvalues)
-                    if p > 0
-                ]
+                state = [(psi, p) for psi, p
+                         in zip(eigenstates, eigenvalues) if p > 0]
 
-                # Normalized weights are used only for trajectory allocation.
+                # We allow the initial density matrix to be unnormalized.
+                # Since super()._run_mixed expects `state` to be normalized
+                # we must generate the "numbers of trajectories per state"
+                # list here manually, based on the normalized state
                 total_weight = sum(p for _, p in state)
-                allocation_state = [
-                    (psi, p / total_weight)
-                    for psi, p in state
-                ]
+                if abs(total_weight - 1) > settings.core["atol"]:
+                    normalized_state = [
+                        (psi, p / total_weight)
+                        for psi, p in state
+                    ]
+                    ntraj = _InitialConditions._minimum_roundoff_ensemble(
+                        normalized_state, ntraj or len(state)
+                    )
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
                           'state do not support target tolerance')
@@ -692,9 +695,6 @@ class MCSolver(MultiTrajSolver):
                 ntraj = len(state)
             else:
                 ntraj = 1
-
-        if allocation_state is not None:
-            ntraj = _InitialConditions(allocation_state, ntraj).ntraj
 
         if not self.options["improved_sampling"]:
             if is_mixed:
