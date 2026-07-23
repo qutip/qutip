@@ -683,7 +683,6 @@ def test_mcsolve_unnormalized_mixed_state(
         [qutip.sigmam()],
         ntraj=ntraj,
         options={"progress_bar": False},
-        seeds=1234,
     )
     assert result.num_trajectories == ntraj
     assert sum(result.ntraj_per_initial_state) == ntraj
@@ -691,4 +690,3 @@ def test_mcsolve_unnormalized_mixed_state(
         state.tr() == pytest.approx(expected_trace)
         for state in result.states
     )
-    
