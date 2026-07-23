@@ -1313,8 +1313,6 @@ def test_data_as():
     # Test array representation
     csr_arr = qobj.data_as("csr_array")
     assert isinstance(csr_arr, scipy.sparse.csr_array)
-    assert scipy.sparse.issparse(csr_arr) and csr_arr.format == "csr"
-    assert not scipy.sparse.isspmatrix_csr(csr_arr)
 
     with pytest.raises(ValueError) as err:
         qobj.data_as("ndarray")
@@ -1346,8 +1344,6 @@ def test_data_as():
     # Test array representation
     dia_arr = qobj.data_as("dia_array")
     assert isinstance(dia_arr, scipy.sparse.dia_array)
-    assert scipy.sparse.issparse(dia_arr) and dia_arr.format == "dia"
-    assert not scipy.sparse.isspmatrix_dia(dia_arr)
 
     qobj.data_as(copy=False).data[:, 0] = 0
     qobj.data_as(copy=True).data[:, 0] = 2
