@@ -20,7 +20,7 @@ The human contributor is solely responsible for their contribution i.e. all the 
 
 ### 2. Transparency
 
-All Pull Requests must fill the **AI Tools Usage Disclosure** in the PR template. This disclosure is mandatory and must accurately reflect how AI Tools were used.
+For every Pull Request, the **AI Tools Usage Disclosure** must be filled out in the PR template - this is mandatory for all contributions. If no AI tools were used, you must state so explicitly. If AI tools were used, the disclosure must accurately reflect which tools were used and how.
 
 ### 3. Copyright & Legal
 
