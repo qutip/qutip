@@ -489,11 +489,11 @@ def rand_ket(
     elif distribution == "haar":
         ket = rand_unitary(N, density, "haar", seed=generator) @ basis(N, 0)
     else:
-        X = scipy.sparse.random_array((N, 1), density=density, format='csr',
+        X = scipy.sparse.rand(N, 1, density, format='csr',
                               random_state=generator)
         while X.nnz == 0:
             # ensure that the ket is not all zeros.
-            X = scipy.sparse.random_array((N, 1), density=density+1/N, format='csr',
+            X = scipy.sparse.rand(N, 1, density+1/N, format='csr',
                                   random_state=generator)
         X.data = X.data - 0.5
         Y = X.copy()
