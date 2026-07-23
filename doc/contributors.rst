@@ -37,16 +37,11 @@ Developers
     LOGO_TRANSPARENCY = 0.5
 
     # load the list of contributors from qutip/qutip repo
-    # GitHub anonymous API rate limits can 403 on shared RTD IPs; catch so
-    # fail_on_warning docs builds do not flake.
-    try:
-        url_object = urllib.request.urlopen(LINK_CONTRIBUTORS)
-        list_contributors = json.loads(url_object.read())
-        qutip_contributors = [element["login"] for element in list_contributors]
-        qutip_contributors = [s.lower() for s in qutip_contributors]
-        text = " ".join(qutip_contributors)
-    except Exception:
-        text = "qutip developers and contributors"
+    url_object = urllib.request.urlopen(LINK_CONTRIBUTORS)
+    list_contributors = json.loads(url_object.read())
+    qutip_contributors = [element["login"] for element in list_contributors]
+    qutip_contributors = [s.lower() for s in qutip_contributors]
+    text = " ".join(qutip_contributors)
 
     # load the QuTiP logo
     img = PIL.Image.open(urllib.request.urlopen(LINK_LOGO))
