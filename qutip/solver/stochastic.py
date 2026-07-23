@@ -648,6 +648,10 @@ class StochasticSolver(MultiTrajSolver):
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
+        # H must be an operator (enforced by _StochasticRHS). SME density
+        # matrices stay Hermitian under that construction; SSE uses kets so
+        # isherm stays false regardless of this flag.
+        self._rhs_preserves_hermiticity = True
         super().__init__(rhs, options=options)
 
         if heterodyne:

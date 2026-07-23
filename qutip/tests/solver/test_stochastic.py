@@ -584,3 +584,23 @@ def test_step(open, heterodyne):
     else:
         assert dW.shape == (2,)
         assert abs(dW[0]) < 0.5 # 5 sigmas
+
+
+def test_smesolve_caches_isherm_for_operator_hamiltonian():
+    """SME with operator H can cache isherm; SSE kets leave it unset."""
+    options = {
+        "progress_bar": None,
+        "store_states": True,
+        "keep_runs_results": True,
+    }
+    sme = SMESolver(num(2), [destroy(2)], heterodyne=False, options=options)
+    assert sme._rhs_preserves_hermiticity is True
+    sme_state = sme.run(fock_dm(2, 1), [0, 0.05], ntraj=1).trajectories[0].states[-1]
+    assert sme_state._isherm is True
+    assert sme_state.isherm is True
+
+    sse = SSESolver(num(2), [destroy(2)], heterodyne=False, options=options)
+    assert sse._rhs_preserves_hermiticity is True
+    sse_state = sse.run(basis(2, 1), [0, 0.05], ntraj=1).trajectories[0].states[-1]
+    assert sse_state.isket
+    assert sse_state._isherm is None
