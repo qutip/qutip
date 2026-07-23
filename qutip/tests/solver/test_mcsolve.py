@@ -656,3 +656,37 @@ def test_mixed_equals_merged(improved_sampling, p):
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
     )
+
+
+@pytest.mark.parametrize(
+    "weight_0, weight_1, expected_trace",
+    [
+        (0.5, 0.25, 0.75),
+        (0.75, 0.5, 1.25),
+    ],
+)
+def test_mcsolve_unnormalized_mixed_state(
+    weight_0, weight_1, expected_trace
+):
+    ntraj = 10
+
+    # Test density matrices with traces below and above one.
+    initial_state = (
+        weight_0 * qutip.fock_dm(2, 0)
+        + weight_1 * qutip.fock_dm(2, 1)
+    )
+
+    result = mcsolve(
+        qutip.sigmaz(),
+        initial_state,
+        np.linspace(0, 1, 100),
+        [qutip.sigmam()],
+        ntraj=ntraj,
+        options={"progress_bar": False},
+    )
+    assert result.num_trajectories == ntraj
+    assert sum(result.ntraj_per_initial_state) == ntraj
+    assert all(
+        state.tr() == pytest.approx(expected_trace)
+        for state in result.states
+    )
