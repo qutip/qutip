@@ -905,7 +905,9 @@ class Qobj:
         format : str, default: None
             Type of the output: "ndarray" for ``Dense``; "csr_array"/
             "csr_matrix" for ``CSR``; "dia_array"/"dia_matrix" for ``Dia``.
-            When ``None``, sparse types return their native ``sparray`` backing.
+            When ``None``, sparse types return ``csr_matrix``/``dia_matrix``
+            as long as SciPy supports those types: afterwards, the default
+            output will change to the sparse array counterpart.
             A ValueError will be raised if the format is not supported.
 
         copy : bool {False, True}
