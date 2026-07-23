@@ -223,8 +223,8 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     Parameters
     ----------
-    A : csr_matrix or csr_array
-        Sparse input matrix or array.
+    A : csr_matrix
+        Sparse input matrix.
     perm : ndarray (optional)
         User defined matrix factorization permutation.
     verbose : bool {False, True}
@@ -237,7 +237,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solve method for solving with a given RHS vector.
 
     """
-    if not sp.issparse(A):
+    if not sp.isspmatrix_csr(A):
         raise TypeError('Input matrix must be in sparse CSR format.')
 
     if A.shape[0] != A.shape[1]:
@@ -258,7 +258,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         A = B  # This gets around making a full copy of A in triu
     is_complex = bool(A.dtype == np.complex128)
     if not is_complex:
-        A = sp.csr_array(A, dtype=np.float64, copy=False)
+        A = sp.csr_matrix(A, dtype=np.float64, copy=False)
     data_type = A.dtype
 
     # Create pointer to internal memory
@@ -350,9 +350,9 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
 
     Parameters
     ----------
-    A : csr_matrix or csr_array
-        Sparse matrix or array.
-    b : ndarray or sparse matrix or sparse array
+    A : csr_matrix
+        Sparse matrix.
+    b : ndarray or sparse matrix
         The vector or matrix representing the right hand side of the equation.
         If a vector, b.shape must be (n,) or (n, 1).
     perm : ndarray (optional)
@@ -360,22 +360,24 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
 
     Returns
     -------
-    x : ndarray or csr_array
+    x : ndarray or csr_matrix
         The solution of the sparse linear equation.
         If b is a vector, then x is a vector of size A.shape[1]
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
 
     """
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
-    b_is_sparse = sp.issparse(b)
+    b_is_sparse = sp.isspmatrix(b)
     b_shp = b.shape
     if b_is_sparse and b.shape[1] == 1:
         b = b.toarray()
         b_is_sparse = False
     elif b_is_sparse and b.shape[1] != 1:
         nrhs = b.shape[1]
-        dtype = np.complex128 if lu._is_complex else np.float64
-        b = sp.csc_array(b, dtype=dtype, copy=False)
+        if lu._is_complex:
+            b = sp.csc_matrix(b, dtype=np.complex128, copy=False)
+        else:
+            b = sp.csc_matrix(b, dtype=np.float64, copy=False)
 
     # Do dense RHS solving
     if not b_is_sparse:
@@ -396,7 +398,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         sp_data = np.concatenate(data_segs)
         sp_row = np.concatenate(row_segs)
         sp_col = np.concatenate(col_segs)
-        x = sp.csr_array((sp_data, (sp_row, sp_col)), shape=b_shp)
+        x = sp.csr_matrix((sp_data, (sp_row, sp_col)), shape=b_shp)
 
     info = lu.info()
     lu.delete()
