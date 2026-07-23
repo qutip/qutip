@@ -300,6 +300,11 @@ def _infer_out_dims(subscripts, operands):
     input operands to determine the row and column dimensions of the
     resulting quantum object.
 
+    Only multiplication and contraction are supported.  If the subscripts
+    would require an implicit transpose (contracting two row indices or
+    two column indices across operands), a ``ValueError`` is raised so
+    that the caller can apply ``.trans()`` / ``.dag()`` explicitly.
+
     Parameters
     ----------
     subscripts : str
@@ -325,75 +330,56 @@ def _infer_out_dims(subscripts, operands):
         ))
 
     input_subs = inputs_part.split(",")
-    char_to_dim = {}
 
-    for op, sub in zip(operands, input_subs):
+    char_to_dim = {}
+    char_occurrences = {}
+    for op_idx, (op, sub) in enumerate(zip(operands, input_subs)):
         row_len = len(op.dims[0])
         for i, char in enumerate(sub):
-            dim = op.dims[0][i] if i < row_len else op.dims[1][i - row_len]
-            char_to_dim[char] = dim
+            is_row = i < row_len
+            char_to_dim[char] = (
+                op.dims[0][i] if is_row else op.dims[1][i - row_len]
+            )
+            char_occurrences.setdefault(char, []).append((op_idx, is_row))
 
-    num_ops = len(operands)
-    adj = {i: [] for i in range(num_ops)}
+    # Identify contracted indices.
+    contracted = {
+        char: occ for char, occ in char_occurrences.items() if len(occ) > 1
+    }
 
-    char_occurrences = {}
-    for op_idx, sub in enumerate(input_subs):
-        row_len = len(operands[op_idx].dims[0])
-        for idx_in_op, char in enumerate(sub):
-            is_row = idx_in_op < row_len
-            t_val = 1 if is_row else -1
-            if char not in char_occurrences:
-                char_occurrences[char] = []
-            char_occurrences[char].append((op_idx, t_val))
+    # Reject implicit reordering.
+    if len(operands) == 1 and not contracted:
+        raise ValueError(
+            "einsum only supports multiplication/contraction: subscripts "
+            f"{subscripts!r} contract no repeated index for a single "
+            "operand. Pure reordering or transpose is not supported; use "
+            ".trans()/.dag()/.permute() instead."
+        )
 
-    for char, occurrences in char_occurrences.items():
-        for i in range(len(occurrences)):
-            for j in range(i + 1, len(occurrences)):
-                op1, t1 = occurrences[i]
-                op2, t2 = occurrences[j]
-                if op1 != op2:
-                    target_relation = - (t1 * t2)
-                    adj[op1].append((op2, target_relation))
-                    adj[op2].append((op1, target_relation))
+    # Reject row <-> row and col <-> col contraction.
+    for char, occurrences in contracted.items():
+        if len({is_row for _, is_row in occurrences}) != 2:
+            raise ValueError(
+                f"einsum subscript {char!r} in {subscripts!r} contracts a "
+                "row with a row (or a col with a col), which would "
+                "implicitly transpose an operand. Call .trans()/.dag() on "
+                "that operand explicitly and rewrite the subscript instead."
+            )
 
-    s = {}
-    for root in range(num_ops):
-        if root not in s:
-            s[root] = 1
-            queue = [root]
-            while queue:
-                curr = queue.pop(0)
-                for neighbor, target_relation in adj[curr]:
-                    expected_sign = s[curr] * target_relation
-                    if neighbor not in s:
-                        s[neighbor] = expected_sign
-                        queue.append(neighbor)
-
+    # Classify each surviving output character as row or column based
+    # on its original role in the input operand where it first appeared.
     out_row_subs = []
     out_col_subs = []
-
     for char in output_part:
-        if char in char_occurrences:
-            op_idx, t_val = char_occurrences[char][0]
-            op_sign = s.get(op_idx, 1)
-            eff_type = op_sign * t_val
-            if eff_type == 1:
-                out_row_subs.append(char)
-            else:
-                out_col_subs.append(char)
-        else:
-            out_col_subs.append(char)
+        _, is_row = char_occurrences[char][0]
+        (out_row_subs if is_row else out_col_subs).append(char)
 
-    if len(output_part) > 0:
-        out_row_dims = [char_to_dim[c] for c in out_row_subs]
-        out_col_dims = [char_to_dim[c] for c in out_col_subs]
-        if not out_row_dims:
-            out_row_dims = [1]
-        if not out_col_dims:
-            out_col_dims = [1]
-        return [out_row_dims, out_col_dims]
+    if not output_part:
+        return None
 
-    return None
+    out_row_dims = [char_to_dim[c] for c in out_row_subs] or [1]
+    out_col_dims = [char_to_dim[c] for c in out_col_subs] or [1]
+    return [out_row_dims, out_col_dims]
 
 
 def einsum(subscripts, *operands, out_dims=None):
@@ -431,9 +417,10 @@ def einsum(subscripts, *operands, out_dims=None):
     )
 
     # tensor_perms and out_perm are required to map the physical matrix layout
-    # of the operands (which might be permuted due to column-stacking vectorization
-    # conventions for superoperators, operator-kets, or operator-bras) to and
-    # from the logical subsystem tensor layout used by einsum.
+    # of the operands (which might be permuted due to column-stacking
+    # vectorization conventions for superoperators, operator-kets, or
+    # operator-bras) to and from the logical subsystem
+    # tensor layout used by einsum.
     tensor_perms = tuple(
         dims_to_tensor_perm(op.dims)
         for op in operands

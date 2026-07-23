@@ -439,81 +439,77 @@ def test_dims_comparison():
     assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]
 
 
+# -- helpers for einsum tests ------------------------------------------------
+_cx = qutip.Qobj(
+    [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
+    dims=[[2, 2], [2, 2]],
+)
+_cx_dag = _cx.dag()
+_rho_01 = qutip.ket2dm(
+    qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))
+)
+_thermal_dm_2q = qutip.tensor(
+    qutip.thermal_dm(2, 1), qutip.thermal_dm(2, 1)
+)
+
+
 @pytest.mark.parametrize(["subscripts", "operands", "expected"], [
     pytest.param("ii", [qutip.sigmaz()], 0),
-    pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
-    pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
     pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
-    pytest.param("ijij", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
-    pytest.param("ikjl,jm->ikml", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()),
-                             qutip.sigmaz()], qutip.tensor(qutip.qeye(2), qutip.sigmaz())),
-    pytest.param("ijkl->kjil", [qutip.tensor(qutip.sigmam(), qutip.sigmaz())], qutip.tensor(qutip.sigmap(), qutip.sigmaz())),
     pytest.param(
-        "ijk->jik",
-        [qutip.Qobj(
-            np.arange(6, dtype=complex).reshape(6, 1),
-            dims=[[[2], [3]], [1]],
-        )],
-        qutip.Qobj(
-            np.array([[0], [2], [4], [1], [3], [5]], dtype=complex),
-            dims=[[[3], [2]], [1]],
-        ),
-        id="operator_ket_permutation",
+        "ijij", [_thermal_dm_2q], 1,
     ),
     pytest.param(
-        "ijkl->jikl",
-        [qutip.Qobj(
-            np.arange(36, dtype=complex).reshape(6, 6),
-            dims=[[[2], [3]], [[2], [3]]],
-        )],
-        qutip.Qobj(
-            np.array([
-                [0, 1, 2, 3, 4, 5],
-                [12, 13, 14, 15, 16, 17],
-                [24, 25, 26, 27, 28, 29],
-                [6, 7, 8, 9, 10, 11],
-                [18, 19, 20, 21, 22, 23],
-                [30, 31, 32, 33, 34, 35],
-            ], dtype=complex),
-            dims=[[[3], [2]], [[2], [3]]],
-        ),
-        id="superoperator_permutation",
+        "ikjl,jm->ikml",
+        [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()), qutip.sigmaz()],
+        qutip.tensor(qutip.qeye(2), qutip.sigmaz()),
     ),
     pytest.param(
         "abcd,cdef->abef",
-        [
-            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
-            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
-        ],
-        qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
-        @ qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
+        [_cx, _rho_01],
+        _cx @ _rho_01,
         id="density_matrix_left_multiplication",
     ),
     pytest.param(
-        "cdef,ghef->cdgh",
-        [
-            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
-            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
-        ],
-        qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)))
-        @ qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        "cdef,efgh->cdgh",
+        [_rho_01, _cx_dag],
+        _rho_01 @ _cx_dag,
         id="density_matrix_right_multiplication",
     ),
     pytest.param(
-        "abcd,cdef,ghef->abgh",
-        [
-            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
-            qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))),
-            qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
-        ],
-        qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]])
-        @ qutip.ket2dm(qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1)))
-        @ qutip.Qobj([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]], dims=[[2, 2], [2, 2]]),
+        "abcd,cdef,efgh->abgh",
+        [_cx, _rho_01, _cx_dag],
+        _cx @ _rho_01 @ _cx_dag,
         id="density_matrix_conjugation",
     ),
 ])
 def test_einsum(subscripts, operands, expected):
     assert einsum(subscripts, *operands) == expected
+
+
+@pytest.mark.parametrize(["subscripts", "operands"], [
+    pytest.param(
+        "ij", [qutip.sigmax()],
+        id="single_operand_no_contraction",
+    ),
+    pytest.param(
+        "ij->ji", [qutip.sigmay()],
+        id="single_operand_transpose",
+    ),
+    pytest.param(
+        "ijkl->kjil",
+        [qutip.tensor(qutip.sigmam(), qutip.sigmaz())],
+        id="single_operand_permutation",
+    ),
+    pytest.param(
+        "cdef,ghef->cdgh",
+        [_rho_01, _cx],
+        id="col_col_contraction",
+    ),
+])
+def test_einsum_rejects_implicit_transpose(subscripts, operands):
+    with pytest.raises(ValueError):
+        einsum(subscripts, *operands)
 
 
 @pytest.mark.parametrize(["list_dims", "expected"], [
