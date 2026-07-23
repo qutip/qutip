@@ -231,6 +231,61 @@ class TestHusimiQ:
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
 
+    def test_large_size(self):
+        xs = np.linspace(0, 30, 31)
+        arr = np.zeros(200, dtype=complex)
+        arr[155] = 1.
+        arr[165] = 1j
+        arr[175] = -1j
+        state = qutip.Qobj(arr)
+
+        qfunc_150 = qutip.qfunc(state, xs, xs, cutoff=150)
+        qfunc_160 = qutip.qfunc(state, xs, xs, cutoff=160)
+        qfunc_170 = qutip.qfunc(state, xs, xs, cutoff=170)
+
+        QFunc_150 = qutip.QFunc(xs, xs, cutoff=150)
+        QFunc_160 = qutip.QFunc(xs, xs, cutoff=160)
+        QFunc_170 = qutip.QFunc(xs, xs, cutoff=170)
+
+        np.testing.assert_allclose(qfunc_150, qfunc_160, rtol=1e-6)
+        np.testing.assert_allclose(qfunc_170, qfunc_160, rtol=1e-6)
+
+        np.testing.assert_allclose(QFunc_150(state), qfunc_150, rtol=1e-13)
+        np.testing.assert_allclose(QFunc_160(state), qfunc_160, rtol=1e-13)
+        np.testing.assert_allclose(QFunc_170(state), qfunc_170, rtol=1e-13)
+
+    def test_QFunc_large_size_step(self):
+        xs = np.linspace(0, 30, 31)
+        arr = np.zeros(200, dtype=complex)
+        arr[155] = 1.
+        arr[165] = 1j
+        state = qutip.Qobj(arr)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        one_step = QFinst(qutip.Qobj(arr))
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        # Internal buffer computed up to the size of the first state
+        QFinst(qutip.Qobj(arr[::150]))
+        # Expand the buffer to full size
+        pre_data = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, pre_data, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::158]))
+        pre_cutoff = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, pre_cutoff, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::163]))
+        post_cutoff = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, post_cutoff, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::168]))
+        post_data = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, post_data, rtol=1e-13)
+
 
 def test_wigner_bell1_su2parity():
     """wigner: testing the SU2 parity of the first Bell state.
