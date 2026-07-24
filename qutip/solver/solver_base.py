@@ -105,11 +105,13 @@ class Solver:
 
         self._state_metadata = {
             'dims': state._dims,
-            # This is herm flag take for granted that the liouvillian keep
-            # hermiticity.  But we do not check user passed super operator for
-            # anything other than dimensions.
-            'isherm': not (self.rhs._dims == state._dims) and state._isherm,
         }
+        if (
+            self.rhs.issuper
+            and state.isherm
+            and getattr(self, "_rhs_preserves_hermiticity", False)
+        ):
+            self._state_metadata['isherm'] = True
         if state.isket:
             norm = state.norm()
         elif state._dims.issquare:

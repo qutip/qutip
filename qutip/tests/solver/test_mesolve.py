@@ -974,3 +974,81 @@ class TestMESolveMatrixForm:
         # Verify normalization (trace should be 1)
         for state in result_matrix.states:
             np.testing.assert_allclose(state.tr(), 1.0, atol=1e-10)
+
+
+def test_mesolve_isherm_reflects_output_data():
+    """
+    Output-state isherm must follow the evolved data, not the initial state.
+
+    Hermiticity-preserving evolution keeps isherm True; non-Hermiticity-
+    preserving generators must not leave a false-positive isherm flag.
+    Regression for issue #2410.
+    """
+    # Standard Lindblad dynamics: density matrix stays Hermitian.
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    res_herm = mesolve(
+        qutip.sigmaz(),
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+    # Constant Hermiticity-preserving generators retain the fast cached path.
+    assert res_herm.final_state._isherm is True
+    assert res_herm.final_state.isherm is True
+    assert qutip.data.isherm(res_herm.final_state.data)
+
+    # Custom superoperator that does not preserve Hermiticity.
+    L = (
+        qutip.liouvillian(qutip.sigmaz())
+        + 1j * qutip.lindblad_dissipator(qutip.sigmap())
+    )
+    res_nonherm = mesolve(
+        L,
+        qutip.basis(2, 1),
+        [0, 1],
+        options={"progress_bar": None},
+    )
+    # Unsafe generators leave the metadata unset until Qobj checks the data.
+    assert res_nonherm.final_state._isherm is None
+    assert not qutip.data.isherm(res_nonherm.final_state.data)
+    assert res_nonherm.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
+    """A single-time ishp check cannot prove a time-dependent RHS is safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    rhs = qutip.QobjEvo(
+        [
+            qutip.liouvillian(qutip.sigmaz()),
+            [1j * qutip.lindblad_dissipator(qutip.sigmap()), lambda t: t],
+        ]
+    )
+
+    result = mesolve(
+        rhs,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is None
+    assert result.final_state.isherm is False
+
+
+def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
+    """Hamiltonian and collapse-operator construction is known to be safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    hamiltonian = qutip.QobjEvo(
+        [qutip.sigmaz(), [qutip.sigmax(), lambda t: t]]
+    )
+
+    result = mesolve(
+        hamiltonian,
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
