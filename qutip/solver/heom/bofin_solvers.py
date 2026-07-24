@@ -1010,7 +1010,7 @@ class HEOMSolver(Solver):
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
-        L += sp.csr_array((
+        L += sp.csr_matrix((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
         ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
