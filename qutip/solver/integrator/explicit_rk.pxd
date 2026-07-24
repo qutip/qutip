@@ -1,6 +1,6 @@
 #cython: language_level=3
 from qutip.core.data cimport Data
-from qutip.core.cy.qobjevo cimport QobjEvo
+from qutip.solver.integrator._rhs cimport RHS
 
 cpdef enum Status:
     AT_FRONT = 2
@@ -12,7 +12,7 @@ cpdef enum Status:
     NOT_INITIATED = -4
 
 cdef class Explicit_RungeKutta:
-    cdef QobjEvo qevo
+    cdef RHS deriv
 
     # Ode state data, set in set_initial_value
     cdef list k

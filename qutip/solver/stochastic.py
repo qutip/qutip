@@ -1035,6 +1035,21 @@ class StochasticSolver(MultiTrajSolver):
             return _DataFeedback(default, open=cls._open)
         return _QobjFeedback(default, open=cls._open)
 
+    def _get_integrator(self):
+        """ Return the initialted integrator. """
+        _time_start = time()
+        method = self._options["method"]
+        if method in self.avail_integrators():
+            integrator = self.avail_integrators()[method]
+        elif issubclass(method, Integrator):
+            integrator = method
+        else:
+            raise ValueError("Integrator method not supported.")
+        integrator_instance = integrator(self.rhs, self.options)
+
+        self._init_integrator_time = time() - _time_start
+        return integrator_instance
+
 
 class SMESolver(StochasticSolver):
     r"""
