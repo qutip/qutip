@@ -299,8 +299,8 @@ def direct_sum_sparse(qobjs, sum_dimensions, dtype=None):
       :math:`n_1` up to :math:`n_k`, is represented by the list
       :code:`[n1, n2, ..., nk]`.
     * The direct sum of Hilbert spaces, which have the list representations
-      :code:`l1` up to :code:`[lk]`, is represented by the tuple
-      :code:`[l1, l2, ..., lk]`. Sum dimensions may be nested.
+      :code:`l1` up to :code:`lk`, is represented by the tuple
+      :code:`(l1, l2, ..., lk)`. Sum dimensions may be nested.
     * For example, the direct sum of a 2D space and a 3D space has the list
       representation :code:`([2], [3])`.
     * As another example, the direct sum of a 2D space, and the product of two
