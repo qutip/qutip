@@ -1,0 +1,3 @@
+Clarify that ``Qobj`` dims must use a list as the outer container
+(e.g. ``[[2], [2]]``), improve the error for the common tuple form
+``([2], [2])``, and document the post-5.3 direct-sum tuple convention.
