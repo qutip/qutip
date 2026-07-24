@@ -358,7 +358,7 @@ class Solver:
             self._options = {}
         if new_options is None:
             new_options = {}
-        if not isinstance(new_options, dict):
+        if not isinstance(new_options, (dict, _SolverOptions)):
             raise TypeError("options must to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
