@@ -350,8 +350,7 @@ cdef class StrFunctionCoefficient(Coefficient):
         "spe": scipy.special}
 
     def __init__(self, base, dict args, **_):
-        args2var = "\n".join(["    {} = args['{}']".format(key, key)
-                              for key in args])
+        args2var = "\n".join([f"    {key} = args['{key}']" for key in args])
         code = f"""
 def coeff(t, args):
 {args2var}

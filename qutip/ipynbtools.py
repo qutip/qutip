@@ -310,6 +310,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     with open(name + '.mp4', "rb") as f:
         video = f.read()
         video_encoded = b64encode(video).decode("ascii")
-        video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
-            video_encoded)
+        video_tag = (
+            f'<video controls src="data:video/x-m4v;base64,{video_encoded}">'
+        )
     return HTML(video_tag)

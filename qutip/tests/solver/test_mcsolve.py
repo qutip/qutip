@@ -133,7 +133,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         collapse_op = qutip.destroy(self.size)
         c_op_types = [
             (np.sqrt(coupling)*collapse_op, {}, "constant"),
-            ([collapse_op, 'sqrt({})'.format(coupling)], {}, "string"),
+            ([collapse_op, f'sqrt({coupling})'], {}, "string"),
             (callable_qobj(collapse_op, _return_constant),
              {'constant': np.sqrt(coupling)}, "function"),
         ]
@@ -165,7 +165,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         coupling = 0.2
         collapse_op = qutip.destroy(self.size)
         collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
-        collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
+        collapse_string = f'sqrt({coupling} * exp(-t))'
         c_op_types = [
             ([collapse_op, _return_decay], collapse_args, "function"),
             ([collapse_op, collapse_string], {}, "string"),

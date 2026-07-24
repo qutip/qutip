@@ -78,11 +78,11 @@ def _latex_real(x):
     if not x:
         return "0"
     if not 0.001 <= abs(x) < 1000:
-        base, exp = "{:.3e}".format(x).split('e')
-        return base + r"\times10^{{ {:d} }}".format(int(exp))
+        base, exp = f"{x:.3e}".split('e')
+        return base + f"\times10^{{ {int(exp):d} }}"
     if abs(x - int(x)) < 0.001:
-        return "{:d}".format(round(x))
-    return "{:.3f}".format(x)
+        return f"{round(x):d}"
+    return f"{x:.3f}"
 
 
 def _latex_complex(x):
@@ -1499,7 +1499,7 @@ class Qobj:
             raise ValueError("Must be a Hermitian operator to remove negative "
                              "eigenvalues.")
         if method not in ('clip', 'sgs'):
-            raise ValueError("Method {} not recognized.".format(method))
+            raise ValueError(f"Method {method} not recognized.")
 
         eigvals, eigstates = self.eigenstates()
         if all(eigval >= 0 for eigval in eigvals):

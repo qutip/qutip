@@ -282,10 +282,8 @@ class TestClassMethods:
         # Some matrices _cannot_ be unsorted (e.g. if they have only one entry
         # per row), so we add in this additional assertion message just to help
         # out.
-        message = (
-            "Sort on {}sorted indices failed."
-            .format("" if data_csr.as_scipy().has_sorted_indices else "un")
-        )
+        prefix = "" if data_csr.as_scipy().has_sorted_indices else "un"
+        message = f"Sort on {prefix}sorted indices failed."
         # We test on a copy because scipy attempts to cache
         # `has_sorted_indices`, but since it's a view, it has no idea what
         # we've done to the indices behind the scenes and typically would not

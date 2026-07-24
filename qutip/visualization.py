@@ -434,7 +434,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
             return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
     else:
         raise ValueError(
-            "Unknown color style {} for Hinton diagrams.".format(color_style)
+            f"Unknown color style {color_style} for Hinton diagrams."
         )
 
     artist_list = list()
@@ -1598,7 +1598,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         norm = mpl.colors.Normalize(min_P, max_P)
         if cmap is None:
             cmap = _sequential_cmap()
-    
+
     if isinstance(cmap, str):
         cmap = mpl.colormaps[cmap]
 
