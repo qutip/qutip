@@ -613,14 +613,21 @@ def energy_degeneracy(N, m):
 
     Returns
     -------
-    degeneracy: int
-        The energy degeneracy
+    degeneracy: int or float
+        The energy degeneracy. An ``int`` is returned when the value fits in a
+        NumPy ``int64``; otherwise a ``float`` is returned so that arrays built
+        from the result use a numeric dtype (``float64``) rather than falling
+        back to ``object``, which downstream SciPy routines do not support
+        (see gh-2630).
     """
     numerator = Decimal(factorial(N))
     d1 = Decimal(factorial(_ensure_int(N / 2 + m)))
     d2 = Decimal(factorial(_ensure_int(N / 2 - m)))
     degeneracy = numerator / (d1 * d2)
-    return int(degeneracy)
+    degeneracy_int = int(degeneracy)
+    if degeneracy_int > np.iinfo(np.int64).max:
+        return float(degeneracy)
+    return degeneracy_int
 
 
 def state_degeneracy(N, j):
@@ -641,8 +648,12 @@ def state_degeneracy(N, j):
 
     Returns
     -------
-    degeneracy: int
-        The state degeneracy.
+    degeneracy: int or float
+        The state degeneracy. An ``int`` is returned when the value fits in a
+        NumPy ``int64``; otherwise a ``float`` is returned so that arrays built
+        from the result use a numeric dtype (``float64``) rather than falling
+        back to ``object``, which downstream SciPy routines do not support
+        (see gh-2630).
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
@@ -650,8 +661,10 @@ def state_degeneracy(N, j):
     denominator_1 = Decimal(factorial(_ensure_int(N / 2 + j + 1)))
     denominator_2 = Decimal(factorial(_ensure_int(N / 2 - j)))
     degeneracy = numerator / (denominator_1 * denominator_2)
-    degeneracy = int(np.round(float(degeneracy)))
-    return degeneracy
+    degeneracy_float = float(degeneracy)
+    if degeneracy_float > np.iinfo(np.int64).max:
+        return degeneracy_float
+    return int(np.round(degeneracy_float))
 
 
 def m_degeneracy(N, m):

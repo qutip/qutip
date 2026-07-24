@@ -614,6 +614,36 @@ class TestDicke:
         # check error
         assert_raises(ValueError, state_degeneracy, 2, -1)
 
+    def test_degeneracy_large_N_numeric_dtype(self):
+        """
+        PIQS: Degeneracies exceeding int64 return floats, so NumPy arrays
+        built from them keep a numeric dtype (float64) instead of falling
+        back to ``object`` and breaking SciPy (regression test, gh-2630).
+        """
+        int64_max = np.iinfo(np.int64).max
+
+        # Small systems keep exact integer degeneracies (backwards compat).
+        for func in (state_degeneracy, energy_degeneracy):
+            val = func(10, 0)
+            assert isinstance(val, int)
+            assert np.array([val]).dtype != np.dtype(object)
+
+        # N = 80 overflows int64: values must come back as floats so that
+        # arrays/sparse routines receive float64, not object, dtype.
+        sd = state_degeneracy(80, 0)
+        ed = energy_degeneracy(80, 0)
+        assert sd > int64_max
+        assert ed > int64_max
+        assert isinstance(sd, float)
+        assert isinstance(ed, float)
+        assert np.array([sd]).dtype == np.dtype(np.float64)
+        assert np.array([ed]).dtype == np.dtype(np.float64)
+
+        # The reported reproducer must no longer raise and must return a
+        # valid sparse matrix of the expected shape.
+        m = block_matrix(80, elements="degeneracy")
+        assert m.shape == (1681, 1681)
+
     def test_m_degeneracy(self):
         """
         PIQS: Test the degeneracy of TLS states with same m eigenvalue.
