@@ -439,18 +439,77 @@ def test_dims_comparison():
     assert not Dimensions([[1], [2]])[0] != Dimensions([[1], [2]])[0]
 
 
+# -- helpers for einsum tests ------------------------------------------------
+_cx = qutip.Qobj(
+    [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
+    dims=[[2, 2], [2, 2]],
+)
+_cx_dag = _cx.dag()
+_rho_01 = qutip.ket2dm(
+    qutip.tensor(qutip.basis(2, 0), qutip.basis(2, 1))
+)
+_thermal_dm_2q = qutip.tensor(
+    qutip.thermal_dm(2, 1), qutip.thermal_dm(2, 1)
+)
+
+
 @pytest.mark.parametrize(["subscripts", "operands", "expected"], [
     pytest.param("ii", [qutip.sigmaz()], 0),
-    pytest.param("ij", [qutip.sigmax()], qutip.sigmax()),
-    pytest.param("ij->ji", [qutip.sigmay()], qutip.sigmay().trans()),
     pytest.param("ij,ji", [qutip.sigmaz(), qutip.sigmaz()], 2),
-    pytest.param("ijij", [qutip.tensor(qutip.thermal_dm(2,1), qutip.thermal_dm(2,1))], 1),
-    pytest.param("ikjl,jm->ikml", [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()),
-                             qutip.sigmaz()], qutip.tensor(qutip.qeye(2), qutip.sigmaz())),
-    pytest.param("ijkl->kjil", [qutip.tensor(qutip.sigmam(), qutip.sigmaz())], qutip.tensor(qutip.sigmap(), qutip.sigmaz()))
+    pytest.param(
+        "ijij", [_thermal_dm_2q], 1,
+    ),
+    pytest.param(
+        "ikjl,jm->ikml",
+        [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()), qutip.sigmaz()],
+        qutip.tensor(qutip.qeye(2), qutip.sigmaz()),
+    ),
+    pytest.param(
+        "abcd,cdef->abef",
+        [_cx, _rho_01],
+        _cx @ _rho_01,
+        id="density_matrix_left_multiplication",
+    ),
+    pytest.param(
+        "cdef,efgh->cdgh",
+        [_rho_01, _cx_dag],
+        _rho_01 @ _cx_dag,
+        id="density_matrix_right_multiplication",
+    ),
+    pytest.param(
+        "abcd,cdef,efgh->abgh",
+        [_cx, _rho_01, _cx_dag],
+        _cx @ _rho_01 @ _cx_dag,
+        id="density_matrix_conjugation",
+    ),
 ])
 def test_einsum(subscripts, operands, expected):
     assert einsum(subscripts, *operands) == expected
+
+
+@pytest.mark.parametrize(["subscripts", "operands"], [
+    pytest.param(
+        "ij", [qutip.sigmax()],
+        id="single_operand_no_contraction",
+    ),
+    pytest.param(
+        "ij->ji", [qutip.sigmay()],
+        id="single_operand_transpose",
+    ),
+    pytest.param(
+        "ijkl->kjil",
+        [qutip.tensor(qutip.sigmam(), qutip.sigmaz())],
+        id="single_operand_permutation",
+    ),
+    pytest.param(
+        "cdef,ghef->cdgh",
+        [_rho_01, _cx],
+        id="col_col_contraction",
+    ),
+])
+def test_einsum_rejects_implicit_transpose(subscripts, operands):
+    with pytest.raises(ValueError):
+        einsum(subscripts, *operands)
 
 
 @pytest.mark.parametrize(["list_dims", "expected"], [
