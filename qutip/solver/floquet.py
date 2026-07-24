@@ -547,6 +547,9 @@ def fsesolve(
     """
     Solve the Schrodinger equation using the Floquet formalism.
 
+    See the Users Guide on :ref:`floquet-unitary` for an introduction and
+    worked examples.
+
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
@@ -633,6 +636,9 @@ def fmmesolve(
  ) -> "FloquetResult":
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
+
+    See the Users Guide on :ref:`floquet-dissipative` for an introduction and
+    worked examples.
 
     Parameters
     ----------
@@ -788,6 +794,9 @@ class FMESolver(MESolver):
 
     .. note ::
         Operators (``c_ops`` and ``e_ops``) are in the laboratory basis.
+
+    See the Users Guide on :ref:`floquet-dissipative` for an introduction and
+    worked examples.
 
     Parameters
     ----------
