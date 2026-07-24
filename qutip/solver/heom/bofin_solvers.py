@@ -391,9 +391,12 @@ class HEOMResult(Result):
         super()._post_init()
 
         self.store_ados = self.options["store_ados"]
-        if self.store_ados:
-            self._final_ado_state = None
-            self.ado_states = []
+        # Always initialize these attributes so that accessing them does not
+        # raise an AttributeError when store_ados is False (result objects
+        # expose all attributes even when the corresponding data is not
+        # stored, e.g. Result.states when store_states is False).
+        self._final_ado_state = None
+        self.ado_states = []
 
     def _e_op_func(self, e_op):
         """ Convert an e_op into a function ``f(t, ado_state)``. """
