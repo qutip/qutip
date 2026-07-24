@@ -903,16 +903,20 @@ class Qobj:
         Parameters
         ----------
         format : str, default: None
-            Type of the output, "ndarray" for ``Dense``, "csr_matrix" for
-            ``CSR``. A ValueError will be raised if the format is not
-            supported.
+            Type of the output: "ndarray" for ``Dense``; "csr_array"/
+            "csr_matrix" for ``CSR``; "dia_array"/"dia_matrix" for ``Dia``.
+            When ``None``, sparse types return ``csr_matrix``/``dia_matrix``
+            as long as SciPy supports those types: afterwards, the default
+            output will change to the sparse array counterpart.
+            A ValueError will be raised if the format is not supported.
 
         copy : bool {False, True}
             Whether to return a copy
 
         Returns
         -------
-        data : numpy.ndarray, scipy.sparse.matrix_csr, etc.
+        data : numpy.ndarray, scipy.sparse.csr(dia)_array, or
+               scipy.sparse.csr(dia)_matrix, etc.
             Matrix in the type of the underlying libraries.
         """
         return _data.extract(self._data, format, copy)

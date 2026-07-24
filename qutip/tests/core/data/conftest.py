@@ -66,14 +66,15 @@ def random_scipy_dia(shape, density, sort=False, gen=None):
     return scipy.sparse.diags(data, offsets, shape=shape).todia()
 
 
-def random_scipy_csr(shape, density, sorted_, gen=None):
+def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
     """
     Generate a random scipy CSR matrix with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
 
     An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
+    If not provided one will be created.  Pass ``sparray=False`` to generate a
+    legacy ``csr_matrix`` instead of a ``csr_array``.
     """
     if gen is None:
         gen = np.random.default_rng()
@@ -81,7 +82,8 @@ def random_scipy_csr(shape, density, sorted_, gen=None):
     data = gen.uniform(size=nnz) + 1j * gen.uniform(size=nnz)
     rows = gen.choice(np.arange(shape[0]), nnz)
     cols = gen.choice(np.arange(shape[1]), nnz)
-    sci = scipy.sparse.coo_matrix((data, (rows, cols)), shape=shape).tocsr()
+    csr_container = scipy.sparse.coo_array if sparray else scipy.sparse.coo_matrix
+    sci = csr_container((data, (rows, cols)), shape=shape).tocsr()
     if not sorted_:
         sci = shuffle_indices_scipy_csr(sci, gen)
     return sci

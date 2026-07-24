@@ -5,7 +5,7 @@ Cythonized code for permutationally invariant Lindbladian generation
 """
 import numpy as np
 
-from scipy.sparse import csr_matrix, dok_matrix
+from scipy.sparse import csr_array
 from qutip.core import Qobj
 
 cimport numpy as cnp
@@ -397,7 +397,7 @@ cdef class Dicke(object):
                 lindblad_col.append(int(c9))
                 lindblad_data.append(g9)
 
-        cdef lindblad_matrix = csr_matrix((lindblad_data,
+        cdef lindblad_matrix = csr_array((lindblad_data,
                                           (lindblad_row, lindblad_col)),
                                           shape=(nds**2, nds**2),
                                           dtype=np.complex128)

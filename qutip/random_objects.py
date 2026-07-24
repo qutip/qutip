@@ -137,7 +137,7 @@ def _rand_jacobi_rotation(A, generator):
     diag = np.delete(np.arange(n), [i, j])
     rows = np.hstack(([i, i, j, j], diag))
     cols = np.hstack(([i, j, i, j], diag))
-    R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
+    R = sp.coo_array((data, (rows, cols)), shape=(n, n), dtype=complex)
     R = _data.create(R.tocsr())
     return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
@@ -181,32 +181,19 @@ def _merge_shuffle_blocks(blocks, generator):
     N = sum(block.shape[0] for block in blocks)
     D = sum(block.shape[0]**2 for block in blocks) / N**2
     idx = generator.permutation(N)
-    end = 0
     if D < 0.1:
-        # TODO: coo_array from sicpy 1.8 would allow to simplify this.
-        row = []
-        col = []
-        data = []
-        for block in blocks:
-            start = end
-            end = end + block.shape[0]
-            brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
-            row.append(brow.ravel())
-            col.append(bcol.ravel())
-            data.append(block.ravel())
-        data = np.hstack(data)
-        row = np.hstack(row)
-        col = np.hstack(col)
-        matrix = sp.coo_matrix((data, (row, col)), shape=(N, N))
+        # Use block_diag to assemble the (row, col, data) triplets
+        bd = sp.block_diag([sp.coo_array(b.T) for b in blocks], format="coo")
+        # Relabel existing indices (~permute)
+        matrix = sp.coo_array((bd.data, (idx[bd.row], idx[bd.col])), shape=(N, N))
     else:
-        matrix = np.zeros((N,N), dtype=complex)
+        matrix = np.zeros((N, N), dtype=complex)
+        end = 0
         for block in blocks:
-            start = end
-            end = end + block.shape[0]
+            start, end = end, end + block.shape[0]
             brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
             matrix[brow, bcol] = block
-    return _data.create(matrix, copy=False)
-
+    return _data.create(matrix, copy=None)
 
 def rand_herm(
     dimensions: SpaceLike,
@@ -307,7 +294,7 @@ def _rand_herm_sparse(N, density, pos_def, generator):
         divmod(index, N)
         for index in generator.choice(N*N, num_elems, replace=False)
     ])
-    M = sp.coo_matrix((data, (row_idx, col_idx)),
+    M = sp.coo_array((data, (row_idx, col_idx)),
                       dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     M.sort_indices()
@@ -905,7 +892,7 @@ def rand_stochastic(
                          generator.choice(N, num_elems-N)])
     col_idx = np.hstack([generator.permutation(N),
                          generator.choice(N, num_elems-N)])
-    M = sp.coo_matrix((data, (row_idx, col_idx)),
+    M = sp.coo_array((data, (row_idx, col_idx)),
                       dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
     num_rows = M.indptr.shape[0] - 1
