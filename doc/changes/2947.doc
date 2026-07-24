@@ -1,0 +1,1 @@
+Minor typo correction in `direct_sum_sparse`'s docstring explaining the list/tuple syntax for dimensions.
