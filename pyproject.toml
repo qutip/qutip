@@ -1,13 +1,12 @@
 [build-system]
+build-backend = 'mesonpy'
 requires = [
-    "setuptools>=77.0.3",
+    "meson-python>=0.15.0",
     "packaging",
-    "wheel",
-    "cython>=0.29.20",
+    "cython>=3.1.0",
     "numpy>=2.0.0",
     "scipy>=1.9",
 ]
-build-backend = "setuptools.build_meta"
 
 [project]
 name = "qutip"
