@@ -6,8 +6,8 @@ In the light of SciPy's migration plans, ``spmatrix`` types (``csr_matrix``,
 ``dia_matrix``, ...) will be replaced by ``sparray`` types.
 We respond to this by ensuring that qutip's data layer always uses ``sparray``
 containers internally.
-A legacy matrix is only produced when a user explicitly requests one
-via such public methods as ``extract`` / ``Qobj.data_as``.
+For backward compatibility purposes,  a legacy matrix is still produced
+via user-facing ``extract`` / ``Qobj.data_as`` methods.
 
 In our migration strategy, we want to ensure (hence this helper module) that:
 
