@@ -366,6 +366,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
 
     """
+    A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     b_is_sparse = sp.isspmatrix(b)
     b_shp = b.shape
