@@ -35,7 +35,7 @@ def shuffle_indices_scipy_csr(matrix, gen=None):
 
 def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
     """
-    Generate a random scipy dia matrix with the given shape, density.
+    Generate a random scipy dia array with the given shape, density.
 
     An optional numpy random generator can be passed as `gen`.
     If not provided one will be created.  Pass ``sparray=False`` to generate a
@@ -70,7 +70,7 @@ def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
 
 def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
     """
-    Generate a random scipy CSR matrix with the given shape, nnz density, and
+    Generate a random scipy CSR array with the given shape, nnz density, and
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
 
