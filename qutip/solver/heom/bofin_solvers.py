@@ -639,10 +639,16 @@ class HEOMSolver(Solver):
         "method": "adams",
         "store_ados": False,
         "state_data_type": "dense",
+        "backend": "csr",
+        "ts_type": "rk",
+        "ts_adapt": "none",
+        "dt": 1e-4,
+        "max_steps": 10000,
     }
 
     def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
+        self.options = options
         # we call bool here because odd_parity will be used in arithmetic
         self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -701,7 +707,19 @@ class HEOMSolver(Solver):
 
         self._init_rhs_time = time() - _time_start
 
-        super().__init__(rhs, options=options)
+        if not isinstance(rhs, QobjEvo):
+            # For backends like 'petsc', rhs is a custom object (e.g. PETSc.Mat).
+            # We initialize the PETSc integrator natively.
+            from qutip.solver.integrator.petsc_integrator import IntegratorPETSc
+            self.rhs = rhs
+            _integrator_start = time()
+            self._integrator = IntegratorPETSc(rhs, options)
+            self._init_integrator_time = time() - _integrator_start
+            self._state_metadata = {}
+            self.stats = self._initialize_stats()
+            self.name = "heomsolver"
+        else:
+            super().__init__(rhs, options=options)
 
     @property
     def _sys_dims(self):
@@ -896,11 +914,40 @@ class HEOMSolver(Solver):
 
     def _rhs(self):
         """ Make the RHS for the HEOM. """
-        ops = _GatherHEOMRHS(
-            self.ados.idx, block=self._sup_shape, nhe=self._n_ados
-        )
+        backend = self.options.get("backend", "csr")
+        if backend == "petsc":
+            from qutip.solver.heom.backend_petsc import PETScGatherHEOMRHS
+            ops = PETScGatherHEOMRHS(self.ados.idx, self._sup_shape, self._n_ados)
+        else:
+            ops = _GatherHEOMRHS(
+                self.ados.idx, block=self._sup_shape, nhe=self._n_ados, backend=backend
+            )
+        labels = self.ados.labels
+        if backend == "petsc":
+            try:
+                from petsc4py import PETSc
+                comm = PETSc.COMM_WORLD
+                size = comm.getSize()
+                rank = comm.getRank()
+                
+                n_blocks = len(labels)
+                n_local_blocks = n_blocks // size
+                remainder = n_blocks % size
+                
+                if rank < remainder:
+                    start_block = rank * (n_local_blocks + 1)
+                    end_block = start_block + n_local_blocks + 1
+                else:
+                    start_block = rank * n_local_blocks + remainder
+                    end_block = start_block + n_local_blocks
+                    
+                local_labels = labels[start_block:end_block]
+            except ImportError:
+                local_labels = labels
+        else:
+            local_labels = labels
 
-        for he_n in self.ados.labels:
+        for he_n in local_labels:
             op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
             for k in range(len(self.ados.dims)):
@@ -913,11 +960,41 @@ class HEOMSolver(Solver):
                     op = self._grad_prev(he_n, k)
                     ops.add_op(he_n, prev_he, op)
 
-        return ops.gather()
+        return ops
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
-        rhs_mat = self._rhs()
+        backend = self.options.get("backend", "csr")
+        
+        if backend == "petsc" and not self.L_sys.isconstant:
+            raise NotImplementedError(
+                "PETSc backend currently supports only time-independent Liouvillians."
+            )
+            
+        ops = self._rhs()
+
+        if backend == "petsc":
+            # For the PETSc backend, we can construct the fully assembled 
+            # PETSc matrix directly via the gather method, including the
+            # time-independent system Liouvillian.
+            rhs_mat = ops.gather(L_sys=self.L_sys if self.L_sys.isconstant else None)
+            class PETScRhsWrapper:
+                def __init__(self, mat, sys_size):
+                    self.mat = mat
+                    self.sys_size = sys_size
+
+                def arguments(self, args):
+                    # PETSc matrices for HEOM are time-independent currently
+                    if args:
+                        raise NotImplementedError(
+                            "Time-dependent arguments are not supported with the PETSc backend."
+                        )
+
+                def __getattr__(self, name):
+                    return getattr(self.mat, name)
+            return PETScRhsWrapper(rhs_mat, self._sys_shape ** 2)
+
+        rhs_mat = ops.gather()
         rhs_dims = [
             [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
         ]
@@ -960,7 +1037,8 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False,
+        **kwargs
     ):
         """
         Compute the steady state of the system.
@@ -975,16 +1053,14 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(7) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
-
         mkl_weighted_matching : bool
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
 
-            For a complete description, see iparm(12) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+        kwargs : dict
+            Additional arguments passed to the PETSc KSP solver if the 
+            "petsc" backend is used. E.g., ksp_type, pc_type, tol.
 
         Returns
         -------
@@ -1002,33 +1078,88 @@ class HEOMSolver(Solver):
                 " system"
             )
         n = self._sys_shape
+        backend = self.options.get("backend", "csr")
 
-        b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
-        b_mat[0] = 1.0
+        if backend == "petsc":
+            try:
+                from petsc4py import PETSc
+            except ImportError:
+                raise ImportError("petsc4py is required for the PETSc backend.")
+                
+            mat = self.rhs.duplicate(copy=True)
+            mat.setOption(PETSc.Mat.Option.NEW_NONZERO_ALLOCATION_ERR, False)
+            
+            rstart, rend = mat.getOwnershipRange()
+            
+            mat.zeroRows([0], diag=0.0)
+            
+            if rstart <= 0 < rend:
+                cols = [num * (n + 1) for num in range(n)]
+                vals = [1.0] * n
+                mat.setValues([0], cols, vals, addv=PETSc.InsertMode.INSERT_VALUES)
+                
+            mat.assemblyBegin()
+            mat.assemblyEnd()
+            
+            b = mat.createVecRight()
+            b.set(0.0)
+            if rstart <= 0 < rend:
+                b.setValue(0, 1.0)
+            b.assemblyBegin()
+            b.assemblyEnd()
+            
+            x = mat.createVecRight()
+            
+            ksp = PETSc.KSP().create(comm=mat.getComm())
+            ksp.setOperators(mat)
+            # Use direct LU solver by default (matches scipy.spsolve
+            # in the CSR backend). Iterative solvers like gmres can be
+            # used via kwargs but require a suitable preconditioner.
+            ksp.setType(kwargs.get("ksp_type", "preonly"))
+            pc = ksp.getPC()
+            pc.setType(kwargs.get("pc_type", "lu"))
 
-        L = self.rhs(0).to("CSR").data.copy().as_scipy()
-        L = L.tolil()
-        L[0, 0: n ** 2 * self._n_ados] = 0.0
-        L = L.tocsr()
-        L += sp.csr_matrix((
-            np.ones(n),
-            (np.zeros(n), [num * (n + 1) for num in range(n)])
-        ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
-
-        if mkl_spsolve is not None and use_mkl:
-            L.sort_indices()
-            solution = mkl_spsolve(
-                L,
-                b_mat,
-                perm=None,
-                verbose=False,
-                max_iter_refine=mkl_max_iter_refine,
-                scaling_vectors=True,
-                weighted_matching=mkl_weighted_matching,
+            ksp.setTolerances(
+                rtol=kwargs.get("tol", 1e-8), 
+                atol=kwargs.get("atol", 1e-8)
             )
+            ksp.setFromOptions()
+
+            
+            ksp.solve(b, x)
+            
+            scatter, vec_seq = PETSc.Scatter.toAll(x)
+            scatter.scatter(x, vec_seq, PETSc.InsertMode.INSERT_VALUES, PETSc.ScatterMode.FORWARD)
+            
+            solution = vec_seq.getArray().copy()
+            
         else:
-            L = L.tocsc()
-            solution = spsolve(L, b_mat)
+            b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
+            b_mat[0] = 1.0
+
+            L = self.rhs(0).to("CSR").data.copy().as_scipy()
+            L = L.tolil()
+            L[0, 0: n ** 2 * self._n_ados] = 0.0
+            L = L.tocsr()
+            L += sp.csr_matrix((
+                np.ones(n),
+                (np.zeros(n), [num * (n + 1) for num in range(n)])
+            ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
+
+            if mkl_spsolve is not None and use_mkl:
+                L.sort_indices()
+                solution = mkl_spsolve(
+                    L,
+                    b_mat,
+                    perm=None,
+                    verbose=False,
+                    max_iter_refine=mkl_max_iter_refine,
+                    scaling_vectors=True,
+                    weighted_matching=mkl_weighted_matching,
+                )
+            else:
+                L = L.tocsc()
+                solution = spsolve(L, b_mat)
 
         data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
         data = _data.mul(_data.add(data, data.adjoint()), 0.5)
@@ -1140,11 +1271,16 @@ class HEOMSolver(Solver):
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"
                 )
-            rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
-            rho0_he[:n ** 2] = rho0.full().ravel('F')
-            rho0_he = _data.create(rho0_he)
+            if self.options.get("backend") == "petsc":
+                # For PETSc, we only create the dense array for the system state
+                # to save memory. The PETSc integrator will map this onto the global vector.
+                rho0_he = _data.create(rho0.full().ravel('F'))
+            else:
+                rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
+                rho0_he[:n ** 2] = rho0.full().ravel('F')
+                rho0_he = _data.create(rho0_he)
 
-        if self.options["state_data_type"]:
+        if self.options.get("backend") != "petsc" and self.options["state_data_type"]:
             rho0_he = _data.to(self.options["state_data_type"], rho0_he)
 
         return rho0_he
@@ -1159,9 +1295,14 @@ class HEOMSolver(Solver):
             state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
             dims=rho_dims,
         )
-        ado_state = HierarchyADOsState(
-            rho, self.ados, state.to_array().reshape(hierarchy_shape)
-        )
+        if state.shape[0] == n ** 2:
+            ado_state = HierarchyADOsState(
+                rho, self.ados, None
+            )
+        else:
+            ado_state = HierarchyADOsState(
+                rho, self.ados, state.to_array().reshape(hierarchy_shape)
+            )
         return ado_state
 
     def start(self, state0, t0):
@@ -1351,12 +1492,15 @@ class _GatherHEOMRHS:
             The size of a single ADO Liovillian operator in the hierarchy.
         nhe : int
             The number of ADOs in the hierarchy.
+        backend : str
+            The backend to use for sparse matrix assembly ("csr" or "petsc").
     """
 
-    def __init__(self, f_idx, block, nhe):
+    def __init__(self, f_idx, block, nhe, backend="csr"):
         self._block_size = block
         self._n_blocks = nhe
         self._f_idx = f_idx
+        self._backend = backend
         self._ops = []
 
     def add_op(self, row_he, col_he, op):
@@ -1365,24 +1509,11 @@ class _GatherHEOMRHS:
             (self._f_idx(row_he), self._f_idx(col_he), op)
         )
 
-    def gather(self):
+    def gather(self, L_sys=None):
         """ Create the HEOM liouvillian from a sorted list of smaller sparse
             matrices.
-
-            .. note::
-
-                The list of operators contains tuples of the form
-                ``(row_idx, col_idx, op)``. The row_idx and col_idx give the
-                *block* row and column for each op. An operator with
-                block indices ``(N, M)`` is placed at position
-                ``[N * block: (N + 1) * block, M * block: (M + 1) * block]``
-                in the output matrix.
-
-            Returns
-            -------
-            rhs : :obj:`Data`
-                A combined matrix of shape ``(block * nhe, block * ne)``.
         """
+
         self._ops.sort()
         ops = np.array(self._ops, dtype=[
             ("row", _data.base.idxint_dtype),
