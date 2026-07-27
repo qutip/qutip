@@ -34,11 +34,11 @@ class TestMESolveDecay:
     ada = a.dag() * a
 
     @pytest.fixture(params=[
-        pytest.param([ada, lambda t, args: 1], id='Hlist_func'),
+        pytest.param([ada, lambda t: 1], id='Hlist_func'),
         pytest.param([ada, '1'], id='Hlist_str'),
         pytest.param([ada, np.ones_like(tlist)], id='Hlist_array'),
         pytest.param(qutip.QobjEvo([ada, '1']), id='HQobjEvo'),
-        pytest.param(lambda t, args: qutip.create(10) * qutip.destroy(10),
+        pytest.param(lambda t: qutip.create(10) * qutip.destroy(10),
                      id='func'),
     ])
     def H(self, request):
@@ -47,10 +47,9 @@ class TestMESolveDecay:
     @pytest.fixture(params=[
         pytest.param(np.sqrt(kappa) * a,
                      id='const'),
-        pytest.param(lambda t, args: (np.sqrt(args['kappa'])
-                                      * qutip.destroy(10)),
+        pytest.param(lambda t, kappa: (np.sqrt(kappa) * qutip.destroy(10)),
                      id='func'),
-        pytest.param([a, lambda t, args: np.sqrt(args['kappa'])],
+        pytest.param([a, lambda t, kappa: np.sqrt(kappa)],
                      id='list_func'),
         pytest.param([a, 'sqrt(kappa)'],
                      id='list_str'),
@@ -63,7 +62,7 @@ class TestMESolveDecay:
         return request.param
 
     @pytest.fixture(params=[
-        pytest.param([a, lambda t, args: np.sqrt(args['kappa'] * np.exp(-t))],
+        pytest.param([a, lambda t, kappa: np.sqrt(kappa * np.exp(-t))],
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa * exp(-t))'],
                   id='list_str'),
@@ -72,9 +71,10 @@ class TestMESolveDecay:
         pytest.param(qutip.QobjEvo([a, 'sqrt(kappa * exp(-t))'],
                           args={'kappa': kappa}),
                   id='QobjEvo'),
-        pytest.param(lambda t, args: (np.sqrt(args['kappa'] * np.exp(-t)) *
-                                      qutip.destroy(10)),
-                     id='func'),
+        pytest.param(
+            lambda t, kappa: np.sqrt(kappa * np.exp(-t)) * qutip.destroy(10),
+            id='func'
+        ),
     ])
     def c_ops(self, request):
         return request.param
@@ -176,6 +176,28 @@ class TestMESolveDecay:
         actual_answer = 9.0 * np.exp(-self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
+    def testME_NonHermRho_matrix_form(self):
+        "mesolve: matrix_form solver evolves a non-Hermitian transition matrix"
+        # rho0 = |0><1| — explicitly non-Hermitian
+        rho0 = (qutip.basis(self.N, 0)
+                * qutip.basis(self.N, 1).dag())
+        H = self.ada
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+
+        tlist = np.linspace(0, 5, 51)
+        options_super = {"progress_bar": None, "matrix_form": False}
+        options_matrix = {"progress_bar": None, "matrix_form": True}
+
+        out_super = mesolve(H, rho0, tlist, c_op_list,
+                            options=options_super)
+        out_matrix = mesolve(H, rho0, tlist, c_op_list,
+                             options=options_matrix)
+
+        for s_super, s_matrix in zip(out_super.states, out_matrix.states):
+            np.testing.assert_allclose(
+                s_matrix.full(), s_super.full(), atol=1e-7,
+            )
 
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
@@ -648,7 +670,7 @@ class TestMESolveStepFuncCoeff:
     # than multi-step methods (adams, qutip 4's default)
     options = {"method": "dop853", "nsteps": 1e8, "progress_bar": None}
 
-    def python_coeff(self, t, args):
+    def python_coeff(self, t):
         if t < np.pi/2:
             return 1.
         else:
@@ -890,7 +912,7 @@ class TestMESolveMatrixForm:
     def test_matrix_form_vs_superop_with_collapse(self):
         """
         Test matrix_form vs superop with collapse operators and various options.
-        
+
         This test exercises non-default solver options to ensure they are
         processed correctly by both solver forms.
         """

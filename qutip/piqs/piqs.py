@@ -16,7 +16,7 @@ import numpy as np
 from scipy.integrate import odeint
 from scipy.linalg import eigvalsh
 from scipy.special import entr
-from scipy.sparse import dok_matrix, block_diag, lil_matrix
+from scipy.sparse import dok_matrix, coo_matrix, block_diag, lil_matrix
 from .. import (
     Qobj, spre, spost, tensor, identity, ket2dm, sigmax, sigmay, sigmaz,
     sigmap, sigmam,
@@ -438,29 +438,29 @@ class Dicke(object):
     def __repr__(self):
         """Print the current parameters of the system."""
         string = []
-        string.append("N = {}".format(self.N))
-        string.append("Hilbert space dim = {}".format(self.dshape))
-        string.append("Number of Dicke states = {}".format(self.nds))
+        string.append(f"N = {self.N}")
+        string.append(f"Hilbert space dim = {self.dshape}")
+        string.append(f"Number of Dicke states = {self.nds}")
         string.append(
-            "Liouvillian space dim = {}".format((self.nds ** 2, self.nds ** 2))
+            f"Liouvillian space dim = {(self.nds ** 2, self.nds ** 2)}"
         )
         if self.emission != 0:
-            string.append("emission = {}".format(self.emission))
+            string.append(f"emission = {self.emission}")
         if self.dephasing != 0:
-            string.append("dephasing = {}".format(self.dephasing))
+            string.append(f"dephasing = {self.dephasing}")
         if self.pumping != 0:
-            string.append("pumping = {}".format(self.pumping))
+            string.append(f"pumping = {self.pumping}")
         if self.collective_emission != 0:
             string.append(
-                "collective_emission = {}".format(self.collective_emission)
+                f"collective_emission = {self.collective_emission}"
             )
         if self.collective_dephasing != 0:
             string.append(
-                "collective_dephasing = {}".format(self.collective_dephasing)
+                f"collective_dephasing = {self.collective_dephasing}"
             )
         if self.collective_pumping != 0:
             string.append(
-                "collective_pumping = {}".format(self.collective_pumping)
+                f"collective_pumping = {self.collective_pumping}"
             )
         return "\n".join(string)
 
@@ -676,7 +676,7 @@ def m_degeneracy(N, m):
     maxj = np.max(jvals)
     if m < -maxj:
         e = "m value is incorrect for this N."
-        e += " Minimum m value can be {}".format(-maxj)
+        e += f" Minimum m value can be {-maxj}"
         raise ValueError(e)
     degeneracy = N / 2 + 1 - abs(m)
     return int(degeneracy)
@@ -1500,14 +1500,13 @@ def block_matrix(N, elements="ones"):
     k = 0
     for i in blocks_list:
         if elements == "ones":
-            square_blocks.append(np.ones((i, i)))
+            square_blocks.append(coo_matrix(np.ones((i, i))))
         elif elements == "degeneracy":
             j = N / 2 - k
             dj = state_degeneracy(N, j)
-            square_blocks.append(dj * np.ones((i, i)))
+            square_blocks.append(coo_matrix(dj * np.ones((i, i))))
         k = k + 1
     return block_diag(square_blocks)
-
 
 # ============================================================================
 # Adding a faster version to make a Permutational Invariant matrix

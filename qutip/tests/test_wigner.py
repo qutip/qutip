@@ -231,6 +231,61 @@ class TestHusimiQ:
         np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
 
+    def test_large_size(self):
+        xs = np.linspace(0, 30, 31)
+        arr = np.zeros(200, dtype=complex)
+        arr[155] = 1.
+        arr[165] = 1j
+        arr[175] = -1j
+        state = qutip.Qobj(arr)
+
+        qfunc_150 = qutip.qfunc(state, xs, xs, cutoff=150)
+        qfunc_160 = qutip.qfunc(state, xs, xs, cutoff=160)
+        qfunc_170 = qutip.qfunc(state, xs, xs, cutoff=170)
+
+        QFunc_150 = qutip.QFunc(xs, xs, cutoff=150)
+        QFunc_160 = qutip.QFunc(xs, xs, cutoff=160)
+        QFunc_170 = qutip.QFunc(xs, xs, cutoff=170)
+
+        np.testing.assert_allclose(qfunc_150, qfunc_160, rtol=1e-6)
+        np.testing.assert_allclose(qfunc_170, qfunc_160, rtol=1e-6)
+
+        np.testing.assert_allclose(QFunc_150(state), qfunc_150, rtol=1e-13)
+        np.testing.assert_allclose(QFunc_160(state), qfunc_160, rtol=1e-13)
+        np.testing.assert_allclose(QFunc_170(state), qfunc_170, rtol=1e-13)
+
+    def test_QFunc_large_size_step(self):
+        xs = np.linspace(0, 30, 31)
+        arr = np.zeros(200, dtype=complex)
+        arr[155] = 1.
+        arr[165] = 1j
+        state = qutip.Qobj(arr)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        one_step = QFinst(qutip.Qobj(arr))
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        # Internal buffer computed up to the size of the first state
+        QFinst(qutip.Qobj(arr[::150]))
+        # Expand the buffer to full size
+        pre_data = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, pre_data, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::158]))
+        pre_cutoff = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, pre_cutoff, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::163]))
+        post_cutoff = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, post_cutoff, rtol=1e-13)
+
+        QFinst = qutip.QFunc(xs, xs, cutoff=160)
+        QFinst(qutip.Qobj(arr[::168]))
+        post_data = QFinst(qutip.Qobj(arr))
+        np.testing.assert_allclose(one_step, post_data, rtol=1e-13)
+
 
 def test_wigner_bell1_su2parity():
     """wigner: testing the SU2 parity of the first Bell state.
@@ -692,3 +747,46 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         W_overlap = trapezoid(
             trapezoid(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
+
+
+def test_wigner_offset_parallel_laguerre():
+    "Winger: Compare parallel and serial laguerre results."
+    xvec = np.linspace(-2, 2, 20)
+    state = qutip.rand_dm(15, density=0.5)
+
+    W_serial = qutip.wigner(state, xvec, xvec, method='laguerre',
+                            parfor=False, offset=5)
+    W_parallel = qutip.wigner(state, xvec, xvec, method='laguerre',
+                              parfor=True, offset=5)
+
+    np.testing.assert_allclose(W_serial, W_parallel, atol=1e-10)
+
+
+@pytest.mark.parametrize('method', ['clenshaw', 'laguerre', 'iterative'])
+def test_wigner_offset_consistency(method):
+    "Wigner: Compare offset result with standard Wigner function call"
+    xvec = np.linspace(-2, 2, 20)
+    yvec = np.linspace(-2, 2, 20)
+
+    state_offset = qutip.rand_ket(40)
+    padded_data = np.pad(state_offset.full(), ((30, 0), (0, 0)),
+                         mode='constant')
+    state_base = qutip.Qobj(padded_data)
+
+    W_base = qutip.wigner(state_base, xvec, yvec, method=method, offset=0)
+    W_offset = qutip.wigner(state_offset, xvec, yvec, method=method, offset=30)
+
+    np.testing.assert_allclose(W_base, W_offset, atol=1e-10)
+
+
+def test_wigner_offset_sparse_consistency():
+    "Wigner: Compare sparse and dense clenshaw with offsets."
+    xvec = np.linspace(-2, 2, 20)
+    state = qutip.rand_ket(40)
+
+    W_dense = qutip.wigner(state, xvec, xvec, method='clenshaw',
+                           sparse=False, offset=20)
+    W_sparse = qutip.wigner(state, xvec, xvec, method='clenshaw',
+                            sparse=True, offset=20)
+
+    np.testing.assert_allclose(W_dense, W_sparse, atol=1e-10)

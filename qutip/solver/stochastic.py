@@ -18,7 +18,6 @@ from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
 from ..core.dimensions import Dimensions
 from ..core import data as _data
-from .solver_base import _solver_deprecation
 from ._feedback import _QobjFeedback, _DataFeedback, _WienerFeedback
 from ..typing import QobjEvoLike, EopsLike
 from ..settings import settings
@@ -323,8 +322,7 @@ def smesolve(
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
     target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
-    timeout: float = None,
-    **kwargs
+    timeout: float = None
 ) -> StochasticResult:
     """
     Solve stochastic master equation.
@@ -438,7 +436,6 @@ def smesolve(
     output: :class:`.Result`
         An instance of the class :class:`.Result`.
     """
-    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(sc_ops, Sequence):
         sc_ops = [sc_ops]
@@ -468,8 +465,7 @@ def ssesolve(
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | Sequence[int | SeedSequence] = None,
     target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
-    timeout: float = None,
-    **kwargs
+    timeout: float = None
 ) -> StochasticResult:
     """
     Solve stochastic Schrodinger equation.
@@ -577,7 +573,6 @@ def ssesolve(
     output: :class:`.Result`
         An instance of the class :class:`.Result`.
     """
-    options = _solver_deprecation(kwargs, options, "stoc")
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(sc_ops, Sequence):
         sc_ops = [sc_ops]

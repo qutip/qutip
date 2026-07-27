@@ -177,11 +177,23 @@ def testPropMCSolver():
     assert str(err.value).startswith("Non-deterministic")
 
 
+def testProp_Negative_Time_1():
+    U = Propagator(qeye(2))
+    U(-1)
+    assert U(-2).tr() == pytest.approx(np.exp(2j) * 2)
+
+
+def testProp_Negative_Time_2():
+    U = Propagator(qeye(2))
+    U(-1)
+    assert U(0.5).tr() == pytest.approx(np.exp(-0.5j) * 2)
+
+
 def testPropPiecewiseConst():
     H0 = qutip.sigmaz()
     H1 = qutip.sigmax()
 
-    def H_func(t, args):
+    def H_func(t):
         return H0 if t < 0.5 else H1
 
     U = propagator(H_func, 2, piecewise_t=[0.5])
@@ -192,7 +204,7 @@ def testPropPiecewiseConst():
 def testPropPiecewiseConstantH():
     H0 = qutip.sigmaz()
 
-    def H_func(t, args):
+    def H_func(t):
         return H0
 
     U = propagator(H_func, 2, piecewise_t=[0.5, 1.0])
@@ -205,7 +217,7 @@ def testPropPiecewiseSingleCop():
     H1 = qutip.sigmax()
     a = destroy(2)
 
-    def H_func(t, args):
+    def H_func(t):
         return H0 if t < 1.0 else H1
 
     U = propagator(H_func, 2, piecewise_t=[1.0], c_ops=a)
@@ -218,7 +230,7 @@ def testPropPiecewiseListCops():
     H1 = qutip.sigmax()
     a = destroy(2)
 
-    def H_func(t, args):
+    def H_func(t):
         return H0 if t < 0.75 else H1
 
     kappa = 0.1
@@ -237,7 +249,7 @@ def testPropPiecewiseSuperoperator():
     L0 = liouvillian(H0, [a])
     L1 = liouvillian(H1, [a])
 
-    def L_func(t, args):
+    def L_func(t):
         return L0 if t < 1.0 else L1
 
     U = propagator(L_func, 2, piecewise_t=[1.0])
@@ -252,7 +264,7 @@ def testPropPiecewiseMultipleTimes():
     H1 = qutip.sigmax()
     H2 = qutip.sigmay()
 
-    def H_func(t, args):
+    def H_func(t):
         if t < 0.5:
             return H0
         elif t < 1.5:
@@ -275,7 +287,7 @@ def testPropPiecewiseListOutput():
     H2 = qutip.sigmay()
     H3 = qutip.sigmaz() + qutip.sigmax()
 
-    def H_func(t, args):
+    def H_func(t):
         if t < 0.5:
             return H0
         elif t < 1.0:
@@ -299,11 +311,11 @@ def testPropPiecewiseBoundaryConsistency():
     H1 = qutip.sigmax()
 
     # Function with <= at boundary
-    def H_func_leq(t, args):
+    def H_func_leq(t):
         return H0 if t <= 1.0 else H1
 
     # Function with < at boundary
-    def H_func_lt(t, args):
+    def H_func_lt(t):
         return H0 if t < 1.0 else H1
 
     U_leq = propagator(H_func_leq, 2.0, piecewise_t=[1.0])
@@ -317,11 +329,11 @@ def testPropPiecewiseTimeDependentCops():
     H1 = qutip.sigmax()
     a = destroy(2)
 
-    def H_func(t, args):
+    def H_func(t):
         return H0 if t < 1.0 else H1
 
     # Time-dependent collapse operators (piecewise constant)
-    def c_func(t, args):
+    def c_func(t):
         kappa = 0.1 if t < 1.0 else 0.2
         return np.sqrt(kappa) * a
 
@@ -338,7 +350,7 @@ def testPropPiecewiseUniformGrid(n_points):
     H0 = qutip.sigmaz()
     H1 = qutip.sigmax()
 
-    def H_func(t, args):
+    def H_func(t):
         return H0 if t < 1.0 else H1
 
     tlist = np.linspace(0, 2.0, n_points)
@@ -357,7 +369,7 @@ def testPropPiecewiseCachingOptimization(n_points):
     """verify exponential caching reduces expm calls"""
     H0 = qutip.sigmaz()
 
-    def H_func(t, args):
+    def H_func(t):
         return H0
 
     original_expm = qutip.Qobj.expm

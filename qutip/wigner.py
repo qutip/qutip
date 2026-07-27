@@ -172,7 +172,7 @@ def _angle_slice(slicearray, theta, phi):
 
 
 def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
-           sparse=False, parfor=False):
+           sparse=False, parfor=False, offset=0):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -216,13 +216,18 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
         Flag for calculating the Laguerre polynomial based Wigner function
         method='laguerre' in parallel using the parfor function.
 
+    offset : int, default: 0
+        The lowest number state that is included in the finite number state
+        representation of the state. This is useful for analyzing a large
+        number of photons while utilizing a truncated Hilbert space.
+        Note: The 'fft' mode does not support this parameter.
 
     Returns
     -------
 
     W : array (2D)
         Values representing the Wigner function calculated over the specified
-        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to 
+        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to
         y-coordinate yvec[j] and x-coordinate xvec[k].
 
     yvex : array
@@ -246,6 +251,11 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
         raise TypeError('Input state is not a valid operator.')
 
     if method == 'fft':
+        if offset > 0:
+            return NotImplementedError(
+                "The 'fft' method does not currently"
+                "support the 'offset' parameter."
+            )
         return _wigner_fourier(psi, xvec, g)
 
     if psi.isket or psi.isbra:
@@ -254,20 +264,22 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
         rho = psi
 
     if method == 'iterative':
-        return _wigner_iterative(rho, xvec, yvec, g)
+        return _wigner_iterative(rho, xvec, yvec, g, offset)
 
     elif method == 'laguerre':
-        return _wigner_laguerre(rho, xvec, yvec, g, parfor)
+        return _wigner_laguerre(rho, xvec, yvec, g, parfor, offset)
 
     elif method == 'clenshaw':
-        return _wigner_clenshaw(rho, xvec, yvec, g, sparse=sparse)
+        return _wigner_clenshaw(
+            rho, xvec, yvec, g, sparse=sparse, offset=offset
+        )
 
     else:
         raise TypeError(
             "method must be either 'iterative', 'laguerre', or 'fft'.")
 
 
-def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
+def _wigner_iterative(rho, xvec, yvec, g=sqrt(2), offset=0):
     r"""
     Using an iterative method to evaluate the wigner functions for the Fock
     state :math:`|m><n|`.
@@ -284,36 +296,44 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     """
 
     M = np.prod(rho.shape[0])
+    M_full = M + offset
     X, Y = meshgrid(xvec, yvec)
     A = 0.5 * g * (X + 1.0j * Y)
 
-    Wlist = array([zeros(np.shape(A), dtype=complex) for k in range(M)])
+    Wlist = array([zeros(np.shape(A), dtype=complex) for k in range(M_full)])
     Wlist[0] = exp(-2.0 * abs(A) ** 2) / pi
 
-    W = real(rho[0, 0]) * real(Wlist[0])
-    for n in range(1, M):
-        Wlist[n] = (2.0 * A * Wlist[n - 1]) / sqrt(n)
-        W += 2 * real(rho[0, n] * Wlist[n])
+    W = zeros(np.shape(A), dtype=float)
 
-    for m in range(1, M):
+    if offset == 0:
+        W += real(rho[0, 0]) * real(Wlist[0])
+
+    for n in range(1, M_full):
+        Wlist[n] = (2.0 * A * Wlist[n - 1]) / sqrt(n)
+        if offset == 0:
+            W += 2 * real(rho[0, n] * Wlist[n])
+
+    for m in range(1, M_full):
         temp = copy(Wlist[m])
         Wlist[m] = (2 * conj(A) * temp - sqrt(m) * Wlist[m - 1]) / sqrt(m)
 
-        # Wlist[m] = Wigner function for |m><m|
-        W += real(rho[m, m] * Wlist[m])
+        if m >= offset:
+            # Wlist[m] = Wigner function for |m><m|
+            W += real(rho[m - offset, m - offset] * Wlist[m])
 
-        for n in range(m + 1, M):
+        for n in range(m + 1, M_full):
             temp2 = (2 * A * Wlist[n - 1] - sqrt(m) * temp) / sqrt(n)
             temp = copy(Wlist[n])
             Wlist[n] = temp2
 
-            # Wlist[n] = Wigner function for |m><n|
-            W += 2 * real(rho[m, n] * Wlist[n])
+            if m >= offset and n >= offset:
+                # Wlist[n] = Wigner function for |m><n|
+                W += 2 * real(rho[m - offset, n - offset] * Wlist[n])
 
     return 0.5 * W * g ** 2
 
 
-def _wigner_laguerre(rho, xvec, yvec, g, parallel):
+def _wigner_laguerre(rho, xvec, yvec, g, parallel, offset=0):
     r"""
     Using Laguerre polynomials from scipy to evaluate the Wigner function for
     the density matrices :math:`|m><n|`, :math:`W_{mn}`. The total Wigner
@@ -332,34 +352,42 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
         # for compress sparse row matrices
         if parallel:
             iterator = (
-                (m, rho, A, B) for m in range(len(rho.data.indptr) - 1))
+                (m, rho, A, B, offset)
+                for m in range(len(rho.data.indptr) - 1)
+            )
             W1_out = parallel_map(_par_wig_eval, iterator)
             W += sum(W1_out)
         else:
             for m in range(len(rho.data.indptr) - 1):
-                for jj in range(rho.data.indptr[m], rho.data.indptr[m + 1]):
+                m_phys = m + offset
+                for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):
                     n = rho.data.indices[jj]
-
+                    n_phys = n + offset
                     if m == n:
-                        W += real(rho[m, m] * (-1) ** m * genlaguerre(m, 0)(B))
-
+                        W += real(rho[m, m] * (-1) ** m_phys *
+                                  genlaguerre(m_phys, 0)(B))
                     elif n > m:
-                        W += 2.0 * real(rho[m, n] * (-1) ** m *
-                                        (2 * A) ** (n - m) *
-                                        sqrt(factorial(m) / factorial(n)) *
-                                        genlaguerre(m, n - m)(B))
+                        W += 2.0 * real(rho[m, n] * (-1) ** m_phys *
+                                        (2 * A) ** (n_phys - m_phys) *
+                                        sqrt(factorial(m_phys) /
+                                        factorial(n_phys)) *
+                                        genlaguerre(m_phys, n_phys - m_phys)
+                                        (B))
+
     else:
         # for dense density matrices
-        B = 4 * abs(A) ** 2
         for m in range(M):
+            m_phys = m + offset
             if abs(rho[m, m]) > 0.0:
-                W += real(rho[m, m] * (-1) ** m * genlaguerre(m, 0)(B))
+                W += real(rho[m, m] * (-1) ** m_phys * genlaguerre(m_phys, 0)(B))
             for n in range(m + 1, M):
+                n_phys = n + offset
                 if abs(rho[m, n]) > 0.0:
-                    W += 2.0 * real(rho[m, n] * (-1) ** m *
-                                    (2 * A) ** (n - m) *
-                                    sqrt(factorial(m) / factorial(n)) *
-                                    genlaguerre(m, n - m)(B))
+                    W += 2.0 * real(rho[m, n] * (-1) ** m_phys *
+                                    (2 * A) ** (n_phys - m_phys) *
+                                    sqrt(factorial(m_phys) /
+                                    factorial(n_phys)) *
+                                    genlaguerre(m_phys, n_phys - m_phys)(B))
 
     return 0.5 * W * g ** 2 * np.exp(-B / 2) / pi
 
@@ -369,19 +397,23 @@ def _par_wig_eval(args):
     Private function for calculating terms of Laguerre Wigner function
     using parfor.
     """
-    m, rho, A, B = args
+    m, rho, A, B, offset = args
+
     W1 = zeros(np.shape(A))
+    m_phys = m + offset
     for jj in range(rho.data.indptr[m], rho.data.indptr[m + 1]):
         n = rho.data.indices[jj]
+        n_phys = n + offset
 
         if m == n:
-            W1 += real(rho[m, m] * (-1) ** m * genlaguerre(m, 0)(B))
+            W1 += real(rho[m, m] * (-1) ** m_phys * genlaguerre(m_phys, 0)(B))
 
         elif n > m:
-            W1 += 2.0 * real(rho[m, n] * (-1) ** m *
-                             (2 * A) ** (n - m) *
-                             sqrt(factorial(m) / factorial(n)) *
-                             genlaguerre(m, n - m)(B))
+            W1 += 2.0 * real(rho[m, n] * (-1) ** m_phys *
+                             (2 * A) ** (n_phys - m_phys) *
+                             sqrt(factorial(m_phys) /
+                             factorial(n_phys)) *
+                             genlaguerre(m_phys, n_phys - m_phys)(B))
     return W1
 
 
@@ -456,7 +488,7 @@ def _osc_eigen(N, pnts):
         return A
 
 
-def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
+def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False, offset=0):
     r"""
     Using Clenshaw summation - numerically stable and efficient
     iterative algorithm to evaluate polynomial series.
@@ -468,31 +500,45 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     """
 
     M = np.prod(rho.shape[0])
-    X,Y = np.meshgrid(xvec, yvec)
-    #A = 0.5 * g * (X + 1.0j * Y)
-    A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
+    X, Y = np.meshgrid(xvec, yvec)
+    # A = 0.5 * g * (X + 1.0j * Y)
+    A2 = g * (X + 1.0j * Y)  # this is A2 = 2*A
 
     B = np.abs(A2)
     B *= B
-    w0 = (2*rho[0, -1])*np.ones_like(A2)
-    L = M-1
-    #calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
-    #using Horner's method
+
+    if offset == 0:
+        w0 = (2*rho[0, -1])*np.ones_like(A2)
+    else:
+        diag = np.array([2*rho[0, -1]])
+        diag = np.concatenate((np.zeros(offset, dtype=diag.dtype), diag))
+        w0 = _wig_laguerre_val(M-1, B, diag) * np.ones_like(A2)
+
+    L = M - 1
+    # calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
+    # using Horner's method
     if not sparse:
-        rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
+        rho_dense = rho.full() * (2*np.ones((M, M)) - np.diag(np.ones(M)))
         while L > 0:
             L -= 1
-            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
-            w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
+            diag = np.asarray(np.diag(rho_dense, L)).flatten()
+            if offset > 0:
+                diag = np.concatenate((np.zeros(offset, dtype=diag.dtype),
+                                       diag))
+            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
     else:
         # TODO: fix dispatch.
         _rho = _data.to(_data.CSR, rho.data).as_scipy()
         while L > 0:
             L -= 1
-            diag = _rho.diagonal(L)
+            diag = np.asarray(_rho.diagonal(L)).flatten()
             if L != 0:
-                diag *= 2
-            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+                diag = diag * 2
+            if offset > 0:
+                diag = np.concatenate((np.zeros(offset, dtype=diag.dtype),
+                                       diag))
+            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
 
     return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
@@ -631,7 +677,7 @@ class _QFuncCoherentGrid:
         out *= self.prefactor
         return out
 
-    def __call__(self, first: int, last: int = None):
+    def __call__(self, first: int, last: int = None, cutoff: int = 170):
         """
         Get a 3D array of shape ``(yvec.size, xvec.size, last - first)`` of the
         coherent-state vectors for all the Fock states in the range ``first``
@@ -641,17 +687,26 @@ class _QFuncCoherentGrid:
         Fock-space dimensions.
         """
         ns = np.arange(first, last).reshape(1, 1, -1)
-        # Technically we could avoid hitting the limits of floating-point
-        # exponents for longer by doing all this in logarithmic space (using
-        # scipy.special.gammaln), but that ends up involving more
-        # floating-point operations overall, and needs special care around the
-        # point alpha = 0 to avoid nan appearing, due to how Python handles
-        # mixed-width arithmetic operations.
         out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
-        out[:, :, 0] = self._start(ns.flat[0])
-        for i in range(ns.size - 1):
-            out[:, :, i+1] = out[:, :, i] * self.grid
-        out /= np.sqrt(scipy.special.factorial(ns))
+        cutoff_loc = cutoff - first
+
+        if cutoff_loc >= 0:
+            # Compute the out grid from first to cutoff [exclusive]
+            out[:, :, 0] = self._start(ns[0, 0, 0])
+            end = min(ns.size, cutoff_loc)
+            for i in range(1, end):
+                out[:, :, i] = out[:, :, i-1] * self.grid
+            out[:, :, :end] /= np.sqrt(scipy.special.factorial(ns[:, :, :end]))
+
+        if ns.size >= cutoff_loc:
+            # Compute the out grid from cutoff to last
+            e_sqrt = np.e**0.5
+            start = max(cutoff_loc, 0)
+            idx = ns[:, :, start:]
+            out[:, :, start:] = (
+                (self.grid[:, :, None] * e_sqrt * idx**-0.5) ** idx
+                * ((2 * idx + 1./3.) * np.pi)**-0.25 * self.prefactor[:, :, None]
+            )
         return out
 
 
@@ -682,6 +737,10 @@ class QFunc:
         :obj:`.qfunc` with ``precompute_memory=None`` instead to force using
         the slower, more memory-efficient algorithm.
 
+    cutoff : int, default: 170
+        Size at which to switch from using scipy.special.factorial to
+        Stirling's approximation. From 171, scipy.special.factorial return inf.
+
     Examples
     --------
     Initialise the class for a square set of coordinates, with some states we
@@ -704,7 +763,12 @@ class QFunc:
     """
 
     def __init__(
-        self, xvec, yvec, g: float = np.sqrt(2), memory: float = 1024
+        self,
+        xvec,
+        yvec,
+        g: float = np.sqrt(2),
+        memory: float = 1024,
+        cutoff: int=170
     ):
         self._g = g
         self._coherent_grid = _QFuncCoherentGrid(xvec, yvec, g)
@@ -714,6 +778,7 @@ class QFunc:
         self._max_size = int(self._memory_mb // self._size_mb)
         self._current_size = 0
         self._cache = None
+        self._cutoff = cutoff
 
     def _alphas(self, size: int):
         r"""
@@ -730,10 +795,15 @@ class QFunc:
                 f" but only {self._memory_mb} MB is allowed."
             )
         if self._cache is None:
-            self._cache = self._coherent_grid(self._current_size, size)
+            self._cache = self._coherent_grid(
+                self._current_size, size, self._cutoff
+            )
         else:
             self._cache = np.dstack(
-                [self._cache, self._coherent_grid(self._current_size, size)]
+                [
+                    self._cache,
+                    self._coherent_grid(self._current_size, size, self._cutoff)
+                ]
             )
         self._current_size = size
         return self._cache
@@ -767,18 +837,32 @@ class QFunc:
 
 
 def _qfunc_iterative_single(
-    vector: np.ndarray, alpha_grid: _QFuncCoherentGrid, g: float,
+    vector: np.ndarray,
+    alpha_grid: _QFuncCoherentGrid,
+    g: float,
+    cutoff: int = 170,
 ):
     r"""
     Get the Q function (without the :math:`\pi` scaling factor) of a single
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    ns = np.arange(vector.shape[0])
+    size = min(cutoff, vector.shape[0])
+    ns = np.arange(size)
     out = np.polyval(
-        (0.5*g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
+        (0.5 * g * vector[:size] / np.sqrt(scipy.special.factorial(ns)))[::-1],
         alpha_grid.grid,
     )
+    if vector.shape[0] > cutoff:
+        # scipy.special.factorial reach inf at 171
+        # So we use an approximation for large number.
+        e_sqrt = np.e**(0.5)
+        pi = np.pi
+        idx = np.arange(cutoff, vector.shape[0])
+        coeffs = vector[idx] * 0.5 * g * ((2*idx + 1/3) * pi)**(-0.25)
+        grid = alpha_grid.grid[:, :, None] * e_sqrt * idx[None, None, :]**-0.5
+        out += np.sum(grid**idx[None, None, :] * coeffs[None, None, :], axis=2)
+
     out *= alpha_grid.prefactor
     return np.abs(out)**2
 
@@ -789,6 +873,7 @@ def qfunc(
     yvec,
     g: float = sqrt(2),
     precompute_memory: float = 1024,
+    cutoff: int = 170
 ):
     r"""
     Husimi-Q function of a given state vector or density matrix at phase-space
@@ -816,6 +901,10 @@ def qfunc(
         smaller, intermediaries being necessary, but is a good approximation.
         If you want to use the same iterative algorithm for density matrices
         that is used for single kets, set ``precompute_memory=None``.
+
+    cutoff : int, default: 170
+        Size at which to switch from using scipy.special.factorial to
+        Stirling's approximation. From 171, scipy.special.factorial return inf.
 
     Returns
     -------
@@ -848,16 +937,20 @@ def qfunc(
         )
     alpha_grid = _QFuncCoherentGrid(xvec, yvec, g)
     if state.isket:
-        out = _qfunc_iterative_single(state.full().ravel(), alpha_grid, g)
+        out = _qfunc_iterative_single(
+            state.full().ravel(), alpha_grid, g, cutoff
+        )
         out /= np.pi
         return out
     # We don't use Qobj.eigenstates() to avoid building many unnecessary CSR
     # versions of dense matrices.
     values, vectors = eigh(state.full())
     vectors = vectors.T
-    out = values[0] * _qfunc_iterative_single(vectors[0], alpha_grid, g)
+    out = values[0] * _qfunc_iterative_single(
+        vectors[0], alpha_grid, g, cutoff
+    )
     for value, vector in zip(values[1:], vectors[1:]):
-        out += value * _qfunc_iterative_single(vector, alpha_grid, g)
+        out += value * _qfunc_iterative_single(vector, alpha_grid, g, cutoff)
     out /= np.pi
     return out
 

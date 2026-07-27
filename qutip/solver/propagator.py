@@ -40,9 +40,7 @@ def propagator_piecewise(
     Parameters
     ----------
     H : :obj:`.QobjEvo`
-        Time-dependent Hamiltonian or Liouvillian. Must be callable with
-        signature ``H(t, args)`` that returns the constant operator valid at
-        time ``t``.
+        Time-dependent Hamiltonian or Liouvillian.
 
     tlist : list of float
         List of times at which to evaluate the propagator.
@@ -415,7 +413,8 @@ class Propagator:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye_like(self.props[0]), t)
             Uinv = self.solver.step(self.times[idx])
-            U = self._inv(Uinv)
+            U = self._inv(Uinv) @ self.props[idx]
+            self.solver.start(qeye_like(self.props[0]), 0.)
         return U
 
     def _inv(self, U):

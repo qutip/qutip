@@ -76,7 +76,9 @@ shape = [4, 4], type = oper, isherm = False
         isunitary = False
     elif offsets == [0]:
         isherm = np.all(np.abs(np.imag(diagonals)) <= settings.core["atol"])
-        isunitary = np.all(np.abs(diagonals) - 1 <= settings.core["atol"])
+        isunitary = np.all(
+            np.abs(np.abs(diagonals) - 1) <= settings.core["atol"]
+        )
     else:
         isherm = None
         isunitary = None
@@ -688,8 +690,8 @@ def _f_op(n_sites, site, action, dtype: LayerType = None,):
     elif action.lower() == 'destruction':
         operator = destroy(2, dtype=dtype)
     else:
-        raise TypeError("Unknown operator '%s'. `action` must be \
-                        either 'creation' or 'destruction.'" % action)
+        raise TypeError(f"Unknown operator '{action}'. `action` must be \
+                        either 'creation' or 'destruction.'")
 
     eye = identity(2, dtype=dtype)
     opers = [s_z] * site + [operator] + [eye] * (n_sites - site - 1)
@@ -741,8 +743,10 @@ def qzero(
         size_right = dims_right.size
     dims = [dims_left, dims_right]
     # A sparse matrix with no data is equal to a zero matrix.
+    # A non-square zero operator is not Hermitian.
     return Qobj(_data.zeros[dtype](size_left, size_right), dims=dims,
-                isherm=True, isunitary=False, copy=False, dtype=dtype)
+                isherm=(size_left == size_right), isunitary=False,
+                copy=False, dtype=dtype)
 
 
 def qzero_like(qobj: Qobj) -> Qobj:
@@ -761,9 +765,11 @@ def qzero_like(qobj: Qobj) -> Qobj:
 
     """
 
+    # A non-square zero operator is not Hermitian.
     return Qobj(
         _data.zeros[qobj.dtype](*qobj.shape), dims=qobj._dims,
-        isherm=True, isunitary=False, copy=False, dtype=qobj.dtype
+        isherm=(qobj.shape[0] == qobj.shape[1]), isunitary=False,
+        copy=False, dtype=qobj.dtype
     )
 
 
@@ -1095,7 +1101,7 @@ def commutator(
         return A @ B + B @ A
 
     else:
-        raise TypeError("Unknown commutator kind '%s'" % kind)
+        raise TypeError(f"Unknown commutator kind '{kind}'")
 
 
 def qutrit_ops(*, dtype: LayerType = None) -> list[Qobj]:

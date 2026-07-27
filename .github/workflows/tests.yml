@@ -54,6 +54,16 @@ jobs:
             # Should be enough to include this in one of the runs
             includempi: 1
 
+          - case-name: p314 ubuntu arm
+            os: ubuntu-24.04-arm
+            python-version: "3.14"
+            numpy-build: ">=2.2.0"
+            numpy-requirement: ">=2.2.0"
+            pypi: 1
+            # Install mpi4py to test mpi_pmap
+            # Should be enough to include this in one of the runs
+            includempi: 1
+
           - case-name: p312, numpy fallback
             os: ubuntu-latest
             python-version: "3.12"
@@ -63,21 +73,11 @@ jobs:
             pypi: 1
             oldmpl: 1
             coveralls: 1
-
-          - case-name: p311, numpy fallback, no mkl
-            os: ubuntu-latest
-            python-version: "3.11"
-            numpy-build: ">=2.0.0,<2.1.0"
-            numpy-requirement: ">=1.23,<1.24"
-            scipy-requirement: ">=1.11,<1.12"
-            pypi: 1
-            oldmpl: 1
             nomkl: 1
-            coveralls: 1
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
-            python-version: "3.10"
+            python-version: "3.11"
             numpy-build: ">=1.22.0,<1.23.0"
             numpy-requirement: ">=1.22.0,<1.23.0"
             scipy-requirement: ">=1.9,<1.10"
@@ -87,6 +87,7 @@ jobs:
             pypi: 1
             coveralls: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+
           # Mac
           # Mac has issues with MKL since september 2022.
           - case-name: macos
@@ -110,7 +111,7 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: Windows
-            os: windows-latest
+            os: windows-11-arm
             python-version: "3.14"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=2.0.0"
@@ -119,11 +120,10 @@ jobs:
 
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.10"
+            python-version: "3.11"
             numpy-build: ">=2.0.0"
             numpy-requirement: ">=1.24,<1.25"
             semidefinite: 1
-            oldcython: 1
             oldmpl: 1
             nocython: 1
             condaforge: 1
@@ -132,12 +132,25 @@ jobs:
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/checkout@v7
+      - uses: conda-incubator/setup-miniconda@v4
+        if: matrix.os != 'windows-11-arm'
+        # Currently miniconda doesn't support window-11 arms
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
+
+      - name: Install pip
+        if: matrix.os != 'windows-11-arm'
+        shell: bash -l {0}
+        run: conda install pip -y -n test
+
+      # TODO remove this once conda supports windows arm
+      - uses: actions/setup-python@v6
+        if: matrix.os == 'windows-11-arm'
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
@@ -177,7 +190,7 @@ jobs:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock matplotlib==3.5
+            python -m pip install cython==0.29.36 filelock matplotlib==3.6
           else
             python -m pip install cython filelock
           fi
@@ -208,7 +221,11 @@ jobs:
 
       - name: Package information
         run: |
-          conda list
+          if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
+            pip list
+          else
+            conda list
+          fi
           python -c "import qutip; qutip.about()"
           python -c "import qutip; print(qutip.settings)"
 
@@ -279,7 +296,7 @@ jobs:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

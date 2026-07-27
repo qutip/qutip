@@ -1,11 +1,11 @@
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
+import os
 import numpy as np
 from numpy.typing import ArrayLike
 import scipy
 import scipy.interpolate
-import os
 import sys
 import re
 import dis
@@ -84,9 +84,11 @@ def coefficient(
     For function based coefficients, the function signature must be either:
 
     * ``f(t, ...)`` where the other arguments are supplied as ordinary
-      "pythonic" arguments (e.g. ``f(t, w, a=5)``)
+      "pythonic" arguments (e.g. ``f(t, w, a=5)``) or keyword arguments
+      (e.g. ``f(t, w, **args)``)
     * ``f(t, args)`` where the arguments are supplied in a "dict" named
       ``args``
+      This format is deprecated, to be remove in QuTiP 5.5.
 
     By default the signature style is controlled by the
     ``qutip.settings.core["function_coefficient_style"]`` setting, but it
@@ -332,7 +334,7 @@ qset.compile = CompilationOptions()
 COEFF_VERSION = "1.3"
 
 try:
-    root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
+    root = Path(qset.tmproot) / f"qutip_coeffs_{COEFF_VERSION}"
     qset.coeffroot = root
 except OSError:
     qset.coeffroot = "."
@@ -351,7 +353,7 @@ def clean_compiled_coefficient(all=False):
     import shutil
     tmproot = qset.tmproot
     active = qset.coeffroot
-    folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    folders = glob.glob(str(Path(tmproot) / 'qutip_coeffs_') + "*")
     if all:
         shutil.rmtree(active)
     for folder in folders:
@@ -483,10 +485,10 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     copy_cte = ""
     iseq_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
-        cdef_cte += "        {} {}\n".format(ctype, name[5:])
-        copy_cte += "        out.{} = {}\n".format(name[5:], name)
-        init_cte += "        {} = cte[{}]\n".format(name, i)
-        iseq_cte += "            c_other.{} == {},\n".format(name[5:], name)
+        cdef_cte += f"        {ctype} {name[5:]}\n"
+        copy_cte += f"        out.{name[5:]} = {name}\n"
+        init_cte += f"        {name} = cte[{i}]\n"
+        iseq_cte += f"            c_other.{name[5:]} == {name},\n"
     cdef_var = ""
     init_var = ""
     init_arg = ""
@@ -495,22 +497,22 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     copy_var = ""
     iseq_var = ""
     for i, (name, val, ctype) in enumerate(variables):
-        cdef_var += "        str key{}\n".format(i)
-        cdef_var += "        {} {}\n".format(ctype, name[5:])
-        copy_var += "        out.key{} = self.key{}\n".format(i, i)
-        copy_var += "        out.{} = {}\n".format(name[5:], name)
-        iseq_var += "            c_other.key{} == self.key{},\n".format(i, i)
-        iseq_var += "            c_other.{} == {},\n".format(name[5:], name)
+        cdef_var += f"        str key{i}\n"
+        cdef_var += f"        {ctype} {name[5:]}\n"
+        copy_var += f"        out.key{i} = self.key{i}\n"
+        copy_var += f"        out.{name[5:]} = {name}\n"
+        iseq_var += f"            c_other.key{i} == self.key{i},\n"
+        iseq_var += f"            c_other.{name[5:]} == {name},\n"
         if not raw:
-            init_var += "        self.key{} = var[{}]\n".format(i, i)
+            init_var += f"        self.key{i} = var[{i}]\n"
         else:
-            init_var += "        self.key{} = '{}'\n".format(i, val)
-        init_arg += "        {} = args[self.key{}]\n".format(name, i)
-        replace_var += "            if self.key{} in kwargs:\n".format(i)
-        replace_var += ("                out.{}"
-                        " = kwargs[self.key{}]\n".format(name[5:], i))
+            init_var += f"        self.key{i} = '{val}'\n"
+        init_arg += f"        {name} = args[self.key{i}]\n"
+        replace_var += f"            if self.key{i} in kwargs:\n"
+        replace_var += (f"                out.{name[5:]}"
+                        f" = kwargs[self.key{i}]\n")
         if raw:
-            call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
+            call_var += f"        cdef {ctype} {val} = {name}\n"
 
     code = f"""#cython: language_level=3
 # This file is generated automatically by QuTiP.
@@ -603,9 +605,8 @@ def compile_code(code, file_name, parsed, c_opt):
         lock.acquire(timeout=0)
         for file in glob.glob(file_name + "*"):
             os.remove(file)
-        file_ = open(file_name + ".pyx", "w")
-        file_.writelines(code)
-        file_.close()
+        with open(file_name + ".pyx", "w") as file_:
+            file_.writelines(code)
         oldargs = sys.argv
         try:
             sys.argv = ["setup.py", "build_ext", "--inplace"]
@@ -622,7 +623,7 @@ def compile_code(code, file_name, parsed, c_opt):
             qutip_root = Path(__file__).resolve().parents[2]
 
             ext_modules = cythonize(
-                coeff_file, force=True, build_dir=c_opt['build_dir'], 
+                coeff_file, force=True, build_dir=c_opt['build_dir'],
                 include_path=[str(qutip_root)]
             )
             setup(ext_modules=ext_modules)
@@ -733,7 +734,7 @@ def extract_cte_pattern(code, constants, pattern):
     """replace the constant following a pattern with variable"""
     const_strs = re.findall(pattern, code)
     for cte in const_strs:
-        name = " _cte_temp{}_ ".format(len(constants))
+        name = f" _cte_temp{len(constants)}_ "
         code = code.replace(cte, cte[0] + name, 1)
         constants.append((name[1:-1], cte[1:], find_type_from_str(cte[1:])))
     return code

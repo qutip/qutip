@@ -18,7 +18,7 @@ from packaging.version import parse as parse_version
 from . import (
     Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
-from .core.superop_reps import _to_superpauli, isqubitdims
+from .core.superop_reps import to_superpauli, isqubitdims
 from .wigner import wigner, qfunc
 from .matplotlib_utilities import complex_phase_cmap
 
@@ -38,7 +38,8 @@ try:
     else:
         def _axes3D(*args, **kwargs):
             return Axes3D(*args, **kwargs)
-except:
+
+except ImportError:
     pass
 
 
@@ -386,7 +387,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
                                      "currently only supported for qubits.")
                 # Convert to a superoperator in the Pauli basis,
                 # so that all the elements are real.
-                sqobj = _to_superpauli(rho)
+                sqobj = to_superpauli(rho)
                 nq = int(log2(sqobj.shape[0]) / 2)
                 W = sqobj.full().T
                 # Create default labels, too.
@@ -433,7 +434,7 @@ def hinton(rho, x_basis=None, y_basis=None, color_style="scaled",
             return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
     else:
         raise ValueError(
-            "Unknown color style {} for Hinton diagrams.".format(color_style)
+            f"Unknown color style {color_style} for Hinton diagrams."
         )
 
     artist_list = list()
@@ -1149,7 +1150,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
 
 
 def plot_fock_distribution(rho, fock_numbers=None, color="green",
-                           unit_y_range=True, *, fig=None, ax=None):
+                           unit_y_range=True, offset=0, *, fig=None, ax=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1167,6 +1168,10 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
     unit_y_range : bool, default: True
         Set y-axis limits [0, 1] or not
+
+    offset : int, default: 0
+        The lowest number state that is included in the finite number
+        state representation of the state.
 
     fig : a matplotlib Figure instance, optional
         The Figure canvas in which the plot will be drawn.
@@ -1197,7 +1202,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
         N = rho.shape[0]
 
-        artist = ax.bar(np.arange(N), np.real(rho.diag()),
+        artist = ax.bar(np.arange(offset, offset + N), np.real(rho.diag()),
                         color=color, alpha=0.6, width=0.8).patches
         artist_list.append(artist)
 
@@ -1221,7 +1226,7 @@ def plot_fock_distribution(rho, fock_numbers=None, color="green",
 
 
 def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
-                g=sqrt(2), sparse=False, parfor=False, *,
+                g=sqrt(2), sparse=False, parfor=False, offset=0, *,
                 cmap=None, colorbar=False, fig=None, ax=None):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
@@ -1258,6 +1263,10 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
     parfor : bool {False, True}
         Flag for parallel calculation.
         See the documentation for qutip.wigner for details.
+
+    offset : int, default: 0
+        The lowest number state that is included in the finite number
+        state representation of the state.
 
     cmap : a matplotlib cmap instance, optional
         The colormap.
@@ -1301,7 +1310,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
 
         W0 = wigner(
             rho, xvec, yvec, method=method,
-            g=g, sparse=sparse, parfor=parfor
+            g=g, sparse=sparse, parfor=parfor, offset=offset
         )
 
         W, yvec = W0 if isinstance(W0, tuple) else (W0, yvec)
@@ -1507,7 +1516,7 @@ def plot_expectation_values(results, ylabels=None, *,
     for _, result in enumerate(results):
         for e_idx, e in enumerate(result.expect):
             axes[e_idx].plot(result.times, e,
-                             label="%s [%d]" % (result.solver, e_idx))
+                             label=f"{result.solver} [{e_idx}]")
 
     axes[n_e_ops - 1].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
@@ -1518,7 +1527,7 @@ def plot_expectation_values(results, ylabels=None, *,
 
 
 def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
-                           cmap=None, colorbar=False, fig=None, ax=None):
+                           cmap=None, colorbar=False, fig=None, ax=None, **kwargs):
     """
     Plots a spin distribution (given as meshgrid data).
 
@@ -1538,8 +1547,9 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         projection where the surface of the unit sphere is mapped on
         the unit disk ('2d') or surface plot ('3d').
 
-    cmap : a matplotlib cmap instance, optional
-        The colormap.
+    cmap : a matplotlib cmap instance or str, optional
+        The colormap for the plot. Can be a Matplotlib colormap object or a
+        string name of a registered colormap.
 
     colorbar : bool, default: False
         Whether (True) or not (False) a colorbar should be attached to the
@@ -1550,6 +1560,10 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
 
     ax : a matplotlib axis instance, optional
         The axis context in which the plot will be drawn.
+
+    **kwargs: dict
+        Additional keyword arguments passed to Matplotlib's `pcolor` (for 2D)
+        or `plotsurface` (for 3D)
 
     Returns
     -------
@@ -1576,20 +1590,24 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         min_P = min(min_P, P.min())
         max_P = max(max_P, P.max())
 
-    if cmap is None:
-        if min_P < -1e12:
+    if min_P < -1e12:
+        norm = mpl.colors.Normalize(-max_P, max_P)
+        if cmap is None:
             cmap = _diverging_cmap()
-            norm = mpl.colors.Normalize(-max_P, max_P)
-        else:
+    else:
+        norm = mpl.colors.Normalize(min_P, max_P)
+        if cmap is None:
             cmap = _sequential_cmap()
-            norm = mpl.colors.Normalize(min_P, max_P)
+
+    if isinstance(cmap, str):
+        cmap = mpl.colormaps[cmap]
 
     artist_list = list()
     if projection == '2d':
         Y = (THETA - pi / 2) / (pi / 2)
         X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
         for P in Ps:
-            artist_list.append([ax.pcolor(X, Y, P.real, cmap=cmap)])
+            artist_list.append([ax.pcolor(X, Y, P.real, cmap=cmap, **kwargs)])
         ax.set_xlabel(r'$\varphi$', fontsize=18)
         ax.set_ylabel(r'$\theta$', fontsize=18)
         ax.axis('equal')
@@ -1603,7 +1621,7 @@ def plot_spin_distribution(P, THETA, PHI, projection='2d', *,
         zz = cos(THETA)
         for P in Ps:
             artist = [ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                      facecolors=cmap(norm(P)), linewidth=0)]
+                      facecolors=cmap(norm(P)), **kwargs)]
             artist_list.append(artist)
         ax.view_init(azim=-35, elev=35)
 

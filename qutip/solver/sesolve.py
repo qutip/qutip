@@ -13,7 +13,7 @@ from typing import Any, Callable
 from .. import Qobj, QobjEvo
 from ..core import data as _data
 from ..typing import QobjEvoLike, EopsLike
-from .solver_base import Solver, _solver_deprecation, _kwargs_migration
+from .solver_base import Solver
 from ._feedback import _QobjFeedback, _DataFeedback
 from . import Result
 
@@ -22,14 +22,10 @@ def sesolve(
     H: QobjEvoLike,
     psi0: Qobj,
     tlist: ArrayLike,
-    _e_ops = None,
-    _args = None,
-    _options = None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
-    **kwargs
 ) -> Result:
     """
     Schrodinger equation evolution of a state vector or unitary matrix
@@ -118,10 +114,6 @@ def sesolve(
         density matrices corresponding to the times in ``tlist`` [if ``e_ops``
         is an empty list of ``store_states=True`` in options].
     """
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    args = _kwargs_migration(_args, args, "args")
-    options = _kwargs_migration(_options, options, "options")
-    options = _solver_deprecation(kwargs, options)
     H = QobjEvo(H, args=args, tlist=tlist)
     solver = SESolver(H, options=options)
     return solver.run(psi0, tlist, e_ops=e_ops)

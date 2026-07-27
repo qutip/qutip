@@ -5,6 +5,7 @@ import inspect
 import pickle
 import typing
 import scipy
+import warnings
 from scipy.interpolate import make_interp_spline
 import numpy as np
 cimport numpy as cnp
@@ -68,6 +69,14 @@ def coefficient_function_parameters(func, style=None):
             style = "dict"
         else:
             style = "pythonic"
+    if style == "dict":
+        warnings.warn(
+            "The signature f(t, args) is deprecated and will be removed in "
+            "QuTiP 5.5. Please update your function to the pythonic signature "
+            "f(t, **kwargs) to maintain compatibility.",
+            FutureWarning
+        )
+
     if style == "dict" or f_has_kw:
         # f might accept any parameter
         f_parameters = None
@@ -341,8 +350,7 @@ cdef class StrFunctionCoefficient(Coefficient):
         "spe": scipy.special}
 
     def __init__(self, base, dict args, **_):
-        args2var = "\n".join(["    {} = args['{}']".format(key, key)
-                              for key in args])
+        args2var = "\n".join([f"    {key} = args['{key}']" for key in args])
         code = f"""
 def coeff(t, args):
 {args2var}

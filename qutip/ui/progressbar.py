@@ -41,7 +41,7 @@ class BaseProgressBar(object):
         return self.t_done - self.t_start
 
     def time_elapsed(self):
-        return "%6.2fs" % (time.time() - self.t_start)
+        return f"{(time.time() - self.t_start):6.2f}s"
 
     def time_remaining_est(self, p):
         if 100 >= p > 0.0:
@@ -50,8 +50,7 @@ class BaseProgressBar(object):
             t_r_est = 0
 
         dd = datetime.datetime(1, 1, 1) + datetime.timedelta(seconds=t_r_est)
-        time_string = "%02d:%02d:%02d:%02d" % \
-            (dd.day - 1, dd.hour, dd.minute, dd.second)
+        time_string = f"{dd.day - 1:02d}:{dd.hour:02d}:{dd.minute:02d}:{dd.second:02d}"
 
         return time_string
 
@@ -72,15 +71,14 @@ class TextProgressBar(BaseProgressBar):
         n = self.n
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            print("%4.1f%%." % p +
-                  " Run time: %s." % self.time_elapsed() +
-                  " Est. time left: %s" % self.time_remaining_est(p))
+            print(f"{p:4.1f}%. Run time: {self.time_elapsed()}. "
+                  f"Est. time left: {self.time_remaining_est(p)}")
             sys.stdout.flush()
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
         self.t_done = time.time()
-        print("Total run time: %s" % self.time_elapsed())
+        print(f"Total run time: {self.time_elapsed()}")
 
 
 class EnhancedTextProgressBar(BaseProgressBar):
@@ -102,18 +100,16 @@ class EnhancedTextProgressBar(BaseProgressBar):
         prog_bar = ('[' + self.fill_char * num_hashes +
                     ' ' * (all_full - num_hashes) + ']')
         pct_place = (len(prog_bar) // 2) - len(str(percent_done))
-        pct_string = '%d%%' % percent_done
+        pct_string = f"{percent_done}%"
         prog_bar = (prog_bar[0:pct_place] +
                     (pct_string + prog_bar[pct_place + len(pct_string):]))
-        prog_bar += ' Elapsed %s / Remaining %s' % (
-            self.time_elapsed().strip(),
-            self.time_remaining_est(percent_done))
+        prog_bar += f" Elapsed {self.time_elapsed()} / Remaining {self.time_remaining_est(percent_done)}"
         print('\r', prog_bar, end='')
         sys.stdout.flush()
 
     def finished(self):
         self.t_done = time.time()
-        print("\r", "Total run time: %s" % self.time_elapsed())
+        print("\r", f"Total run time: {self.time_elapsed()}")
 
 
 class TqdmProgressBar(BaseProgressBar):
@@ -174,8 +170,8 @@ class HTMLProgressBar(BaseProgressBar):
         n = self.n
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            lbl = ("Elapsed time: %s. " % self.time_elapsed() +
-                   "Est. remaining time: %s." % self.time_remaining_est(p))
+            lbl = f"Elapsed time: {self.time_elapsed()}. " \
+                  f"Est. remaining time: {self.time_remaining_est(p)}."
             js_code = f"""
                 document.getElementById('{self.divid}').style.width = '{p}%';
                 document.getElementById('{self.textid}').textContent = '{lbl}';
@@ -185,7 +181,7 @@ class HTMLProgressBar(BaseProgressBar):
 
     def finished(self):
         self.t_done = time.time()
-        lbl = "Elapsed time: %s" % self.time_elapsed()
+        lbl = f"Elapsed time: {self.time_elapsed()}"
         js_code = f"""
             document.getElementById('{self.divid}').style.width = '{100.0}%';
             document.getElementById('{self.textid}').textContent = '{lbl}';
