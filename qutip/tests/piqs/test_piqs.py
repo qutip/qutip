@@ -1,6 +1,7 @@
 """
 Tests for Permutational Invariant Quantum solver (PIQS).
 """
+import math
 import numpy as np
 from numpy.testing import (
     assert_raises,
@@ -643,6 +644,22 @@ class TestDicke:
         # valid sparse matrix of the expected shape.
         m = block_matrix(80, elements="degeneracy")
         assert m.shape == (1681, 1681)
+
+    def test_degeneracy_exact_below_int64(self):
+        """
+        PIQS: Degeneracies that fit in an int64 must be exact.
+
+        The `Decimal` arithmetic previously used here rounded to the default
+        28-significant-digit context, so the returned integers drifted for
+        larger N: `energy_degeneracy(32, 16)` gave 0 rather than 1, and
+        `state_degeneracy(60, 1)` was off by one.
+        """
+        assert energy_degeneracy(32, 16) == 1
+        assert state_degeneracy(60, 1) == 10729649537134605
+
+        for N in (32, 44, 60):
+            for k in range(N + 1):
+                assert energy_degeneracy(N, N / 2 - k) == math.comb(N, k)
 
     def test_m_degeneracy(self):
         """

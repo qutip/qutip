@@ -10,7 +10,6 @@ It also allows to characterize nonlinear functions of the density matrix.
 # Contact: nathan.shammah@gmail.com, shahnawaz.ahmed95@gmail.com
 
 from math import factorial
-from decimal import Decimal
 
 import numpy as np
 from scipy.integrate import odeint
@@ -599,8 +598,8 @@ class Dicke(object):
 def energy_degeneracy(N, m):
     """Calculate the number of Dicke states with same energy.
 
-    The use of the ``Decimals`` class allows to explore N > 1000,
-    unlike the built-in function ``scipy.special.binom``.
+    The result is computed with exact integer arithmetic, which allows to
+    explore N > 1000 unlike the built-in function ``scipy.special.binom``.
 
     Parameters
     ----------
@@ -615,19 +614,18 @@ def energy_degeneracy(N, m):
     -------
     degeneracy: int or float
         The energy degeneracy. An ``int`` is returned when the value fits in a
-        NumPy ``int64``; otherwise a ``float`` is returned so that arrays built
-        from the result use a numeric dtype (``float64``) rather than falling
-        back to ``object``, which downstream SciPy routines do not support
-        (see gh-2630).
+        NumPy ``int64``; otherwise a ``float`` is returned.
     """
-    numerator = Decimal(factorial(N))
-    d1 = Decimal(factorial(_ensure_int(N / 2 + m)))
-    d2 = Decimal(factorial(_ensure_int(N / 2 - m)))
-    degeneracy = numerator / (d1 * d2)
-    degeneracy_int = int(degeneracy)
-    if degeneracy_int > np.iinfo(np.int64).max:
+    # A float is returned above int64 so that arrays built from the result keep
+    # a numeric dtype (float64) instead of falling back to `object`, which the
+    # downstream SciPy sparse routines do not support (gh-2630).
+    numerator = factorial(N)
+    d1 = factorial(_ensure_int(N / 2 + m))
+    d2 = factorial(_ensure_int(N / 2 - m))
+    degeneracy = numerator // (d1 * d2)
+    if degeneracy > np.iinfo(np.int64).max:
         return float(degeneracy)
-    return degeneracy_int
+    return degeneracy
 
 
 def state_degeneracy(N, j):
@@ -636,7 +634,8 @@ def state_degeneracy(N, j):
     Each state :math:`\lvert j, m\rangle` includes D(N,j) irreducible
     representations :math:`\lvert j, m, \alpha\rangle`.
 
-    Uses Decimals to calculate higher numerator and denominators numbers.
+    Uses exact integer arithmetic to calculate higher numerator and
+    denominator numbers.
 
     Parameters
     ----------
@@ -650,21 +649,19 @@ def state_degeneracy(N, j):
     -------
     degeneracy: int or float
         The state degeneracy. An ``int`` is returned when the value fits in a
-        NumPy ``int64``; otherwise a ``float`` is returned so that arrays built
-        from the result use a numeric dtype (``float64``) rather than falling
-        back to ``object``, which downstream SciPy routines do not support
-        (see gh-2630).
+        NumPy ``int64``; otherwise a ``float`` is returned.
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
-    numerator = Decimal(factorial(N)) * Decimal(2 * j + 1)
-    denominator_1 = Decimal(factorial(_ensure_int(N / 2 + j + 1)))
-    denominator_2 = Decimal(factorial(_ensure_int(N / 2 - j)))
-    degeneracy = numerator / (denominator_1 * denominator_2)
-    degeneracy_float = float(degeneracy)
-    if degeneracy_float > np.iinfo(np.int64).max:
-        return degeneracy_float
-    return int(np.round(degeneracy_float))
+    # See the note in `energy_degeneracy` for why a float is returned above
+    # int64 (gh-2630).
+    numerator = factorial(N) * _ensure_int(2 * j + 1)
+    denominator_1 = factorial(_ensure_int(N / 2 + j + 1))
+    denominator_2 = factorial(_ensure_int(N / 2 - j))
+    degeneracy = numerator // (denominator_1 * denominator_2)
+    if degeneracy > np.iinfo(np.int64).max:
+        return float(degeneracy)
+    return degeneracy
 
 
 def m_degeneracy(N, m):
