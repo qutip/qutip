@@ -276,7 +276,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         op = qutip.destroy(self.size)
         op_and_rate_types = [
             ([op, rate], {}, "constant"),
-            ([op, '1 * {}'.format(rate)], {}, "string"),
+            ([op, f'1 * {rate}'], {}, "string"),
             ([op, lambda t: rate], {}, "function"),
             ([op, lambda t, w: rate], {"w": 1.0}, "function_with_args"),
         ]
@@ -311,7 +311,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         coupling = 0.2
         op = qutip.destroy(self.size)
         rate_args = {'constant': coupling, 'rate': 0.5}
-        rate_string = 'sqrt({} * exp(-t))'.format(coupling)
+        rate_string = f'sqrt({coupling} * exp(-t))'
         op_and_rate_types = [
             ([op, rate_string], {}, "string"),
             ([op, _return_decay], rate_args, "function"),

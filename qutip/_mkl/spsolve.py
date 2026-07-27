@@ -245,10 +245,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     dim = A.shape[0]
     solver_args = _default_solver_args()
-    if set(kwargs) - set(solver_args):
+    left_over_args = set(kwargs) - set(solver_args)
+    if left_over_args:
         raise ValueError(
-            "Unknown keyword arguments pass to mkl_splu: {!r}"
-            .format(set(kwargs) - set(solver_args))
+            f"Unknown keyword arguments pass to mkl_splu: {left_over_args}"
         )
     solver_args.update(kwargs)
 
