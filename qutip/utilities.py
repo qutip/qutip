@@ -8,6 +8,8 @@ from __future__ import annotations
 
 __all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
+import math
+from fractions import Fraction
 from typing import Callable, Literal, Any
 
 import numpy as np
@@ -67,10 +69,22 @@ def _factorial_div(N, arr):
 
 
 def _to_long(arr):
-    prod = 1
+    """Exact value of ``prod (i + 1) ** arr[i]``, as a ``Fraction``.
+
+    A negative exponent makes ``(i + 1) ** v`` a float, so accumulating the
+    product with ``*=`` silently left integer arithmetic and then underflowed
+    to ``0.0`` for large angular momenta. Splitting the positive and negative
+    exponents keeps both halves exact Python integers.
+    """
+    numerator = 1
+    denominator = 1
     for i, v in enumerate(arr):
-        prod *= (i+1)**int(v)
-    return prod
+        v = int(v)
+        if v > 0:
+            numerator *= (i + 1) ** v
+        elif v < 0:
+            denominator *= (i + 1) ** -v
+    return Fraction(numerator, denominator)
 
 
 def clebsch(j1, j2, j3, m1, m2, m3):
@@ -119,7 +133,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+    c_squared = Fraction(int(2 * j3 + 1)) * _to_long(c_factor)
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
@@ -136,7 +150,15 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     numerators = s_factors + common_denominator
     S = sum([(-1)**i * _to_long(vec) for i, vec in enumerate(numerators)]) * \
         sign / _to_long(common_denominator)
-    return C * S
+    if S == 0:
+        return 0.0
+    # `C` and `S` separately fall outside the float range long before their
+    # product does -- the coefficient itself is at most 1 -- so form the
+    # square of the product as an exact rational and take its square root,
+    # rather than multiplying two floats that have already overflowed. The
+    # sign is taken from the exact `S`, since `float(S)` overflows too.
+    magnitude = math.sqrt(c_squared * S * S)
+    return -magnitude if S < 0 else magnitude
 
 
 # -----------------------------------------------------------------------------
