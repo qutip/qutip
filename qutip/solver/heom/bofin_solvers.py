@@ -1006,7 +1006,7 @@ class HEOMSolver(Solver):
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = self.rhs(0).to("CSR").data.copy().as_scipy() # returns csr_array
+        L = self.rhs(0).to("CSR").data.copy().as_scipy()  # returns csr_array
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()

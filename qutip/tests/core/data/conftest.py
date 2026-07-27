@@ -6,10 +6,10 @@ import qutip
 
 def shuffle_indices_scipy_csr(matrix, gen=None):
     """
-    Given a scipy.sparse.csr_matrix, shuffle the indices within each row and
-    return a new array.  This should represent the same matrix, but in the less
-    efficient, "unsorted" manner.  All mathematical operations should still
-    work the same after this, but may be slower.
+    Given a scipy CSR matrix or array, shuffle the indices within each row and
+    return a new object of the same type.  This should represent the same
+    matrix, but in the less efficient, "unsorted" manner.  All mathematical
+    operations should still work the same after this, but may be slower.
 
     This is not guaranteed to change the order of the indices in every case.
     If there is at most one value per row, there is no unsorted order.  In
@@ -33,12 +33,13 @@ def shuffle_indices_scipy_csr(matrix, gen=None):
     return out
 
 
-def random_scipy_dia(shape, density, sort=False, gen=None):
+def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
     """
     Generate a random scipy dia matrix with the given shape, density.
 
     An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
+    If not provided one will be created.  Pass ``sparray=False`` to generate a
+    legacy ``dia_matrix`` instead of a ``dia_array``.
     """
     if gen is None:
         gen = np.random.default_rng()
@@ -63,7 +64,8 @@ def random_scipy_dia(shape, density, sort=False, gen=None):
         order = np.argsort(offsets)
         offsets = [offsets[i] for i in order]
         data = [data[i] for i in order]
-    return scipy.sparse.diags(data, offsets, shape=shape).todia()
+    dia_container = scipy.sparse.diags_array if sparray else scipy.sparse.diags
+    return dia_container(data, offsets=offsets, shape=shape).todia()
 
 
 def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
