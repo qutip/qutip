@@ -64,8 +64,8 @@ def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
         order = np.argsort(offsets)
         offsets = [offsets[i] for i in order]
         data = [data[i] for i in order]
-    dia_container = scipy.sparse.diags_array if sparray else scipy.sparse.diags
-    return dia_container(data, offsets=offsets, shape=shape).todia()
+    dia = scipy.sparse.diags(data, offsets=offsets, shape=shape)
+    return scipy.sparse.dia_array(dia) if sparray else dia.todia()
 
 
 def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
