@@ -225,7 +225,7 @@ cdef class CSR(base.Data):
 
     cpdef object as_scipy(self, bint full=False):
         """
-        Get a view onto this object as a `scipy.sparse.csr_matrix`.  The
+        Get a view onto this object as a `scipy.sparse.csr_array`.  The
         underlying data structures are exposed, such that modifications to the
         `data`, `indices` and `indptr` buffers in the resulting object will
         modify this object too.
