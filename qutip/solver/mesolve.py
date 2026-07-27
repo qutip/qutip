@@ -233,9 +233,16 @@ class MESolver(SESolver):
         self._num_collapse = len(c_ops)
         # The Liouvillian assembled from Hamiltonian and collapse operators
         # preserves Hermiticity by construction.  User-supplied superoperators
-        # do not carry that guarantee.
+        # are safe only when the Qobj is known to be Hermiticity-preserving
+        # (``Qobj.ishp``).  Check before any ``QobjEvo`` conversion — only
+        # ``Qobj`` carries that flag.  A time-dependent superoperator
+        # ``QobjEvo`` cannot be certified from a single-time ``ishp`` probe.
+        h_preserves = (
+            not H.issuper
+            or (isinstance(H, Qobj) and H.ishp)
+        )
         self._rhs_preserves_hermiticity = (
-            not H.issuper and not any(c_op.issuper for c_op in c_ops)
+            h_preserves and not any(c_op.issuper for c_op in c_ops)
         )
 
         # Check for matrix_form option

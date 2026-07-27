@@ -1052,3 +1052,20 @@ def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
     )
 
     assert result.final_state._isherm is True
+
+
+def test_mesolve_caches_isherm_for_ishp_superoperator():
+    """Constant Hermiticity-preserving superoperators may use the fast path."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    L = qutip.liouvillian(qutip.sigmaz(), c_ops=[qutip.sigmam()])
+    assert L.issuper and L.ishp
+
+    result = mesolve(
+        L,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
+    assert result.final_state.isherm is True
