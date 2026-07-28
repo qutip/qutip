@@ -1,0 +1,1 @@
+Fix typehint for tensor() function when passing iterables like list, tuples etc.
