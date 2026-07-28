@@ -1792,9 +1792,6 @@ class TestHEOMResult:
         return rho, ado_soln
 
     def test_create_ado_states_attribute(self):
-        # The attributes exist even when store_ados is False (result objects
-        # expose all attributes regardless of what is stored), so accessing
-        # final_ado_state never raises an AttributeError.
         options = fill_options()
         result = HEOMResult(e_ops=[], options=options)
         assert result.final_ado_state is None
@@ -1808,8 +1805,6 @@ class TestHEOMResult:
         assert result.store_ados is True
 
     def test_final_ado_state_none_when_ados_not_stored(self):
-        # Accessing final_ado_state on a populated result with
-        # store_ados=False returns None rather than raising AttributeError.
         options = fill_options()
         result = HEOMResult(e_ops=[], options=options)
 

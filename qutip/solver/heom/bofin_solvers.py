@@ -391,10 +391,6 @@ class HEOMResult(Result):
         super()._post_init()
 
         self.store_ados = self.options["store_ados"]
-        # Always initialize these attributes so that accessing them does not
-        # raise an AttributeError when store_ados is False (result objects
-        # expose all attributes even when the corresponding data is not
-        # stored, e.g. Result.states when store_states is False).
         self._final_ado_state = None
         self.ado_states = []
 
