@@ -7,9 +7,10 @@ __all__ = [
     'expand_operator'
 ]
 
-import numpy as np
+from collections.abc import Iterable
 from functools import partial
 from typing import TypeVar, overload
+import numpy as np
 
 from .operators import qeye
 from .qobj import Qobj
@@ -20,7 +21,6 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
-from .. import settings
 from ..typing import LayerType
 
 
@@ -32,12 +32,17 @@ class _reverse_partial_tensor:
     def __call__(self, op):
         return tensor(op, self.right)
 
-
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
 
 @overload
 def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+@overload
+def tensor(args: Iterable[Qobj], /) -> Qobj: ...
+
+@overload
+def tensor(args: Iterable[Qobj | QobjEvo], /) -> QobjEvo: ...
 
 def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
