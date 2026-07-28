@@ -35,7 +35,7 @@ jobs:
         condaforge: [1]
         numpy-build: [""]
         numpy-requirement: [""]
-        scipy-requirement: [">=1.15"]
+        scipy-requirement: [">=1.13"]
         coverage-requirement: ["==6.5"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # Extra special cases.  In these, the new variable defined should always
@@ -80,7 +80,7 @@ jobs:
             python-version: "3.11"
             numpy-build: ">=1.23.5,<1.24.0"
             numpy-requirement: ">=1.23.5,<1.24.0"
-            scipy-requirement: ">=1.15,<1.16"
+            scipy-requirement: ">=1.13,<1.14"
             semidefinite: 1
             oldcython: 1
             oldmpl: 1
