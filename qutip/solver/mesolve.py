@@ -239,7 +239,7 @@ class MESolver(SESolver):
         # ``QobjEvo`` cannot be certified from a single-time ``ishp`` probe.
         h_preserves = (
             not H.issuper
-            or (isinstance(H, Qobj) and H.ishp)
+            or (isinstance(H, Qobj) and getattr(H, "ishp", False))
         )
         self._rhs_preserves_hermiticity = (
             h_preserves and not any(c_op.issuper for c_op in c_ops)
