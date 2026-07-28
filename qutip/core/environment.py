@@ -26,6 +26,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import eigvalsh
 from scipy.interpolate import CubicSpline
+from scipy.fft import next_fast_len
 import scipy.special
 
 try:
@@ -2051,6 +2052,8 @@ def _fft(f, wMax, tMax):
     numSamples = int(
         max(500, np.ceil(2 * tMax * 4 * wMax / np.pi + 1))
     )
+    # rounds up samples for faster computation
+    numSamples = next_fast_len(numSamples) 
     t, dt = np.linspace(-tMax, tMax, numSamples, retstep=True)
     f_values = f(t)
 
@@ -3653,14 +3656,14 @@ class _FermionicEnvironment_fromPS(FermionicEnvironment):
 
 
 class _FermionicEnvironment_fromCF(FermionicEnvironment):
-    def __init__(self, Cp, Cm, wlist, tMax, T, mu, tag, args):
+    def __init__(self, Cp, Cm, tlist, tMax, T, mu, tag, args):
         super().__init__(T, mu, tag)
         self._cfp = _complex_interpolation(
-            Cp, wlist, 'correlation function', args)
+            Cp, tlist, 'correlation function', args)
         self._cfm = _complex_interpolation(
-            Cm, wlist, 'correlation function', args)
-        if wlist is not None:
-            self.tMax = max(np.abs(wlist[0]), np.abs(wlist[-1]))
+            Cm, tlist, 'correlation function', args)
+        if tlist is not None:
+            self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
         else:
             self.tMax = tMax
 
@@ -3729,14 +3732,14 @@ class _FermionicEnvironment_fromCF(FermionicEnvironment):
             raise ValueError('The chemical potential must be specified for '
                              'this operation.')
         if w.ndim == 0:
-            tMax = np.abs(w)
+            wMax = np.abs(w)
         elif len(w) == 0:
             return np.array([])
         else:
-            tMax = max(np.abs(w[0]), np.abs(w[-1]))
+            wMax = max(np.abs(w[0]), np.abs(w[-1]))
 
         result_fct = _fft(lambda w: self.correlation_function_minus(w).conj(),
-                          tMax, tMax=self.tMax)
+                          wMax, tMax=self.tMax)
         result = result_fct(w).real  # neglect small imaginart part due to
         # floating point error
         return result
