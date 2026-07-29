@@ -295,9 +295,6 @@ class CompilationOptions(QutipOptions):
     _compiler_flags = ""
     if sys.platform == 'win32':
         _compiler_flags = ''
-    elif sys.platform == 'darwin':
-        _compiler_flags = '-w -O3 -funroll-loops -mmacosx-version-min=10.9'
-        _link_flags += '-mmacosx-version-min=10.9'
     else:
         _compiler_flags = '-w -O3 -funroll-loops'
 
@@ -594,6 +591,25 @@ cdef class StrCoefficient(Coefficient):
     return code
 
 
+def _coeff_include_dirs():
+    """Include directories for compiling a generated coefficient module.
+
+    qutip's data-layer .pxd files declare cdef extern from "src/intdtype.h",
+    so the directory containing src/ must be on the include path.
+    """
+    data_dir = Path(__file__).resolve().parent / "data"
+    header = data_dir / "src" / "intdtype.h"
+    if not header.is_file():
+        raise RuntimeError(
+            f"cannot compile string coefficients: {header} is missing. This "
+            "header is generated at build time; the installation may be "
+            "incomplete. Reinstall qutip, or set "
+            "qutip.settings.compile['use_cython'] = False to fall back on "
+            "eval for string coefficients."
+        )
+    return [np.get_include(), str(data_dir)]
+
+
 def compile_code(code, file_name, parsed, c_opt):
     pwd = os.getcwd()
     os.chdir(qset.coeffroot)
@@ -615,7 +631,7 @@ def compile_code(code, file_name, parsed, c_opt):
                 sources=[file_name + ".pyx"],
                 extra_compile_args=c_opt['compiler_flags'].split(),
                 extra_link_args=c_opt['link_flags'].split(),
-                include_dirs=[np.get_include()],
+                include_dirs=_coeff_include_dirs(),
                 language='c++'
             )
             # Pass path to QuTiP's root directory to cythonize

@@ -1,4 +1,4 @@
-# Generate src/intdtype.h into the *source* tree. It has to be there, not just
+# Generate src/intdtype.h into the source tree. It has to be there, not just
 # in the build dir, because qutip/core/coefficient.py compiles string
 # coefficients at runtime with its own setuptools invocation.
 
@@ -21,7 +21,7 @@ qutip_dep = declare_dependency(
   include_directories: include_directories('core/data'),
 )
 
-# -- Include .py, .pxd, .pxi, .pyi, .ini ---
+# -- Install all the main modules ---
 py3.install_sources(
   [
     '__init__.py', 'about.py', 'animation.py', 'bloch.py', 'cite.py',
@@ -38,7 +38,7 @@ foreach pkg : ['core', 'solver', 'ui', '_mkl', 'legacy', 'piqs', 'tests']
   install_subdir(
     pkg,
     install_dir: py3.get_install_dir() / 'qutip',
-    exclude_directories: ['__pycache__'],
+    exclude_directories: ['__pycache__', '.pytest_cache'],
   )
 endforeach
 
@@ -71,12 +71,12 @@ foreach reldir, names : cy_modules
   endforeach
 endforeach
 
+# ---- these two need more than the default ----
 py3.extension_module(
   '_distributions', '_distributions.pyx',
   dependencies: [qutip_dep], install: true, subdir: 'qutip',
 )
 
-# ---- these two need more than the default ----
 py3.extension_module(
   'matmul',
   [
