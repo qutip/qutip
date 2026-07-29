@@ -1,1 +1,1 @@
-Raise the minimum supported SciPy version to 1.13, and the minimum NumPy version to 1.22.4 as required by SciPy 1.13.
+Raise the minimum supported SciPy version to 1.13, and the minimum NumPy version to 1.25.2.
