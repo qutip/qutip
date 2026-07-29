@@ -63,33 +63,12 @@ def coefficient_function_parameters(func, style=None):
     if style is None:
         style = qutip.settings.core["function_coefficient_style"]
     if style == "auto":
-        parameter_names = tuple(sig.parameters.keys())
-        if parameter_names == ("t", "args") and not f_has_kw:
+        if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
             # if the signature is exactly f(t, args), then assume parameters
             # are supplied in an argument dictionary
             style = "dict"
         else:
             style = "pythonic"
-            if (
-                len(parameter_names) == 2
-                and parameter_names[1] == "args"
-                and not f_has_kw
-            ):
-                # Looks like an attempt at the dict signature, but the
-                # detection above requires the first parameter to be named
-                # exactly `t`, so this is silently called as f(t, **kwargs)
-                # and `args` receives a single entry of the dictionary
-                # instead of the whole thing.
-                warnings.warn(
-                    f"The signature f({parameter_names[0]}, args) is treated"
-                    " as the pythonic style and called as f(t, **kwargs), so"
-                    " `args` will receive one entry of the dictionary, not"
-                    " the dictionary itself. Detection of the (deprecated)"
-                    " dict signature requires the first parameter to be named"
-                    f" exactly 't', not '{parameter_names[0]}'. Rename it to"
-                    " 't', or pass function_style explicitly.",
-                    UserWarning
-                )
     if style == "dict":
         warnings.warn(
             "The signature f(t, args) is deprecated and will be removed in "
