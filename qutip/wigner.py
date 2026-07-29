@@ -348,7 +348,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel, offset=0):
     # compute wigner functions for density matrices |m><n| and
     # weight by all the elements in the density matrix
     B = 4 * abs(A) ** 2
-    if sp.isspmatrix_csr(rho.data):
+    if sp.issparse(rho.data):
         # for compress sparse row matrices
         if parallel:
             iterator = (
