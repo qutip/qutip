@@ -140,7 +140,9 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
-
+      - name: Silence conda-pypi promo notice
+        if: matrix.os != 'windows-11-arm'
+        run: conda config --set plugins.conda_pypi_pip_warning false || true
       - name: Install pip
         if: matrix.os != 'windows-11-arm'
         shell: bash -l {0}
