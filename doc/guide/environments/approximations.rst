@@ -3,6 +3,12 @@
 Approximations
 --------------
 
+.. admonition:: Fermionic Environments
+
+    Approximation methods for fermionic environments are still under development.
+    Currently, they are not as flexible as in the Bosonic case, most notably they 
+    do not allow for using different exponents for the real and imaginary part of 
+    the correlation functions
 
 
 Approximating Bosonic Environments
@@ -285,8 +291,8 @@ Fermionic Environments:
             An identifier (name) for the approximated environment. If not
             provided, a tag will be generated from the tag of this environment.
 
-        Returns
-        -------
+        :Returns:
+        
         The approximated environment with multi-exponential correlation
         function.
 
@@ -756,7 +762,7 @@ Fermionic Environments:
 
 
 ``"sd"`` Fit Spectral Density :
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 Bosonic Environments (with Underdamped SDs): 
 ********************************************

@@ -3,11 +3,12 @@
 Fermionic Environments
 ----------------------
 
+
 Theory
 ~~~~~~
 
 The implementation of fermionic environments in QuTiP is not yet as advanced as the bosonic environments.
-Currently, user-defined fermionic environments and fitting are not implemented.
+User-Defined enironments, and fitting  is less flexible than its bosonic counterpart.
 
 However, the overall structure of fermionic environments in QuTiP is analogous to the bosonic environments.
 There is one pre-defined fermionic environment, the Lorentzian environment, and multi-exponential fermionic environments.
@@ -61,6 +62,7 @@ Pre-defined Environments
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _lorentzian env guide:
+
 Lorentzian Environment
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -132,9 +134,17 @@ specifying either the spectral density, the correlation functions, or the power 
 QuTiP then computes the other functions based on the provided ones. 
 
 For example to go from the spectral density to the power spectra one uses 
-:math:`S^{\sigma}(\omega) = J(\omega)  f_F(\sigma\beta[\omega - \mu]) `
+
+.. math::
+
+    S^{\sigma}(\omega) = J(\omega)  f_{F}( \sigma \beta[ \omega - \mu ] ) ,
+
 or from the power spectra to the spectral density 
-:math:`S^+(\omega) + S^-(\omega) = J(\omega)`
+
+.. math::
+
+    S^+(\omega) + S^-(\omega) = J(\omega),
+
 Using these, and the fast fourier transform all characteristic functions can be computed from the specified ones.
 
 The former calculation requires the temperature, and chemical potential  of the environment to be specified; the latter requires a cutoff frequency (or cutoff time)
