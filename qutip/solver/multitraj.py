@@ -439,7 +439,8 @@ class _InitialConditions:
             raise ValueError('Each initial state must be use for at least '
                              'one trajectory')
 
-    def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
+    @classmethod
+    def _minimum_roundoff_ensemble(cls, state_list, ntraj_total):
         """
         Calculate a list ntraj from the given total number, under contraints
         explained above. Algorithm based on https://stackoverflow.com/a/792490
