@@ -231,6 +231,15 @@ def dicke_blocks_full(rho):
         block_position = block_position + block_size
         j = N / 2 - k
         djn = state_degeneracy(N, j)
+        if not isinstance(djn, int):
+            # `state_degeneracy` returns a float once the value exceeds an
+            # int64 (gh-2630). This function expands the state into one block
+            # per degenerate state, so such an N is out of reach regardless;
+            # say so rather than letting `range` raise a bare TypeError.
+            raise ValueError(
+                f"dicke_blocks_full cannot expand N = {N}: the j = {j} block"
+                f" has degeneracy {djn:.3g}, too large to enumerate."
+            )
         for block_counter in range(0, djn):
             full_blocks.append(square_block / djn)  # preserve trace
         k = k + 1
