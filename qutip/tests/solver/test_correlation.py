@@ -97,20 +97,7 @@ def test_spectrum_correlation_fft_lorentzian_from_onesided_exp():
 
     # Analytical Fourier transform of exp(-γ|t|) is 2γ / (γ² + ω²).
     expected = 2 * gamma / (gamma**2 + ws**2)
-    i0 = np.argmin(np.abs(ws))
-    i10 = np.argmin(np.abs(ws - 10.0))
-    # Shape check: Lorentzian peak-to-tail ratio (independent of overall scale).
-    # One-sided FFT + 2*Re() historically undershoots this (~68 vs 101).
-    np.testing.assert_allclose(
-        spec[i0] / spec[i10],
-        expected[i0] / expected[i10],
-        rtol=0.05,
-    )
-    scale = expected[i0] / spec[i0]
-    band = np.abs(ws) < 20.0
-    np.testing.assert_allclose(
-        spec[band] * scale, expected[band], rtol=0.02, atol=0.02,
-    )
+    np.testing.assert_allclose(spec, expected, rtol=0.02, atol=0.02)
 
 
 def _trapz_2d(z, xy):

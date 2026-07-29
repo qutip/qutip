@@ -81,12 +81,6 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     w, S : tuple
         Angular frequencies ``w`` and the corresponding two-sided power
         spectrum ``S(w)``.
-
-    Notes
-    -----
-    The transform uses a full two-sided FFT (same convention as the helper
-    in :mod:`qutip.core.environment`), which converges better than a
-    one-sided FFT with a factor-of-two correction.
     """
     tlist = np.asarray(tlist)
     y = np.asarray(y, dtype=complex)
@@ -97,8 +91,9 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
         raise ValueError('tlist must be equally spaced for FFT.')
 
-    # Expand one-sided input (t >= 0) to a Hermitian two-sided correlation.
-    if tlist[0] >= -np.finfo(float).eps:
+    # One-sided grids start near t=0; compare against the step size so
+    # tiny physical time units (e.g. femtoseconds) are handled correctly.
+    if tlist[0] > -0.5 * abs(dt):
         tlist = np.concatenate((-tlist[:0:-1], tlist))
         y = np.concatenate((np.conj(y[:0:-1]), y))
         N = tlist.shape[0]
@@ -109,12 +104,9 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
         F = scipy.fftpack.fft(y)
     f = scipy.fftpack.fftfreq(N, dt)
     w = 2 * np.pi * f
-    # Phase factor for continuous FT when samples start at tlist[0] (typically
-    # -t_max after the one-sided expansion). Matches environment._fft.
+    # Align discrete FFT phase with samples that begin at tlist[0].
     F = F * np.exp(1j * w * (-tlist[0]))
     idx = np.argsort(f)
-    # Two-sided sampling already includes both positive and negative times,
-    # so scale with dt (not 2*dt).
     return w[idx], dt * np.real(F[idx])
 
 
