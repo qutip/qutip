@@ -78,8 +78,8 @@ jobs:
           - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.11"
-            numpy-build: ">=1.23.5,<1.24.0"
-            numpy-requirement: ">=1.23.5,<1.24.0"
+            numpy-build: ">=1.26.4,<1.27.0"
+            numpy-requirement: ">=1.26.4,<1.27.0"
             scipy-requirement: ">=1.13,<1.14"
             semidefinite: 1
             oldcython: 1
