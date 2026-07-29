@@ -292,11 +292,7 @@ class CompilationOptions(QutipOptions):
         cythonize's build_dir.
     """
     _link_flags = ""
-    _compiler_flags = ""
-    if sys.platform == 'win32':
-        _compiler_flags = ''
-    else:
-        _compiler_flags = '-w -O3 -funroll-loops'
+    _compiler_flags = '-w -O3 -funroll-loops'
 
     try:
         import cython
