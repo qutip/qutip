@@ -623,22 +623,17 @@ class TestDicke:
         """
         int64_max = np.iinfo(np.int64).max
 
-        # Small systems keep exact integer degeneracies (backwards compat).
+        # The degeneracies are exact Python ints at every N, including sizes
+        # that overflow an int64.
         for func in (state_degeneracy, energy_degeneracy):
-            val = func(10, 0)
+            assert isinstance(func(10, 0), int)
+            val = func(80, 0)
             assert isinstance(val, int)
-            assert np.array([val]).dtype != np.dtype(object)
+            assert val > int64_max
 
-        # N = 80 overflows int64: values must come back as floats so that
-        # arrays/sparse routines receive float64, not object, dtype.
-        sd = state_degeneracy(80, 0)
-        ed = energy_degeneracy(80, 0)
-        assert sd > int64_max
-        assert ed > int64_max
-        assert isinstance(sd, float)
-        assert isinstance(ed, float)
-        assert np.array([sd]).dtype == np.dtype(np.float64)
-        assert np.array([ed]).dtype == np.dtype(np.float64)
+        # The conversion to float happens at the numpy boundary, so the
+        # routines that consume them still build numeric arrays rather than
+        # falling back to `object` dtype and breaking SciPy.
 
         # The reported reproducer must no longer raise and must return a
         # valid sparse matrix of the expected shape.

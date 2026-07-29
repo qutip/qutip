@@ -231,15 +231,6 @@ def dicke_blocks_full(rho):
         block_position = block_position + block_size
         j = N / 2 - k
         djn = state_degeneracy(N, j)
-        if not isinstance(djn, int):
-            # `state_degeneracy` returns a float once the value exceeds an
-            # int64 (gh-2630). This function expands the state into one block
-            # per degenerate state, so such an N is out of reach regardless;
-            # say so rather than letting `range` raise a bare TypeError.
-            raise ValueError(
-                f"dicke_blocks_full cannot expand N = {N}: the j = {j} block"
-                f" has degeneracy {djn:.3g}, too large to enumerate."
-            )
         for block_counter in range(0, djn):
             full_blocks.append(square_block / djn)  # preserve trace
         k = k + 1
@@ -267,7 +258,10 @@ def dicke_function_trace(f, rho):
     degen_blocks = np.flip(j_vals(N))
     state_degeneracies = []
     for j in degen_blocks:
-        dj = state_degeneracy(N, j)
+        # `state_degeneracy` is an exact Python int, which numpy would turn
+        # into an `object` array once it exceeds an int64 (gh-2630); the value
+        # is only used to scale here, so a float is enough.
+        dj = float(state_degeneracy(N, j))
         state_degeneracies.append(dj)
     eigenvals_degeneracy = []
     deg = []
@@ -621,20 +615,13 @@ def energy_degeneracy(N, m):
 
     Returns
     -------
-    degeneracy: int or float
-        The energy degeneracy. An ``int`` is returned when the value fits in a
-        NumPy ``int64``; otherwise a ``float`` is returned.
+    degeneracy: int
+        The energy degeneracy, exact at any ``N``.
     """
-    # A float is returned above int64 so that arrays built from the result keep
-    # a numeric dtype (float64) instead of falling back to `object`, which the
-    # downstream SciPy sparse routines do not support (gh-2630).
     numerator = factorial(N)
     d1 = factorial(_ensure_int(N / 2 + m))
     d2 = factorial(_ensure_int(N / 2 - m))
-    degeneracy = numerator // (d1 * d2)
-    if degeneracy > np.iinfo(np.int64).max:
-        return float(degeneracy)
-    return degeneracy
+    return numerator // (d1 * d2)
 
 
 def state_degeneracy(N, j):
@@ -656,21 +643,15 @@ def state_degeneracy(N, j):
 
     Returns
     -------
-    degeneracy: int or float
-        The state degeneracy. An ``int`` is returned when the value fits in a
-        NumPy ``int64``; otherwise a ``float`` is returned.
+    degeneracy: int
+        The state degeneracy, exact at any ``N``.
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
-    # See the note in `energy_degeneracy` for why a float is returned above
-    # int64 (gh-2630).
     numerator = factorial(N) * _ensure_int(2 * j + 1)
     denominator_1 = factorial(_ensure_int(N / 2 + j + 1))
     denominator_2 = factorial(_ensure_int(N / 2 - j))
-    degeneracy = numerator // (denominator_1 * denominator_2)
-    if degeneracy > np.iinfo(np.int64).max:
-        return float(degeneracy)
-    return degeneracy
+    return numerator // (denominator_1 * denominator_2)
 
 
 def m_degeneracy(N, m):
@@ -1522,7 +1503,8 @@ def block_matrix(N, elements="ones"):
             square_blocks.append(coo_array(np.ones((i, i))))
         elif elements == "degeneracy":
             j = N / 2 - k
-            dj = state_degeneracy(N, j)
+            # float for the same reason as in `dicke_function_trace`
+            dj = float(state_degeneracy(N, j))
             square_blocks.append(coo_array(dj * np.ones((i, i))))
         k = k + 1
     return block_diag(square_blocks)
