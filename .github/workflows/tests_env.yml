@@ -35,6 +35,7 @@ jobs:
         run: |
           # Install the extra requirement
           python -m pip install meson-python meson ninja # build
+          python -m pip install setuptools  # runtime string-coefficient compilation
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
           python -m pip install -e . -v --no-build-isolation
