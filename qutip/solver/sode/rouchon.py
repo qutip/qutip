@@ -130,6 +130,11 @@ class RouchonSODE(SIntegrator):
 
         return self.t, self.state, np.sum(dW, axis=0)
 
+    def get_state(self, copy=True):
+        # self.state can be modified inplace
+        state = state.copy() if copy else state
+        return self.t, state, self.wiener
+
     def _step(self, t, state, dt, dW):
         dy = [
             op.expect_data(t, state) * dt + dw
@@ -140,18 +145,28 @@ class RouchonSODE(SIntegrator):
         tmp = self.M.matmul_data(t, state, out=tmp, scale=dt)
         for i in range(self.num_collapses):
             tmp = self.sc_ops[i].matmul_data(t, state, out=tmp, scale=dy[i])
-            tmp = self.scc[i][i].matmul_data(t, state, out=tmp, scale=(dy[i]**2-dt)/2)
+            tmp = self.scc[i][i].matmul_data(
+                t, state, out=tmp, scale=(dy[i]**2 - dt) / 2
+            )
             for j in range(i):
-                tmp = self.scc[i][j].matmul_data(t, state, out=tmp, scale=dy[i]*dy[j])
+                tmp = self.scc[i][j].matmul_data(
+                t, state, out=tmp, scale=dy[i] * dy[j]
+            )
         if self._issuper:
             out = _data.imul(self._out, 0.)
             out = _data.iadd(out, tmp)
             out = self.M.adjoint_rmatmul_data(t, tmp, out=out, scale=dt)
             for i in range(self.num_collapses):
-                out = self.sc_ops[i].adjoint_rmatmul_data(t, tmp, out=out, scale=dy[i])
-                out = self.scc[i][i].adjoint_rmatmul_data(t, tmp, out=out, scale=(dy[i]**2-dt)/2)
+                out = self.sc_ops[i].adjoint_rmatmul_data(
+                    t, tmp, out=out, scale=dy[i]
+                )
+                out = self.scc[i][i].adjoint_rmatmul_data(
+                    t, tmp, out=out, scale=(dy[i]**2 - dt) / 2
+                )
                 for j in range(i):
-                    out = self.scc[i][j].adjoint_rmatmul_data(t, tmp, out=out, scale=dy[i]*dy[j])
+                    out = self.scc[i][j].adjoint_rmatmul_data(
+                        t, tmp, out=out, scale=dy[i] * dy[j]
+                    )
             for cop in self.c_ops:
                 tmp = _data.imul(self._tmp, 0.)
                 tmp = cop.matmul_data(t, state, out=tmp)
