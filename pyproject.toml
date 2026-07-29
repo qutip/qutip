@@ -2,8 +2,9 @@
 build-backend = 'mesonpy'
 requires = [
     "meson-python>=0.15.0",
+    "meson>=1.5",
     "packaging",
-    "cython>=3.1.0",
+    "cython>=3.0",
     "numpy>=2.0.0",
     "scipy>=1.9",
 ]

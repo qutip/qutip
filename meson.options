@@ -2,6 +2,10 @@ option('blas', type: 'string', value: 'openblas',
         description: 'option for BLAS library switching')
 option('lapack', type: 'string', value: 'openblas',
         description: 'option for LAPACK library switching')
+option('idxint_64', type: 'boolean', value: false,
+       description: 'Use 64-bit integers for sparse matrix indices. ' +
+                    'Allows matrices with more than 2**31 non-zero entries, ' +
+                    'at the cost of memory and some speed.')
 
 # See https://scipy.github.io/devdocs/building/blas_lapack.html for details
 option('use-ilp64', type: 'boolean', value: false,
@@ -16,15 +20,3 @@ option('blas-symbol-suffix', type: 'string', value: 'auto',
         description: 'BLAS and LAPACK symbol suffix to use, if any')
 option('mkl-threading', type: 'string', value: 'auto',
         description: 'MKL threading method, one of: `seq`, `iomp`, `gomp`, `tbb`')
-option('use-g77-abi', type: 'boolean', value: false,
-        description: 'If set to true, forces using g77 compatibility wrappers ' +
-                     'for LAPACK functions. The default is to use gfortran ' +
-                     'ABI for all LAPACK libraries except MKL.')
-option('use-pythran', type: 'boolean', value: true,
-        description: 'If set to false, disables using Pythran (it falls back ' +
-                     'to either pure Python code or Cython code, depending on ' +
-                     'the implementation).')
-option('use-system-libraries', type: 'array',
-        choices : ['none', 'all', 'auto', 'boost.math', 'qhull'], value : ['none'],
-        description: 'Choose which system libraries for subprojects ' +
-                     'if they are available.')
