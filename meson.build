@@ -1,6 +1,6 @@
 project(
   'qutip',
-  'c', 'cpp', 'cython',
+  'cpp', 'cython',
   version: files('VERSION'),
   license: 'BSD-3-Clause',
   meson_version: '>= 1.5.0',
@@ -14,10 +14,9 @@ project(
 py3 = import('python').find_installation(pure: false)
 py3_dep = py3.dependency()
 
-cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
-if not cc.has_header('Python.h', dependencies: py3_dep)
+if not cpp.has_header('Python.h', dependencies: py3_dep)
   error('Cannot compile Python.h')
 endif
 
@@ -37,29 +36,26 @@ np_dep = declare_dependency(
   compile_args: ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION'],
 )
 
-# ---- warning suppression, applied to C, C++ ----
+# ---- warning suppression, applied to C++ ----
 _warn_args = [
   '-Wno-unused-but-set-variable',
   '-Wno-unused-function',
   '-Wno-conversion',
   '-Wno-misleading-indentation',
 ]
-add_project_arguments(cc.get_supported_arguments(_warn_args), language: 'c')
 add_project_arguments(cpp.get_supported_arguments(_warn_args), language: 'cpp')
 
 if cpp.get_id() == 'msvc'
   add_project_arguments('/bigobj', language: 'cpp')
 elif cpp.get_id() == 'gcc'
   add_project_arguments('-Wno-psabi', language: 'cpp')
-endif
-
-if cc.get_id() == 'clang-cl'
+elif cpp.get_id() == 'clang-cl'
   add_project_arguments('-D_CRT_SECURE_NO_WARNINGS', '-Qunused-arguments',
-                        language: ['c', 'cpp'])
+                        language: 'cpp')
 endif
 
-if host_machine.system() == 'darwin' and cc.has_link_argument('-Wl,-dead_strip')
-  add_project_link_arguments('-Wl,-dead_strip', language: ['c', 'cpp'])
+if host_machine.system() == 'darwin' and cpp.has_link_argument('-Wl,-dead_strip')
+  add_project_link_arguments('-Wl,-dead_strip', language: 'cpp')
 endif
 
 subdir('qutip')
