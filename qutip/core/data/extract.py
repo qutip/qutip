@@ -1,11 +1,7 @@
 from . import Dense, CSR, Dia
 from .dispatch import Dispatcher as _Dispatcher
+from ._scipy_sparse import csr_as_matrix, dia_as_matrix
 import inspect as _inspect
-try:
-    from scipy.sparse import csr_array
-except ImportError:
-    csr_array = None
-from scipy.sparse import csr_matrix
 
 
 __all__ = ["extract"]
@@ -39,53 +35,69 @@ def extract_dense(matrix, format=None, copy=True):
 
 def extract_csr(matrix, format=None, copy=True):
     """
-    Return the scipy's object ``csr_matrix``.
+    Return the scipy CSR representation of the data object.
 
     Parameters
     ----------
     matrix : Data
         The matrix to convert to common type.
 
-    format : str, {"csr_matrix"}
-        Type of the output.
+    format : str or None, default: None
+        The scipy container to return.  ``"csr_array"`` returns a ``csr_array``;
+        ``"csr_matrix"`` returns the legacy ``csr_matrix``.  ``None`` (or
+        ``"scipy_csr"``) returns ``csr_matrix`` as long as SciPy supports
+        this type.
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
     """
-    if format not in [None, "scipy_csr", "csr_matrix"]:
+    if format not in [None, "scipy_csr", "csr_matrix", "csr_array"]:
         raise ValueError(
-            "CSR can only be extracted to 'csr_matrix'"
+            "CSR can only be extracted to 'csr_array' or 'csr_matrix'"
         )
-    csr_mat = matrix.as_scipy()
+    scipy_csr = matrix.as_scipy()
+    # TODO: remove upon SciPy deprecation of csr_matrix
+    if format != "csr_array":
+        # For backward compatibility, if csr_array was not explicitly
+        # requested by a user, we keep returning csr_matrix as long as
+        # it's supported in the minimum version of SciPy for qutip
+        scipy_csr = csr_as_matrix(scipy_csr)
     if copy:
-        csr_mat = csr_mat.copy()
-    return csr_mat
-
+        scipy_csr = scipy_csr.copy()
+    return scipy_csr
 
 def extract_dia(matrix, format=None, copy=True):
     """
-    Return the scipy's object ``dia_matrix``.
+    Return the scipy DIA representation of the data object.
 
     Parameters
     ----------
     matrix : Data
         The matrix to convert to common type.
 
-    format : str, {"dia_matrix"}
-        Type of the output.
+    format : str or None, default: None
+        The scipy container to return.  ``"dia_array"`` returns a ``dia_array``;
+        ``"dia_matrix"`` returns the legacy ``dia_matrix``.  ``None`` (or
+        ``"scipy_dia"``) returns ``dia_matrix`` as long as SciPy supports
+        this type.
 
     copy : bool, default: True
         Whether to pass a copy of the object or not.
     """
-    if format not in [None, "scipy_dia", "dia_matrix"]:
+    if format not in [None, "scipy_dia", "dia_matrix", "dia_array"]:
         raise ValueError(
-            "Dia can only be extracted to 'dia_matrix'"
+            "Dia can only be extracted to 'dia_array' or 'dia_matrix'"
         )
-    dia_mat = matrix.as_scipy()
+    scipy_dia = matrix.as_scipy()
+    # TODO: remove upon SciPy deprecation of dia_matrix
+    if format != "dia_array":
+        # For backward compatibility, if dia_array was not explicitly
+        # requested by a user, we keep returning dia_matrix as long as
+        # it's supported in the minimum version of SciPy for qutip
+        scipy_dia = dia_as_matrix(scipy_dia)
     if copy:
-        dia_mat = dia_mat.copy()
-    return dia_mat
-
+        scipy_dia = scipy_dia.copy()
+    return scipy_dia
 
 extract = _Dispatcher(
     _inspect.Signature([
@@ -102,21 +114,24 @@ extract = _Dispatcher(
     inputs=('matrix',),
     out=False,
 )
-extract.__doc__ =\
+
+extract.__doc__ = \
     """
     Return the common representation of the data layer object: scipy's
-    ``csr_matrix`` for ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for
-    ``JaxArray``, etc.
+    ``csr_array`` or ``csr_matrix`` (soon-to-be-deprecated; see
+    https://docs.scipy.org/doc/scipy/dev/roadmap-detailed.html#sparse) for
+    ``CSR``, numpy array for ``Dense``, Jax's ``Array`` for ``JaxArray``,
+    etc.
 
     Parameters
     ----------
     matrix : Data
         The matrix to convert to common type.
-
     format : str, default: None
-        Type of the output, "ndarray" for ``Dense``, "csr_array" for ``CSR``.
-        A ValueError will be raised if the format is not supported.
-
+        Type of the output: "ndarray" for ``Dense``; "csr_array"/
+        "csr_matrix" for ``CSR``; "dia_array"/"dia_matrix" for ``Dia``.
+        When ``None``, sparse types return their native ``sparray``
+        backing. A ValueError is raised if the format is not supported.
     copy : bool, default: True
         Whether to pass a copy of the object.
     """

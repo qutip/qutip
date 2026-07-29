@@ -260,7 +260,8 @@ class TestClassMethods:
         input.
         """
         data_csr = data.CSR(scipy_csr)
-        assert isinstance(data_csr.as_scipy(), scipy.sparse.csr_matrix)
+        assert scipy.sparse.issparse(data_csr.as_scipy())
+        assert data_csr.as_scipy().format == "csr"
         assert (data_csr.as_scipy() - scipy_csr).nnz == 0
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape, density):
@@ -302,7 +303,7 @@ class TestFactoryMethods:
         base = csr.empty(shape[0], shape[1], nnz)
         sci = base.as_scipy(full=True)
         assert isinstance(base, data.CSR)
-        assert isinstance(sci, scipy.sparse.csr_matrix)
+        assert scipy.sparse.issparse(sci)
         assert base.shape == shape
         assert sci.data.shape == (nnz,)
         assert sci.indices.shape == (nnz,)

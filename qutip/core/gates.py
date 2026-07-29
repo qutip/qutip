@@ -6,7 +6,6 @@ from functools import partial, reduce
 from operator import mul
 
 import numpy as np
-import scipy.sparse as sp
 from . import Qobj, qeye, sigmax, fock_dm, qdiags, qeye_like
 from .dimensions import Dimensions
 from .. import settings
