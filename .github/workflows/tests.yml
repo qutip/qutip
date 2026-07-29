@@ -206,7 +206,7 @@ jobs:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock matplotlib==3.6
+            python -m pip install cython==3.0 filelock matplotlib==3.6
           else
             python -m pip install cython filelock
           fi
