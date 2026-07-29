@@ -44,7 +44,7 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
-    "numpy>=1.22.4",
+    "numpy>=1.23.5",
     "scipy>=1.13,!=1.16.0,!=1.17.0",
     "packaging",
 ]
