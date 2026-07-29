@@ -1769,9 +1769,9 @@ class TestFermionicEnvironment:
                      {'tMax': 35, 'npoints': 300, 'tol': 1e-2},
                      id="Lorentzian finite T"),
         pytest.param(SemiCircularReference(T=0, W=1, delta=1, mu=1),
-                     {'tMax': 500, 'npoints': 500, 'tol': 1e-2},
+                     {'tMax': 50, 'npoints': 200, 'tol': 1e-2},
                      id="Semicircular zero T"),
-        # Same fft issue but in time it's super slow (see test_from_sd)
+        # Same fft issue but in time it's slow (see test_from_sd, improved with next_fast_len)
     ])
     @pytest.mark.parametrize(["interpolate", "provide_tmax"], [
         [False, False],   [False, True],   [True, False],

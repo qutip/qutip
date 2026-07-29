@@ -56,10 +56,13 @@ Since :math:`f_F(x) + f_F(-x) = 1`, we have :math:`S^+(\omega) + S^-(\omega) = J
     For the correlation functions, the condition becomes :math:`C^-(t) = \mathrm e^{-\beta\mu}\, C^+(t - \mathrm i\beta)^\ast`.
     For flexibility, we do not enforce the power spectra / correlation functions to be physical in this sense.
 
-.. _lorentzian env guide:
 
+Pre-defined Environments
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _lorentzian env guide:
 Lorentzian Environment
-~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^
 
 Fermionic Lorentzian environments are represented by the class :class:`.LorentzianEnvironment`.
 They are characterized by spectral densities of the form
@@ -118,6 +121,78 @@ This approach results in the exponents
     \end{cases} \;.
 
 
+User-Defined Environments
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As stated in the introduction, a Fermioic environment is fully characterized
+by its temperature and spectral density (SD), or alternatively by its correlation functions (CFs)
+or its power spectra (PS). QuTiP allows for the creation of an user-defined environment by
+specifying either the spectral density, the correlation functions, or the power spectra.
+
+QuTiP then computes the other functions based on the provided ones. 
+
+For example to go from the spectral density to the power spectra one uses 
+:math:`S^{\sigma}(\omega) = J(\omega)  f_F(\sigma\beta[\omega - \mu]) `
+or from the power spectra to the spectral density 
+:math:`S^+(\omega) + S^-(\omega) = J(\omega)`
+Using these, and the fast fourier transform all characteristic functions can be computed from the specified ones.
+
+The former calculation requires the temperature, and chemical potential  of the environment to be specified; the latter requires a cutoff frequency (or cutoff time)
+to be provided together with the specified function (SD, CF or PS).
+
+The following example manually creates an Lorentzian environment.
+It then compares the correlation function obtained via fast Fourier transformation with the Matsubara expansion.
+The slow convergence of the Matsubara expansion is visible around :math:`t=0`.
+
+.. plot::
+    :context: close-figs
+
+    import numpy as np
+    import qutip as qt
+    import matplotlib.pyplot as plt
+
+    # Define Lorentzian environment parameters
+    T = 0.1
+    W = 1.0
+    gamma = 20.0
+    w0 = 5.0
+    mu = -1.0
+
+    # User-defined environment based on Spectral Density
+    def lorentzian_sd(w):
+        return gamma * W**2 / ((w - w0)**2 + W**2)
+
+    user_env = qt.FermionicEnvironment.from_spectral_density(
+        J=lorentzian_sd, wMax=200, T=T, mu=mu
+    )
+
+    tlist = np.linspace(-8, 8, 400)
+    env_corr = user_env.correlation_function_plus(tlist)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    ax1.plot(tlist, env_corr.real, label="FFT", color="black", linestyle="-")
+
+    lorentz_env = qt.LorentzianEnvironment(T=T, mu=mu, gamma=gamma, W=W, omega0=w0)
+    linestyles = ["--", "-.", ":"]
+    
+    for Nk, ls in zip([1, 5, 15], linestyles):
+        approx_env = lorentz_env.approximate("pade", Nk)
+        approx_corr = approx_env.correlation_function_plus(tlist)
+        
+        line = ax1.plot(tlist, approx_corr.real, ls, label=f"Nk={Nk}")
+        abs_error = np.abs(approx_corr - env_corr)
+        ax2.plot(tlist, abs_error , ls, color=line[0].get_color(), label=f"Nk={Nk}")
+
+    ax1.set_ylabel(r"$\Re(C(t))$")
+    ax1.legend()
+    ax1.set_ylim(-0.1, 0.4)
+
+    ax2.set_yscale("log")
+    ax2.set_xlabel("t")
+    ax2.set_ylabel(r"$|C_{\mathrm{FFT}} - C_{\mathrm{Pade}}|$")
+
+    plt.tight_layout()
+
 Multi-Exponential Fermionic Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -135,3 +210,10 @@ In this case, they are
     S^\sigma(\omega) = \sum_{k=0}^{N_k^\sigma} 2\Re\Bigr[ \frac{c_k^\sigma}{\nu_k^\sigma + \mathrm i \sigma\, \omega} \Bigr]
 
 and :math:`J(\omega) = S^+(\omega) + S^-(\omega)`.
+
+In the previous section, we saw that :meth:`approximate<.FermionicEnvironment.approximate>`
+function provides ways to obtain such multi-exponential approximations.
+The methods available depend on the type on environment and can be found in
+:ref:`this section<environment approximations guide>`. The most important distinction with respect to the 
+Bosonic counterpart is that in Fermionic Environments, we need to fit two correlation functions, or two power 
+spectra as opposed to one.

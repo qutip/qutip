@@ -2589,8 +2589,7 @@ class FermionicEnvironment(abc.ABC):
                     Np: int,
                     Nm: int,
                     combine: bool,
-                    tag: Any,
-                    separate: bool):
+                    tag: Any):
         ...
 
     @overload
@@ -2601,6 +2600,50 @@ class FermionicEnvironment(abc.ABC):
                     Np_max: int,
                     Nm_max: int,
                     tag: Any):
+        ...
+
+    @overload
+    def approximate( self,
+                    method: Literal['cf'],
+                    tlist: ArrayLike,
+                    target_rmse: float = 2e-5,
+                    Np_max: int = 3,
+                    Nm_max: int = 3,
+                    guess: list[float] = None,
+                    lower: list[float] = None,
+                    upper: list[float] = None,
+                    sigma: float | ArrayLike = None,
+                    maxfev: int = None,
+                    tag: Any = None,):
+        ...
+    @overload
+    def approximate( self,
+                    method: Literal['ps'],
+                    wlist: ArrayLike,
+                    target_rmse: float = 1e-3,
+                    Np_max: int = 5,
+                    Nm_max: int = 5,
+                    guess: list[float] = None,
+                    lower: list[float] = None,
+                    upper: list[float] = None,
+                    sigma: float | ArrayLike = None,
+                    maxfev: int = None,
+                    tag: Any = None,):
+        ...
+
+    @overload
+    def approximate( self,
+                    method: Literal['sd'],
+                    wlist: ArrayLike,
+                    Nk: int = 1,
+                    target_rmse: float = 1e-3,
+                    Nmax: int = 10,
+                    guess: list[float] = None,
+                    lower: list[float] = None,
+                    upper: list[float] = None,
+                    sigma: float | ArrayLike = None,
+                    maxfev: int = None,
+                    tag: Any = None,):
         ...
     # --- fitting
 
@@ -2639,13 +2682,12 @@ class FermionicEnvironment(abc.ABC):
 
         func = dispatch[method.lower()][0]
         return func(method, *args, **kwargs)
-    # TODO: Discuss about fitting fermi instead :) like in the Xu paper
 
     def _approx_by_aaa(
         self,
         method: str,
         wlist: ArrayLike,
-        tol: float = 1e-30,
+        tol: float = 0,
         Np_max: int = 10,
         Nm_max: int = 10,
         tag: Any = None,
@@ -2660,8 +2702,7 @@ class FermionicEnvironment(abc.ABC):
                           max_iter=Np_max * 2)
         pol = result_plus['poles']
         res = result_plus['residues']
-        mask = np.imag(pol) < 0  # opposite convention as bosonic
-
+        mask = np.imag(pol) < 0  
         new_pols, new_res = pol[mask], res[mask]
 
         vk = 1j * new_pols
@@ -2728,7 +2769,6 @@ class FermionicEnvironment(abc.ABC):
         upper: list[float] = None,
         sigma: float | ArrayLike = None,
         maxfev: int = None,
-        full_ansatz: bool = False,
         tag: Any = None,
     ):
 
@@ -2919,7 +2959,7 @@ class LorentzianEnvironment(FermionicEnvironment):
 
     def __init__(
         self, T: float, mu: float, gamma: float, W: float,
-        omega0: float = None, *, Nk: int = 10, tag: Any = None
+        omega0: float = None, *, Nk: int = 50, tag: Any = None
     ):
         super().__init__(T, mu, tag)
 
@@ -2994,7 +3034,7 @@ class LorentzianEnvironment(FermionicEnvironment):
 
         result = np.sum([ck * np.exp(-np.asarray(vk * abs_t))
                          for ck, vk in zip(c, v)], axis=0)
-
+                         
         result = np.asarray(result, dtype=complex)
         result[t < 0] = np.conj(result[t < 0])
         return result.item() if t.ndim == 0 else result
@@ -3009,8 +3049,9 @@ class LorentzianEnvironment(FermionicEnvironment):
         w : array_like or float
             The frequency at which to evaluate the power spectrum.
         """
+        beta = None if self.T is None else (1 / self.T if self.T != 0 else np.inf)
 
-        return self.spectral_density(w) / (np.exp((w - self.mu) / self.T) + 1)
+        return self.spectral_density(w) *fermi_dirac(w, beta, self.mu)
 
     def power_spectrum_minus(
         self, w: float | ArrayLike
@@ -3024,8 +3065,9 @@ class LorentzianEnvironment(FermionicEnvironment):
         w : array_like or float
             The frequency at which to evaluate the power spectrum.
         """
+        beta = None if self.T is None else (1 / self.T if self.T != 0 else np.inf)
 
-        return self.spectral_density(w) / (np.exp((self.mu - w) / self.T) + 1)
+        return self.spectral_density(w) *fermi_dirac(w, -beta, self.mu)
 
     # --- overload region
 
@@ -3049,19 +3091,8 @@ class LorentzianEnvironment(FermionicEnvironment):
         method: Literal['matsubara', 'pade'],
         Nk: int,
         combine: bool = True,
-        compute_delta: Literal[False] = False,
         tag: Any = None
-    ) -> ExponentialBosonicEnvironment: ...
-
-    @overload
-    def approximate(
-        self,
-        method: Literal['matsubara', 'pade'],
-        Nk: int,
-        combine: bool = True,
-        compute_delta: Literal[True] = True,
-        tag: Any = None
-    ) -> tuple[ExponentialBosonicEnvironment, float]: ...
+    ) -> tuple[ExponentialFermionicEnvironment, float]: ...
 
     # endregion
 
@@ -3158,20 +3189,6 @@ class LorentzianEnvironment(FermionicEnvironment):
         return ExponentialFermionicEnvironment(
             ck_plus, vk_plus, ck_minus, vk_minus, T=self.T, mu=self.mu, tag=tag
         )
-
-    def approx_by_matsubara(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn(
-            'The API has changed. Please use approximate("matsubara", ...)'
-            ' instead of approx_by_matsubara(...).', FutureWarning)
-        return self.approximate("matsubara", *args, **kwargs)
-
-    def approx_by_pade(self, *args, **kwargs):
-        # TODO remove by 5.3
-        warnings.warn(
-            'The API has changed. Please use approximate("pade", ...)'
-            ' instead of approx_by_pade(...).', FutureWarning)
-        return self.approximate("pade", *args, **kwargs)
 
     def _matsubara_params(self, Nk, sigma):
         """ Calculate the Matsubara coefficients and frequencies. """

@@ -61,18 +61,22 @@ def fermi_dirac(w, beta, mu):
     """
     Return the average number of fermions in thermal and chemical equilibrium for a
     fermionic mode with frequency 'w', at the temperature described by
-    'beta' where :math:`\\beta = \\hbar/k_BT` and chemical potential
-    mu.
+    :math:`\\beta = \\hbar/k_BT` and chemical potential
+    :math:`\\mu`.
+
+    .. math::
+
+        FE(\\omega,\\mu,\\beta,\\sigma) = \\frac{1}{e^{\\sigma \\beta (\\omega - \\mu) } + 1}
 
     Parameters
     ----------
 
     w : float or ndarray
-        Frequency of the oscillator.
+        Energy of the particle.
 
     beta : float
         The inverse temperature in units of time
-        (or the same units as `1/w`).
+        (or the same units as `1/w`). The sign of beta is interpreted as :math:`\\sigma`
     mu : float
         The Chemical potential.
     Returns
