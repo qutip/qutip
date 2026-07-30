@@ -37,10 +37,25 @@ jobs:
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
           python -m pip install -e . -v --no-build-isolation
-      - name: Install QuTiP family package
-        run: |
           # jax cannot be installed from requirement (cpu vs gpu issue)
           python -m pip install jax[cpu]
+
+      - name: Pre-install development dependencies
+        if: ${{ matrix.repo == 'qutip-qoc' }}
+        run: |
+          python -m pip install jax[cpu]
+          cd ..
+          git clone https://github.com/qutip/qutip-jax.git
+          cd qutip-jax
+          if [[ $inputs.version == "release" ]]; then
+            # Checkout the latest tag as the latest release
+            git fetch --tags
+            git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
+          fi
+          python -m pip install .
+
+      - name: Install QuTiP family package
+        run: |
           cd ..
           git clone https://github.com/qutip/${{ matrix.repo }}.git
           cd ${{ matrix.repo }}
@@ -51,10 +66,13 @@ jobs:
           elif [[ "${{ inputs.version }}" ]]; then
             git checkout ${{ inputs.version }}
           fi
-          python -m pip install .[full]
+          python -m pip install .[full] --no-build-isolation
+
+
       - name: Print python environment
         run: |
           pip list
+
       - name: Run test
         run: |
           cd ../${{ matrix.repo }}
