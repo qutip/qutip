@@ -58,4 +58,10 @@ if host_machine.system() == 'darwin' and cpp.has_link_argument('-Wl,-dead_strip'
   add_project_link_arguments('-Wl,-dead_strip', language: 'cpp')
 endif
 
+install_subdir(
+  'qutip',
+  install_dir: py3.get_install_dir(),
+  exclude_files: ['meson.build'],
+  exclude_directories: ['__pycache__', 'tests/.pytest_cache'],
+)
 subdir('qutip')

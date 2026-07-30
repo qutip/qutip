@@ -21,28 +21,12 @@ qutip_dep = declare_dependency(
   include_directories: include_directories('core/data'),
 )
 
-# -- Install all the main modules ---
-py3.install_sources(
-  [
-    '__init__.py', 'about.py', 'animation.py', 'bloch.py', 'cite.py',
-    'continuous_variables.py', 'control.py', 'distributions.py', 'entropy.py',
-    'fileio.py', 'ipynbtools.py', 'matplotlib_utilities.py', 'measurement.py',
-    'partial_transpose.py', 'qip.py', 'random_objects.py', 'settings.py',
-    'simdiag.py', 'testing.py', 'tomography.py', 'typing.py', 'utilities.py',
-    'visualization.py', 'wigner.py',
-  ],
-  subdir: 'qutip',
+# ---- extension modules ----
+py3.extension_module(
+  '_distributions', '_distributions.pyx',
+  dependencies: [qutip_dep], install: true, subdir: 'qutip',
 )
 
-foreach pkg : ['core', 'solver', 'ui', '_mkl', 'legacy', 'piqs', 'tests']
-  install_subdir(
-    pkg,
-    install_dir: py3.get_install_dir() / 'qutip',
-    exclude_directories: ['__pycache__', '.pytest_cache'],
-  )
-endforeach
-
-# ---- extension modules ----
 cy_modules = {
   'core':              ['_brtools', '_brtensor'],
   'core/cy':           ['_element', 'coefficient', 'lindblad_matrix_form',
@@ -71,12 +55,7 @@ foreach reldir, names : cy_modules
   endforeach
 endforeach
 
-# ---- these two need more than the default ----
-py3.extension_module(
-  '_distributions', '_distributions.pyx',
-  dependencies: [qutip_dep], install: true, subdir: 'qutip',
-)
-
+# ---- explicitly compile .cpp files ----
 py3.extension_module(
   'matmul',
   [
