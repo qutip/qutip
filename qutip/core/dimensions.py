@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 import numpy as np
 import numbers
-import warnings
 from operator import getitem
 from functools import partial
 from typing import Any, Literal
@@ -952,12 +951,6 @@ class Dimensions(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], (list, tuple)):
-            if isinstance(args[0], tuple):
-                warnings.warn(
-                    f"{args[0]} tuple is passed as outer dimensions. \n"
-                    "Passing tuples meaning outer dimensions will be deprecated in future QuTiP releases. \n"
-                    "Please use a list instead."
-                )
             # from list representation
             if len(args[0]) != 2:
                 raise ValueError(f"Format dims not understood {args[0]}.")
