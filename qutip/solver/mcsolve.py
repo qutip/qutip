@@ -10,6 +10,7 @@ from time import time
 from typing import Any
 import warnings
 
+from .. import settings
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
@@ -667,9 +668,23 @@ class MCSolver(MultiTrajSolver):
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
                 eigenvalues, eigenstates = state.eigenstates()
+
                 state = [(psi, p) for psi, p
                          in zip(eigenstates, eigenvalues) if p > 0]
 
+                # We allow the initial density matrix to be unnormalized.
+                # Since super()._run_mixed expects `state` to be normalized
+                # we must generate the "numbers of trajectories per state"
+                # list here manually, based on the normalized state
+                total_weight = sum(p for _, p in state)
+                if abs(total_weight - 1) > settings.core["atol"]:
+                    normalized_state = [
+                        (psi, p / total_weight)
+                        for psi, p in state
+                    ]
+                    ntraj = _InitialConditions._minimum_roundoff_ensemble(
+                        normalized_state, ntraj or len(state)
+                    )
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
                           'state do not support target tolerance')
@@ -785,7 +800,20 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs(), self.options)
+        rhs = self.rhs()
+        if integrator.rhs_format == "callable":
+            integrator_instance = integrator(rhs.matmul_data, self.options)
+        elif integrator.rhs_format == "matrix":
+            if not rhs.isconstant:
+                raise TypeError(
+                    f"The integration method {method} "
+                    "only support constant systems."
+                )
+            integrator_instance = integrator(rhs(0).data, self.options)
+        elif integrator.rhs_format == "solver":
+            integrator_instance = integrator(self, self.options)
+        else:
+            raise ValueError("Integrator entry point not supported.")
         mc_integrator = self._mc_integrator_class(
             integrator_instance, self.rhs, self.options
         )

@@ -1,5 +1,9 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
 import numpy as np
+from collections.abc import Iterator, Callable
+from qutip.core import QobjEvo
+from ._rhs import RHS
+from qutip.core.data import Data
 
 __all__ = ['Integrator', 'IntegratorException']
 
@@ -25,8 +29,10 @@ class Integrator:
 
     Parameters
     ----------
-    system: qutip.QobjEvo
-        Quantum system in which states evolve.
+    derivative: callable | QobjEvo
+        Function to integrate.
+        Note that specific integrators may require other input types. These types are specified by
+        the ``rhs_format`` attribute.
 
     options: dict
         Options for the integrator.
@@ -36,19 +42,17 @@ class Integrator:
     name : str
         The name of the integrator.
 
-    supports_blackbox : bool
-        If True, then the integrator calls only ``system.matmul``,
-        ``system.matmul_data``, ``system.expect``, ``system.expect_data`` and
-        ``isconstant``, ``isoper`` or ``issuper``. This allows the solver using
-        the integrator to modify the system in creative ways. In particular,
-        the solver may modify the system depending on *both* the time ``t``
-        *and* the current ``state`` the system is being applied to.
-
-        If the integrator calls any other methods, set to False.
-
-    supports_time_dependent : bool
-        If True, then the integrator supports time dependent systems. If False,
-        ``supports_blackbox`` should usually be ``False`` too.
+    rhs_format : {"callable", "matrix", "solver"}
+        Which format the ODE integrator expects for its RHS:
+        - "callable": The integrator expects a function with the signature
+          ``rhs(t, Data) -> Data``.
+          Some cython integrators use the RHS object for cython binding.
+          "callable" is the default for most ODE methods.
+        - "matrix": The integrator takes a constant matrix as a ``Data`` object
+          as the RHS and will solve the equation ``dX/dt = RHS @ X``.
+        - "solver": The integrator takes the Solver instance that created it and
+          builds the RHS itself. Typically used only by integration methods that
+          mix the system physics and the integrator numerics.
 
     integrator_options : dict
         A dictionary of options used by the integrator and their default
@@ -59,16 +63,21 @@ class Integrator:
     # Dict of used options and their default values
     integrator_options = {}
     _options = None
-    # Can evolve time dependent system
-    support_time_dependant = None
-    # Whether the integrator used the system QobjEvo as a blackbox
-    supports_blackbox = None
+    # How the rhs is passed to the integrator.
+    # "solver", "matrix", or "callable".
+    rhs_format = "callable"
     # The name of the integrator
     name = None
     method = ""
 
-    def __init__(self, system, options):
-        self.system = system
+    def __init__(
+        self,
+        derivative: Callable[[float, Data], Data] | QobjEvo | RHS,
+        options: dict
+    ):
+        if not callable(derivative):
+            raise TypeError("The derivative must be a callable.")
+        self.derivative = derivative
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._options = self.integrator_options.copy()
@@ -82,7 +91,7 @@ class Integrator:
         """
         raise NotImplementedError
 
-    def set_state(self, t, state0):
+    def set_state(self, t: float, state: Data):
         """
         Set the state of the ODE solver.
 
@@ -99,7 +108,9 @@ class Integrator:
         """
         raise NotImplementedError
 
-    def integrate(self, t, copy=True):
+    def integrate(
+        self, t: float, copy: bool = True
+    ) -> tuple[float, Data]:
         """
         Evolve to t.
 
@@ -121,7 +132,7 @@ class Integrator:
         """
         raise NotImplementedError
 
-    def mcstep(self, t, copy=True):
+    def mcstep(self, t: float, copy: bool = True) -> tuple[float, Data]:
         """
         Evolve toward the time ``t``.
 
@@ -167,7 +178,7 @@ class Integrator:
             )
         return self.integrate(t, copy)
 
-    def get_state(self, copy=True):
+    def get_state(self, copy: bool = True) -> tuple[float, Data]:
         """
         Obtain the state of the solver as a pair (t, state).
 
@@ -183,7 +194,7 @@ class Integrator:
         """
         raise NotImplementedError
 
-    def run(self, tlist):
+    def run(self, tlist: list[float]) -> Iterator[tuple[float, Data]]:
         """
         Integrate the system yielding the state for each times in tlist.
 
@@ -200,7 +211,9 @@ class Integrator:
         for t in tlist[1:]:
             yield self.integrate(t, False)
 
-    def reset(self, hard=False):
+        #TODO: why cut tlist[0] here, not in solver?
+
+    def reset(self, hard: bool = False):
         """Reset internal state of the ODE solver."""
         if self._is_set:
             state = self.get_state()
@@ -209,26 +222,13 @@ class Integrator:
         if self._is_set:
             self.set_state(*state)
 
-    def arguments(self, args):
-        """
-        Change the argument of the system.
-        Reset the ODE solver to ensure numerical validity.
-
-        Parameters
-        ----------
-        args : dict
-            New arguments
-        """
-        self.system.arguments(args)
-        self.reset()
-
     @property
-    def options(self):
+    def options(self) -> dict:
         # Options should be overwritten by each integrators.
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict):
         # This does not apply the new options.
         self._options = {
             **self._options,

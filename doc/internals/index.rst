@@ -19,3 +19,4 @@ collection of `example notebooks`_.
 
    quantum-objects
    data-layer/index
+   solver/index

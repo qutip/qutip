@@ -391,9 +391,8 @@ class HEOMResult(Result):
         super()._post_init()
 
         self.store_ados = self.options["store_ados"]
-        if self.store_ados:
-            self._final_ado_state = None
-            self.ado_states = []
+        self._final_ado_state = None
+        self.ado_states = []
 
     def _e_op_func(self, e_op):
         """ Convert an e_op into a function ``f(t, ado_state)``. """
@@ -421,7 +420,7 @@ class HEOMResult(Result):
     @property
     def final_ado_state(self):
         if self._final_ado_state is not None:
-            return self._final_state
+            return self._final_ado_state
         if self.ado_states:
             return self.ado_states[-1]
         return None
@@ -1006,7 +1005,7 @@ class HEOMSolver(Solver):
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = self.rhs(0).to("CSR").data.copy().as_scipy()
+        L = self.rhs(0).to("CSR").data.copy().as_scipy()  # returns csr_array
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
@@ -1016,6 +1015,20 @@ class HEOMSolver(Solver):
         ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
+            # Currently, the way qutip interfaces MKL Pardiso
+            # requires a scipy csr_matrix with 32-bit indices.
+            # After migration to sparse array (PR 2938) in qutip, CSR.as_scipy
+            # returns csr_array representation, which may have indices
+            # of type int64.
+            # Since qutip/_mkl/spsolve.py is not compatible with this index
+            # resolution, we recreate a csr_matrix with 32-bit indices explicitly
+            # before it is passed to mkl_spsolve
+            L = sp.csr_matrix(
+                (L.data,
+                 L.indices.astype(np.int32, copy=False),
+                 L.indptr.astype(np.int32, copy=False)),
+                shape=L.shape,
+            )
             L.sort_indices()
             solution = mkl_spsolve(
                 L,
