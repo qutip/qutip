@@ -132,7 +132,7 @@ class RouchonSODE(SIntegrator):
 
     def get_state(self, copy=True):
         # self.state can be modified inplace
-        state = state.copy() if copy else state
+        state = self.state.copy() if copy else self.state
         return self.t, state, self.wiener
 
     def _step(self, t, state, dt, dW):
