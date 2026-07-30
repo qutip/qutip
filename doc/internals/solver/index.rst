@@ -60,6 +60,7 @@ behind high-level functional wrappers:
 
    terminology
    integrator
+   solveroptions
 
 ..
   Sections to add later:
