@@ -293,6 +293,8 @@ class CompilationOptions(QutipOptions):
     """
     _link_flags = ""
     _compiler_flags = '-w -O3 -funroll-loops'
+    if sys.platform == "win32": # This is true even for 64 bit windows
+        _compiler_flags = '/w /O2'
 
     try:
         import cython
