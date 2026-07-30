@@ -1,1 +1,0 @@
-Document how `tensor_contract` indices map to flattened `Qobj.dims` entries.

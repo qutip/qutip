@@ -6,6 +6,42 @@ Change Log
 
 .. towncrier release notes start
 
+QuTiP 5.3.1 (2026-07-31)
+========================
+
+Bug Fixes
+---------
+
+- Use normalized mixed-state weights for trajectory allocation in ``mcsolve`` so that unnormalized density matrices correctly allocate the requested number of trajectories while preserving the original state trace. (#2927, by Rahul Shastri (RahulShastri003))
+- Cache ``_ishp``, ``_iscp``, ``_istp`` and ``_iscptp`` on ``Qobj``, and
+  invalidate all affected caches when ``dims``, ``superrep`` or ``data`` are
+  mutated. Fixes stale-cache bug where accessing ``type`` before reassigning
+  ``dims``/``superrep`` would cause subsequent calls to return incorrect results. (#2886, by Alexis Le Gall/(QubitGoblin31)
+- Fix `to_choi` and `to_chi` raising `AttributeError` instead of `TypeError` for unsupported Qobj types, caused by formatting a nonexistent `Qobj.choi` attribute in the error message. (#2930, by Mike German (steps-re))
+- Fix a batch of small correctness bugs: `Qobj.logm` now reports "logm" in its non-square error, `HEOMResult.final_ado_state` returns the ADO state instead of the density matrix, `qdiags` no longer marks sub-unit-modulus diagonals as unitary, `qzero`/`qzero_like` no longer mark non-square operators as Hermitian, and the scipy lsoda excess-work message has a missing space restored. (#2931, by Mike German (steps-re))
+- Increase qfunc validity range to show coherent(alpha>=13) properly (#2937, by Eric Giguère (EricGig))
+- Accessing `HEOMResult.final_ado_state` no longer raises an `AttributeError` when `store_ados` is not set; the attribute is now always initialized and returns `None` when ADOs were not stored. (#2933, by Mike German (steps-re))
+- Fix typehint for tensor() function when passing iterables like list, tuples etc. (#2949, by Mayank Goel (Mayank447))
+
+
+Documentation
+-------------
+
+- Document how `tensor_contract` indices map to flattened `Qobj.dims` entries. (#2920, by Jeonghoon Lee (jeonghoon-ad))
+- Refine the PR template and the contribution guideline to request filling out the AI tools usage disclosure also for cases when no AI tools were used. (#2943, by Veronika Kurth (veronikakurth))
+- Minor typo correction in `direct_sum_sparse`'s docstring explaining the list/tuple syntax for dimensions. (#2947, by Paul Menczel (pmenczel)
+
+
+Miscellaneous
+-------------
+
+- Added dependabot to update github actions (#2906, by Mayank Goel (Mayank447))
+- Tightens the absolute tolerance of ``sesolve`` by one order of magnitude in order to make Floquet solver tests with randomized inputs more robust. (#2913, by Veronika Kurth (veronikakurth))
+- Adds a temporary link to the user survey to the nagivation sidebar. (#2917, by Veronika Kurth (veronikakurth))
+- Ensures output of `block_diag` function in ``qutip/piqs/piqs.py`` and ``qutip/tests/piqs/test_piqs.py`` stays of type ``scipy.sparse.spmatrix`` in order to prevent pre-mature switch to ``scipy.sparse.sparray`` output before the migration to ``sparray`` is complete in qutip. (#2925, by Veronika Kurth (veronikakurth))
+- Migrates QuTiP's data layer from ``scipy.sparse.*_matrix`` types to ``scipy.sparse.*_array`` types _internally_ while keeping user-facing behavior (via `Qobj.data_as` and `extract` functions) backward compatible. Adds a forward-compatibility guard so QuTiP won't break when SciPy fully removes the legacy matrix classes. (#2938, by Veronika Kurth (veronikakurth))
+
+
 QuTiP 5.3.0 (2026-05-22)
 ========================
 
