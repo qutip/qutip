@@ -15,9 +15,13 @@ py3 = import('python').find_installation(pure: false)
 py3_dep = py3.dependency()
 
 cpp = meson.get_compiler('cpp')
-
 if not cpp.has_header('Python.h', dependencies: py3_dep)
   error('Cannot compile Python.h')
+endif
+
+# ---- Cython annotate ----
+if get_option('annotate')
+  add_project_arguments('-a', language: 'cython')
 endif
 
 # ---- 32-bit Windows warning ----
