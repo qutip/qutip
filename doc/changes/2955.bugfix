@@ -1,1 +1,1 @@
-Restore pre-maturely dropped support of tuples for specifying outer dimensions. List stays a prefer data structure for this; raise a warning about deprecation of tuple support in future versions of QuTiP.
+Restore unintentionally dropped support of tuples for specifying outer dimensions. List stays a prefer data structure for this, but tuples are allowed.
