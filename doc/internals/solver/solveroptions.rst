@@ -38,7 +38,7 @@ Core Features
 -------------
 
 The :class:`_SolverOptions` class inherits directly from Python's built-in
-:repr:`dict`, behaving like a standard key-value map while adding four
+``dict``, behaving like a standard key-value map while adding four
 important features:
 
 1. **Reactive State Reset Hooks**
