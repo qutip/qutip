@@ -128,12 +128,9 @@ class RouchonSODE(SIntegrator):
         if self._issuper:
             self.state = stack_columns(self.state)
 
-        return self.t, self.state, np.sum(dW, axis=0)
+        out_state = self.state.copy() if copy else self.state
 
-    def get_state(self, copy=True):
-        # self.state can be modified inplace
-        state = self.state.copy() if copy else self.state
-        return self.t, state, self.wiener
+        return self.t, out_state, np.sum(dW, axis=0)
 
     def _step(self, t, state, dt, dW):
         dy = [
