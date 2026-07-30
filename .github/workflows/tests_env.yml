@@ -38,7 +38,7 @@ jobs:
           python -m pip install setuptools  # runtime string-coefficient compilation
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
-          python -m pip install -e . -v --no-build-isolation
+          python -m pip install . -v
 
       - name: Install QuTiP family package
         run: |
