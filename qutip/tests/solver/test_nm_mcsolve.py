@@ -276,7 +276,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         op = qutip.destroy(self.size)
         op_and_rate_types = [
             ([op, rate], {}, "constant"),
-            ([op, '1 * {}'.format(rate)], {}, "string"),
+            ([op, f'1 * {rate}'], {}, "string"),
             ([op, lambda t: rate], {}, "function"),
             ([op, lambda t, w: rate], {"w": 1.0}, "function_with_args"),
         ]
@@ -311,7 +311,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         coupling = 0.2
         op = qutip.destroy(self.size)
         rate_args = {'constant': coupling, 'rate': 0.5}
-        rate_string = 'sqrt({} * exp(-t))'.format(coupling)
+        rate_string = f'sqrt({coupling} * exp(-t))'
         op_and_rate_types = [
             ([op, rate_string], {}, "string"),
             ([op, _return_decay], rate_args, "function"),
@@ -792,4 +792,40 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert (
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
+    )
+
+
+@pytest.mark.parametrize(
+    "weight_0, weight_1, expected_trace",
+    [
+        (0.5, 0.25, 0.75),
+        (0.75, 0.5, 1.25),
+    ],
+)
+
+
+def test_nmmcsolve_unnormalized_mixed_state(
+    weight_0, weight_1, expected_trace
+):
+    ntraj = 10
+
+    # Test density matrices with traces below and above one.
+    initial_state = (
+        weight_0 * qutip.fock_dm(2, 0)
+        + weight_1 * qutip.fock_dm(2, 1)
+    )
+
+    result = nm_mcsolve(
+        qutip.sigmaz(),
+        initial_state,
+        np.linspace(0, 1, 100),
+        [(qutip.sigmam(), 1.0)],
+        ntraj=ntraj,
+        options={"progress_bar": False},
+    )
+    assert result.num_trajectories == ntraj
+    assert sum(result.ntraj_per_initial_state) == ntraj
+    assert all(
+        state.tr() == pytest.approx(expected_trace)
+        for state in result.states
     )

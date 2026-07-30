@@ -111,6 +111,18 @@ class TestSuperopReps:
         with pytest.raises(ValueError, match="must be a square."):
             superpauli_to_super(non_square)
 
+    def test_to_choi_to_chi_unsupported_type_raises_TypeError(self):
+        """
+        Superoperator: Ensure to_choi and to_chi raise TypeError (not
+        AttributeError) for a Qobj whose type is neither 'super' nor 'oper'.
+        """
+        unsupported = basis(2, 0)
+
+        with pytest.raises(TypeError, match="not supported"):
+            to_choi(unsupported)
+        with pytest.raises(TypeError, match="not supported"):
+            to_chi(unsupported)
+
     def test_SuperChoiSuper(self, superoperator):
         """
         Superoperator: Converting superoperator to Choi matrix and back.

@@ -1,0 +1,1 @@
+Use normalized mixed-state weights for trajectory allocation in ``mcsolve`` so that unnormalized density matrices correctly allocate the requested number of trajectories while preserving the original state trace.
