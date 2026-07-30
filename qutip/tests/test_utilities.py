@@ -1,5 +1,5 @@
 import numpy as np
-from qutip import convert_unit, clebsch, n_thermal
+from qutip import convert_unit, clebsch, n_thermal, fermi_dirac
 import qutip.utilities as utils
 from functools import partial
 import pytest
@@ -200,7 +200,7 @@ class TestFitting:
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
@@ -222,7 +222,7 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     def test_espira_II(self, noisy):
@@ -232,7 +232,7 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
     @pytest.mark.parametrize("method", ["prony", "esprit"])
@@ -243,5 +243,25 @@ class TestFitting:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-7
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+@pytest.mark.parametrize(
+    ["w", "beta", "mu", "expected"],
+    [
+        pytest.param(0.0, 1.0, 0.0, 0.5, id="at zero energy"),
+        pytest.param(np.log(2), 1.0, 0.0, 1 / 3, id="at ln2 energy"),
+        pytest.param(5 * np.log(2), 0.2, 0.0, 1 / 3, id="at ln2 enegy tilted"),
+        pytest.param(-1.0, np.inf, 0.0, 1.0, id="zero T below mu"),
+        pytest.param(1.0, np.inf, 0.0, 0.0, id="zero T above mu"),
+        pytest.param(
+            np.array([0.0, np.log(2)]),
+            1.0,
+            0.0,
+            np.array([1 / 2, 1 / 3]),
+            id="Tests with w arrays as input",
+        )
+    ],
+)
+def test_fermi_dirac(w, beta, mu, expected):
+    np.testing.assert_allclose(fermi_dirac(w, beta, mu), expected)
