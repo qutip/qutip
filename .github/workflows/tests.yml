@@ -211,7 +211,7 @@ jobs:
             python -m pip install cython filelock
           fi
 
-          python -m pip install -e . -v --no-build-isolation
+          python -m pip install . -v --no-build-isolation
 
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
@@ -236,6 +236,7 @@ jobs:
           fi
 
       - name: Package information
+        working-directory: ${{ runner.temp }}
         run: |
           if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
             pip list
@@ -255,10 +256,14 @@ jobs:
           fi
 
       - name: Run tests
+        working-directory: ${{ runner.temp }}
         # If our tests are running for longer than an hour, _something_ is wrong
         # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
         # to see if something hung.
         timeout-minutes: 60
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage
+          COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
         run: |
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
@@ -275,7 +280,9 @@ jobs:
             # For OpenMPI >= 5:
             export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
           fi
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+
+          QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
+          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
           # Above flags are:
           #  -Werror
           #     treat warnings as errors

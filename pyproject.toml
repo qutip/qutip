@@ -108,3 +108,14 @@ showcontent = true
 directory = "misc"
 name = "Miscellaneous"
 showcontent = true
+
+[tool.coverage.run]
+source = ["qutip"]
+parallel = true
+
+[tool.coverage.paths]
+qutip = [
+    "qutip/",
+    "*/site-packages/qutip/",        # posix installs
+    "*\\site-packages\\qutip\\",     # windows installs
+]
