@@ -43,30 +43,29 @@ jobs:
       - name: Pre-install development dependencies
         if: ${{ matrix.repo == 'qutip-qoc' }}
         run: |
-          python -m pip install jax[cpu]
           cd ..
           git clone https://github.com/qutip/qutip-jax.git
           cd qutip-jax
-          if [[ $inputs.version == "release" ]]; then
+          if [[ ${{ inputs.version }} == "release" ]]; then
             # Checkout the latest tag as the latest release
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
           fi
-          python -m pip install .
+          python -m pip install . --no-build-isolation
 
       - name: Install QuTiP family package
         run: |
           cd ..
           git clone https://github.com/qutip/${{ matrix.repo }}.git
           cd ${{ matrix.repo }}
-          if [[ $inputs.version == "release" ]]; then
+          if [[ ${{ inputs.version }} == "release" ]]; then
             # Checkout the latest tag as the latest release
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
           elif [[ "${{ inputs.version }}" ]]; then
             git checkout ${{ inputs.version }}
           fi
-          python -m pip install .[full] --no-build-isolation
+          python -m pip install .[full] --no-build-isolation --upgrade-strategy only-if-needed
 
 
       - name: Print python environment
