@@ -96,10 +96,16 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     """
     tlist = np.asarray(tlist)
     N = tlist.shape[0]
+    if N < 2:
+        raise ValueError('tlist must have at least 2 points for FFT.')
     dt = tlist[1] - tlist[0]
     if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
         raise ValueError('tlist must be equally spaced for FFT.')
     y = np.asarray(y)
+    if y.shape[0] != N:
+        raise ValueError(
+            f'y length ({y.shape[0]}) must match tlist length ({N}).'
+        )
     # Symmetrise the correlation function to negative times, using
     # C(-t) = C(t)^*.  The samples then cover the interval [-tmax, tmax].
     tmax = tlist[-1]
@@ -116,10 +122,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     else:
         F *= dt * np.exp(1j * w * tmax)
     # re-order frequencies from most negative to most positive (centre on 0)
-    idx = np.array([], dtype='int')
-    idx = np.append(idx, np.where(w < 0.0))
-    idx = np.append(idx, np.where(w >= 0.0))
-    return w[idx], np.real(F[idx])
+    return np.fft.fftshift(w), np.fft.fftshift(F).real
 
 
 def _spectrum_es(L, wlist, a_op, b_op):
