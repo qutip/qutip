@@ -60,16 +60,29 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es"):
 
 
 def spectrum_correlation_fft(tlist, y, inverse=False):
-    """
+    r"""
     Calculate the power spectrum corresponding to a two-time correlation
     function using FFT.
+
+    The correlation function is assumed to be given for times :math:`t \ge 0`
+    and to satisfy :math:`C(-t) = C(t)^*`, as is the case for the
+    autocorrelation of Hermitian operators in a stationary state.  Before
+    taking the FFT, the correlation function is symmetrised to negative times
+    according to :math:`C(-t) = C(t)^*`, so that the returned spectrum is the
+    Fourier transform of the full (two-sided) correlation function:
+
+    .. math::
+
+        S(\omega) = \int_{-\infty}^{\infty} C(t) e^{-i\omega t} dt.
 
     Parameters
     ----------
     tlist : array_like
-        list/array of times :math:`t` which the correlation function is given.
+        list/array of equally spaced times :math:`t \ge 0` at which the
+        correlation function is given.
     y : array_like
-        list/array of correlations corresponding to time delays :math:`t`.
+        list/array of correlations corresponding to the time delays in
+        `tlist`.
     inverse: bool, default: False
         boolean parameter for using a positive exponent in the Fourier
         Transform instead. Default is False.
@@ -86,14 +99,27 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     dt = tlist[1] - tlist[0]
     if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
         raise ValueError('tlist must be equally spaced for FFT.')
-    F = (N * scipy.fftpack.ifft(y)) if inverse else scipy.fftpack.fft(y)
-    # calculate the frequencies for the components in F
-    f = scipy.fftpack.fftfreq(N, dt)
+    y = np.asarray(y)
+    # Symmetrise the correlation function to negative times, using
+    # C(-t) = C(t)^*.  The samples then cover the interval [-tmax, tmax].
+    tmax = tlist[-1]
+    y_sym = np.concatenate([np.conj(y[:0:-1]), y])
+    N_sym = y_sym.shape[0]
+    F = (N_sym * scipy.fftpack.ifft(y_sym)
+         if inverse else scipy.fftpack.fft(y_sym))
+    # calculate the angular frequencies for the components in F
+    w = 2 * np.pi * scipy.fftpack.fftfreq(N_sym, dt)
+    # The FFT assumes the first sample is at t=0, but the symmetrised
+    # correlation starts at -tmax, so shift the phases of the transform.
+    if inverse:
+        F *= dt * np.exp(-1j * w * tmax)
+    else:
+        F *= dt * np.exp(1j * w * tmax)
     # re-order frequencies from most negative to most positive (centre on 0)
     idx = np.array([], dtype='int')
-    idx = np.append(idx, np.where(f < 0.0))
-    idx = np.append(idx, np.where(f >= 0.0))
-    return 2 * np.pi * f[idx], 2 * dt * np.real(F[idx])
+    idx = np.append(idx, np.where(w < 0.0))
+    idx = np.append(idx, np.where(w >= 0.0))
+    return w[idx], np.real(F[idx])
 
 
 def _spectrum_es(L, wlist, a_op, b_op):

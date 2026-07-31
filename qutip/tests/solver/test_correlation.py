@@ -88,6 +88,22 @@ def test_spectrum_solver_equivalence_to_es(spectrum):
     np.testing.assert_allclose(base, test, atol=1e-3)
 
 
+def test_spectrum_correlation_fft_lorentzian():
+    """
+    Regression test for gh-1537: the spectrum of an exponentially decaying
+    correlation function should be a Lorentzian.
+    """
+    times = np.linspace(0, 100, 2500)
+    correlation = np.exp(-times)
+    frequencies, spectrum = qutip.spectrum_correlation_fft(times, correlation)
+    # Only compare where the spectrum is well above the FFT discretisation
+    # floor at large frequencies.
+    valid = np.abs(frequencies) < 10
+    expected = 2 / (1 + frequencies[valid]**2)
+    np.testing.assert_allclose(spectrum[valid], expected,
+                               atol=1e-3, rtol=1e-2)
+
+
 def _trapz_2d(z, xy):
     """2D trapezium-method integration assuming a square grid."""
     dx = xy[1] - xy[0]

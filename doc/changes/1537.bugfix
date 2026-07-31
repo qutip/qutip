@@ -1,0 +1,1 @@
+Fix ``spectrum_correlation_fft`` to symmetrise the correlation function to negative times before taking the FFT, so that the resulting spectrum converges to the correct two-sided Fourier transform (gh-1537).
