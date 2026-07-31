@@ -235,12 +235,14 @@ class MESolver(SESolver):
         # preserves Hermiticity by construction.  User-supplied superoperators
         # are safe only when already known Hermitian-preserving (``Qobj._ishp``).
         # Use the cached flag, not ``ishp`` (which may compute the Choi matrix).
-        # Check before any ``QobjEvo`` conversion — only ``Qobj`` carries that
-        # flag.  A time-dependent superoperator ``QobjEvo`` cannot be certified
-        # from a single-time probe.
+        # ``mesolve`` converts ``H`` to a ``QobjEvo`` before building the solver,
+        # so also accept a constant ``QobjEvo`` whose single ``Qobj`` carries the
+        # flag.  A time-dependent superoperator cannot be certified from a
+        # single-time probe, hence the ``isconstant`` guard.
         h_preserves = (
             not H.issuper
             or (isinstance(H, Qobj) and H._ishp)
+            or (isinstance(H, QobjEvo) and H.isconstant and H(0)._ishp)
         )
         self._rhs_preserves_hermiticity = (
             h_preserves and not any(c_op.issuper for c_op in c_ops)
