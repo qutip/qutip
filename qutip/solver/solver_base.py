@@ -286,7 +286,22 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        if integrator.rhs_format == "callable":
+            integrator_instance = integrator(
+                self.rhs.matmul_data, self.options
+            )
+        elif integrator.rhs_format == "matrix":
+            if not self.rhs.isconstant:
+                raise TypeError(
+                    f"The integration method {method} "
+                    "only support constant systems."
+                )
+            integrator_instance = integrator(self.rhs(0).data, self.options)
+        elif integrator.rhs_format == "solver":
+            integrator_instance = integrator(self, self.options)
+        else:
+            raise ValueError("Integrator entry point not supported.")
+
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 
@@ -358,7 +373,7 @@ class Solver:
             self._options = {}
         if new_options is None:
             new_options = {}
-        if not isinstance(new_options, dict):
+        if not isinstance(new_options, (dict, _SolverOptions)):
             raise TypeError("options must to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
@@ -439,7 +454,7 @@ class Solver:
         """Update the args, for the `rhs` and other operators."""
         if args:
             self.rhs.arguments(args)
-            self._integrator.arguments(args)
+            self._integrator.reset()
 
     @classmethod
     def avail_integrators(cls):

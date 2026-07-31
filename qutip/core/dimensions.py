@@ -950,7 +950,7 @@ class SuperSpace(Space):
 class Dimensions(metaclass=MetaDims):
     @classmethod
     def _process_args(cls, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], list):
+        if len(args) == 1 and isinstance(args[0], (list, tuple)):
             # from list representation
             if len(args[0]) != 2:
                 raise ValueError(f"Format dims not understood {args[0]}.")

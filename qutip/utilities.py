@@ -8,6 +8,8 @@ from __future__ import annotations
 
 __all__ = ['n_thermal', 'clebsch', 'convert_unit', 'iterated_fit']
 
+import math
+from fractions import Fraction
 from typing import Callable, Literal, Any
 
 import numpy as np
@@ -58,19 +60,9 @@ def n_thermal(w, w_th):
     return result.item() if w.ndim == 0 else result
 
 
-def _factorial_prod(N, arr):
-    arr[:int(N)] += 1
-
-
-def _factorial_div(N, arr):
-    arr[:int(N)] -= 1
-
-
-def _to_long(arr):
-    prod = 1
-    for i, v in enumerate(arr):
-        prod *= (i+1)**int(v)
-    return prod
+def _fac(n):
+    """``n!`` for a value that is an integer held in a float."""
+    return math.factorial(round(n))
 
 
 def clebsch(j1, j2, j3, m1, m2, m3):
@@ -105,38 +97,35 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     """
     if m3 != m1 + m2:
         return 0
-    vmin = int(np.max([-j1 + j2 + m3, -j1 + m1, 0]))
-    vmax = int(np.min([j2 + j3 + m1, j3 - j1 + j2, j3 + m3]))
+    vmin = round(max(-j1 + j2 + m3, -j1 + m1, 0))
+    vmax = round(min(j2 + j3 + m1, j3 - j1 + j2, j3 + m3))
 
-    c_factor = np.zeros((int(j1 + j2 + j3 + 1)), np.int32)
-    _factorial_prod(j3 + j1 - j2, c_factor)
-    _factorial_prod(j3 - j1 + j2, c_factor)
-    _factorial_prod(j1 + j2 - j3, c_factor)
-    _factorial_prod(j3 + m3, c_factor)
-    _factorial_prod(j3 - m3, c_factor)
-    _factorial_div(j1 + j2 + j3 + 1, c_factor)
-    _factorial_div(j1 - m1, c_factor)
-    _factorial_div(j1 + m1, c_factor)
-    _factorial_div(j2 - m2, c_factor)
-    _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+    # The factorials grow far beyond the float range, so every intermediate is
+    # kept as an exact `Fraction`.
+    c_squared = Fraction(round(2 * j3 + 1)) * Fraction(
+        _fac(j3 + j1 - j2) * _fac(j3 - j1 + j2) * _fac(j1 + j2 - j3)
+        * _fac(j3 + m3) * _fac(j3 - m3),
+        _fac(j1 + j2 + j3 + 1) * _fac(j1 - m1) * _fac(j1 + m1)
+        * _fac(j2 - m2) * _fac(j2 + m2),
+    )
 
-    s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
-    # `S` and `C` are large integer,s if `sign` is a np.int32 it could oveflow
-    sign = int((-1) ** (vmin + j2 + m2))
-    for i, v in enumerate(range(vmin, vmax + 1)):
-        factor = s_factors[i, :]
-        _factorial_prod(j2 + j3 + m1 - v, factor)
-        _factorial_prod(j1 - m1 + v, factor)
-        _factorial_div(j3 - j1 + j2 - v, factor)
-        _factorial_div(j3 + m3 - v, factor)
-        _factorial_div(v + j1 - j2 - m3, factor)
-        _factorial_div(v, factor)
-    common_denominator = -np.min(s_factors, axis=0)
-    numerators = s_factors + common_denominator
-    S = sum([(-1)**i * _to_long(vec) for i, vec in enumerate(numerators)]) * \
-        sign / _to_long(common_denominator)
-    return C * S
+    sign = (-1) ** round(vmin + j2 + m2)
+    S = sign * sum(
+        Fraction(
+            (-1) ** (v - vmin) * _fac(j2 + j3 + m1 - v) * _fac(j1 - m1 + v),
+            _fac(j3 - j1 + j2 - v) * _fac(j3 + m3 - v)
+            * _fac(v + j1 - j2 - m3) * _fac(v),
+        )
+        for v in range(vmin, vmax + 1)
+    )
+    if S == 0:
+        return 0.0
+    # `C` and `S` separately leave the float range long before their product
+    # does -- the coefficient itself is at most 1 -- so square the product,
+    # keep it rational, and take the square root of that. The sign comes from
+    # the exact `S`, because `float(S)` overflows as well.
+    magnitude = math.sqrt(c_squared * S * S)
+    return -magnitude if S < 0 else magnitude
 
 
 # -----------------------------------------------------------------------------
