@@ -96,7 +96,8 @@ class SIntegrator(Integrator):
         self._is_set = True
 
     def get_state(self, copy=True):
-        return self.t, self.state, self.wiener
+        state = self.state.copy() if copy else self.state
+        return self.t, state, self.wiener
 
     def integrate(self, t, copy=True):
         """
