@@ -46,7 +46,7 @@ jobs:
           cd ..
           git clone https://github.com/qutip/qutip-jax.git
           cd qutip-jax
-          if [[ ${{ inputs.version }} == "release" ]]; then
+          if [[ "${{ inputs.version }}" == "release" ]]; then
             # Checkout the latest tag as the latest release
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
@@ -58,7 +58,7 @@ jobs:
           cd ..
           git clone https://github.com/qutip/${{ matrix.repo }}.git
           cd ${{ matrix.repo }}
-          if [[ ${{ inputs.version }} == "release" ]]; then
+          if [[ "${{ inputs.version }}" == "release" ]]; then
             # Checkout the latest tag as the latest release
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
