@@ -1069,3 +1069,26 @@ def test_mesolve_caches_isherm_for_ishp_superoperator():
 
     assert result.final_state._isherm is True
     assert result.final_state.isherm is True
+
+
+def test_mesolve_preserves_ishp_flag_through_qobjevo_conversion():
+    """``mesolve`` wraps H in a ``QobjEvo`` before building the solver.
+
+    A constant Hermiticity-preserving superoperator must still be recognised
+    after that conversion, otherwise the fast path is lost for every user who
+    calls ``mesolve`` instead of constructing ``MESolver`` directly.
+    """
+    L = qutip.liouvillian(qutip.sigmaz(), c_ops=[qutip.sigmam()])
+    assert L.issuper and L.ishp
+
+    solver = MESolver(qutip.QobjEvo(L))
+    assert solver._rhs_preserves_hermiticity is True
+
+
+def test_mesolve_does_not_certify_time_dependent_superoperator():
+    """A time-dependent superoperator cannot be certified from one probe."""
+    L = qutip.liouvillian(qutip.sigmaz(), c_ops=[qutip.sigmam()])
+    assert L.ishp
+
+    solver = MESolver(qutip.QobjEvo([L, lambda t: 1.0]))
+    assert solver._rhs_preserves_hermiticity is False
