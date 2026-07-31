@@ -6,8 +6,15 @@ Change Log
 
 .. towncrier release notes start
 
+
 QuTiP 5.3.1 (2026-07-31)
 ========================
+
+Features
+--------
+
+- Allows QuTiP's integrator to support callable derivative instead of only QobjEvo. (#2916, by Eric Giguère (Ericgig))
+- Optimize "rouchon" method for stochastic solvers (#2936, by Eric Giguère (Ericgig))
 
 Bug Fixes
 ---------
@@ -22,11 +29,15 @@ Bug Fixes
 - Increase qfunc validity range to show coherent(alpha>=13) properly (#2937, by Eric Giguère (EricGig))
 - Accessing `HEOMResult.final_ado_state` no longer raises an `AttributeError` when `store_ados` is not set; the attribute is now always initialized and returns `None` when ADOs were not stored. (#2933, by Mike German (steps-re))
 - Fix typehint for tensor() function when passing iterables like list, tuples etc. (#2949, by Mayank Goel (Mayank447))
+- Fix an integer overflow in ``qutip.piqs.energy_degeneracy`` and ``qutip.piqs.state_degeneracy``. Degeneracies larger than ``int64`` are now returned as ``float`` so that arrays built from them keep a numeric (``float64``) dtype instead of falling back to ``object``, which SciPy does not support (e.g. ``piqs.block_matrix(80, elements="degeneracy")`` no longer raises). (#2948, by Udit Jain (uditjainstjis))
+- Fixed `clebsch` silently returning wrong values (and later `nan` or raising) for large angular momenta, caused by negative exponents turning the exact integer factorial products into underflowing floats. (#2954, by Udit Jain (uditjainstjis))
+- Restore unintentionally dropped support of tuples for specifying outer dimensions. List stays a prefer data structure for this, but tuples are allowed. (#2955, by Veronika Kurth (veronikakurth))
 
 
 Documentation
 -------------
 
+- Add integrator developer documentation (#2916, by Eric Giguère (Ericgig))
 - Document how `tensor_contract` indices map to flattened `Qobj.dims` entries. (#2920, by Jeonghoon Lee (jeonghoon-ad))
 - Refine the PR template and the contribution guideline to request filling out the AI tools usage disclosure also for cases when no AI tools were used. (#2943, by Veronika Kurth (veronikakurth))
 - Minor typo correction in `direct_sum_sparse`'s docstring explaining the list/tuple syntax for dimensions. (#2947, by Paul Menczel (pmenczel)

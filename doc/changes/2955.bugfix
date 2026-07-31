@@ -1,1 +1,0 @@
-Restore unintentionally dropped support of tuples for specifying outer dimensions. List stays a prefer data structure for this, but tuples are allowed.
