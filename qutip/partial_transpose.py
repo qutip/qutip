@@ -72,7 +72,7 @@ def _partial_transpose_sparse(rho, mask):
     Implement the partial transpose using the CSR sparse matrix.
     """
 
-    data = sp.lil_matrix((rho.shape[0], rho.shape[1]), dtype=complex)
+    data = sp.lil_array((rho.shape[0], rho.shape[1]), dtype=complex)
     rho_data = rho.to("CSR").data.as_scipy()
 
     for m in range(len(rho_data.indptr) - 1):

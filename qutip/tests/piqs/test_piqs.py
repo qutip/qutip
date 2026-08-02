@@ -1,6 +1,7 @@
 """
 Tests for Permutational Invariant Quantum solver (PIQS).
 """
+import math
 import numpy as np
 from numpy.testing import (
     assert_raises,
@@ -613,6 +614,47 @@ class TestDicke:
 
         # check error
         assert_raises(ValueError, state_degeneracy, 2, -1)
+
+    def test_degeneracy_large_N_numeric_dtype(self):
+        """
+        PIQS: Degeneracies exceeding int64 return floats, so NumPy arrays
+        built from them keep a numeric dtype (float64) instead of falling
+        back to ``object`` and breaking SciPy (regression test, gh-2630).
+        """
+        int64_max = np.iinfo(np.int64).max
+
+        # The degeneracies are exact Python ints at every N, including sizes
+        # that overflow an int64.
+        for func in (state_degeneracy, energy_degeneracy):
+            assert isinstance(func(10, 0), int)
+            val = func(80, 0)
+            assert isinstance(val, int)
+            assert val > int64_max
+
+        # The conversion to float happens at the numpy boundary, so the
+        # routines that consume them still build numeric arrays rather than
+        # falling back to `object` dtype and breaking SciPy.
+
+        # The reported reproducer must no longer raise and must return a
+        # valid sparse matrix of the expected shape.
+        m = block_matrix(80, elements="degeneracy")
+        assert m.shape == (1681, 1681)
+
+    def test_degeneracy_exact_below_int64(self):
+        """
+        PIQS: Degeneracies that fit in an int64 must be exact.
+
+        The `Decimal` arithmetic previously used here rounded to the default
+        28-significant-digit context, so the returned integers drifted for
+        larger N: `energy_degeneracy(32, 16)` gave 0 rather than 1, and
+        `state_degeneracy(60, 1)` was off by one.
+        """
+        assert energy_degeneracy(32, 16) == 1
+        assert state_degeneracy(60, 1) == 10729649537134605
+
+        for N in (32, 44, 60):
+            for k in range(N + 1):
+                assert energy_degeneracy(N, N / 2 - k) == math.comb(N, k)
 
     def test_m_degeneracy(self):
         """

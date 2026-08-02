@@ -16,7 +16,7 @@ def _add_repeats_if_marked(metafunc):
         metafunc.fixturenames.append('_repeat_count')
         metafunc.parametrize('_repeat_count',
                              range(count),
-                             ids=["rep({})".format(x+1) for x in range(count)])
+                             ids=[f"rep({x+1})" for x in range(count)])
 
 
 def _skip_cython_tests_if_unavailable(item):

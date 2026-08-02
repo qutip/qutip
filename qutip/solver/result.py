@@ -88,10 +88,7 @@ class _BaseResult:
         self._state_processors_require_copy = False
 
         # make sure not to store a reference to the solver
-        options_copy = options.copy()
-        if hasattr(options_copy, "_feedback"):
-            options_copy._feedback = None
-        self.options = options_copy
+        self.options = options.copy()
         # Almost all integrators already return a copy that is safe to use.
         self._integrator_return_copy = options.get("method", None) in [
             "adams", "lsoda", "bdf", "dop853", "diag",
