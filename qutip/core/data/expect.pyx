@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 # The exported function `expect(op, state)` is equivalent to

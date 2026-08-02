@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 """
 The conversion machinery between different data-layer types, and creation
 routines from arbitrary data.  The classes `_to` and `_create` are not intended

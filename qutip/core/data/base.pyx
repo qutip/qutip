@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 import numpy as np
 cimport numpy as cnp
 import qutip.core.data as _data

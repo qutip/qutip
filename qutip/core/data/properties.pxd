@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport CSR, Dense, Dia
 
 cpdef bint isherm_csr(CSR matrix, double tol=*)

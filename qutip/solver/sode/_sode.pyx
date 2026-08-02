@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense

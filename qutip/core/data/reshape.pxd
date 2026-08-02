@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport CSR, Dense, Dia
 

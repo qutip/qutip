@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport CSR, Dense, Data
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.data.base cimport idxint
