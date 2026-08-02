@@ -39,7 +39,7 @@ cy_modules = {
                         'trace'],
   'piqs':              ['_piqs'],
   'solver/cy':         ['dysolve', 'nm_mcsolve'],
-  'solver/integrator': ['explicit_rk'],
+  'solver/integrator': ['explicit_rk', '_rhs'],
   'solver/sode':       ['_sode', 'ssystem'],
 }
 
