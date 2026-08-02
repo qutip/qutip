@@ -1,7 +1,7 @@
 project(
   'qutip',
   'cpp', 'cython',
-  version: files('VERSION'),
+  version: run_command(['tools/git-versioning.py'], check: true).stdout().strip(),
   license: 'BSD-3-Clause',
   meson_version: '>= 1.5.0',
   default_options: [
