@@ -641,7 +641,7 @@ cdef class QobjEvo:
     def __truediv__(self, other):
         return self.copy().__imul__(1 / other)
 
-    def __idiv__(self, other):
+    def __itruediv__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
         self *= 1 / other
