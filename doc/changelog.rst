@@ -7,13 +7,14 @@ Change Log
 .. towncrier release notes start
 
 
-QuTiP 5.3.1 (2026-08-03)
+QuTiP 5.3.1 (2026-08-04)
 ========================
 
 Features
 --------
 
 - Optimize "rouchon" method for stochastic solvers (#2936, by Eric Giguère (Ericgig))
+- `Qobj.data_as` now accepts "csr_array" and "dia_array", returning modern SciPy sparse arrays alongside the existing matrix formats. (#2938, by Veronika Kurth (veronikakurth))
 
 Bug Fixes
 ---------
