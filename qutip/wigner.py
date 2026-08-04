@@ -677,7 +677,7 @@ class _QFuncCoherentGrid:
         out *= self.prefactor
         return out
 
-    def __call__(self, first: int, last: int = None, cutoff: int = 170):
+    def __call__(self, first: int, last: int = None):
         """
         Get a 3D array of shape ``(yvec.size, xvec.size, last - first)`` of the
         coherent-state vectors for all the Fock states in the range ``first``
@@ -686,6 +686,28 @@ class _QFuncCoherentGrid:
         ``numpy.meshgrid``), and the last runs over the selected range of
         Fock-space dimensions.
         """
+
+        out = np.empty(self.grid.shape + (last - first,), dtype=np.complex128)
+        ns = np.arange(first, last)
+        start = 0
+        if first == 0:
+            out[:, :, 0] = self.prefactor.copy()
+            start = 1
+
+        # n_factors = - 0.5 * scipy.special.gammaln(ns + 1)
+        lngrid = scipy.special.xlogy(1, self.grid)
+        zeros_loc = self.grid == 0
+        for i, n in list(enumerate(ns))[start:]:
+            part = (
+                lngrid * n
+                -0.5 * scipy.special.gammaln(n + 1)
+                -0.5 * np.abs(self.grid)**2
+            )
+            part[zeros_loc] = -np.inf
+            out[:, :, i] = np.exp(part)
+
+        return out
+
         ns = np.arange(first, last).reshape(1, 1, -1)
         out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
         cutoff_loc = cutoff - first
@@ -737,10 +759,6 @@ class QFunc:
         :obj:`.qfunc` with ``precompute_memory=None`` instead to force using
         the slower, more memory-efficient algorithm.
 
-    cutoff : int, default: 170
-        Size at which to switch from using scipy.special.factorial to
-        Stirling's approximation. From 171, scipy.special.factorial return inf.
-
     Examples
     --------
     Initialise the class for a square set of coordinates, with some states we
@@ -768,7 +786,6 @@ class QFunc:
         yvec,
         g: float = np.sqrt(2),
         memory: float = 1024,
-        cutoff: int=170
     ):
         self._g = g
         self._coherent_grid = _QFuncCoherentGrid(xvec, yvec, g)
@@ -778,7 +795,6 @@ class QFunc:
         self._max_size = int(self._memory_mb // self._size_mb)
         self._current_size = 0
         self._cache = None
-        self._cutoff = cutoff
 
     def _alphas(self, size: int):
         r"""
@@ -795,15 +811,10 @@ class QFunc:
                 f" but only {self._memory_mb} MB is allowed."
             )
         if self._cache is None:
-            self._cache = self._coherent_grid(
-                self._current_size, size, self._cutoff
-            )
+            self._cache = self._coherent_grid(self._current_size, size)
         else:
             self._cache = np.dstack(
-                [
-                    self._cache,
-                    self._coherent_grid(self._current_size, size, self._cutoff)
-                ]
+                [self._cache, self._coherent_grid(self._current_size, size)]
             )
         self._current_size = size
         return self._cache
@@ -840,31 +851,26 @@ def _qfunc_iterative_single(
     vector: np.ndarray,
     alpha_grid: _QFuncCoherentGrid,
     g: float,
-    cutoff: int = 170,
 ):
     r"""
     Get the Q function (without the :math:`\pi` scaling factor) of a single
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    size = min(cutoff, vector.shape[0])
-    ns = np.arange(size)
-    out = np.polyval(
-        (0.5 * g * vector[:size] / np.sqrt(scipy.special.factorial(ns)))[::-1],
-        alpha_grid.grid,
-    )
-    if vector.shape[0] > cutoff:
-        # scipy.special.factorial reach inf at 171
-        # So we use an approximation for large number.
-        e_sqrt = np.e**(0.5)
-        pi = np.pi
-        idx = np.arange(cutoff, vector.shape[0])
-        coeffs = vector[idx] * 0.5 * g * ((2*idx + 1/3) * pi)**(-0.25)
-        grid = alpha_grid.grid[:, :, None] * e_sqrt * idx[None, None, :]**-0.5
-        out += np.sum(grid**idx[None, None, :] * coeffs[None, None, :], axis=2)
+    out = vector[0]
+
+    # Nonzero without the first terms
+    ns = np.nonzero(vector[1:])[0] + 1
+    n_factors = np.log(vector[ns]) - 0.5 * scipy.special.gammaln(ns + 1)
+    lngrid = scipy.special.xlogy(1, alpha_grid.grid)
+    zeros_loc = alpha_grid.grid == 0
+    for i, n in enumerate(ns):
+        part = lngrid * n + n_factors[i]
+        part[zeros_loc] = -np.inf
+        out += np.exp(part)
 
     out *= alpha_grid.prefactor
-    return np.abs(out)**2
+    return np.abs(out * 0.5 * g)**2
 
 
 def qfunc(
@@ -873,7 +879,6 @@ def qfunc(
     yvec,
     g: float = sqrt(2),
     precompute_memory: float = 1024,
-    cutoff: int = 170
 ):
     r"""
     Husimi-Q function of a given state vector or density matrix at phase-space
@@ -901,10 +906,6 @@ def qfunc(
         smaller, intermediaries being necessary, but is a good approximation.
         If you want to use the same iterative algorithm for density matrices
         that is used for single kets, set ``precompute_memory=None``.
-
-    cutoff : int, default: 170
-        Size at which to switch from using scipy.special.factorial to
-        Stirling's approximation. From 171, scipy.special.factorial return inf.
 
     Returns
     -------
@@ -938,7 +939,7 @@ def qfunc(
     alpha_grid = _QFuncCoherentGrid(xvec, yvec, g)
     if state.isket:
         out = _qfunc_iterative_single(
-            state.full().ravel(), alpha_grid, g, cutoff
+            state.full().ravel(), alpha_grid, g
         )
         out /= np.pi
         return out
@@ -947,10 +948,10 @@ def qfunc(
     values, vectors = eigh(state.full())
     vectors = vectors.T
     out = values[0] * _qfunc_iterative_single(
-        vectors[0], alpha_grid, g, cutoff
+        vectors[0], alpha_grid, g
     )
     for value, vector in zip(values[1:], vectors[1:]):
-        out += value * _qfunc_iterative_single(vector, alpha_grid, g, cutoff)
+        out += value * _qfunc_iterative_single(vector, alpha_grid, g)
     out /= np.pi
     return out
 
