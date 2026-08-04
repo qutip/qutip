@@ -106,6 +106,18 @@ def test_diagonal_operators(oper_func, diag, offset, args):
     assert oper == qutip.Qobj(np.diag(diag, offset))
 
 
+@pytest.mark.parametrize(['diagonals', 'expected'], [
+    pytest.param([1, 1], True, id="unitary"),
+    pytest.param([1j, -1j], True, id="unitary_phase"),
+    pytest.param([0.5, 0.5], False, id="subunit"),
+    pytest.param([2, 2], False, id="superunit"),
+])
+def test_qdiags_isunitary(diagonals, expected):
+    # A main-diagonal Qobj is unitary iff every entry has modulus 1.
+    oper = qutip.qdiags(diagonals, 0)
+    assert bool(oper.isunitary) is expected
+
+
 @pytest.mark.parametrize(['function', 'message'], [
     (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
@@ -140,6 +152,17 @@ def test_qzero_rectangular():
     assert qutip.qzero([2], [3]).dims == [[2], [3]]
     assert qutip.qzero([2, 3], [3]).dims == [[2, 3], [3]]
     assert qutip.qzero(qutip.dimensions.Space([2, 3]), qutip.dimensions.Space([3])).dims == [[2, 3], [3]]
+
+
+def test_qzero_isherm():
+    # A non-square zero operator cannot be Hermitian; a square one is.
+    assert qutip.qzero(3).isherm is True
+    assert qutip.qzero([2], [3]).isherm is False
+
+    square = qutip.Qobj(np.zeros((3, 3)))
+    rectangular = qutip.Qobj(np.zeros((2, 3)), dims=[[2], [3]])
+    assert qutip.qzero_like(square).isherm is True
+    assert qutip.qzero_like(rectangular).isherm is False
 
 
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])

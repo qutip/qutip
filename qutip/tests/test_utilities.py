@@ -241,3 +241,24 @@ class TestFitting:
         else:
             assert rmse < 1e-8
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+
+@pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
+def test_clebsch_large_j(j):
+    """<j 0; j 0 | 0 0> = (-1)^j / sqrt(2j + 1).
+
+    The intermediate factorials leave the float range long before the
+    coefficient itself does, so these used to underflow silently to 0.0, then
+    to nan, then raise ZeroDivisionError/OverflowError as j grew.
+    """
+    expected = (-1) ** j / np.sqrt(2 * j + 1)
+    assert clebsch(j, j, 0, 0, 0, 0) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize('j', [60, 90, 120])
+def test_clebsch_large_j_normalisation(j):
+    """sum_j3 C(j,j,j3,m1,m2,m1+m2)^2 = 1, for j large enough to overflow."""
+    m1, m2 = j / 2, -j / 2
+    total = sum(clebsch(j, j, j3, m1, m2, m1 + m2) ** 2
+                for j3 in range(2 * j + 1))
+    assert total == pytest.approx(1.0)

@@ -171,3 +171,31 @@ def test_closed_integrator(method, order, H, sc_ops):
 
     error_order = get_error_order_integrator(sode, ref_sode, state)
     assert (order + 0.25) < error_order
+
+
+@pytest.mark.parametrize("method", [
+    "euler",
+    "milstein",
+    "milstein_imp",
+    "platen",
+    "pred_corr",
+    "rouchon",
+    "explicit1.5",
+    "taylor1.5_imp",
+])
+def test_get_state(method):
+    N = 3
+    H = qeye(N)
+    sc_ops = [destroy(N)]
+
+    rhs = _StochasticRHS(StochasticOpenSystem, H, sc_ops, [], False)
+    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
+    state = operator_to_vector(fock_dm(3, dtype="Dense")).data
+
+    sode.set_state(0., state, np.random.default_rng(0))
+    sode.integrate(0.01)
+    t1, state1, _ = sode.get_state(copy=True)
+    t2, state2, _ = sode.get_state(copy=True)
+    assert t1 == t2
+    assert state1 is not state2
+    assert state1 == state2

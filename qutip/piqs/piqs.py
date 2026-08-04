@@ -10,13 +10,12 @@ It also allows to characterize nonlinear functions of the density matrix.
 # Contact: nathan.shammah@gmail.com, shahnawaz.ahmed95@gmail.com
 
 from math import factorial
-from decimal import Decimal
 
 import numpy as np
 from scipy.integrate import odeint
 from scipy.linalg import eigvalsh
 from scipy.special import entr
-from scipy.sparse import dok_matrix, block_diag, lil_matrix
+from scipy.sparse import dok_matrix, coo_array, block_diag, lil_array
 from .. import (
     Qobj, spre, spost, tensor, identity, ket2dm, sigmax, sigmay, sigmaz,
     sigmap, sigmam,
@@ -259,7 +258,10 @@ def dicke_function_trace(f, rho):
     degen_blocks = np.flip(j_vals(N))
     state_degeneracies = []
     for j in degen_blocks:
-        dj = state_degeneracy(N, j)
+        # `state_degeneracy` is an exact Python int, which numpy would turn
+        # into an `object` array once it exceeds an int64 (gh-2630); the value
+        # is only used to scale here, so a float is enough.
+        dj = float(state_degeneracy(N, j))
         state_degeneracies.append(dj)
     eigenvals_degeneracy = []
     deg = []
@@ -599,8 +601,8 @@ class Dicke(object):
 def energy_degeneracy(N, m):
     """Calculate the number of Dicke states with same energy.
 
-    The use of the ``Decimals`` class allows to explore N > 1000,
-    unlike the built-in function ``scipy.special.binom``.
+    The result is computed with exact integer arithmetic, which allows to
+    explore N > 1000 unlike the built-in function ``scipy.special.binom``.
 
     Parameters
     ----------
@@ -614,13 +616,12 @@ def energy_degeneracy(N, m):
     Returns
     -------
     degeneracy: int
-        The energy degeneracy
+        The energy degeneracy, exact at any ``N``.
     """
-    numerator = Decimal(factorial(N))
-    d1 = Decimal(factorial(_ensure_int(N / 2 + m)))
-    d2 = Decimal(factorial(_ensure_int(N / 2 - m)))
-    degeneracy = numerator / (d1 * d2)
-    return int(degeneracy)
+    numerator = factorial(N)
+    d1 = factorial(_ensure_int(N / 2 + m))
+    d2 = factorial(_ensure_int(N / 2 - m))
+    return numerator // (d1 * d2)
 
 
 def state_degeneracy(N, j):
@@ -629,7 +630,8 @@ def state_degeneracy(N, j):
     Each state :math:`\lvert j, m\rangle` includes D(N,j) irreducible
     representations :math:`\lvert j, m, \alpha\rangle`.
 
-    Uses Decimals to calculate higher numerator and denominators numbers.
+    Uses exact integer arithmetic to calculate higher numerator and
+    denominator numbers.
 
     Parameters
     ----------
@@ -642,16 +644,14 @@ def state_degeneracy(N, j):
     Returns
     -------
     degeneracy: int
-        The state degeneracy.
+        The state degeneracy, exact at any ``N``.
     """
     if j < 0:
         raise ValueError("j value should be >= 0")
-    numerator = Decimal(factorial(N)) * Decimal(2 * j + 1)
-    denominator_1 = Decimal(factorial(_ensure_int(N / 2 + j + 1)))
-    denominator_2 = Decimal(factorial(_ensure_int(N / 2 - j)))
-    degeneracy = numerator / (denominator_1 * denominator_2)
-    degeneracy = int(np.round(float(degeneracy)))
-    return degeneracy
+    numerator = factorial(N) * _ensure_int(2 * j + 1)
+    denominator_1 = factorial(_ensure_int(N / 2 + j + 1))
+    denominator_2 = factorial(_ensure_int(N / 2 - j))
+    return numerator // (denominator_1 * denominator_2)
 
 
 def m_degeneracy(N, m):
@@ -1500,14 +1500,14 @@ def block_matrix(N, elements="ones"):
     k = 0
     for i in blocks_list:
         if elements == "ones":
-            square_blocks.append(np.ones((i, i)))
+            square_blocks.append(coo_array(np.ones((i, i))))
         elif elements == "degeneracy":
             j = N / 2 - k
-            dj = state_degeneracy(N, j)
-            square_blocks.append(dj * np.ones((i, i)))
+            # float for the same reason as in `dicke_function_trace`
+            dj = float(state_degeneracy(N, j))
+            square_blocks.append(coo_array(dj * np.ones((i, i))))
         k = k + 1
     return block_diag(square_blocks)
-
 
 # ============================================================================
 # Adding a faster version to make a Permutational Invariant matrix
@@ -1768,7 +1768,7 @@ class Pim(object):
         rows = self.N + 1
         cols = 0
 
-        sparse_M = lil_matrix((nds, nds), dtype=float)
+        sparse_M = lil_array((nds, nds), dtype=float)
         if (self.N % 2) == 0:
             cols = int(self.N / 2 + 1)
         else:
