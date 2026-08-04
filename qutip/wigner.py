@@ -685,6 +685,7 @@ class _QFuncCoherentGrid:
 
         lngrid = scipy.special.xlogy(1, self.grid)
         zeros_loc = self.grid == 0
+        lngrid[zeros_loc] = 0
         for i, n in list(enumerate(ns))[start:]:
             part = (
                 lngrid * n
