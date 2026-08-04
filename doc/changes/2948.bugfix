@@ -1,1 +1,0 @@
-Fix an integer overflow in ``qutip.piqs.energy_degeneracy`` and ``qutip.piqs.state_degeneracy``. Degeneracies larger than ``int64`` are now returned as ``float`` so that arrays built from them keep a numeric (``float64``) dtype instead of falling back to ``object``, which SciPy does not support (e.g. ``piqs.block_matrix(80, elements="degeneracy")`` no longer raises).
