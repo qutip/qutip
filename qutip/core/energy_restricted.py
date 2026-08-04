@@ -282,7 +282,7 @@ def enr_destroy(dims, excitations, *, dtype=None):
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
     enr_dims = [EnrSpace(dims, excitations)] * 2
 
-    a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
+    a_ops = [scipy.sparse.lil_array((nstates, nstates), dtype=np.complex128)
              for _ in dims]
 
     for n1, state1 in idx2state.items():
@@ -394,7 +394,7 @@ def enr_ptrace(rho, sel):
     toremove = set(range(len(dims))) - set(sel)
     # initialize the new matrix
     space_new = EnrSpace(dims_new, excitations)
-    out = scipy.sparse.dok_matrix((space_new.size, space_new.size),
+    out = scipy.sparse.dok_array((space_new.size, space_new.size),
                                   dtype="complex128")
 
     # loop over nonzero elements of the input, (it's sparse)
@@ -533,7 +533,7 @@ def _enr_qobj_from_dict(op_dict, dims, excitations, **kwargs):
     colspace, col_idxlist = _get_space_and_indices(
         op_dict, dims, 1, excitations)
 
-    op_coo = scipy.sparse.coo_matrix(
+    op_coo = scipy.sparse.coo_array(
         (list(op_dict.values()), (row_idxlist, col_idxlist)),
         shape=(rowspace.size, colspace.size), dtype="complex128")
 

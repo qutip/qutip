@@ -147,7 +147,7 @@ jobs:
         run: conda install pip -y -n test
 
       # TODO remove this once conda supports windows arm
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         if: matrix.os == 'windows-11-arm'
         with:
           python-version: ${{ matrix.python-version }}
