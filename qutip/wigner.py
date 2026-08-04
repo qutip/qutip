@@ -666,17 +666,6 @@ class _QFuncCoherentGrid:
         self.grid.imag = -y
         self.prefactor = np.exp(-0.5 * (x * x + y * y)).astype(np.complex128)
 
-    def _start(self, first: int):
-        """
-        Get the coherent state matrix corresponding to the first needed Fock
-        state.
-        """
-        if first == 0:
-            return self.prefactor.copy()
-        out = np.power(self.grid, first)
-        out *= self.prefactor
-        return out
-
     def __call__(self, first: int, last: int = None):
         """
         Get a 3D array of shape ``(yvec.size, xvec.size, last - first)`` of the
@@ -691,10 +680,9 @@ class _QFuncCoherentGrid:
         ns = np.arange(first, last)
         start = 0
         if first == 0:
-            out[:, :, 0] = self.prefactor.copy()
+            out[:, :, 0] = self.prefactor
             start = 1
 
-        # n_factors = - 0.5 * scipy.special.gammaln(ns + 1)
         lngrid = scipy.special.xlogy(1, self.grid)
         zeros_loc = self.grid == 0
         for i, n in list(enumerate(ns))[start:]:
@@ -706,29 +694,6 @@ class _QFuncCoherentGrid:
             part[zeros_loc] = -np.inf
             out[:, :, i] = np.exp(part)
 
-        return out
-
-        ns = np.arange(first, last).reshape(1, 1, -1)
-        out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
-        cutoff_loc = cutoff - first
-
-        if cutoff_loc >= 0:
-            # Compute the out grid from first to cutoff [exclusive]
-            out[:, :, 0] = self._start(ns[0, 0, 0])
-            end = min(ns.size, cutoff_loc)
-            for i in range(1, end):
-                out[:, :, i] = out[:, :, i-1] * self.grid
-            out[:, :, :end] /= np.sqrt(scipy.special.factorial(ns[:, :, :end]))
-
-        if ns.size >= cutoff_loc:
-            # Compute the out grid from cutoff to last
-            e_sqrt = np.e**0.5
-            start = max(cutoff_loc, 0)
-            idx = ns[:, :, start:]
-            out[:, :, start:] = (
-                (self.grid[:, :, None] * e_sqrt * idx**-0.5) ** idx
-                * ((2 * idx + 1./3.) * np.pi)**-0.25 * self.prefactor[:, :, None]
-            )
         return out
 
 
@@ -857,19 +822,19 @@ def _qfunc_iterative_single(
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    out = vector[0]
+    out = vector[0] * alpha_grid.prefactor
 
     # Nonzero without the first terms
     ns = np.nonzero(vector[1:])[0] + 1
     n_factors = np.log(vector[ns]) - 0.5 * scipy.special.gammaln(ns + 1)
     lngrid = scipy.special.xlogy(1, alpha_grid.grid)
     zeros_loc = alpha_grid.grid == 0
+    prefact = -0.5 * np.abs(alpha_grid.grid)**2
     for i, n in enumerate(ns):
-        part = lngrid * n + n_factors[i]
+        part = lngrid * n + n_factors[i] + prefact
         part[zeros_loc] = -np.inf
         out += np.exp(part)
 
-    out *= alpha_grid.prefactor
     return np.abs(out * 0.5 * g)**2
 
 
