@@ -675,24 +675,20 @@ class _QFuncCoherentGrid:
         ``numpy.meshgrid``), and the last runs over the selected range of
         Fock-space dimensions.
         """
-
-        out = np.empty(self.grid.shape + (last - first,), dtype=np.complex128)
         ns = np.arange(first, last)
-        start = 0
-        if first == 0:
-            out[:, :, 0] = self.prefactor
-            start = 1
+        out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
 
         lngrid = scipy.special.xlogy(1, self.grid)
         zeros_loc = self.grid == 0
         lngrid[zeros_loc] = 0
-        for i, n in list(enumerate(ns))[start:]:
+        prefact = -0.5 * np.abs(self.grid)**2
+        for i, n in enumerate(ns):
             part = (
                 lngrid * n
                 -0.5 * scipy.special.gammaln(n + 1)
-                -0.5 * np.abs(self.grid)**2
+                + prefact
             )
-            part[zeros_loc] = -np.inf
+            part[zeros_loc] = 0 if n == 0 else -np.inf
             out[:, :, i] = np.exp(part)
 
         return out
@@ -823,18 +819,18 @@ def _qfunc_iterative_single(
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    out = vector[0] * alpha_grid.prefactor
-
-    # Nonzero without the first terms
-    ns = np.nonzero(vector[1:])[0] + 1
-    n_factors = np.log(vector[ns]) - 0.5 * scipy.special.gammaln(ns + 1)
+    out = 0
+    ns = np.nonzero(vector)[0]
+    # Using xlogy(n, alpha_grid.grid) would avoid special case at `0`
+    # But the log in the loop is quite slow
     lngrid = scipy.special.xlogy(1, alpha_grid.grid)
     zeros_loc = alpha_grid.grid == 0
+    lngrid[zeros_loc] = 0
     prefact = -0.5 * np.abs(alpha_grid.grid)**2
-    for i, n in enumerate(ns):
-        part = lngrid * n + n_factors[i] + prefact
-        part[zeros_loc] = -np.inf
-        out += np.exp(part)
+    for n in ns:
+        part = lngrid * n - 0.5 * scipy.special.gammaln(n + 1) + prefact
+        part[zeros_loc] = 0 if n == 0 else -np.inf
+        out += np.exp(part) * vector[n]
 
     return np.abs(out * 0.5 * g)**2
 
