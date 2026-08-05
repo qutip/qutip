@@ -7,14 +7,17 @@ class Wiener:
     """
     Wiener process.
     """
-    def __init__(self, t0, dt, generator, shape):
+    def __init__(self, t0, dt, generator, num_diffusion):
         self.t0 = t0
         self.dt = dt
-        self.shape = shape
+        self.num_diffusion = num_diffusion
         self.generator = generator
+        self.idx_last_0 = 0
+
+    def _prepare(self, N_dW):
+        shape = N_dW, self.num_diffusion
         self.noise = np.zeros((0,) + shape, dtype=float)
         self.last_W = np.zeros(shape[-1], dtype=float)
-        self.idx_last_0 = 0
 
     def _extend(self, idx):
         N_new_vals = idx - self.noise.shape[0]

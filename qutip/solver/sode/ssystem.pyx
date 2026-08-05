@@ -12,7 +12,10 @@ import numpy as np
 from qutip.core import spre, spost, liouvillian
 
 __all__ = [
-    "StochasticOpenSystem", "StochasticClosedSystem"
+    "StochasticSystem",
+    "TaylorStochasticSystem",
+    "StochasticOpenSystem",
+    "StochasticClosedSystem",
 ]
 
 @cython.boundscheck(False)
@@ -23,97 +26,207 @@ cdef Dense _dense_wrap(double complex [::1] x):
 
 cdef class _StochasticSystem:
     """
-        RHS for stochastic differential equations.
-
-        Contain the deterministic drift term and the diffusion term[s] through
-        the ``drift`` and ``diffusion`` methods.
-
-        Derrivatives corresponding to the terms in the ito-tyalor expansion are
-        available through a different interface:
-        ``set_state``, ``a``, ``bi``, ``Libj`` etc.
-
-        A different interface is used since each term is not independant, but
-        which terms is needed change according to the integration method.
-        Whereas the raw drift and diffusion are independant.
+    RHS for stochastic differential equations.
     """
     def __init__(self):
-        raise NotImplementedError
+        pass
 
     cpdef Data drift(self, t, Data state):
         """
-            Compute the drift term for the ``state`` at time ``t``.
+        Compute the drift term for the ``state`` at time ``t``.
         """
         raise NotImplementedError
 
     cpdef list diffusion(self, t, Data state):
         """
-            Compute the diffusion terms for the ``state`` at time ``t``.
+        Compute the diffusion terms for the ``state`` at time ``t``.
         """
         raise NotImplementedError
 
-    cpdef list expect(self, t, Data state):
+    cpdef list _shift(self, t, Data state):
         """
-            Compute the expectation terms for the ``state`` at time ``t``.
+        Shift between the noise ``dW`` and measurement.
+        Used in custom evolution when the measurement is known and the noise
+        is desired.
         """
         raise NotImplementedError
+
+
+cdef class StochasticSystem(_StochasticSystem):
+    """
+    Right-hand side (RHS) for Stochastic Differential Equations (SDE).
+
+    Encapsulates the deterministic drift term and the stochastic diffusion
+    term[s].
+
+    Parameters
+    ----------
+    drift : callable ``(t: float, state: Data) -> Data``
+        Deterministic drift function.
+
+    diffusion : list of callable or callable
+        Stochastic diffusion function(s). Either a list of independant
+        diffusion functions or a single function returning a list of diffusion
+        term(s). The signature should be
+        ``(t: float, state: Data) -> Data | list[Data]``.
+
+    num_diffusion : int
+        The total number of Wiener processes (diffusion terms).
+
+    _shift : callable ``(t: float, state: Data) -> list[float]``, optional
+        A function with signature defining the shift between noise $dW$ and
+        measurement. Not use in normal evolution.
+    """
+    cdef:
+      public object drift_func, diffusion_func, shift
+
+    def __init__(self, drift, diffusion, num_diffusion, _shift=None):
+        self.drift_func = drift
+        self.diffusion_func = diffusion
+        self.num_diffusion = num_diffusion
+        self._shift_func = _shift
+
+    cpdef Data drift(self, t, Data state):
+        return self.drift_func(t, state)
+
+    cpdef list diffusion(self, t, Data state):
+        if isinstance(self.diffusion_func, list):
+            return [func(t, state) for func in self.diffusion_func]
+        return self.diffusion_func(t, state)
+
+    cpdef list _shift(self, t, Data state):
+        if self._shift_func is None:
+            raise NotImplementedError
+        return self._shift_func(t, state)
+
+
+cdef class TaylorStochasticSystem(_StochasticSystem):
+    """
+    Base class for SDE systems with analytical Ito-Taylor derivatives.
+
+    To implement a specific SDE, subclass this and override the required
+    methods. Solvers update the internal state using `set_state`
+    before querying individual operators.
+
+    To use this object, create a child class and overwrite the needed method.
+    In order of importance ``a`` and ``bi`` are always needed.
+    ``Libj`` is required for order 1 method such as Milstein.
+    Other derivative are only needed for higher order methods such are
+    taylor order 1.5.
+
+    Overwrite ``__init__`` and ``set_state`` as needed.
+
+    Notes
+    -----
+    Current SDE integration methods assume that the diffusion terms commute.
+    ``Libj(a, b) == Libj(b, a)``, for all $i, j$, at every order (``LiLjbk``).
+    """
+    def __init__(self, int num_diffusion):
+        """
+        Parameters
+        ----------
+        num_diffusion : int
+          Number of diffusion terms.
+        """
+        self.num_diffusion = num_diffusion
 
     cpdef void set_state(self, double t, Data state) except *:
         """
-            Initialize the set of derrivatives.
+        Update the internal time and state cache.
+
+        This method is guaranteed to be called by the solver before evaluating
+        any drift, diffusion, or derivative operators.
         """
-        raise NotImplementedError
+        self.t = t
+        self.state = state
 
     cpdef Data a(self):
         """
-          Drift term
+        Deterministic drift vector $a(t, x)$.
         """
         raise NotImplementedError
 
     cpdef Data bi(self, int i):
         """
-          Diffusion term for the ``i``th operator.
-        """
-        raise NotImplementedError
-
-    cpdef complex expect_i(self, int i):
-        """
-          Expectation value of the ``i``th operator.
+        Diffusion vector $b^i(t, x)$ for the $i$-th Wiener process.
         """
         raise NotImplementedError
 
     cpdef Data Libj(self, int i, int j):
         """
-            bi_n * d bj / dx_n
+        First-order diffusion derivative operator acting on a diffusion term.
+
+        $$(L_i b^j)_\mu = \sum_n b^i_n \frac{\partial b^j_\mu}{\partial x_n}$$
         """
         raise NotImplementedError
 
     cpdef Data Lia(self, int i):
         """
-            bi_n * d a / dx_n
+        First-order diffusion derivative operator acting on the drift term.
+
+        $$(L_i a)_\mu = \sum_n b^i_n \frac{\partial a_\mu}{\partial x_n}$$
         """
         raise NotImplementedError
 
     cpdef Data L0bi(self, int i):
         """
-            dbi/dt
-            + a_n * d bi / dx_n
-            + sum_k bk_n bk_m *0.5 d**2 (bi) / (dx_n dx_m)
+        Drift derivative operator acting on a diffusion term.
+
+        $$(L_0 b^i)_\mu =
+            \frac{\partial b^i_\mu}{\partial t}
+            + \sum_n a_n \frac{\partial b^i_\mu}{\partial x_n}
+            + \frac{1}{2} \sum_{k,n,m} b^k_n b^k_m
+            \frac{\partial^2 b^i_\mu}{\partial x_n \partial x_m}
+        $$
         """
         raise NotImplementedError
 
     cpdef Data LiLjbk(self, int i, int j, int k):
         """
-            bi_n * d/dx_n ( bj_m * d bk / dx_m)
+        Second-order diffusion derivative operator acting on a diffusion term.
+
+        $$(L_i L_j b^k)_\mu =
+            \sum_n b^i_n \frac{\partial}{\partial x_n}
+            \left( \sum_m b^j_m \frac{\partial b^k_\mu}{\partial x_m} \right)
+        $$
         """
         raise NotImplementedError
 
     cpdef Data L0a(self):
         """
-            da/dt
-            + a_n * d a / dx_n
-            + sum_k bk_n bk_m *0.5 d**2 (a) / (dx_n dx_m)
+        Drift derivative operator acting on the drift term.
+
+        $$(L_0 a)_\mu =
+            \frac{\partial a_\mu}{\partial t}
+            + \sum_n a_n \frac{\partial a_\mu}{\partial x_n}
+            + \frac{1}{2} \sum_{k,n,m} b^k_n b^k_m
+              \frac{\partial^2 a_\mu}{\partial x_n \partial x_m}
+        $$
         """
         raise NotImplementedError
+
+    cpdef complex _shift_i(self, int i):
+        """
+        Shift between the noise ``dW`` and measurement.
+        Used in custom evolution when the measurement is known and the noise
+        is desired.
+        """
+        raise NotImplementedError
+
+    cpdef Data drift(self, t, Data state):
+        if self.t != t or self.state is not state:
+            self.set_state(t, state)
+        return self.a()
+
+    cpdef list diffusion(self, t, Data state):
+        if self.t != t or self.state is not state:
+            self.set_state(t, state)
+        return [self.bi(i) for i in range(self.num_diffusion)]
+
+    cpdef list _shift(self, t, Data state):
+        if self.t != t or self.state is not state:
+            self.set_state(t, state)
+        return [self._shift_i(i) for i in range(self.num_diffusion)]
 
 
 cdef class StochasticClosedSystem(_StochasticSystem):
@@ -128,13 +241,15 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         diffusion = (c_i - e_i / 2) * psi
     """
     cdef readonly list cpcd_ops
+    cdef readonly list c_ops
+    cdef readonly QobjEvo L
 
     def __init__(self, H, sc_ops):
         self.L = -1j * H
         self.c_ops = sc_ops
         self.cpcd_ops = [op + op.dag() for op in sc_ops]
 
-        self.num_collapse = len(self.c_ops)
+        self.num_diffusion = len(self.c_ops)
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
 
@@ -144,7 +259,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         cdef Data temp, out
 
         out = self.L.matmul_data(t, state)
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = self.cpcd_ops[i]
             e = c_op.expect_data(t, state)
             c_op = self.c_ops[i]
@@ -157,7 +272,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         cdef int i
         cdef QobjEvo c_op
         cdef list out = []
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
             _out = c_op.matmul_data(t, state)
             c_op = self.cpcd_ops[i]
@@ -165,11 +280,11 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             out.append(_data.add(_out, state, -0.5 * expect))
         return out
 
-    cpdef list expect(self, t, Data state):
+    cpdef list _shift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef list expect = []
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = self.cpcd_ops[i]
             expect.append(c_op.expect_data(t, state))
         return expect
@@ -186,11 +301,11 @@ cdef class StochasticClosedSystem(_StochasticSystem):
         out.L = L
         out.c_ops = c_ops
         out.cpcd_ops = cpcd_ops
-        out.num_collapse = len(c_ops)
+        out.num_diffusion = len(c_ops)
         return out
 
 
-cdef class StochasticOpenSystem(_StochasticSystem):
+cdef class StochasticOpenSystem(TaylorStochasticSystem):
     """
         RHS for open quantum stochastic system (smesolve)
 
@@ -202,6 +317,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef double dt
     cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
+    cdef readonly list c_ops
+    cdef readonly QobjEvo L
 
     cdef Dense _a, temp, _L0a
     cdef complex[::1] expect_Cv
@@ -218,7 +335,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self.L = self.L + liouvillian(None, c_ops)
 
         self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
-        self.num_collapse = len(self.c_ops)
+        self.num_diffusion = len(self.c_ops)
         self.state_size = self.L.shape[1]
         self._is_set = 0
         self.N_root = int(self.state_size**0.5)
@@ -232,18 +349,18 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         cdef QobjEvo c_op
         cdef complex expect
         cdef list out = []
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
             expect = _data.trace_oper_ket(vec)
             out.append(_data.add(vec, state, -expect))
         return out
 
-    cpdef list expect(self, t, Data state):
+    cpdef list _shift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef list expect = []
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
             expect.append(_data.trace_oper_ket(vec))
@@ -265,7 +382,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self._L0a_set = False
 
         if not self._is_set:
-            n = self.num_collapse
+            n = self.num_diffusion
             l = self.state_size
             self._is_set = 1
             self._a = dense.zeros(self.state_size, 1)
@@ -309,7 +426,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._compute_b()
         return _dense_wrap(self._b[i, :])
 
-    cpdef complex expect_i(self, int i):
+    cpdef complex _shift_i(self, int i):
         if not self._is_set:
             raise RuntimeError(
                 "Derrivatives set for ito taylor expansion need "
@@ -330,7 +447,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         cdef int i
         cdef QobjEvo c_op
         cdef Dense b_vec, state=self.state
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = <QobjEvo> self.c_ops[i]
             b_vec = <Dense> _dense_wrap(self._b[i, :])
             imul_dense(b_vec, 0)
@@ -362,9 +479,9 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if not self._b_set:
             self._compute_b()
 
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = <QobjEvo> self.c_ops[i]
-            for j in range(i, self.num_collapse):
+            for j in range(i, self.num_diffusion):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
                 Lb_vec = <Dense> _dense_wrap(self._Lb[i, j, :])
                 imul_dense(Lb_vec, 0)
@@ -388,7 +505,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if not self._b_set:
             self._compute_b()
 
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             b_vec = <Dense> _dense_wrap(self._b[i, :])
             La_vec = <Dense> _dense_wrap(self._La[i, :])
             imul_dense(La_vec, 0.)
@@ -412,7 +529,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if not self._a_set:
             self._compute_a()
 
-        for i in range(self.num_collapse):
+        for i in range(self.num_diffusion):
             c_op = <QobjEvo> self.c_ops[i]
             L0b_vec = <Dense> _dense_wrap(self._L0b[i, :])
             b_vec = <Dense> _dense_wrap(self._b[i, :])
@@ -438,7 +555,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             for j in range(i):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
                 iadd_dense(L0b_vec, b_vec, -self.expect_Cb[j,i])
-            for j in range(i, self.num_collapse):
+            for j in range(i, self.num_diffusion):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
                 iadd_dense(L0b_vec, b_vec, -self.expect_Cb[i,j])
         self._L0b_set = True
@@ -468,9 +585,9 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if not self._Lb_set:
             self._compute_Lb()
 
-        for i in range(self.num_collapse):
-          for j in range(i, self.num_collapse):
-            for k in range(j, self.num_collapse):
+        for i in range(self.num_diffusion):
+          for j in range(i, self.num_diffusion):
+            for k in range(j, self.num_diffusion):
                 c_op = <QobjEvo> self.c_ops[i]
                 LLb_vec = <Dense> _dense_wrap(self._LLb[i, j, k, :])
                 Lb_vec = <Dense> _dense_wrap(self._Lb[j, k, :])
@@ -515,103 +632,9 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         cdef StochasticOpenSystem out = cls.__new__(cls)
         out.L = L
         out.c_ops = c_ops
-        out.num_collapse = len(c_ops)
+        out.num_diffusion = len(c_ops)
         out.state_size = out.L.shape[1]
         out._is_set = 0
         out.N_root = int(out.state_size**0.5)
         out.dt = derr_dt
         return out
-
-
-cdef class SimpleStochasticSystem(_StochasticSystem):
-    """
-    Simple system that can be solver analytically.
-    Used in tests.
-
-        drift = -iH @ vec
-
-        diffusion = c_i @ vec
-
-    """
-    cdef double dt
-
-    def __init__(self, H, c_ops):
-        self.L = -1j * H
-        self.c_ops = c_ops
-
-        self.num_collapse = len(self.c_ops)
-        self.dt = 1e-6
-
-    cpdef Data drift(self, t, Data state):
-        return self.L.matmul_data(t, state)
-
-    cpdef list diffusion(self, t, Data state):
-        cdef int i
-        cdef out = []
-        for i in range(self.num_collapse):
-            out.append(self.c_ops[i].matmul_data(t, state))
-        return out
-
-    cpdef list expect(self, t, Data state):
-        cdef int i
-        cdef list expect = []
-        for i in range(self.num_collapse):
-            expect.append(0j)
-        return expect
-
-    cpdef void set_state(self, double t, Data state) except *:
-        self.t = t
-        self.state = state
-
-    cpdef Data a(self):
-        return self.L.matmul_data(self.t, self.state)
-
-    cpdef Data bi(self, int i):
-        return self.c_ops[i].matmul_data(self.t, self.state)
-
-    cpdef complex expect_i(self, int i):
-        return 0j
-
-    cpdef Data Libj(self, int i, int j):
-        bj = self.c_ops[i].matmul_data(self.t, self.state)
-        return self.c_ops[j].matmul_data(self.t, bj)
-
-    cpdef Data Lia(self, int i):
-        bi = self.c_ops[i].matmul_data(self.t, self.state)
-        return self.L.matmul_data(self.t, bi)
-
-    cpdef Data L0bi(self, int i):
-        # L0bi = abi' + dbi/dt + Sum_j bjbjbi"/2
-        a = self.L.matmul_data(self.t, self.state)
-        abi = self.c_ops[i].matmul_data(self.t, a)
-        b = self.c_ops[i].matmul_data(self.t, self.state)
-        bdt = self.c_ops[i].matmul_data(self.t + self.dt, self.state)
-        return abi + (bdt - b) / self.dt
-
-    cpdef Data LiLjbk(self, int i, int j, int k):
-        bk = self.c_ops[k].matmul_data(self.t, self.state)
-        Ljbk = self.c_ops[j].matmul_data(self.t, bk)
-        return self.c_ops[i].matmul_data(self.t, Ljbk)
-
-    cpdef Data L0a(self):
-        # L0a = a'a + da/dt + bba"/2  (a" = 0)
-        a = self.L.matmul_data(self.t, self.state)
-        aa = self.L.matmul_data(self.t, a)
-        adt = self.L.matmul_data(self.t + self.dt, self.state)
-        return aa + (adt - a) / self.dt
-
-    def analytic(self, t, W):
-        """
-        Analytic solution, H and all c_ops must commute.
-        Support time dependance of order 2 (a + b*t + c*t**2)
-        """
-        def _intergal(f, T):
-            return (f(0) + 4 * f(T/2) + f(T)) / 6
-
-        out = _intergal(self.L, t) * t
-        for i in range(self.num_collapse):
-            out += _intergal(self.c_ops[i], t) * W[i]
-            out -= 0.5 * _intergal(
-                lambda t: self.c_ops[i](t) @ self.c_ops[i](t), t
-            ) * t
-        return out.expm().data

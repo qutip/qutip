@@ -32,24 +32,24 @@ class RouchonSODE(SIntegrator):
         "dt": 0.0001,
         "tol": 1e-7,
     }
+    RHS_format = "system"
 
-    def __init__(self, rhs, options):
+    def __init__(self, system, options):
         self._options = self.integrator_options.copy()
         self.options = options
-        self.rhs = rhs
-        self._make_operators()
+        self.system = system
+        self._make_operators(self.system)
 
-    def _make_operators(self):
-        rhs = self.rhs
-        self.H = rhs.H
+    def _make_operators(self, solver):
+        self.H = solver.H
         if self.H.issuper:
             raise TypeError("The rouchon stochastic integration method can't"
                             " use a premade Liouvillian.")
-        self._issuper = rhs.issuper
+        self._issuper = solver._dims.issuper
 
         dtype = type(self.H(0).data)
-        self.c_ops = rhs.c_ops
-        self.sc_ops = rhs.sc_ops
+        self.c_ops = solver.c_ops
+        self.sc_ops = solver.sc_ops
         self.cpcds = [op + op.dag() for op in self.sc_ops]
         for op in self.cpcds:
             op.compress()
@@ -66,7 +66,9 @@ class RouchonSODE(SIntegrator):
             for j in range(self.num_collapses)
         ]
 
-    def set_state(self, t, state0, generator):
+        self.id = _data.identity[dtype](self.H.shape[0])
+
+    def set_state(self, t, state0, wiener, is_measurement=False):
         """
         Set the state of the SODE solver.
 
@@ -83,22 +85,20 @@ class RouchonSODE(SIntegrator):
         """
         self.t = t
         self.state = state0
-        if isinstance(generator, Wiener):
-            self.wiener = generator
-        else:
-            self.wiener = Wiener(
-                t, self.options["dt"], generator,
-                (1, self.num_collapses,)
-            )
-        self.rhs._register_feedback(self.wiener)
-        self._make_operators()
+        self.wiener = wiener
+        self.wiener._prepare(self.N_dw)
+        if is_measurement:
+            raise NotImplementedError
+        # if isinstance(generator, Wiener):
+        #    self.wiener = generator
+        #else:
+        #    self.wiener = Wiener(
+        #        t, self.options["dt"], generator,
+        #        (1, self.num_collapses,)
+        #    )
+        #self.system._register_feedback(self.wiener)
+        self._make_operators(self.system)
         self._is_set = True
-        if self._issuper:
-            self._tmp = _data.zeros_like(unstack_columns(self.state))
-            self._out = _data.zeros_like(unstack_columns(self.state))
-        else:
-            self._tmp = _data.zeros_like(self.state)
-            self._out = _data.zeros_like(self.state)
 
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
@@ -122,55 +122,34 @@ class RouchonSODE(SIntegrator):
         if self._issuper:
             self.state = unstack_columns(self.state)
         for dw in dW:
-            new_state = self._step(self.t, self.state, dt, dw)
-            self.state, self._out = new_state, self.state
+            self.state = self._step(self.t, self.state, dt, dw)
             self.t += dt
         if self._issuper:
             self.state = stack_columns(self.state)
 
-        out_state = self.state.copy() if copy else self.state
-
-        return self.t, out_state, np.sum(dW, axis=0)
+        return self.t, self.state, np.sum(dW, axis=0)
 
     def _step(self, t, state, dt, dW):
         dy = [
             op.expect_data(t, state) * dt + dw
             for op, dw in zip(self.cpcds, dW)
         ]
-        tmp = _data.imul(self._tmp, 0.)
-        tmp = _data.iadd(tmp, state)
-        tmp = self.M.matmul_data(t, state, out=tmp, scale=dt)
+        M = _data.add(self.id, self.M._call(t), dt)
         for i in range(self.num_collapses):
-            tmp = self.sc_ops[i].matmul_data(t, state, out=tmp, scale=dy[i])
-            tmp = self.scc[i][i].matmul_data(
-                t, state, out=tmp, scale=(dy[i]**2 - dt) / 2
-            )
+            M = _data.add(M, self.sc_ops[i]._call(t), dy[i])
+            M = _data.add(M, self.scc[i][i]._call(t), (dy[i]**2-dt)/2)
             for j in range(i):
-                tmp = self.scc[i][j].matmul_data(
-                t, state, out=tmp, scale=dy[i] * dy[j]
-            )
+                M = _data.add(M, self.scc[i][j]._call(t), dy[i]*dy[j])
+        out = _data.matmul(M, state)
         if self._issuper:
-            out = _data.imul(self._out, 0.)
-            out = _data.iadd(out, tmp)
-            out = self.M.adjoint_rmatmul_data(t, tmp, out=out, scale=dt)
-            for i in range(self.num_collapses):
-                out = self.sc_ops[i].adjoint_rmatmul_data(
-                    t, tmp, out=out, scale=dy[i]
-                )
-                out = self.scc[i][i].adjoint_rmatmul_data(
-                    t, tmp, out=out, scale=(dy[i]**2 - dt) / 2
-                )
-                for j in range(i):
-                    out = self.scc[i][j].adjoint_rmatmul_data(
-                        t, tmp, out=out, scale=dy[i] * dy[j]
-                    )
+            Mdag = M.adjoint()
+            out = _data.matmul(out, Mdag)
             for cop in self.c_ops:
-                tmp = _data.imul(self._tmp, 0.)
-                tmp = cop.matmul_data(t, state, out=tmp)
-                out = cop.adjoint_rmatmul_data(t, tmp, out=out, scale=dt)
+                op = cop._call(t)
+                out += op @ state @ op.adjoint() * dt
             out = out / _data.trace(out)
         else:
-            out = tmp / _data.norm.l2(tmp)
+            out = out / _data.norm.l2(out)
         return out
 
     @property
