@@ -420,7 +420,7 @@ class HEOMResult(Result):
     @property
     def final_ado_state(self):
         if self._final_ado_state is not None:
-            return self._final_ado_state
+            return self._final_state
         if self.ado_states:
             return self.ado_states[-1]
         return None
@@ -642,6 +642,7 @@ class HEOMSolver(Solver):
 
     def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
         _time_start = time()
+        self.options = options
         # we call bool here because odd_parity will be used in arithmetic
         self.odd_parity = bool(odd_parity)
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -700,7 +701,17 @@ class HEOMSolver(Solver):
 
         self._init_rhs_time = time() - _time_start
 
-        super().__init__(rhs, options=options)
+        if isinstance(rhs, QobjEvo):
+            super().__init__(rhs, options=options)
+        else:
+            # Non-QobjEvo RHS (e.g. PETSc distributed matrix).
+            # Mirror Solver.__init__ without the QobjEvo type check.
+            # The integrator is resolved via the standard registration
+            # mechanism (_avail_integrators) using the "method" option.
+            self.rhs = rhs
+            self._integrator = self._get_integrator()
+            self._state_metadata = {}
+            self.stats = self._initialize_stats()
 
     @property
     def _sys_dims(self):
@@ -893,13 +904,29 @@ class HEOMSolver(Solver):
             )
         return op
 
-    def _rhs(self):
-        """ Make the RHS for the HEOM. """
-        ops = _GatherHEOMRHS(
-            self.ados.idx, block=self._sup_shape, nhe=self._n_ados
+    def _create_rhs_builder(self):
+        """ Create the appropriate RHS builder for the configured method.
+
+        Returns an object with ``add_op``, ``get_local_labels``,
+        ``gather``, and ``finalize`` methods.  This is the single
+        dispatch point for all backend selection — no other method in
+        the solver needs to know which backend is active.
+        """
+        method = self.options.get("method", "adams")
+        if method == "petsc":
+            from .backend_petsc import PETScGatherHEOMRHS
+            return PETScGatherHEOMRHS(
+                self.ados.idx, self._sup_shape, self._n_ados,
+            )
+        return _GatherHEOMRHS(
+            self.ados.idx, block=self._sup_shape, nhe=self._n_ados,
         )
 
-        for he_n in self.ados.labels:
+    def _rhs(self):
+        """ Make the RHS for the HEOM. """
+        ops = self._create_rhs_builder()
+
+        for he_n in ops.get_local_labels(self.ados.labels):
             op = self._grad_n(he_n)
             ops.add_op(he_n, he_n, op)
             for k in range(len(self.ados.dims)):
@@ -912,63 +939,27 @@ class HEOMSolver(Solver):
                     op = self._grad_prev(he_n, k)
                     ops.add_op(he_n, prev_he, op)
 
-        return ops.gather()
+        return ops
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
-        rhs_mat = self._rhs()
-        rhs_dims = [
-            [self._sup_shape * self._n_ados], [self._sup_shape * self._n_ados]
-        ]
-        h_identity = _data.identity(self._n_ados, dtype="csr")
-
-        if self.L_sys.isconstant:
-            # For the constant case, we just add the Liouvillian to the
-            # diagonal blocks of the RHS matrix.
-            rhs_mat += _data.kron(h_identity, self.L_sys(0).to("csr").data)
-            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
-        else:
-            # In the time dependent case, we construct the parameters
-            # for the ODE gradient function under the assumption that
-            #
-            # RHSmat(t) = RHSmat + time dependent terms that only affect the
-            # diagonal blocks of the RHS matrix.
-            #
-            # This assumption holds because only _grad_n dependents on
-            # the system Liouvillian (and not _grad_prev or _grad_next) and
-            # the bath coupling operators are not time-dependent.
-            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
-
-            def _kron(x):
-                return Qobj(
-                    _data.kron(h_identity, x.data),
-                    dims=rhs_dims,
-                ).to("csr")
-
-            rhs += self.L_sys.linear_map(_kron)
-
-        # The assertion that rhs_mat has data type CSR is just a sanity
-        # check on the RHS creation. The base solver class will still
-        # convert the RHS to the type required by the ODE integrator if
-        # needed.
-        assert isinstance(rhs_mat, _csr.CSR)
-        assert isinstance(rhs, QobjEvo)
-        assert rhs.dims == rhs_dims
-
-        return rhs
+        ops = self._rhs()
+        return ops.finalize(self.L_sys, self._sup_shape, self._n_ados)
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False,
+        ksp_type="bcgs", pc_type="bjacobi", ksp_rtol=1e-8, ksp_atol=1e-8,
     ):
         """
         Compute the steady state of the system.
 
         Parameters
         ----------
-        use_mkl : bool, default=False
+        use_mkl : bool, default=True
             Whether to use mkl or not. If mkl is not installed or if
             this is false, use the scipy splu solver instead.
+            Only used with the default (sparse) method.
 
         mkl_max_iter_refine : int
             Specifies the the maximum number of iterative refinement steps that
@@ -984,6 +975,24 @@ class HEOMSolver(Solver):
 
             For a complete description, see iparm(12) in
             https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+
+        ksp_type : str, default="bcgs"
+            PETSc Krylov solver type. Common choices: ``"bcgs"``
+            (BiCGStab), ``"gmres"``, ``"preonly"`` (direct solve).
+            Only used with the PETSc method.
+
+        pc_type : str, default="bjacobi"
+            PETSc preconditioner type. Common choices: ``"bjacobi"``,
+            ``"lu"`` (direct), ``"ilu"`` (incomplete LU).
+            Only used with the PETSc method.
+
+        ksp_rtol : float, default=1e-8
+            Relative convergence tolerance for the PETSc KSP solver.
+            Only used with the PETSc method.
+
+        ksp_atol : float, default=1e-8
+            Absolute convergence tolerance for the PETSc KSP solver.
+            Only used with the PETSc method.
 
         Returns
         -------
@@ -1001,7 +1010,33 @@ class HEOMSolver(Solver):
                 " system"
             )
         n = self._sys_shape
+        method = self.options.get("method", "adams")
 
+        if method == "petsc":
+            solution = self._steady_state_petsc(
+                n, ksp_type=ksp_type, pc_type=pc_type,
+                ksp_rtol=ksp_rtol, ksp_atol=ksp_atol,
+            )
+        else:
+            solution = self._steady_state_sparse(
+                n, use_mkl=use_mkl,
+                mkl_max_iter_refine=mkl_max_iter_refine,
+                mkl_weighted_matching=mkl_weighted_matching,
+            )
+
+        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
+        data = _data.mul(_data.add(data, data.adjoint()), 0.5)
+        steady_state = Qobj(data, dims=self._sys_dims, copy=False)
+
+        solution = solution.reshape((self._n_ados, n, n))
+        steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
+
+        return steady_state, steady_ados
+
+    def _steady_state_sparse(
+        self, n, *, use_mkl, mkl_max_iter_refine, mkl_weighted_matching,
+    ):
+        """ Compute the steady state using sparse linear algebra. """
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
@@ -1030,7 +1065,7 @@ class HEOMSolver(Solver):
                 shape=L.shape,
             )
             L.sort_indices()
-            solution = mkl_spsolve(
+            return mkl_spsolve(
                 L,
                 b_mat,
                 perm=None,
@@ -1041,16 +1076,58 @@ class HEOMSolver(Solver):
             )
         else:
             L = L.tocsc()
-            solution = spsolve(L, b_mat)
+            return spsolve(L, b_mat)
 
-        data = _data.Dense(solution[:n ** 2].reshape((n, n), order='F'))
-        data = _data.mul(_data.add(data, data.adjoint()), 0.5)
-        steady_state = Qobj(data, dims=self._sys_dims, copy=False)
+    def _steady_state_petsc(
+        self, n, *, ksp_type, pc_type, ksp_rtol, ksp_atol,
+    ):
+        """ Compute the steady state using PETSc KSP linear solver. """
+        from petsc4py import PETSc
 
-        solution = solution.reshape((self._n_ados, n, n))
-        steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
+        mat = self.rhs.duplicate(copy=True)
+        mat.setOption(PETSc.Mat.Option.NEW_NONZERO_ALLOCATION_ERR, False)
 
-        return steady_state, steady_ados
+        rstart, rend = mat.getOwnershipRange()
+
+        mat.zeroRows([0], diag=0.0)
+
+        if rstart <= 0 < rend:
+            cols = [num * (n + 1) for num in range(n)]
+            vals = [1.0] * n
+            mat.setValues(
+                [0], cols, vals, addv=PETSc.InsertMode.INSERT_VALUES,
+            )
+
+        mat.assemblyBegin()
+        mat.assemblyEnd()
+
+        b = mat.createVecRight()
+        b.set(0.0)
+        if rstart <= 0 < rend:
+            b.setValue(0, 1.0)
+        b.assemblyBegin()
+        b.assemblyEnd()
+
+        x = mat.createVecRight()
+
+        ksp = PETSc.KSP().create(comm=mat.getComm())
+        ksp.setOperators(mat)
+        ksp.setType(ksp_type)
+        pc = ksp.getPC()
+        pc.setType(pc_type)
+        ksp.setTolerances(rtol=ksp_rtol, atol=ksp_atol)
+        ksp.setFromOptions()
+
+        ksp.solve(b, x)
+
+        scatter, vec_seq = PETSc.Scatter.toAll(x)
+        scatter.scatter(
+            x, vec_seq,
+            PETSc.InsertMode.INSERT_VALUES,
+            PETSc.ScatterMode.FORWARD,
+        )
+
+        return vec_seq.getArray().copy()
 
     def run(self, state0, tlist, *, args=None, e_ops=None):
         """
@@ -1121,6 +1198,11 @@ class HEOMSolver(Solver):
         """
         return super().run(state0, tlist, args=args, e_ops=e_ops)
 
+    @property
+    def _is_petsc(self):
+        """ Whether the solver is using the PETSc method. """
+        return self.options.get("method", "adams") == "petsc"
+
     def _prepare_state(self, state):
         n = self._sys_shape
         rho_dims = self._sys_dims
@@ -1153,11 +1235,17 @@ class HEOMSolver(Solver):
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"
                 )
-            rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
-            rho0_he[:n ** 2] = rho0.full().ravel('F')
-            rho0_he = _data.create(rho0_he)
+            if self._is_petsc:
+                # For PETSc, we only create the dense array for the
+                # system state.  The PETSc integrator maps this onto
+                # the distributed global vector.
+                rho0_he = _data.create(rho0.full().ravel('F'))
+            else:
+                rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
+                rho0_he[:n ** 2] = rho0.full().ravel('F')
+                rho0_he = _data.create(rho0_he)
 
-        if self.options["state_data_type"]:
+        if not self._is_petsc and self.options["state_data_type"]:
             rho0_he = _data.to(self.options["state_data_type"], rho0_he)
 
         return rho0_he
@@ -1172,9 +1260,14 @@ class HEOMSolver(Solver):
             state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
             dims=rho_dims,
         )
-        ado_state = HierarchyADOsState(
-            rho, self.ados, state.to_array().reshape(hierarchy_shape)
-        )
+        if state.shape[0] == n ** 2:
+            ado_state = HierarchyADOsState(
+                rho, self.ados, None
+            )
+        else:
+            ado_state = HierarchyADOsState(
+                rho, self.ados, state.to_array().reshape(hierarchy_shape)
+            )
         return ado_state
 
     def start(self, state0, t0):
@@ -1372,8 +1465,15 @@ class _GatherHEOMRHS:
         self._f_idx = f_idx
         self._ops = []
 
+    def get_local_labels(self, labels):
+        """ Return the labels to process on this node.
+
+        For the CSR backend, all labels are processed locally.
+        """
+        return labels
+
     def add_op(self, row_he, col_he, op):
-        """ Add an block operator to the list. """
+        """ Add a block operator to the list. """
         self._ops.append(
             (self._f_idx(row_he), self._f_idx(col_he), op)
         )
@@ -1394,7 +1494,7 @@ class _GatherHEOMRHS:
             Returns
             -------
             rhs : :obj:`Data`
-                A combined matrix of shape ``(block * nhe, block * ne)``.
+                A combined matrix of shape ``(block * nhe, block * nhe)``.
         """
         self._ops.sort()
         ops = np.array(self._ops, dtype=[
@@ -1408,3 +1508,76 @@ class _GatherHEOMRHS:
             ops["row"], ops["col"], ops["op"],
             widths_and_heights, widths_and_heights, dtype='CSR'
         )
+
+    def finalize(self, L_sys, sup_shape, n_ados):
+        """ Assemble the final RHS as a :obj:`.QobjEvo`.
+
+            Adds the system Liouvillian to the diagonal blocks of the
+            HEOM coupling matrix and wraps the result in a
+            :obj:`.QobjEvo`.
+
+            Parameters
+            ----------
+            L_sys : :obj:`.QobjEvo`
+                The system Liouvillian.
+            sup_shape : int
+                The superoperator dimension.
+            n_ados : int
+                The number of ADOs in the hierarchy.
+
+            Returns
+            -------
+            rhs : :obj:`.QobjEvo`
+                The assembled HEOM RHS evolution operator.
+        """
+        rhs_mat = self.gather()
+        rhs_dims = [
+            [sup_shape * n_ados], [sup_shape * n_ados]
+        ]
+        h_identity = _data.identity(n_ados, dtype="csr")
+
+        if L_sys.isconstant:
+            # For the constant case, we just add the Liouvillian to the
+            # diagonal blocks of the RHS matrix.
+            rhs_mat += _data.kron(h_identity, L_sys(0).to("csr").data)
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
+        else:
+            # In the time dependent case, we construct the parameters
+            # for the ODE gradient function under the assumption that
+            #
+            # RHSmat(t) = RHSmat + time dependent terms that only affect the
+            # diagonal blocks of the RHS matrix.
+            #
+            # This assumption holds because only _grad_n depends on
+            # the system Liouvillian (and not _grad_prev or _grad_next) and
+            # the bath coupling operators are not time-dependent.
+            rhs = QobjEvo(Qobj(rhs_mat, dims=rhs_dims))
+
+            def _kron(x):
+                return Qobj(
+                    _data.kron(h_identity, x.data),
+                    dims=rhs_dims,
+                ).to("csr")
+
+            rhs += L_sys.linear_map(_kron)
+
+        # The assertion that rhs_mat has data type CSR is just a sanity
+        # check on the RHS creation. The base solver class will still
+        # convert the RHS to the type required by the ODE integrator if
+        # needed.
+        assert isinstance(rhs_mat, _csr.CSR)
+        assert isinstance(rhs, QobjEvo)
+        assert rhs.dims == rhs_dims
+
+        return rhs
+
+
+# -- Integrator Registration ------------------------------------------------
+# Register PETSc integrator with HEOMSolver if petsc4py is available.
+# This follows the same pattern as Solver.add_integrator() calls in
+# scipy_integrator.py and qutip_integrator.py.
+try:
+    from qutip.solver.integrator.petsc_integrator import IntegratorPETSc
+    HEOMSolver.add_integrator(IntegratorPETSc, "petsc")
+except ImportError:
+    pass
