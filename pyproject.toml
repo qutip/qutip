@@ -1,13 +1,12 @@
 [build-system]
+build-backend = 'mesonpy'
 requires = [
-    "setuptools>=77.0.3",
-    "packaging",
-    "wheel",
-    "cython>=0.29.20",
-    "numpy>=2.0.0",
-    "scipy>=1.9",
+    "meson-python>=0.17",
+    "meson>=1.5",
+    "cython>=3.0",
+    "numpy>=2.0",
+    "scipy>=1.13",
 ]
-build-backend = "setuptools.build_meta"
 
 [project]
 name = "qutip"
@@ -59,7 +58,7 @@ Funding = "https://github.com/sponsors/qutip"
 
 [project.optional-dependencies]
 graphics = ["matplotlib>=3.6"]
-runtime_compilation = ["cython>=0.29.34", "filelock", "setuptools"]
+runtime_compilation = ["cython>=3.0", "filelock", "setuptools"]
 semidefinite = ["cvxpy>=1.3", "cvxopt"]
 tests = ["pytest>=7.2", "pytest-rerunfailures"]
 ipython = ["ipython"]
@@ -109,3 +108,14 @@ showcontent = true
 directory = "misc"
 name = "Miscellaneous"
 showcontent = true
+
+[tool.coverage.run]
+source = ["qutip"]
+parallel = true
+
+[tool.coverage.paths]
+qutip = [
+    "qutip/",
+    "*/site-packages/qutip/",        # posix installs
+    "*\\site-packages\\qutip\\",     # windows installs
+]

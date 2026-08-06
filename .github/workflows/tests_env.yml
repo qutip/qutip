@@ -34,9 +34,14 @@ jobs:
       - name: Install QuTiP and dependencies
         run: |
           # Install the extra requirement
+          python -m pip install meson-python meson ninja # build
+          python -m pip install setuptools  # runtime string-coefficient compilation
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
-          python -m pip install -e . -v --no-build-isolation
+          python -m pip install . -v
+
+      - name: Install QuTiP family package
+        run: |
           # jax cannot be installed from requirement (cpu vs gpu issue)
           python -m pip install jax[cpu]
 
@@ -51,7 +56,7 @@ jobs:
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
           fi
-          python -m pip install . --no-build-isolation
+          python -m pip install .
 
       - name: Install QuTiP family package
         run: |
@@ -65,7 +70,7 @@ jobs:
           elif [[ "${{ inputs.version }}" ]]; then
             git checkout ${{ inputs.version }}
           fi
-          python -m pip install .[full] --no-build-isolation --upgrade-strategy only-if-needed
+          python -m pip install .[full] --upgrade-strategy only-if-needed
 
 
       - name: Print python environment

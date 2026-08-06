@@ -1,0 +1,7 @@
+option('annotate', type: 'boolean', value: true,
+       description: 'Emit Cython HTML annotation files.')
+
+option('idxint_64', type: 'boolean', value: false,
+       description: 'Use 64-bit integers for sparse matrix indices. ' +
+                    'Allows matrices with more than 2**31 non-zero entries, ' +
+                    'at the cost of memory and some speed.')
