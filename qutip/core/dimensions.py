@@ -4,10 +4,11 @@ Internal use module for manipulating dims specifications.
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 import numpy as np
 import numbers
-from qutip.core.data import einsum as _data_einsum
+from qutip.core.data import einsum as _data_einsum, extract
 from operator import getitem
 from functools import partial
 from typing import Any, Literal
@@ -322,7 +323,6 @@ def _infer_out_dims(subscripts, operands):
         inputs_part, output_part = subscripts.split("->")
     else:
         inputs_part = subscripts
-        from collections import Counter
         all_labels = [c for c in inputs_part if c.isalnum()]
         counts = Counter(all_labels)
         output_part = "".join(sorted(
@@ -334,11 +334,13 @@ def _infer_out_dims(subscripts, operands):
     char_to_dim = {}
     char_occurrences = {}
     for op_idx, (op, sub) in enumerate(zip(operands, input_subs)):
-        row_len = len(op.dims[0])
+        row_flat = flatten(op.dims[0])
+        col_flat = flatten(op.dims[1])
+        row_len = len(row_flat)
         for i, char in enumerate(sub):
             is_row = i < row_len
             char_to_dim[char] = (
-                op.dims[0][i] if is_row else op.dims[1][i - row_len]
+                row_flat[i] if is_row else col_flat[i - row_len]
             )
             char_occurrences.setdefault(char, []).append((op_idx, is_row))
 
@@ -443,10 +445,13 @@ def einsum(subscripts, *operands, out_dims=None):
         out_shape=out_shape
     )
 
-    # Extract scalar from the 1x1 Data object to
-    # fulfill the Dense output contract.
+    # Extract scalar from the 1x1 Data object.
     if out_dims is None:
-        return complex(result_data.to_array()[0, 0])
+        scalar_val = extract(result_data, copy=False)[0, 0]
+        try:
+            return complex(scalar_val)
+        except Exception:
+            return scalar_val
 
     # Get Qobj class from operand to avoid circular import
     Qobj_class = type(operands[0])
