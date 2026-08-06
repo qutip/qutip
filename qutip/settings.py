@@ -150,6 +150,8 @@ def _find_mkl():
 
     if plat == 'darwin':
         ext = ".dylib"
+    elif plat == 'win32':
+        ext = ".dll"
     elif plat in ['linux2', 'linux']:
         ext = ".so"
     else:
