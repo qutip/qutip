@@ -60,13 +60,12 @@ behind high-level functional wrappers:
 
    terminology
    integrator
+   integrator_stochastic
    solveroptions
 
 ..
   Sections to add later:
   motivation
   solver
-  integrator_stochastic
   result
-  solveroptions
   feedback

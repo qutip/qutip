@@ -5,15 +5,15 @@ from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
 from collections import defaultdict
 cimport cython
-from qutip.solver.sode.ssystem cimport _StochasticSystem, TaylorStochasticSystem
+from qutip.solver.sode.ssystem cimport BaseStochasticSystem, TaylorStochasticSystem
 import numpy as np
 
 
 cdef class Euler:
-    cdef _StochasticSystem system
+    cdef BaseStochasticSystem system
     cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system, measurement_noise=False):
+    def __init__(self, BaseStochasticSystem system, measurement_noise=False):
         self.system = system
         self.measurement_noise = measurement_noise
 
@@ -38,7 +38,7 @@ cdef class Euler:
         By Peter E. Kloeden, Eckhard Platen
         """
         cdef int i
-        cdef _StochasticSystem system = self.system
+        cdef BaseStochasticSystem system = self.system
         cdef list expect
 
         cdef Data a = system.drift(t, state)
@@ -71,7 +71,7 @@ cdef class Platen(Euler):
         The Theory of Open Quantum Systems
         Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
         """
-        cdef _StochasticSystem system = self.system
+        cdef BaseStochasticSystem system = self.system
         cdef int i, j, num_ops = system.num_diffusion
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
@@ -121,7 +121,7 @@ cdef class Platen(Euler):
 
 
 cdef class Explicit15(Euler):
-    def __init__(self, _StochasticSystem system):
+    def __init__(self, BaseStochasticSystem system):
         self.system = system
 
     @cython.boundscheck(False)
@@ -133,7 +133,7 @@ cdef class Explicit15(Euler):
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
+        cdef BaseStochasticSystem system = self.system
         cdef int i, j, k, num_ops = system.num_diffusion
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
@@ -283,7 +283,7 @@ cdef class Milstein:
         dV = -iH*V*dt + d1*dt + d2_i*dW_i
         + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
         """
-        cdef _StochasticSystem system = self.system
+        cdef BaseStochasticSystem system = self.system
         cdef int i, j, num_ops = system.num_diffusion
         cdef double dw
 

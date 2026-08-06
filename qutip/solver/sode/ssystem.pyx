@@ -24,7 +24,7 @@ cdef Dense _dense_wrap(double complex [::1] x):
     return dense.wrap(&x[0], x.shape[0], 1)
 
 
-cdef class _StochasticSystem:
+cdef class BaseStochasticSystem:
     """
     RHS for stochastic differential equations.
     """
@@ -52,7 +52,7 @@ cdef class _StochasticSystem:
         raise NotImplementedError
 
 
-cdef class StochasticSystem(_StochasticSystem):
+cdef class StochasticSystem(BaseStochasticSystem):
     """
     Right-hand side (RHS) for Stochastic Differential Equations (SDE).
 
@@ -100,7 +100,7 @@ cdef class StochasticSystem(_StochasticSystem):
         return self._shift_func(t, state)
 
 
-cdef class TaylorStochasticSystem(_StochasticSystem):
+cdef class TaylorStochasticSystem(BaseStochasticSystem):
     """
     Base class for SDE systems with analytical Ito-Taylor derivatives.
 
@@ -229,7 +229,7 @@ cdef class TaylorStochasticSystem(_StochasticSystem):
         return [self._shift_i(i) for i in range(self.num_diffusion)]
 
 
-cdef class StochasticClosedSystem(_StochasticSystem):
+cdef class StochasticClosedSystem(BaseStochasticSystem):
     """
         RHS for closed quantum stochastic system (ssesolve)
 

@@ -2,14 +2,14 @@
 from qutip.core.data cimport Data, Dense
 from qutip.core.cy.qobjevo cimport QobjEvo
 
-cdef class _StochasticSystem:
+cdef class BaseStochasticSystem:
     cdef public int num_diffusion
 
     cpdef Data drift(self, t, Data state)
     cpdef list diffusion(self, t, Data state)
     cpdef list _shift(self, t, Data state)
 
-cdef class TaylorStochasticSystem(_StochasticSystem):
+cdef class TaylorStochasticSystem(BaseStochasticSystem):
     cdef public Data state
     cdef public double t
     cpdef void set_state(self, double t, Data state) except *

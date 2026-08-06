@@ -32,7 +32,7 @@ class RouchonSODE(SIntegrator):
         "dt": 0.0001,
         "tol": 1e-7,
     }
-    RHS_format = "system"
+    rhs_format = "system"
 
     def __init__(self, system, options):
         self._options = self.integrator_options.copy()

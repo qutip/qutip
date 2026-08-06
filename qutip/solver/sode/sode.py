@@ -2,8 +2,8 @@ import numpy as np
 import warnings
 from . import _sode
 from ..integrator.integrator import Integrator
-from ..stochastic import StochasticSolver, SMESolver
-from .ssystem import StochasticSystem, TaylorStochasticSystem
+from ..stochastic import StochasticSolver, SMESolver, _StochasticRHS
+from .ssystem import BaseStochasticSystem, TaylorStochasticSystem
 
 __all__ = ["SIntegrator", "PlatenSODE", "PredCorr_SODE"]
 
@@ -25,9 +25,9 @@ class SIntegrator(Integrator):
     name : str
         The name of the integrator.
 
-    RHS_format : {"SDESystem", "SDETaylorSystem", "Solver"}
+    rhs_format : {"SDESystem", "SDETaylorSystem", "Solver"}
         Which format the SDE integrator rhs is used by the integration method.
-        - "SDESystem": Instance of :class:"StochasticSystem".
+        - "SDESystem": Instance of a subclass of :class:"BaseStochasticSystem".
         - "SDETaylorSystem": Instance of a child class of
           :class:"TaylorStochasticSystem". Depending on the integration method,
           not all derivative may need to be defined.
@@ -47,22 +47,22 @@ class SIntegrator(Integrator):
     _wiener_is_measurement = False
     # How the rhs is passed to the integrator.
     # "SDESystem", "SDETaylorSystem", "system"
-    RHS_format = "SDESystem"
+    rhs_format = "SDESystem"
     N_dw = 1
 
     def __init__(self, rhs, options):
         expected_type = {
-            "SDESystem": StochasticSystem,
+            "SDESystem": BaseStochasticSystem,
             "SDETaylorSystem": TaylorStochasticSystem,
             "system": _StochasticRHS,
-        }[self.RHS_format]
+        }[self.rhs_format]
         if not isinstance(rhs, expected_type):
-            raise TypeError
+            raise TypeError(f"Got {type(rhs)}, expected {expected_type}.")
         self._options = self.integrator_options.copy()
         self.options = options
         self.rhs = rhs
 
-    def set_state(self, t, state0, wiener, is_measurement=False):
+    def set_state(self, t, state0, wiener):
         """
         Set the state of the SODE solver.
 
@@ -79,10 +79,9 @@ class SIntegrator(Integrator):
         """
         self.t = t
         self.state = state0
-        self.weiner = weiner
+        self.wiener = wiener
         self.wiener._prepare(self.N_dw)
-        self._wiener_is_measurement = is_measurement
-        if is_measurement and not self._support_measurement_noise:
+        if self.wiener.is_measurement and not self._support_measurement_noise:
             raise NotImplementedError(
                 f"{type(self).__name__} does not support running"
                 " the evolution from measurements."
@@ -128,20 +127,20 @@ class SIntegrator(Integrator):
             )
 
 
-class _Cython_SIntegrator(Integrator):
+class _Cython_SIntegrator(SIntegrator):
     stepper = None
     _stepper_options = []
 
-    def set_state(self, t, state0, generator):
+    def set_state(self, t, state0, wiener):
         stepper_opt = {
             key: self.options[key]
             for key in self._stepper_options
             if key in self.options
         }
-        super().set_state(t, state0, generator)
+        super().set_state(t, state0, wiener)
         self.step_func = self.stepper(
-            self.rhs(self.options),
-            measurement_noise=generator.is_measurement,
+            self.rhs,
+            measurement_noise=self.wiener.is_measurement,
             **stepper_opt
         ).run
 
@@ -259,7 +258,7 @@ class PlatenSODE(_Explicit_Simple_Integrator):
     stepper = _sode.Platen
     N_dw = 1
     _stepper_options = ["measurement_noise"]
-    RHS_format = "SDESystem"
+    rhs_format = "SDESystem"
 
 
 class PredCorr_SODE(_Explicit_Simple_Integrator):
@@ -287,7 +286,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     stepper = _sode.PredCorr
     N_dw = 1
     _stepper_options = ["alpha", "eta", "measurement_noise"]
-    RHS_format = "SDETaylorSystem"
+    rhs_format = "SDETaylorSystem"
 
     @property
     def options(self):

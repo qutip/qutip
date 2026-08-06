@@ -13,11 +13,12 @@ class Wiener:
         self.num_diffusion = num_diffusion
         self.generator = generator
         self.idx_last_0 = 0
+        self.is_measurement = False
 
     def _prepare(self, N_dW):
-        shape = N_dW, self.num_diffusion
-        self.noise = np.zeros((0,) + shape, dtype=float)
-        self.last_W = np.zeros(shape[-1], dtype=float)
+        self.shape = N_dW, self.num_diffusion
+        self.noise = np.zeros((0,) + self.shape, dtype=float)
+        self.last_W = np.zeros(self.shape[-1], dtype=float)
 
     def _extend(self, idx):
         N_new_vals = idx - self.noise.shape[0]

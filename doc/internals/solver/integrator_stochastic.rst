@@ -10,7 +10,7 @@ In QuTiP, SDE solvers derive from SIntegrator, similar to the base Integrator, b
 
 Attributes:
 
-The ``SIntegrator``'s possible ``RHS_format`` are:
+The ``SIntegrator``'s possible ``rhs_format`` are:
 
 - "SDESystem": A class deriving from :class:`StochasticSystem` with the ``drift``
   and ``diffusion`` method, referencing to the deterministic and stochastic part
