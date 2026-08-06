@@ -19,6 +19,16 @@ if not cpp.has_header('Python.h', dependencies: py3_dep)
   error('Cannot compile Python.h')
 endif
 
+# compile flags for C++ on top of -O3/-O2 (used in release)
+_extra_args = [
+  '-funroll-loops',
+  '-Wno-unused-but-set-variable',
+  '-Wno-unused-function',
+  '-Wno-conversion',
+  '-Wno-misleading-indentation',
+]
+add_project_arguments(cpp.get_supported_arguments(_extra_args), language: 'cpp')
+
 # ---- Cython annotate ----
 if get_option('annotate')
   add_project_arguments('-a', language: 'cython')
@@ -62,10 +72,10 @@ if host_machine.system() == 'darwin' and cpp.has_link_argument('-Wl,-dead_strip'
   add_project_link_arguments('-Wl,-dead_strip', language: 'cpp')
 endif
 
+subdir('qutip')
 install_subdir(
   'qutip',
   install_dir: py3.get_install_dir(),
   exclude_files: ['meson.build'],
   exclude_directories: ['__pycache__', 'tests/.pytest_cache'],
 )
-subdir('qutip')
