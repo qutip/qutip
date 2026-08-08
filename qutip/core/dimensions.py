@@ -447,7 +447,7 @@ def einsum(subscripts, *operands, out_dims=None):
 
     # Extract scalar from the 1x1 Data object.
     if out_dims is None:
-        scalar_val = extract(result_data, copy=False)[0, 0]
+        scalar_val = extract(result_data)[0, 0]
         try:
             return complex(scalar_val)
         except Exception:
