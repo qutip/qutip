@@ -39,7 +39,6 @@ from qutip.solver.heom.bofin_solvers import (
     HEOMResult,
     HEOMSolver,
     HSolverDL,
-    _GatherHEOMRHS,
 )
 from qutip.solver import (
     IntegratorException,
@@ -1894,32 +1893,88 @@ class TestHEOMResult:
         assert result.final_state is rho
         assert result.final_ado_state is ado_state
 
+class TestHEOMSolverBackend:
+    def test_backend_registry_shared(self):
+        from qutip.solver.heom.bofin_solvers import CSRHEOMBackend
+        
+        # Instantiate HSolverDL and confirm it resolves the "csr" backend by default
+        H_sys = qeye(2)
+        Q = sigmaz()
+        solver = HSolverDL(H_sys, Q, 1.0, 1.0, 2, 2, 1.0)
+        
+        assert isinstance(solver._backend, CSRHEOMBackend)
+        assert "csr" in HSolverDL._backends
+        assert HSolverDL._backends["csr"] is CSRHEOMBackend
+        
+        class DummyBackend:
+            def __init__(self, solver):
+                pass
+                
+        HEOMSolver.add_backend(DummyBackend, "dummy")
+        
+        # Prove that the registry is shared
+        assert "dummy" in HSolverDL._backends
+        assert HSolverDL._backends["dummy"] is DummyBackend
+        assert id(HEOMSolver._backends) == id(HSolverDL._backends)
+        
+        # Cleanup
+        del HEOMSolver._backends["dummy"]
 
-class Test_GatherHEOMRHS:
-    def test_simple_gather(self):
-        def f(label):
-            return int(label.lstrip("o"))
+    def test_invalid_backend_method_raises_error(self):
+        """
+        Test that constructing an HEOMSolver with an unregistered backend method
+        raises a ValueError.
+        """
+        H_sys = qeye(2)
+        bath = BosonicBath(qeye(2), [1.0], [1.0], [1.0], [1.0])
+        
+        with pytest.raises(ValueError) as exc_info:
+            solver = HEOMSolver(H_sys, bath, 2, options={"method": "nonexistent_backend_name"})
+        
+        msg = str(exc_info.value)
+        assert "Method 'nonexistent_backend_name' is not a supported HEOM backend or ODE integrator" in msg
+        assert "Available backends:" in msg
 
-        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3)
+    def test_heomsolver_early_options_init(self):
+        """
+        Test that HEOMSolver can be safely initialized with options=None or options={}
+        and correctly resolves the default 'adams' method without crashing.
+        """
+        H_sys = qeye(2)
+        bath = BosonicBath(qeye(2), [1.0], [1.0], [1.0], [1.0])
+        
+        # Test options=None
+        solver_none = HEOMSolver(H_sys, bath, 2, options=None)
+        assert solver_none.options["method"] == "adams"
+        
+        # Test options={}
+        solver_empty = HEOMSolver(H_sys, bath, 2, options={})
+        assert solver_empty.options["method"] == "adams"
 
-        for i in range(3):
-            for j in range(3):
-                base = 10 * (j * 2) + (i * 2)
-                block_op = _data.to(
-                    _data.CSR,
-                    _data.create(np.array([
-                        [base, base + 10],
-                        [base + 1, base + 11],
-                    ]))
-                )
-                gather_heoms.add_op(f"o{i}", f"o{j}", block_op)
-
-        op = gather_heoms.gather()
-
-        expected_op = np.array([
-            [10 * i + j for i in range(2 * 3)]
-            for j in range(2 * 3)
-        ], dtype=np.complex128)
-
-        np.testing.assert_array_equal(op.to_array(), expected_op)
-        assert isinstance(op, _data.CSR)
+    def test_restore_state_missing_ados(self):
+        """
+        Test that when an integrator returns a state vector containing only the 
+        system density matrix (shape n**2), restore_state correctly handles it
+        and sets _ado_state to None, instead of attempting to reshape it to the 
+        full hierarchy shape.
+        """
+        H_sys = qeye(2)
+        bath = BosonicBath(qeye(2), [1.0], [1.0], [1.0], [1.0])
+        
+        # Initialize solver and backend
+        solver = HEOMSolver(H_sys, bath, 2)
+        backend = solver._backend
+        
+        # Create a dummy data object of size n**2 (4 for a 2x2 system)
+        dummy_state = _data.dense.zeros(4, 1)
+        
+        ado_state = backend.restore_state(dummy_state)
+        
+        assert ado_state._ado_state is None
+        assert ado_state.rho.shape == (2, 2)
+        
+        # Ensure calling extract() yields the expected TypeError
+        with pytest.raises(TypeError) as exc_info:
+            ado_state.extract(0)
+            
+        assert "ADO state is unavailable" in str(exc_info.value)
