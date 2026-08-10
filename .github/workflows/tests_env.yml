@@ -38,7 +38,7 @@ jobs:
           python -m pip install setuptools  # runtime string-coefficient compilation
           python -m pip install pytest pytest-rerunfailures  # tests
           python -m pip install numpy scipy cython filelock
-          python -m pip install . -v
+          python -m pip install . -v --no-build-isolation
 
       - name: Install QuTiP family package
         run: |
@@ -56,7 +56,7 @@ jobs:
             git fetch --tags
             git checkout $(git describe --tags "$(git rev-list --tags --max-count=1)")
           fi
-          python -m pip install .
+          python -m pip install . --no-build-isolation
 
       - name: Install QuTiP family package
         run: |
