@@ -379,6 +379,23 @@ def _infer_out_dims(subscripts, operands):
     if not output_part:
         return None
 
+    # Reject implicit output transpose: all row-origin indices must appear
+    # before all col-origin indices in the output.
+    seen_col = False
+    for char in output_part:
+        _, is_row = char_occurrences[char][0]
+        if is_row and seen_col:
+            raise ValueError(
+                f"einsum subscripts {subscripts!r} would implicitly transpose "
+                f"the output: index {char!r} is a row-origin index but "
+                "appears after a col-origin index in the output. Reorder the "
+                "output subscripts so that all row indices precede all "
+                "column indices, and apply .trans()/.dag() explicitly "
+                "if a transpose is needed."
+            )
+        if not is_row:
+            seen_col = True
+
     out_row_dims = [char_to_dim[c] for c in out_row_subs] or [1]
     out_col_dims = [char_to_dim[c] for c in out_col_subs] or [1]
     return [out_row_dims, out_col_dims]
@@ -447,11 +464,7 @@ def einsum(subscripts, *operands, out_dims=None):
 
     # Extract scalar from the 1x1 Data object.
     if out_dims is None:
-        scalar_val = extract(result_data)[0, 0]
-        try:
-            return complex(scalar_val)
-        except Exception:
-            return scalar_val
+        return extract(result_data)[0, 0]
 
     # Get Qobj class from operand to avoid circular import
     Qobj_class = type(operands[0])

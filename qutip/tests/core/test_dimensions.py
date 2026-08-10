@@ -531,6 +531,16 @@ def test_einsum(subscripts, operands, expected, out_dims):
         [_rho_01, _cx],
         id="col_col_contraction",
     ),
+    pytest.param(
+        "ij,jk->ki",
+        [qutip.sigmax(), qutip.sigmaz()],
+        id="output_col_before_row",
+    ),
+    pytest.param(
+        "ikjl,jm->mlik",
+        [qutip.tensor(qutip.sigmaz(), qutip.sigmaz()), qutip.sigmaz()],
+        id="output_col_before_row_composite",
+    ),
 ])
 def test_einsum_rejects_implicit_transpose(subscripts, operands):
     with pytest.raises(ValueError):
