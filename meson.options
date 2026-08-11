@@ -2,6 +2,7 @@ option('annotate', type: 'boolean', value: true,
        description: 'Emit Cython HTML annotation files.')
 
 option('idxint_64', type: 'boolean', value: false,
-       description: 'Use 64-bit integers for sparse matrix indices. ' +
-                    'Allows matrices with more than 2**31 non-zero entries, ' +
-                    'at the cost of memory and some speed.')
+       description: 'Use 64-bit integers (int64_t) for sparse matrix indices, ' +
+                    'instead of the default 32-bit (int32_t). ' +
+                    'Note it is only usable with a SciPy built against an ILP64 BLAS. ' +
+                    'Scipy wheels ship with 32-bit (int32_t) for BLAS.')
