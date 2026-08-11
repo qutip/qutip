@@ -137,10 +137,11 @@ class _Cython_SIntegrator(SIntegrator):
             for key in self._stepper_options
             if key in self.options
         }
+        if "measurement_noise" in self._stepper_options:
+            stepper_opt["measurement_noise"] = wiener.is_measurement
         super().set_state(t, state0, wiener)
         self.step_func = self.stepper(
             self.rhs,
-            measurement_noise=self.wiener.is_measurement,
             **stepper_opt
         ).run
 
@@ -257,6 +258,7 @@ class PlatenSODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Platen
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
     rhs_format = "SDESystem"
 
@@ -285,6 +287,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.PredCorr
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["alpha", "eta", "measurement_noise"]
     rhs_format = "SDETaylorSystem"
 

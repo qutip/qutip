@@ -33,6 +33,7 @@ class RouchonSODE(SIntegrator):
         "tol": 1e-7,
     }
     rhs_format = "system"
+    _support_measurement_noise = True
 
     def __init__(self, system, options):
         self._options = self.integrator_options.copy()

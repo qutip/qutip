@@ -874,6 +874,40 @@ class StochasticSolver(MultiTrajSolver):
         result.stats.update(stats)
         return result
 
+    def start(self, state0: Qobj, t0: float, seed: int | SeedSequence = None):
+        """
+        Set the initial state and time for a step evolution.
+
+        Parameters
+        ----------
+        state : :obj:`.Qobj`
+            Initial state of the evolution.
+
+        t0 : double
+            Initial time of the evolution.
+
+        seed : int, SeedSequence, list, optional
+            Seed for the random number generator. It can be a single seed used
+            to spawn seeds for each trajectory or a list of seed, one for each
+            trajectory.
+
+        Notes
+        -----
+        When using step evolution, only one trajectory can be computed at once.
+        """
+        if isinstance(seed, Wiener):
+            wiener = generator
+        else:
+            seeds = self._read_seed(seed, 1)
+            generator = self._get_generator(seeds[0])
+            num_collapse = len(self.rhs.sc_ops)
+            wiener = Wiener(
+                t0, self.options["dt"], generator, num_collapse
+            )
+
+        self.rhs._register_feedback(wiener)
+        self._integrator.set_state(t0, self._prepare_state(state0), wiener)
+
     @overload
     def step(
         self, t: float,

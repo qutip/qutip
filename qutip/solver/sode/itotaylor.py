@@ -23,6 +23,7 @@ class EulerSODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Euler
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
     rhs_format = "SDESystem"
 
@@ -42,6 +43,7 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Milstein
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
     rhs_format = "SDETaylorSystem"
 
