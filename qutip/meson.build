@@ -22,12 +22,8 @@ qutip_dep = declare_dependency(
 )
 
 # ---- extension modules ----
-py3.extension_module(
-  '_distributions', '_distributions.pyx',
-  dependencies: [qutip_dep], install: true, subdir: 'qutip',
-)
-
 cy_modules = {
+  '.':                 ['_distributions'],
   'core':              ['_brtools', '_brtensor'],
   'core/cy':           ['_element', 'coefficient', 'lindblad_matrix_form',
                         'math', 'qobjevo'],
