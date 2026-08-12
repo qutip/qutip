@@ -75,10 +75,10 @@ cdef class StochasticSystem(BaseStochasticSystem):
 
     _shift : callable ``(t: float, state: Data) -> list[float]``, optional
         A function with signature defining the shift between noise $dW$ and
-        measurement. Not use in normal evolution.
+        measurement. Not used in normal evolution.
     """
     cdef:
-      public object drift_func, diffusion_func, shift
+      public object drift_func, diffusion_func, _shift_func
 
     def __init__(self, drift, diffusion, num_diffusion, _shift=None):
         self.drift_func = drift
