@@ -253,6 +253,13 @@ cdef class StochasticClosedSystem(BaseStochasticSystem):
         for c_op in self.c_ops:
             self.L += -0.5 * c_op.dag() * c_op
 
+    def _register_feedback(self, val):
+        self.L._register_feedback({"WienerFeedback": val}, "stochastic solver")
+        for op in self.c_ops:
+            op._register_feedback({"WienerFeedback": val}, "stochastic solver")
+        for op in self.cpcd_ops:
+            op._register_feedback({"WienerFeedback": val}, "stochastic solver")
+
     cpdef Data drift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
@@ -340,6 +347,11 @@ cdef class StochasticOpenSystem(TaylorStochasticSystem):
         self._is_set = 0
         self.N_root = int(self.state_size**0.5)
         self.dt = derr_dt
+
+    def _register_feedback(self, val):
+        self.L._register_feedback({"WienerFeedback": val}, "stochastic solver")
+        for op in self.c_ops:
+            op._register_feedback({"WienerFeedback": val}, "stochastic solver")
 
     cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)

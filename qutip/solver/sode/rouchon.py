@@ -90,14 +90,6 @@ class RouchonSODE(SIntegrator):
         self.wiener._prepare(self.N_dw)
         if is_measurement:
             raise NotImplementedError
-        # if isinstance(generator, Wiener):
-        #    self.wiener = generator
-        #else:
-        #    self.wiener = Wiener(
-        #        t, self.options["dt"], generator,
-        #        (1, self.num_collapses,)
-        #    )
-        #self.system._register_feedback(self.wiener)
         self._make_operators(self.system)
         self._is_set = True
 

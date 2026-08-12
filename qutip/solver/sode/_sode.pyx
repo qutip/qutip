@@ -3,7 +3,6 @@
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
-from collections import defaultdict
 cimport cython
 from qutip.solver.sode.ssystem cimport BaseStochasticSystem, TaylorStochasticSystem
 import numpy as np
@@ -256,8 +255,8 @@ cdef class Milstein:
     cdef bint measurement_noise
 
     def __init__(self, TaylorStochasticSystem system, measurement_noise=False):
-            self.system = system
-            self.measurement_noise = measurement_noise
+        self.system = system
+        self.measurement_noise = measurement_noise
 
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):

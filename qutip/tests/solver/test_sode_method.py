@@ -8,7 +8,7 @@ import pytest
 from qutip.solver.sode.ssystem import (
     TaylorStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
 )
-from qutip.solver.sode._noise import _Noise
+from qutip.solver.sode._noise import _Noise, Wiener
 from qutip.solver.stochastic import SMESolver, _StochasticRHS
 
 
@@ -173,14 +173,18 @@ def test_methods(H, sc_ops, method, order, kw):
     assert (order + 0.25) < error_order
 
 
-def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
+def get_error_order_integrator(
+    integrator, ref_integrator, N_sc_ops, plot=False
+):
     ts = np.logspace(-4, -1, 20)
     err = np.zeros(len(ts), dtype=float)
+    state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
     for i, t in enumerate(ts):
         integrator.options["dt"] = t
         ref_integrator.options["dt"] = t
-        integrator.set_state(0., state, np.random.default_rng(0))
-        ref_integrator.set_state(0., state, np.random.default_rng(0))
+        wiener = Wiener(0, t, np.random.default_rng(0), N_sc_ops)
+        integrator.set_state(0., state, wiener)
+        ref_integrator.set_state(0., state, wiener)
         out = integrator.integrate(t)[1]
         target = ref_integrator.integrate(t)[1]
         err[i] = _data.norm.l2(out - target)
@@ -200,7 +204,6 @@ def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
     pytest.param("milstein_imp", 1.0, id="Milstein implicit"),
     pytest.param("platen", 1.0, id="Platen"),
     pytest.param("pred_corr", 1.0, id="PredCorr"),
-    pytest.param("rouchon", 1.0, id="rouchon"),
     pytest.param("explicit1.5", 1.5, id="Explicit15"),
     pytest.param("taylor1.5_imp", 1.5, id="Taylor15 implicit"),
 ])
@@ -221,20 +224,20 @@ def test_open_integrator(method, order, H, c_ops, sc_ops):
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
     sc_ops = [_make_oper(op, N) for op in sc_ops]
+    opt = {"dt": 0.01}
 
     rhs = _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
-    ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs, {"dt": 0.01})
-    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
-    state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
+    system = rhs(opt)
+    ref_sode = SMESolver.avail_integrators()["taylor1.5"](system, opt)
+    sode = SMESolver.avail_integrators()[method](system, opt)
 
-    error_order = get_error_order_integrator(sode, ref_sode, state)
+    error_order = get_error_order_integrator(sode, ref_sode, len(sc_ops))
     assert (order + 0.25) < error_order
 
 
 @pytest.mark.parametrize(["method", "order"], [
     pytest.param("euler", 0.5, id="Euler"),
     pytest.param("platen", 1.0, id="Platen"),
-    pytest.param("rouchon", 1.0, id="Rouchon"),
 ])
 @pytest.mark.parametrize(['H', 'sc_ops'], [
     pytest.param("qeye", ["destroy"], id='simple'),
@@ -247,11 +250,66 @@ def test_closed_integrator(method, order, H, sc_ops):
     N = 5
     H = _make_oper(H, N)
     sc_ops = [_make_oper(op, N) for op in sc_ops]
+    opt = {"dt": 0.01}
 
     rhs = _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
-    ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs, {"dt": 0.01})
-    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
-    state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
+    system = rhs(opt)
+    ref_sode = SMESolver.avail_integrators()["explicit1.5"](system, opt)
+    sode = SMESolver.avail_integrators()[method](system, opt)
 
-    error_order = get_error_order_integrator(sode, ref_sode, state)
+    error_order = get_error_order_integrator(sode, ref_sode, len(sc_ops))
+    assert (order + 0.25) < error_order
+
+
+@pytest.mark.parametrize(["method", "order"], [
+    pytest.param("rouchon", 1.0, id="rouchon"),
+])
+@pytest.mark.parametrize(['H', 'c_ops', 'sc_ops'], [
+    pytest.param("qeye", [], ["destroy"], id='simple'),
+    pytest.param("qeye", ["destroy"], ["destroy"], id='simple + collapse'),
+    pytest.param("herm", ["destroy", "destroy2"], [], id='2 c_ops'),
+    pytest.param("herm", [], ["destroy", "destroy2"], id='2 sc_ops'),
+    pytest.param("herm", ["create", "destroy"], ["destroy", "destroy2"],
+                 id='many terms'),
+    pytest.param("herm", [], ["random"], id='random'),
+    pytest.param("herm", ["random"], ["random"], id='complex'),
+    pytest.param("herm td", ["random"], ["destroy"], id='H td'),
+    pytest.param("herm", ["random"], ["destroy td"], id='sc_ops td'),
+])
+def test_open_integrator_system_format(method, order, H, c_ops, sc_ops):
+    N = 5
+    H = _make_oper(H, N)
+    c_ops = [_make_oper(op, N) for op in c_ops]
+    sc_ops = [_make_oper(op, N) for op in sc_ops]
+    opt = {"dt": 0.01}
+
+    rhs = _StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
+    ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs(opt), opt)
+    sode = SMESolver.avail_integrators()[method](rhs, opt)
+
+    error_order = get_error_order_integrator(sode, ref_sode, len(sc_ops))
+    assert (order + 0.25) < error_order
+
+
+@pytest.mark.parametrize(["method", "order"], [
+    pytest.param("rouchon", 1.0, id="Rouchon"),
+])
+@pytest.mark.parametrize(['H', 'sc_ops'], [
+    pytest.param("qeye", ["destroy"], id='simple'),
+    pytest.param("herm", ["destroy", "destroy2"], id='2 sc_ops'),
+    pytest.param("herm", ["random"], id='random'),
+    pytest.param("herm td", ["destroy"], id='H td'),
+    pytest.param("herm", ["destroy td"], id='sc_ops td'),
+])
+def test_closed_integrator_system_format(method, order, H, sc_ops):
+    N = 5
+    H = _make_oper(H, N)
+    sc_ops = [_make_oper(op, N) for op in sc_ops]
+    opt = {"dt": 0.01}
+
+    rhs = _StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
+    ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs(opt), opt)
+    sode = SMESolver.avail_integrators()[method](rhs, opt)
+
+    error_order = get_error_order_integrator(sode, ref_sode, len(sc_ops))
     assert (order + 0.25) < error_order

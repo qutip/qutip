@@ -242,6 +242,7 @@ class _StochasticRHS(_MultiTrajRHS):
     the rouchon integrator need the part but does not use the usual drift and
     diffusion computation.
     """
+    system = None
 
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
@@ -282,12 +283,15 @@ class _StochasticRHS(_MultiTrajRHS):
             self._dims = self.H._dims
 
     def __call__(self, options):
-        if self.issuper:
-            return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
-            )
-        else:
-            return StochasticClosedSystem(self.H, self.sc_ops)
+        if self.system is None:
+            if self.issuper:
+                self.system = StochasticOpenSystem(
+                    self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
+                )
+            else:
+                self.system = StochasticClosedSystem(self.H, self.sc_ops)
+
+        return self.system
 
     def arguments(self, args):
         self.H.arguments(args)
@@ -297,7 +301,7 @@ class _StochasticRHS(_MultiTrajRHS):
             sc_op.arguments(args)
 
     def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
+        self.H._register_feedback({"WienerFeedback": val}, "stochastic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
                 {"WienerFeedback": val}, "stochastic solver"
@@ -306,6 +310,8 @@ class _StochasticRHS(_MultiTrajRHS):
             sc_op._register_feedback(
                 {"WienerFeedback": val}, "stochastic solver"
             )
+        if hasattr(self.system, "_register_feedback"):
+            self.system._register_feedback(val)
 
 
 def smesolve(
@@ -765,7 +771,6 @@ class StochasticSolver(MultiTrajSolver):
             )
 
         # Reset integrator per trajectory to apply the feedback
-        # self._integrator_instance = None
         self.rhs._register_feedback(wiener)
         self._integrator.set_state(tlist[0], state, wiener)
         result.add(tlist[0], self._restore_state(state, copy=False))
