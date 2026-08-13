@@ -47,7 +47,7 @@ class SIntegrator(Integrator):
     _wiener_is_measurement = False
     # How the rhs is passed to the integrator.
     # "SDESystem", "SDETaylorSystem", "system"
-    rhs_format = "SDESystem"
+    rhs_format = "system"
     N_dw = 1
 
     def __init__(self, rhs, options):
@@ -130,6 +130,7 @@ class SIntegrator(Integrator):
 class _Cython_SIntegrator(SIntegrator):
     stepper = None
     _stepper_options = []
+    rhs_format = "SDESystem"
 
     def set_state(self, t, state0, wiener):
         stepper_opt = {
