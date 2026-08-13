@@ -1065,7 +1065,7 @@ def plot_energy_levels(H_list, h_labels=None, energy_levels=None, N=0, *,
         H_list : List of Qobj
             A list of Hamiltonians.
 
-        h_lables : List of string, optional
+        h_labels : List of string, optional
             A list of xticklabels for each Hamiltonian
 
         energy_levels : List of string, optional
