@@ -2,10 +2,9 @@
 build-backend = 'mesonpy'
 requires = [
     "meson-python>=0.17",
-    "meson>=1.5",
     "cython>=0.29.36",
     "numpy>=2.0",
-    "scipy>=1.13",
+    "scipy>=1.9",
 ]
 
 [project]

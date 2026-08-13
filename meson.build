@@ -47,7 +47,7 @@ incdir_numpy = run_command(
 ).stdout().strip()
 np_dep = declare_dependency(
   include_directories: include_directories(incdir_numpy),
-  compile_args: ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION'],
+  # --  compile_args: ['-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION'],
 )
 
 # ---- warning suppression, applied to C++ ----
