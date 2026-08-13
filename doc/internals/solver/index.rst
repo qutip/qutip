@@ -55,7 +55,7 @@ behind high-level functional wrappers:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Sections
 
    terminology
