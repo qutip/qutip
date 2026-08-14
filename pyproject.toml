@@ -3,7 +3,7 @@ requires = [
     "setuptools>=77.0.3",
     "packaging",
     "wheel",
-    "cython>=0.29.20",
+    "cython>=3.0.0",
     "numpy>=2.0.0",
     "scipy>=1.9",
 ]
