@@ -673,10 +673,7 @@ class HEOMSolver(Solver):
                 raise ValueError(f"Unknown backend '{backend}'.")
         return super().__new__(cls)
 
-    def __init__(
-        self, H, bath, max_depth, *, odd_parity=False, options=None,
-        backend=None,
-    ):
+    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None, backend=None):
         _time_start = time()
         # we call bool here because odd_parity will be used in arithmetic
         self.odd_parity = bool(odd_parity)
