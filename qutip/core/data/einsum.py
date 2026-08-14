@@ -57,12 +57,16 @@ einsum.__doc__ = """
     ----------
     op0 : Data
         The first operand, used for type dispatching.
+    *rest_operands : tuple of Data
+        The remaining QuTiP data objects to contract.
     subscripts : str
         The einsum subscript equation.
-    rest_operands : tuple of Data
-        The remaining QuTiP data objects to contract.
     tensor_shapes : tuple of tuples
         The N-D tensor shapes for each operand.
+    tensor_perms : tuple of tuples
+        The transpose permutations for each operand to align with subscripts.
+    out_perm : tuple of int
+        The transpose permutation for the output operand.
     out_shape : tuple, optional
         The final 2D shape of the resulting Data object.
 """
