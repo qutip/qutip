@@ -428,6 +428,7 @@ class HEOMResult(Result):
 
 def heomsolve(
     H, bath, max_depth, state0, tlist, *, e_ops=None, args=None, options=None,
+    backend=None,
 ):
     """
     Hierarchical Equations of Motion (HEOM) solver that supports multiple
@@ -532,6 +533,11 @@ def heomsolve(
           | Maximum lenght of one internal step. When using pulses, it should
             be less than half the width of the thinnest pulse.
 
+    backend : str, optional
+        The name of the HEOM backend to use. If not specified, the standard
+        CSR backend is used. Advanced backends can be dynamically loaded if
+        installed.
+
     Returns
     -------
     :class:`~HEOMResult`
@@ -562,7 +568,7 @@ def heomsolve(
         list of attributes.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
-    solver = HEOMSolver(H, bath=bath, max_depth=max_depth, options=options)
+    solver = HEOMSolver(H, bath=bath, max_depth=max_depth, options=options, backend=backend)
     return solver.run(state0, tlist, e_ops=e_ops)
 
 
@@ -613,6 +619,11 @@ class HEOMSolver(Solver):
         If set to None the default options will be used. Keyword only.
         Default: None.
 
+    backend : str, optional
+        The name of the HEOM backend to use. If not specified, the standard
+        CSR backend is used. Advanced backends can be dynamically loaded if
+        installed.
+
     Attributes
     ----------
     ados : :obj:`HierarchyADOs`
@@ -629,6 +640,7 @@ class HEOMSolver(Solver):
     name = "heomsolver"
     _resultclass = HEOMResult
     _avail_integrators = {}
+    _heom_backends = {}
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -640,7 +652,31 @@ class HEOMSolver(Solver):
         "state_data_type": "dense",
     }
 
-    def __init__(self, H, bath, max_depth, *, odd_parity=False, options=None):
+    @classmethod
+    def add_backend(cls, name, backend_cls):
+        cls._heom_backends[name] = backend_cls
+
+    def __new__(cls, *args, backend=None, **kwargs):
+        if cls is HEOMSolver and backend is not None:
+            if backend not in cls._heom_backends:
+                import importlib
+                try:
+                    importlib.import_module(
+                        f".backend_{backend}", package="qutip.solver.heom"
+                    )
+                except ImportError:
+                    pass
+            
+            if backend in cls._heom_backends:
+                return super().__new__(cls._heom_backends[backend])
+            else:
+                raise ValueError(f"Unknown backend '{backend}'.")
+        return super().__new__(cls)
+
+    def __init__(
+        self, H, bath, max_depth, *, odd_parity=False, options=None,
+        backend=None,
+    ):
         _time_start = time()
         # we call bool here because odd_parity will be used in arithmetic
         self.odd_parity = bool(odd_parity)
