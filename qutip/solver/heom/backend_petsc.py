@@ -1,6 +1,5 @@
-
 """
-PETSc backend for HEOM RHS matrix assembly and solving.
+PETSc backend for HEOM RHS matrix assembly and solving (Clean version using maximum inheritance).
 """
 
 import numpy as np
@@ -8,6 +7,7 @@ from petsc4py import PETSc
 
 from qutip import Qobj
 from qutip.core import data as _data
+from qutip.core import QobjEvo
 from .bofin_solvers import HEOMSolver, HierarchyADOsState
 from qutip.solver.integrator.integrator import Integrator
 
@@ -44,79 +44,37 @@ class PETScHEOMSolver(HEOMSolver):
     PETSc-based solver for the Hierarchical Equations of Motion (HEOM).
     """
     
-    name = "petsc_heomsolver"
+    name = "petsc"
     solver_options = HEOMSolver.solver_options.copy()
     solver_options["method"] = "petsc"
 
     def __init__(
         self, H, bath, max_depth, *, odd_parity=False, options=None, backend=None
     ):
-        import time
-        from qutip.core import QobjEvo, CoreOptions
-        from qutip.core.superoperator import liouvillian, spre, spost
-        from .bofin_solvers import HierarchyADOs
-
-        _time_start = time.time()
-        self.odd_parity = bool(odd_parity)
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
-
-        H = QobjEvo(H)
-        self.L_sys = (
-            liouvillian(H) if H.type == "oper"
-            else H
+        # We temporarily patch _calculate_rhs to return a lightweight dummy QobjEvo.
+        # This prevents the expensive CSR matrix generation in the base class,
+        # while satisfying the QobjEvo type check in QuTiP's absolute base Solver.
+        original_calc_rhs = self._calculate_rhs
+        self._calculate_rhs = self._dummy_calc_rhs
+        
+        super().__init__(
+            H, bath, max_depth, odd_parity=odd_parity, options=options, backend=backend
         )
-
-        self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
-        self._sup_shape = self.L_sys.shape[0]
-
-        self.ados = HierarchyADOs(
-            self._combine_bath_exponents(bath), max_depth,
-        )
-        self._n_ados = len(self.ados.labels)
-        self._n_exponents = len(self.ados.exponents)
-
-        self._init_ados_time = time.time() - _time_start
-        _time_start = time.time()
-
-        with CoreOptions(default_dtype="csr"):
-            self._sId = _data.identity(self._sup_shape, dtype="csr")
-
-            Qs = [exp.Q.to("csr") for exp in self.ados.exponents]
-            self._spreQ = [spre(op).data for op in Qs]
-            self._spostQ = [spost(op).data for op in Qs]
-            self._s_pre_minus_post_Q = [
-                _data.sub(self._spreQ[k], self._spostQ[k])
-                for k in range(self._n_exponents)
-            ]
-            self._s_pre_plus_post_Q = [
-                _data.add(self._spreQ[k], self._spostQ[k])
-                for k in range(self._n_exponents)
-            ]
-            self._spreQdag = [spre(op.dag()).data for op in Qs]
-            self._spostQdag = [spost(op.dag()).data for op in Qs]
-            self._s_pre_minus_post_Qdag = [
-                _data.sub(self._spreQdag[k], self._spostQdag[k])
-                for k in range(self._n_exponents)
-            ]
-            self._s_pre_plus_post_Qdag = [
-                _data.add(self._spreQdag[k], self._spostQdag[k])
-                for k in range(self._n_exponents)
-            ]
-
-            self._init_superop_cache_time = time.time() - _time_start
-            _time_start = time.time()
-
-            self.rhs = self._calculate_rhs()
-
-        self._init_rhs_time = time.time() - _time_start
-
-        self.options = options
-        self._state_metadata = {}
-        _integrator_start = time.time()
+        
+        self._calculate_rhs = original_calc_rhs
+        
+        # Now we construct the actual distributed PETSc RHS
+        self.rhs = self._calculate_rhs()
+        
+        # Re-initialize the integrator with the new RHS
         self._integrator = self._get_integrator()
-        self._init_integrator_time = time.time() - _integrator_start
-        self.stats = self._initialize_stats()
+
+    def _dummy_calc_rhs(self):
+        """ Return a zero QobjEvo with the correct dimensions to satisfy Solver.__init__ """
+        dim = self._sup_shape * self._n_ados
+        dummy_mat = _data.csr.zeros(dim, dim)
+        dummy_qobj = Qobj(dummy_mat, dims=[[dim], [dim]])
+        return QobjEvo(dummy_qobj)
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
@@ -276,64 +234,15 @@ class PETScHEOMSolver(HEOMSolver):
 
         return steady_state, steady_ados
 
-    def _prepare_state(self, state):
-        n = self._sys_shape
-        rho_dims = self._sys_dims
-        hierarchy_shape = (self._n_ados, n, n)
-
-        rho0 = state
-        ado_init = not isinstance(rho0, Qobj)
-
-        if ado_init:
-            if isinstance(rho0, HierarchyADOsState):
-                rho0_he = rho0._ado_state
-            elif hasattr(rho0, "shape"):
-                rho0_he = rho0
-            else:
-                raise TypeError(
-                    f"Initial ADOs passed have type {type(rho0)}"
-                    " but a HierarchyADOsState or a numpy array-like instance"
-                    " was expected"
-                )
-            if rho0_he.shape != hierarchy_shape:
-                raise ValueError(
-                    f"Initial ADOs passed have shape {rho0_he.shape}"
-                    f" but the solver hierarchy shape is {hierarchy_shape}"
-                )
-            rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
-            rho0_he = _data.create(rho0_he)
-        else:
-            if rho0._dims != rho_dims:
-                raise ValueError(
-                    f"Initial state rho has dims {rho0.dims}"
-                    f" but the system dims are {rho_dims}"
-                )
-            rho0_he = np.zeros(n ** 2 * self._n_ados, dtype=complex)
-            rho0_he[: n ** 2] = rho0.full().ravel("F")
-            rho0_he = _data.create(rho0_he)
-
-        return rho0_he
-
     def _restore_state(self, state, *, copy=True):
-        n = self._sys_shape
-        rho_shape = (n, n)
-        rho_dims = self._sys_dims
-        hierarchy_shape = (self._n_ados, n, n)
-
-        state_arr = state.to_array()
-        rho = Qobj(
-            state_arr[:n ** 2].reshape(rho_shape, order="F"),
-            dims=rho_dims,
-        )
-        if state_arr.shape[0] == n ** 2:
-            ado_state = HierarchyADOsState(
-                rho, self.ados, None
+        if state.to_array().shape[0] == self._sys_shape ** 2:
+            n = self._sys_shape
+            rho = Qobj(
+                state.to_array().reshape((n, n), order="F"),
+                dims=self._sys_dims,
             )
-        else:
-            ado_state = HierarchyADOsState(
-                rho, self.ados, state_arr.reshape(hierarchy_shape)
-            )
-        return ado_state
+            return HierarchyADOsState(rho, self.ados, None)
+        return super()._restore_state(state, copy=copy)
 
 
 class IntegratorPETSc(Integrator):
@@ -364,6 +273,8 @@ class IntegratorPETSc(Integrator):
             self.rhs_obj = system.rhs
         elif hasattr(system, "mat"):
             self.rhs_obj = system
+        elif isinstance(system, QobjEvo):
+            self.rhs_obj = None
         else:
             raise TypeError("Unsupported system type passed to IntegratorPETSc.")
 
@@ -371,7 +282,9 @@ class IntegratorPETSc(Integrator):
         self._back = (np.inf, None)
         self._options = self.integrator_options.copy()
         self.options = options
-        self._prepare()
+        
+        if self.rhs_obj is not None:
+            self._prepare()
 
     @property
     def options(self):
