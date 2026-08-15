@@ -1,5 +1,5 @@
 """
-PETSc backend for HEOM RHS matrix assembly and solving (Clean version using maximum inheritance).
+PETSc backend for HEOM RHS matrix assembly and solving.
 """
 
 import numpy as np
