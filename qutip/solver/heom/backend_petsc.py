@@ -273,7 +273,7 @@ class IntegratorPETSc(Integrator):
             self.rhs_obj = system.rhs
         elif hasattr(system, "mat"):
             self.rhs_obj = system
-        elif isinstance(system, QobjEvo):
+        elif isinstance(system, QobjEvo) or (hasattr(system, "rhs") and isinstance(system.rhs, QobjEvo)):
             self.rhs_obj = None
         else:
             raise TypeError("Unsupported system type passed to IntegratorPETSc.")
