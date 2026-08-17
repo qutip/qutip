@@ -213,28 +213,11 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     mtype = _mkl_matrix_type(data_type, solver_args) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
     pydiso_solver = MKLPardisoSolver(A, matrix_type=mtype)
     # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
-    #pydiso_solver.set_iparm(0, 1) # setting to zero index is forbidden by validation in pydiso
-    pydiso_solver.set_iparm(1, 3)
-    if has_perm:
-        pydiso_solver.set_iparm(4, 1)
+    # TODO: we cannot set iparm before analysis and factorisation - the setter performs it after those steps;
+    # we should find a way to pass 1/10/12/23 upon initialisation
     pydiso_solver.set_iparm(7, solver_args['max_iter_refine'])
-    if solver_args['hermitian']:
-        pydiso_solver.set_iparm(9, 8)
-    else:
-        pydiso_solver.set_iparm(9, 13)
-        pydiso_solver.set_iparm(10, int(solver_args['scaling_vectors']))
-        pydiso_solver.set_iparm(12, int(solver_args['weighted_matching']))
-    pydiso_solver.set_iparm(17, -1)
-    pydiso_solver.set_iparm(20, 1)
-    pydiso_solver.set_iparm(23, 1)
-    pydiso_solver.set_iparm(26, 0)
-    pydiso_solver.set_iparm(34, 1)
-
-
-    # setup call parameters
-
-    # mtype will be passed to the solver
-
+    
+    # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
     if verbose:
         print('Solver Initialization')
         print('---------------------')
