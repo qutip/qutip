@@ -4,17 +4,9 @@ import scipy.sparse as sp
 from ctypes import c_int, byref
 from numpy.ctypeslib import ndpointer
 import time
-from qutip.settings import settings as qset
+from qutip.settings import settings
 
 from pydiso.mkl_solver import MKLPardisoSolver
-
-# Load solver functions from mkl_lib
-pardiso = qset.mkl_lib.pardiso
-pardiso_delete = qset.mkl_lib.pardiso_handle_delete
-if sys.maxsize > 2**32: #Running 64-bit
-    pardiso_64 = qset.mkl_lib.pardiso_64
-    pardiso_delete_64 = qset.mkl_lib.pardiso_handle_delete_64
-
 
 def _pardiso_parameters(hermitian, has_perm,
                         max_iter_refine,
@@ -40,23 +32,6 @@ def _pardiso_parameters(hermitian, has_perm,
     iparm[34] = 1  # Use zero-based indexing
     return iparm
 
-
-# Set error messages
-pardiso_error_msgs = {
-    '-1': 'Input inconsistant',
-    '-2': 'Out of memory',
-    '-3': 'Reordering problem',
-    '-4':
-        'Zero pivot, numerical factorization or iterative refinement problem',
-    '-5': 'Unclassified internal error',
-    '-6': 'Reordering failed',
-    '-7': 'Diagonal matrix is singular',
-    '-8': '32-bit integer overflow',
-    '-9': 'Not enough memory for OOC',
-    '-10': 'Error opening OOC files',
-    '-11': 'Read/write error with OOC files',
-    '-12': 'Pardiso-64 called from 32-bit library',
-}
 
 # TODO: where are those used; in heom solver but they are passed as keyword args there
 # So probably we want to preserve those keyword arguments
@@ -92,84 +67,26 @@ class mkl_lu:
         Deletes the allocated solver memory.
 
     """
-    def __init__(self, np_pt=None, dim=None, is_complex=None, data=None,
-                 indptr=None, indices=None, iparm=None, np_iparm=None,
-                 mtype=None, perm=None, np_perm=None, factor_time=None):
-        self._np_pt = np_pt
-        self._dim = dim
-        self._is_complex = is_complex
-        self._data = data
-        self._indptr = indptr
-        self._indices = indices
-        self._iparm = iparm
-        self._np_iparm = np_iparm
+    def __init__(self, solver, mtype, data_type, factor_time):
+        self._solver = solver
         self._mtype = mtype
-        self._perm = perm
-        self._np_perm = np_perm
+        self._data_type = data_type
+        self._is_complex = np.issubdtype(data_type, np.complexfloating)
         self._factor_time = factor_time
         self._solve_time = None
+        self._info = None
 
     def solve(self, b, verbose=None):
-        b_shp = b.shape
-        if b.ndim == 2 and b.shape[1] == 1:
-            b = b.ravel()
-            nrhs = 1
-        elif b.ndim == 2 and b.shape[1] != 1:
-            nrhs = b.shape[1]
-            b = b.ravel(order='F')
-        else:
-            b = b.ravel()
-            nrhs = 1
+        b = np.asarray(b)
+        if b.dtype != self._data_type:
+            # Pydiso wrapper would do the conversion and throw a warning;
+            # hence, doing data type conversion in advance
+            b = b.astype(self._data_type)
 
-        data_type = np.complex128 if self._is_complex else np.float64
-        if b.dtype != data_type:
-            b = b.astype(np.complex128, copy=False)
-
-        # Create solution array (x) and pointers to x and b
-        x = np.zeros(b.shape, dtype=data_type, order='C')
-        np_x = x.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
-        np_b = b.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
-
-        error = np.zeros(1, dtype=np.int32)
-        np_error = error.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-
-        # Call solver
         _solve_start = time.time()
-        pardiso(
-            self._np_pt,
-            byref(c_int(1)),
-            byref(c_int(1)),
-            byref(c_int(self._mtype)),
-            byref(c_int(33)),
-            byref(c_int(self._dim)),
-            self._data,
-            self._indptr,
-            self._indices,
-            self._np_perm,
-            byref(c_int(nrhs)),
-            self._np_iparm,
-            byref(c_int(0)),
-            np_b,
-            np_x,
-            np_error,
-        )
+        x = self._solver.solve(b)
         self._solve_time = time.time() - _solve_start
-        if error[0] != 0:
-            raise Exception(pardiso_error_msgs[str(error[0])])
-
-        if verbose:
-            print('Solution Stage')
-            print('--------------')
-            print('Solution time:                  ',
-                  round(self._solve_time, 4))
-            print('Solution memory (Mb):           ',
-                  round(self._iparm[16]/1024, 4))
-            print('Number of iterative refinements:',
-                  self._iparm[6])
-            print('Total memory (Mb):              ',
-                  round(sum(self._iparm[15:17])/1024, 4))
-            print()
-        return np.reshape(x, b_shp, order=('C' if nrhs == 1 else 'F'))
+        return x
 
     def info(self):
         info = {'FactorTime': self._factor_time,
@@ -195,7 +112,6 @@ class mkl_lu:
             self._indices,
             self._np_perm,
             byref(c_int(1)),
-            self._np_iparm,
             byref(c_int(0)),
             byref(c_int(0)),
             byref(c_int(0)),
@@ -216,12 +132,13 @@ _MATRIX_TYPE_NAMES = {
 
 
 def _mkl_matrix_type(dtype, solver_args):
+    is_complex = np.issubdtype(dtype, np.complexfloating)
     if not solver_args['hermitian']:
-        return 13 if dtype == np.complex128 else 11
-    out = 4 if dtype == np.complex128 else 2
+        return 13 if is_complex else 11
+    out = 4 if is_complex else 2
     return out if solver_args['posdef'] else -out
 
-
+# Returns factorisation object: important for tests
 def mkl_splu(A, perm=None, verbose=False, **kwargs):
     """
     Returns the LU factorization of the sparse matrix A.
@@ -260,10 +177,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     # For backward compat, map values to pydiso.mkl_solver.MKLPardisoSolver's args
     wrapper_args = {}
 
-    # If hermitian, then take upper-triangle of matrix only # TODO: this will be handled by pydisp
-    if solver_args['hermitian']:
-        B = sp.triu(A, format='csr')
-        A = B  # This gets around making a full copy of A in triu
     is_complex = bool(A.dtype == np.complex128) # TODO: this pydiso also does
     
     if not is_complex:
@@ -297,7 +210,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solver_args['weighted_matching'],
     )
     
-    mtype = _mkl_matrix_type(data_type, solver_args)
+    mtype = _mkl_matrix_type(data_type, solver_args) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
     pydiso_solver = MKLPardisoSolver(A, matrix_type=mtype)
     # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
     #pydiso_solver.set_iparm(0, 1) # setting to zero index is forbidden by validation in pydiso
@@ -318,9 +231,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     pydiso_solver.set_iparm(34, 1)
 
 
-    
-    np_iparm = iparm.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-
     # setup call parameters
 
     # mtype will be passed to the solver
@@ -332,14 +242,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Input matrix shape:', A.shape)
         print('Input matrix NNZ:  ', A.nnz)
         print()
-
-    b = np.zeros(1, dtype=data_type)  # Input dummy RHS at this phase
-    np_b = b.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
-    x = np.zeros(1, dtype=data_type)  # Input dummy solution at this phase
-    np_x = x.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
-
-    error = np.zeros(1, dtype=np.int32)
-    np_error = error.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
 
     # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
@@ -356,7 +258,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     #     indices,
     #     np_perm,
     #     byref(c_int(1)),
-    #     np_iparm,
     #     byref(c_int(0)),
     #     np_b,
     #     np_x,
@@ -373,9 +274,9 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Factorization memory (Mb):', round(iparm[15]/1024, 4))
         print('NNZ in LU factors:        ', iparm[17])
         print()
-    return pydiso_solver.solve(np_b)
-    #return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
-    #              iparm, np_iparm, mtype, perm, np_perm, _factor_time)
+    #return pydiso_solver.solve(np_b)
+    return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
+                  iparm, mtype, perm, np_perm, _factor_time)
 
 
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
