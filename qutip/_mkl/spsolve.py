@@ -73,12 +73,14 @@ class mkl_lu:
         self._info = None
 
     def solve(self, b, verbose=None):
+        if self._solver is None:
+            raise RuntimeError("Solver's memory has been released. Initialise mkl_lu again.")
+
         if sp.issparse(b):
             raise TypeError(
                 "Right-hand side must be dense. Use mkl_spsolve for a sparse b"
                 "instead of using mkl_lu.solve directly"
             )
-        # TODO: check for complex b and real A case (we don't want to allow downcasting)
         b = np.asarray(b)
 
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
