@@ -90,7 +90,7 @@ class mkl_lu:
 
         if b.dtype != self._data_type:
             # Pydiso wrapper would do the conversion and throw a warning;
-            # hence, doing data type conversion in advance
+            # hence, we do data type conversion in advance
             b = b.astype(self._data_type)
 
         _solve_start = time.time()
