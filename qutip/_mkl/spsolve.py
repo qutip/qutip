@@ -6,6 +6,8 @@ from numpy.ctypeslib import ndpointer
 import time
 from qutip.settings import settings as qset
 
+from pydiso.mkl_solver import MKLPardisoSolver
+
 # Load solver functions from mkl_lib
 pardiso = qset.mkl_lib.pardiso
 pardiso_delete = qset.mkl_lib.pardiso_handle_delete
@@ -56,6 +58,9 @@ pardiso_error_msgs = {
     '-12': 'Pardiso-64 called from 32-bit library',
 }
 
+# TODO: where are those used; in heom solver but they are passed as keyword args there
+# So probably we want to preserve those keyword arguments
+# Hermitian is set to 1 in qutip/tests/test_mkl.py, so there are no tests for nonsymmetric matrices (i.e., the path where the upper triangular matrix is taken is not tested)
 
 def _default_solver_args():
     return {
@@ -252,20 +257,23 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         )
     solver_args.update(kwargs)
 
-    # If hermitian, then take upper-triangle of matrix only
+    # For backward compat, map values to pydiso.mkl_solver.MKLPardisoSolver's args
+    wrapper_args = {}
+
+    # If hermitian, then take upper-triangle of matrix only # TODO: this will be handled by pydisp
     if solver_args['hermitian']:
         B = sp.triu(A, format='csr')
         A = B  # This gets around making a full copy of A in triu
-    is_complex = bool(A.dtype == np.complex128)
+    is_complex = bool(A.dtype == np.complex128) # TODO: this pydiso also does
+    
     if not is_complex:
         A = sp.csr_matrix(A, dtype=np.float64, copy=False)
     data_type = A.dtype
-
     # Create pointer to internal memory
     pt = np.zeros(64, dtype=int)
     np_pt = pt.ctypes.data_as(ndpointer(int, ndim=1, flags='C'))
 
-    # Create pointers to sparse matrix arrays
+    # Create pointers to sparse matrix arrays # TODO: this will be handled by pydiso
     data = A.data.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
     indptr = A.indptr.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
     indices = A.indices.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
@@ -279,6 +287,8 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     np_perm = perm.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
 
     # setup iparm
+    # TODO: refactor it to setting arguments for MKLPardisoSolver
+    # MKLPardisoSolver: use a public setter for iparm
     iparm = _pardiso_parameters(
         solver_args['hermitian'],
         has_perm,
@@ -286,10 +296,34 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solver_args['scaling_vectors'],
         solver_args['weighted_matching'],
     )
+    
+    mtype = _mkl_matrix_type(data_type, solver_args)
+    pydiso_solver = MKLPardisoSolver(A, matrix_type=mtype)
+    # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
+    #pydiso_solver.set_iparm(0, 1) # setting to zero index is forbidden by validation in pydiso
+    pydiso_solver.set_iparm(1, 3)
+    if has_perm:
+        pydiso_solver.set_iparm(4, 1)
+    pydiso_solver.set_iparm(7, solver_args['max_iter_refine'])
+    if solver_args['hermitian']:
+        pydiso_solver.set_iparm(9, 8)
+    else:
+        pydiso_solver.set_iparm(9, 13)
+        pydiso_solver.set_iparm(10, int(solver_args['scaling_vectors']))
+        pydiso_solver.set_iparm(12, int(solver_args['weighted_matching']))
+    pydiso_solver.set_iparm(17, -1)
+    pydiso_solver.set_iparm(20, 1)
+    pydiso_solver.set_iparm(23, 1)
+    pydiso_solver.set_iparm(26, 0)
+    pydiso_solver.set_iparm(34, 1)
+
+
+    
     np_iparm = iparm.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
 
     # setup call parameters
-    mtype = _mkl_matrix_type(data_type, solver_args)
+
+    # mtype will be passed to the solver
 
     if verbose:
         print('Solver Initialization')
@@ -307,26 +341,27 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     error = np.zeros(1, dtype=np.int32)
     np_error = error.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
 
-    # Call solver
+    # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
-    pardiso(
-        np_pt,
-        byref(c_int(1)),
-        byref(c_int(1)),
-        byref(c_int(mtype)),
-        byref(c_int(12)),
-        byref(c_int(dim)),
-        data,
-        indptr,
-        indices,
-        np_perm,
-        byref(c_int(1)),
-        np_iparm,
-        byref(c_int(0)),
-        np_b,
-        np_x,
-        np_error,
-    )
+    
+    # pardiso(
+    #     np_pt,
+    #     byref(c_int(1)),
+    #     byref(c_int(1)),
+    #     byref(c_int(mtype)),
+    #     byref(c_int(12)),
+    #     byref(c_int(dim)),
+    #     data,
+    #     indptr,
+    #     indices,
+    #     np_perm,
+    #     byref(c_int(1)),
+    #     np_iparm,
+    #     byref(c_int(0)),
+    #     np_b,
+    #     np_x,
+    #     np_error,
+    # )
     _factor_time = time.time() - _factor_start
     if error[0] != 0:
         raise Exception(pardiso_error_msgs[str(error[0])])
@@ -338,9 +373,9 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Factorization memory (Mb):', round(iparm[15]/1024, 4))
         print('NNZ in LU factors:        ', iparm[17])
         print()
-
-    return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
-                  iparm, np_iparm, mtype, perm, np_perm, _factor_time)
+    return pydiso_solver.solve(np_b)
+    #return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
+    #              iparm, np_iparm, mtype, perm, np_perm, _factor_time)
 
 
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
@@ -353,8 +388,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     A : csr_matrix
         Sparse matrix.
     b : ndarray or sparse matrix
-        The vector or matrix representing the right hand side of the equation.
-        If a vector, b.shape must be (n,) or (n, 1).
+        The vector or matrix representing the right hand side of the equation. If a vector, b.shape must be (n,) or (n, 1).
     perm : ndarray (optional)
         User defined matrix factorization permutation.
 
@@ -370,6 +404,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     b_is_sparse = sp.isspmatrix(b)
     b_shp = b.shape
+    #TODO: would it work to pass b as it comes to the mkl_spsolve function call now?
     if b_is_sparse and b.shape[1] == 1:
         b = b.toarray()
         b_is_sparse = False
