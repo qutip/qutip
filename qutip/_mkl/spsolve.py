@@ -1,37 +1,8 @@
-import sys
 import numpy as np
 import scipy.sparse as sp
-from ctypes import c_int, byref
-from numpy.ctypeslib import ndpointer
 import time
-from qutip.settings import settings
 
 from pydiso.mkl_solver import MKLPardisoSolver
-
-def _pardiso_parameters(hermitian, has_perm,
-                        max_iter_refine,
-                        scaling_vectors,
-                        weighted_matching):
-    iparm = np.zeros(64, dtype=np.int32)
-    iparm[0] = 1  # Do not use default values
-    iparm[1] = 3  # Use openmp nested dissection
-    if has_perm:
-        iparm[4] = 1
-    iparm[7] = max_iter_refine  # Max number of iterative refinements
-    if hermitian:
-        iparm[9] = 8
-    else:
-        iparm[9] = 13
-    if not hermitian:
-        iparm[10] = int(scaling_vectors)
-        iparm[12] = int(weighted_matching)  # Non-symmetric weighted matching
-    iparm[17] = -1
-    iparm[20] = 1
-    iparm[23] = 1  # Parallel factorization
-    iparm[26] = 0  # Check matrix structure
-    iparm[34] = 1  # Use zero-based indexing
-    return iparm
-
 
 # TODO: where are those used; in heom solver but they are passed as keyword args there
 # So probably we want to preserve those keyword arguments
@@ -216,7 +187,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     """
     A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
-    b_is_sparse = sp.isspmatrix(b)
+    b_is_sparse = sp.issparse(b)
     b_shp = b.shape
     #TODO: would it work to pass b as it comes to the mkl_spsolve function call now?
     if b_is_sparse and b.shape[1] == 1:
