@@ -300,7 +300,24 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     mtype = _mkl_matrix_type(data_type, solver_args)
     pydiso_solver = MKLPardisoSolver(A, matrix_type=mtype)
     # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
+    #pydiso_solver.set_iparm(0, 1) # setting to zero index is forbidden by validation in pydiso
+    pydiso_solver.set_iparm(1, 3)
+    if has_perm:
+        pydiso_solver.set_iparm(4, 1)
     pydiso_solver.set_iparm(7, solver_args['max_iter_refine'])
+    if solver_args['hermitian']:
+        pydiso_solver.set_iparm(9, 8)
+    else:
+        pydiso_solver.set_iparm(9, 13)
+        pydiso_solver.set_iparm(10, int(solver_args['scaling_vectors']))
+        pydiso_solver.set_iparm(12, int(solver_args['weighted_matching']))
+    pydiso_solver.set_iparm(17, -1)
+    pydiso_solver.set_iparm(20, 1)
+    pydiso_solver.set_iparm(23, 1)
+    pydiso_solver.set_iparm(26, 0)
+    pydiso_solver.set_iparm(34, 1)
+
+
     
     np_iparm = iparm.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
 
@@ -356,9 +373,9 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Factorization memory (Mb):', round(iparm[15]/1024, 4))
         print('NNZ in LU factors:        ', iparm[17])
         print()
-    #pydiso_solver.solve(np_b)
-    return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
-                  iparm, np_iparm, mtype, perm, np_perm, _factor_time)
+    return pydiso_solver.solve(np_b)
+    #return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
+    #              iparm, np_iparm, mtype, perm, np_perm, _factor_time)
 
 
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
@@ -385,11 +402,39 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     """
     A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
+    b_is_sparse = sp.isspmatrix(b)
+    b_shp = b.shape
+    #TODO: would it work to pass b as it comes to the mkl_spsolve function call now?
+    if b_is_sparse and b.shape[1] == 1:
+        b = b.toarray()
+        b_is_sparse = False
+    elif b_is_sparse and b.shape[1] != 1:
+        nrhs = b.shape[1]
+        if lu._is_complex:
+            b = sp.csc_matrix(b, dtype=np.complex128, copy=False)
+        else:
+            b = sp.csc_matrix(b, dtype=np.float64, copy=False)
 
-    if sp.issparse(b) and b.shape[1] != 1:
-        x = sp.csr_matrix(lu.solve(b.toarray()))
-    else:
+    # Do dense RHS solving
+    if not b_is_sparse:
         x = lu.solve(b, verbose=verbose)
+    # Solve each RHS vec individually and convert to sparse
+    else:
+        data_segs = []
+        row_segs = []
+        col_segs = []
+        for j in range(nrhs):
+            bj = b[:, j].toarray().ravel()
+            xj = lu.solve(bj)
+            w = np.flatnonzero(xj)
+            segment_length = w.shape[0]
+            row_segs.append(w)
+            col_segs.append(np.ones(segment_length, dtype=np.int32)*j)
+            data_segs.append(np.asarray(xj[w], dtype=xj.dtype))
+        sp_data = np.concatenate(data_segs)
+        sp_row = np.concatenate(row_segs)
+        sp_col = np.concatenate(col_segs)
+        x = sp.csr_matrix((sp_data, (sp_row, sp_col)), shape=b_shp)
 
     info = lu.info()
     lu.delete()
