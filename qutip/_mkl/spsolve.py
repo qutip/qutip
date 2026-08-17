@@ -73,6 +73,12 @@ class mkl_lu:
         self._info = None
 
     def solve(self, b, verbose=None):
+        if sp.issparse(b):
+            raise TypeError(
+                "Right-hand side must be dense. Use mkl_spsolve for a sparse b"
+                "instead of using mkl_lu.solve directly"
+            )
+        # TODO: check for complex b and real A case (we don't want to allow downcasting)
         b = np.asarray(b)
         if b.dtype != self._data_type:
             # Pydiso wrapper would do the conversion and throw a warning;
