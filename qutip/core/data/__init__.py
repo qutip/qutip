@@ -11,6 +11,7 @@ from .adjoint import *
 from .block_operations import *
 from .constant import *
 from .eigen import *
+from .einsum import *
 from .expect import *
 from .expm import *
 from .inner import *
