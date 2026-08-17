@@ -155,13 +155,9 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         )
     solver_args.update(kwargs)
 
-    # For backward compat, map values to pydiso.mkl_solver.MKLPardisoSolver's args
-    wrapper_args = {}
-
-    is_complex = bool(A.dtype == np.complex128) # TODO: this pydiso also does
-    
-    if not is_complex:
+    if not np.issubdtype(A.dtype, np.inexact):
         A = sp.csr_matrix(A, dtype=np.float64, copy=False)
+
     data_type = A.dtype
     # Create pointer to internal memory
     pt = np.zeros(64, dtype=int)
@@ -214,8 +210,8 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     if verbose:
         print('Analysis and Factorization Stage')
         print('--------------------------------')
-        print('Factorization time:       ', round(solver._factor_time, 4))
-        print('Factorization memory (Mb):', round(solver._iparm[15]/1024, 4))
+        print('Factorization time:       ', round(_factor_time, 4))
+        print('Factorization memory (Mb):', round(solver.iparm[15]/1024, 4))
         print('NNZ in LU factors:        ', solver.iparm[17])
         print()
     return mkl_lu(solver, mtype, data_type, _factor_time)
