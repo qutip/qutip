@@ -1,36 +1,32 @@
-import sys
 import numpy as np
 import scipy.sparse as sp
-from ctypes import c_int, byref
-from numpy.ctypeslib import ndpointer
 import time
-from qutip.settings import settings
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-def _pardiso_parameters(hermitian, has_perm,
-                        max_iter_refine,
-                        scaling_vectors,
-                        weighted_matching):
-    iparm = np.zeros(64, dtype=np.int32)
-    iparm[0] = 1  # Do not use default values
-    iparm[1] = 3  # Use openmp nested dissection
-    if has_perm:
-        iparm[4] = 1
-    iparm[7] = max_iter_refine  # Max number of iterative refinements
-    if hermitian:
-        iparm[9] = 8
-    else:
-        iparm[9] = 13
-    if not hermitian:
-        iparm[10] = int(scaling_vectors)
-        iparm[12] = int(weighted_matching)  # Non-symmetric weighted matching
-    iparm[17] = -1
-    iparm[20] = 1
-    iparm[23] = 1  # Parallel factorization
-    iparm[26] = 0  # Check matrix structure
-    iparm[34] = 1  # Use zero-based indexing
-    return iparm
+# def _pardiso_parameters(hermitian, has_perm,
+#                         max_iter_refine,
+#                         scaling_vectors,
+#                         weighted_matching):
+#     iparm = np.zeros(64, dtype=np.int32)
+#     iparm[0] = 1  # Do not use default values
+#     iparm[1] = 3  # Use openmp nested dissection
+#     if has_perm:
+#         iparm[4] = 1
+#     iparm[7] = max_iter_refine  # Max number of iterative refinements
+#     if hermitian:
+#         iparm[9] = 8
+#     else:
+#         iparm[9] = 13
+#     if not hermitian:
+#         iparm[10] = int(scaling_vectors)
+#         iparm[12] = int(weighted_matching)  # Non-symmetric weighted matching
+#     iparm[17] = -1
+#     iparm[20] = 1
+#     iparm[23] = 1  # Parallel factorization
+#     iparm[26] = 0  # Check matrix structure
+#     iparm[34] = 1  # Use zero-based indexing
+#     return iparm
 
 
 # TODO: where are those used; in heom solver but they are passed as keyword args there
@@ -148,7 +144,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     if A.shape[0] != A.shape[1]:
         raise Exception('Input matrix must be square')
 
-    dim = A.shape[0]
     solver_args = _default_solver_args()
     left_over_args = set(kwargs) - set(solver_args)
     if left_over_args:
@@ -216,40 +211,16 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     """
     A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
-    b_is_sparse = sp.isspmatrix(b)
-    b_shp = b.shape
-    #TODO: would it work to pass b as it comes to the mkl_spsolve function call now?
-    if b_is_sparse and b.shape[1] == 1:
-        b = b.toarray()
-        b_is_sparse = False
-    elif b_is_sparse and b.shape[1] != 1:
-        nrhs = b.shape[1]
-        if lu._is_complex:
-            b = sp.csc_matrix(b, dtype=np.complex128, copy=False)
-        else:
-            b = sp.csc_matrix(b, dtype=np.float64, copy=False)
-
-    # Do dense RHS solving
-    if not b_is_sparse:
+    try:
+        return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1:
+        if sp.issparse(b):
+            # qutip's convention: a sparse RHS of shape (n, 1) produces dense solution
+            b = b.to_array()
         x = lu.solve(b, verbose=verbose)
-    # Solve each RHS vec individually and convert to sparse
-    else:
-        data_segs = []
-        row_segs = []
-        col_segs = []
-        for j in range(nrhs):
-            bj = b[:, j].toarray().ravel()
-            xj = lu.solve(bj)
-            w = np.flatnonzero(xj)
-            segment_length = w.shape[0]
-            row_segs.append(w)
-            col_segs.append(np.ones(segment_length, dtype=np.int32)*j)
-            data_segs.append(np.asarray(xj[w], dtype=xj.dtype))
-        sp_data = np.concatenate(data_segs)
-        sp_row = np.concatenate(row_segs)
-        sp_col = np.concatenate(col_segs)
-        x = sp.csr_matrix((sp_data, (sp_row, sp_col)), shape=b_shp)
+        if return_sparse:
+            x = sp.csr_matrix(x)
 
-    info = lu.info()
-    lu.delete()
+        info = lu.info()
+    finally:
+        lu.delete()
     return (x, info) if kwargs.get('return_info', False) else x
