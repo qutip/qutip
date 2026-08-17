@@ -89,36 +89,16 @@ class mkl_lu:
         return x
 
     def info(self):
-        info = {'FactorTime': self._factor_time,
+        iparm = self._solver.iparm
+        return {'FactorTime': self._factor_time,
                 'SolveTime': self._solve_time,
-                'Factormem': round(self._iparm[15]/1024, 4),
-                'Solvemem': round(self._iparm[16]/1024, 4),
-                'IterRefine': self._iparm[6]}
-        return info
+                'Factormem': round(iparm[15]/1024, 4),
+                'Solvemem': round(iparm[16]/1024, 4),
+                'IterRefine': iparm[6]}
 
     def delete(self):
-        # Delete all data
-        error = np.zeros(1, dtype=np.int32)
-        np_error = error.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-        pardiso(
-            self._np_pt,
-            byref(c_int(1)),
-            byref(c_int(1)),
-            byref(c_int(self._mtype)),
-            byref(c_int(-1)),
-            byref(c_int(self._dim)),
-            self._data,
-            self._indptr,
-            self._indices,
-            self._np_perm,
-            byref(c_int(1)),
-            byref(c_int(0)),
-            byref(c_int(0)),
-            byref(c_int(0)),
-            np_error,
-        )
-        if error[0] == -10:
-            raise Exception('Error freeing solver memory')
+        self._info = self.info()
+        self._solver = None
 
 
 _MATRIX_TYPE_NAMES = {
@@ -249,7 +229,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     _factor_time = time.time() - _factor_start
     if error[0] != 0:
         raise Exception(pardiso_error_msgs[str(error[0])])
-
+    # TODO: iparm must be taken from solve
     if verbose:
         print('Analysis and Factorization Stage')
         print('--------------------------------')
@@ -257,11 +237,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         print('Factorization memory (Mb):', round(iparm[15]/1024, 4))
         print('NNZ in LU factors:        ', iparm[17])
         print()
-    #return pydiso_solver.solve(np_b)
     return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
                   iparm, mtype, perm, np_perm, _factor_time)
 
-
+# TODO: issue: we cannot use perm parameter with pydiso solver
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     """
     Solves a sparse linear system of equations using the
