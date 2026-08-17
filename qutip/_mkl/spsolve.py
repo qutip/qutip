@@ -89,6 +89,8 @@ class mkl_lu:
         return x
 
     def info(self):
+        if self._solver is None:
+            return self._info
         iparm = self._solver.iparm
         return {'FactorTime': self._factor_time,
                 'SolveTime': self._solve_time,
