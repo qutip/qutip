@@ -161,34 +161,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         A = sp.csr_matrix(A, dtype=np.float64, copy=False)
 
     data_type = A.dtype
-    # Create pointer to internal memory
-    pt = np.zeros(64, dtype=int)
-    np_pt = pt.ctypes.data_as(ndpointer(int, ndim=1, flags='C'))
 
-    # Create pointers to sparse matrix arrays # TODO: this will be handled by pydiso
-    data = A.data.ctypes.data_as(ndpointer(data_type, ndim=1, flags='C'))
-    indptr = A.indptr.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-    indices = A.indices.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-
-    # Setup perm array
-    if perm is None:
-        perm = np.zeros(dim, dtype=np.int32)
-        has_perm = 0
-    else:
-        has_perm = 1
-    np_perm = perm.ctypes.data_as(ndpointer(np.int32, ndim=1, flags='C'))
-
-    # setup iparm
-    # TODO: refactor it to setting arguments for MKLPardisoSolver
-    # MKLPardisoSolver: use a public setter for iparm
-    iparm = _pardiso_parameters(
-        solver_args['hermitian'],
-        has_perm,
-        solver_args['max_iter_refine'],
-        solver_args['scaling_vectors'],
-        solver_args['weighted_matching'],
-    )
-    
     mtype = _mkl_matrix_type(data_type, solver_args) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
     
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
