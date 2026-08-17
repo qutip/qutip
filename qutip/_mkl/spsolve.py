@@ -97,6 +97,7 @@ class mkl_lu:
                 'IterRefine': iparm[6]}
 
     def delete(self):
+        # Preserve the info before memory deallocation for solver
         self._info = self.info()
         self._solver = None
 
@@ -191,11 +192,6 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
     )
     
     mtype = _mkl_matrix_type(data_type, solver_args) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
-    pydiso_solver = MKLPardisoSolver(A, matrix_type=mtype)
-    # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
-    # TODO: we cannot set iparm before analysis and factorisation - the setter performs it after those steps;
-    # we should find a way to pass 1/10/12/23 upon initialisation
-    pydiso_solver.set_iparm(7, solver_args['max_iter_refine'])
     
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
     if verbose:
@@ -208,37 +204,21 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
-    
-    # pardiso(
-    #     np_pt,
-    #     byref(c_int(1)),
-    #     byref(c_int(1)),
-    #     byref(c_int(mtype)),
-    #     byref(c_int(12)),
-    #     byref(c_int(dim)),
-    #     data,
-    #     indptr,
-    #     indices,
-    #     np_perm,
-    #     byref(c_int(1)),
-    #     byref(c_int(0)),
-    #     np_b,
-    #     np_x,
-    #     np_error,
-    # )
+    solver = MKLPardisoSolver(A, matrix_type=mtype)
+    # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
+    # TODO: we cannot set iparm before analysis and factorisation - the setter performs it after those steps;
+    # we should find a way to pass 1/10/12/23 upon initialisation
+    solver.set_iparm(7, solver_args['max_iter_refine'])
     _factor_time = time.time() - _factor_start
-    if error[0] != 0:
-        raise Exception(pardiso_error_msgs[str(error[0])])
     # TODO: iparm must be taken from solve
     if verbose:
         print('Analysis and Factorization Stage')
         print('--------------------------------')
-        print('Factorization time:       ', round(_factor_time, 4))
-        print('Factorization memory (Mb):', round(iparm[15]/1024, 4))
-        print('NNZ in LU factors:        ', iparm[17])
+        print('Factorization time:       ', round(solver._factor_time, 4))
+        print('Factorization memory (Mb):', round(solver._iparm[15]/1024, 4))
+        print('NNZ in LU factors:        ', solver.iparm[17])
         print()
-    return mkl_lu(np_pt, dim, is_complex, data, indptr, indices,
-                  iparm, mtype, perm, np_perm, _factor_time)
+    return mkl_lu(solver, mtype, data_type, _factor_time)
 
 # TODO: issue: we cannot use perm parameter with pydiso solver
 def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
