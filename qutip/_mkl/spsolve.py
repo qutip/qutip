@@ -80,6 +80,12 @@ class mkl_lu:
             )
         # TODO: check for complex b and real A case (we don't want to allow downcasting)
         b = np.asarray(b)
+
+        if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
+            raise TypeError(
+                "Got a complex right-hand side: cannot solve real-valued factorization"
+            )
+
         if b.dtype != self._data_type:
             # Pydiso wrapper would do the conversion and throw a warning;
             # hence, doing data type conversion in advance
