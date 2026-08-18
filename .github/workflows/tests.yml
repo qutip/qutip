@@ -145,7 +145,7 @@ jobs:
             os: windows-11-arm
             python-version: "3.14"
             pypi: 1
-            qutip-optional: ""
+            qutip-optional: "[semidefinite]"
             # matplotlib not installed
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
 
@@ -154,7 +154,7 @@ jobs:
             python-version: "3.11"
             numpy-build: "==2.0.*"
             numpy-run: "==1.24.*"
-            qutip-optional: "[semidefinite,ipython,extras]"
+            qutip-optional: "[ipython,extras]"
             pypi-extra-pkgs: "matplotlib==3.7.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
