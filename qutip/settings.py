@@ -4,6 +4,7 @@ tidyup functionality, etc.
 """
 import os
 import sys
+import functools
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
@@ -103,6 +104,25 @@ def _has_pydiso() -> bool:
         return False
     return True
 
+def _mkl_versions() -> tuple[str | None, str | None]:
+    if not _has_pydiso():
+        return None, None
+
+    from importlib.metadata import PackageNotFoundError, version
+    try:
+        pydiso_version = version("pydiso")
+    except PackageNotFoundError:
+        pydiso_version = "unknown"
+
+    try:
+        from pydiso.mkl_solver import get_mkl_version
+        v = get_mkl_version()
+        mkl_version = (f"{v['MajorVersion']}.{v['MinorVersion']}.{v['UpdateVersion']}")
+    except Exception:
+        mkl_version = "unknown"
+
+    return pydiso_version, mkl_version
+
 class Settings:
     """
     Qutip's settings and options.
@@ -125,6 +145,16 @@ class Settings:
         """ Checks whether the MKL Pardiso sparse solver is available.
             Requires the optional ``pydiso`` package. """
         return _has_pydiso()
+
+    @property
+    def mkl_version(self) -> str | None:
+        """ Version of the Intel MKL library used by ``pydiso`` """
+        return _mkl_versions()[1]
+    
+    @property
+    def _pydiso_version(self) -> str | None:
+        """Version of ``pydiso```, which provides the MKL Pardiso solver """
+        return _mkl_versions()[0]
 
     @property
     def mkl_lib_location(self) -> str | None:
