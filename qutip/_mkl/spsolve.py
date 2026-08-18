@@ -226,7 +226,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
     A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     try:
-        return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1:
+        return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
         if sp.issparse(b):
             # qutip's convention: a sparse RHS of shape (n, 1) produces dense solution
             b = b.to_array()
