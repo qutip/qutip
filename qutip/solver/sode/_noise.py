@@ -98,7 +98,7 @@ class PreSetWiener(Wiener):
     def _prepare(self, N_dW):
         if N_dW != 1:
             raise NotImplementedError(
-                "High level taylor methods are not supported "
+                "High level Taylor methods are not supported "
                 "for run_from_experiment."
             )
         self.last_W = np.zeros(self.shape[-1], dtype=float)

@@ -26,7 +26,7 @@ class SIntegrator(Integrator):
         The name of the integrator.
 
     rhs_format : {"SDESystem", "SDETaylorSystem", "Solver"}
-        Which format the SDE integrator rhs is used by the integration method.
+        Which format of the SDE integrator rhs is used by the integration method.
         - "SDESystem": Instance of a subclass of :class:"BaseStochasticSystem".
         - "SDETaylorSystem": Instance of a child class of
           :class:"TaylorStochasticSystem". Depending on the integration method,
