@@ -69,7 +69,7 @@ jobs:
             python-version: "3.12"
             numpy-build: ">=2.1.0,<2.2.0"
             numpy-requirement: ">=1.26,<1.27"
-            scipy-requirement: ">=1.15,<1.16"
+            scipy-requirement: ">=1.13,<1.14"
             pypi: 1
             oldmpl: 1
             coveralls: 1
@@ -78,8 +78,8 @@ jobs:
           - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.11"
-            numpy-build: ">=1.26.4,<1.27.0"
-            numpy-requirement: ">=1.26.4,<1.27.0"
+            numpy-build: ">=1.23.2,<1.24.0"
+            numpy-requirement: ">=1.23.2,<1.24.0"
             scipy-requirement: ">=1.13,<1.14"
             semidefinite: 1
             oldcython: 1
@@ -190,7 +190,7 @@ jobs:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
           if [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock matplotlib==3.6
+            python -m pip install cython==3.0.8 filelock matplotlib==3.6
           else
             python -m pip install cython filelock
           fi
