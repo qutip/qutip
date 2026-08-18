@@ -32,7 +32,6 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
         case-name: ["Latest"]
-        condaforge: [1]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -41,7 +40,7 @@ jobs:
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
-        coveralls: [1]
+        # coveralls: [1]  # Why didn't we try to upload them all?
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -153,7 +152,7 @@ jobs:
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
-            numpy-build: "==2.0.0"
+            numpy-build: "==2.0.0*"
             numpy-requirement: "==1.24.*"
             qutip-optional: "[semidefinite,ipython,extras]"
             pypi-extra-pkgs: "matplotlib==3.7.*"
@@ -191,7 +190,6 @@ jobs:
 
       - name: Build QuTiP wheel
         run: |
-          pwd
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
@@ -211,7 +209,6 @@ jobs:
         working-directory: ..
         run: |
           # Install the extra requirement
-          pwd
           python -m pip install pytest pytest-rerunfailures
           python -m pip install pytest-cov coveralls pytest-fail-slow
           python -m pip install coverage[toml] chardet
@@ -241,7 +238,6 @@ jobs:
       - name: Package information
         working-directory: ..
         run: |
-          pwd
           if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
             pip list
           else
@@ -257,7 +253,6 @@ jobs:
         timeout-minutes: 60
         working-directory: ..
         run: |
-          pwd
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
             # actually that many CPUs.  We have to check any dispatch code is
@@ -297,7 +292,7 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
-        if: ${{ matrix.coveralls }}
+        # if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
