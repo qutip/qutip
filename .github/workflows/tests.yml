@@ -84,12 +84,12 @@ jobs:
             scipy-run: "==1.14.*"
             qutip-optional: "[graphics]"
 
-          - case-name: version-2, mkl, version-4,
+          - case-name: version-2, mkl, version-4
             os: ubuntu-latest
             python-version: "3.11"
             numpy-run: "==2.0.*"
             scipy-run: "==1.13.*"
-            nomlk: 1
+            nomkl: 1
             qutip-optional: "[semidefinite]"
             # Installing matplotlib 3.8 with it's latest dependencies raise this warnings
             pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
@@ -104,7 +104,7 @@ jobs:
             qutip-optional: "[runtime_compilation,ipython,extras]"
             # Installing matplotlib 3.9 with it's latest dependencies also raise this warnings
             pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
-            pypi-extra-pkgs: "matplotlib==3.9.* "
+            pypi-extra-pkgs: "matplotlib==3.9.*"
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
@@ -132,8 +132,8 @@ jobs:
             os: macos-15-intel  # Test on intel cpus
             python-version: "3.11"
             numpy-build: "==2.0.*"
-            numpy-requirement: "==1.25.*"
-            scipy-requirement: "==1.16.*"
+            numpy-run: "==1.25.*"
+            scipy-run: "==1.16.*"
             nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
@@ -152,8 +152,8 @@ jobs:
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
-            numpy-build: "==2.0.0*"
-            numpy-requirement: "==1.24.*"
+            numpy-build: "==2.0.*"
+            numpy-run: "==1.24.*"
             qutip-optional: "[semidefinite,ipython,extras]"
             pypi-extra-pkgs: "matplotlib==3.7.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
