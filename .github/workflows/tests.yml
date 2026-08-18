@@ -80,7 +80,7 @@ jobs:
             python-version: "3.11"
             numpy-build: ">=1.22.0,<1.23.0"
             numpy-requirement: ">=1.22.0,<1.23.0"
-            scipy-requirement: ">=1.9,<1.10"
+            scipy-requirement: ">=1.11,<1.12"
             semidefinite: 1
             oldcython: 1
             oldmpl: 1
