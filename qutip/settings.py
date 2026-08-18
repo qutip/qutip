@@ -152,7 +152,7 @@ class Settings:
         return _mkl_versions()[1]
     
     @property
-    def _pydiso_version(self) -> str | None:
+    def pydiso_version(self) -> str | None:
         """Version of ``pydiso```, which provides the MKL Pardiso solver """
         return _mkl_versions()[0]
 
