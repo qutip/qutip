@@ -260,6 +260,7 @@ class IntegratorPETSc(Integrator):
         "pc_type": "bjacobi",
         "ksp_atol": 1e-8,
         "ksp_rtol": 1e-6,
+        "store_ado": False,
     }
 
     support_time_dependant = False
