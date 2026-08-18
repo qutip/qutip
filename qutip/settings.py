@@ -13,7 +13,6 @@ import scipy
 
 __all__ = ['settings']
 
-
 def _blas_info_pre_1_26():
     config = scipy.__config__
     if hasattr(config, 'blas_ilp64_opt_info'):
@@ -95,79 +94,13 @@ def available_cpu_count() -> int:
     return num_cpu or 1
 
 
-def _find_mkl():
-    """
-    Finds the MKL library.
-    Look into scipy's libraries, numpy's libraries, Anaconda default location
-    and Intel Python distributions's. (In that order)
-    """
-    plat = sys.platform
-
-    if plat.startswith("win"):
-        # TODO: fix the mkl handling on windows or use modules like pydiso to
-        # do it for us.
-        return ""
-    if plat == "emscripten":
-        # mkl is not supported on emscripten
-        return ""
-
-    python_dir = Path(sys.executable).parent
-    if plat in ['darwin', 'linux2', 'linux']:
-        python_dir = python_dir.parent
-
-    # Try in default Anaconda location first
-    if plat in ['darwin', 'linux2', 'linux']:
-        lib_dir_anaconda = '/lib/*'
-        lib_dir_intel_python = '/ext/lib'
-    else:
-        lib_dir_anaconda = r'\Library\bin\*'
-        lib_dir_intel_python = r'\ext\lib'
-
+@functools.cache
+def _has_pydiso() -> bool:
     try:
-        scipy_cfg = scipy.show_config("dicts")["Build Dependencies"]
-        scipy_blas = scipy_cfg["blas"]["lib directory"]
-        scipy_lapack = scipy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        scipy_blas = "unknown"
-        scipy_lapack = "unknown"
-
-    try:
-        numpy_cfg = np.show_config("dicts")["Build Dependencies"]
-        numpy_blas = numpy_cfg["blas"]["lib directory"]
-        numpy_lapack = numpy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        numpy_blas = "unknown"
-        numpy_lapack = "unknown"
-
-    paths = [
-        scipy_blas,
-        scipy_lapack,
-        numpy_blas,
-        numpy_lapack,
-        str(python_dir) + lib_dir_anaconda,
-        str(python_dir) + lib_dir_intel_python,
-    ]
-
-    if plat == 'darwin':
-        ext = ".dylib"
-    elif plat == 'win32':
-        ext = ".dll"
-    elif plat in ['linux2', 'linux']:
-        ext = ".so"
-    else:
-        raise Exception('Unknown platfrom.')
-
-    mkl_libs = []
-    for path in paths:
-        libraries = glob(path)
-        mkl_libs += [
-            lib for lib in libraries
-            if "mkl_rt." in lib and ext in lib
-        ]
-    if mkl_libs:
-        return mkl_libs[0]
-    return ""
-
+        import pydiso.mkl_solver
+    except ImportError:
+        return False
+    return True
 
 class Settings:
     """
@@ -185,6 +118,12 @@ class Settings:
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+
+    @property
+    def has_mkl(self) -> bool:
+        """ Checks whether the MKL Pardiso sparse solver is available.
+            Requires the optional ``pydiso`` package. """
+        return _has_pydiso()
 
     @property
     def has_mkl(self) -> bool:
