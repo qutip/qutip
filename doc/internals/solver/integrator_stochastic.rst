@@ -90,7 +90,7 @@ Stochastic system classes act as structured containers for the drift and diffusi
 
    * ``drift(t: float, state: Data) -> Data``: Computes the deterministic drift vector $a(t, x)$.
    * ``diffusion(t: float, state: Data) -> list[Data]``: Computes the stochastic diffusion vectors $b^i(t, x)$ for each noise source $i$.
-   * ``_shift(t: float, state: Data) -> list[float]``: Internal helper used by ``run_from_experiment`` to calculate the offset between pure Wiener noise and continuous experimental measurement outputs.
+   * ``_shift(t: float, state: Data) -> list[float]``: Internal helper used by ``run_from_experiment`` to calculate the offset between pure Wiener noise and continuous experimental measurement outputs. When using the SDE solver outside that one method, it should not be used. If the diffusion have a non-random contribution, it should be added directly to the drift term.
 
 2. :class:`StochasticSystem`
    A class for custom system functions.
