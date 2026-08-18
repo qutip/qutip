@@ -108,6 +108,7 @@ class Solver:
         }
         if (
             self.rhs.issuper
+            and not (self.rhs._dims == state._dims)
             and state.isherm
             and getattr(self, "_rhs_preserves_hermiticity", False)
         ):
