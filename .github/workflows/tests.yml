@@ -190,6 +190,8 @@ jobs:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
 
+          python -m pip install cython filelock
+
           python -m pip install -e . -v --no-build-isolation
 
           if [[ "${{ matrix.nocython }}" ]]; then
