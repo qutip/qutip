@@ -72,6 +72,7 @@ mpi = ["mpi4py"]
 full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
+mkl = ["pydiso>=0.2.0"]
 
 [tool.setuptools]
 packages = { find = { include = ["qutip*"] } }
