@@ -8,6 +8,7 @@ from ctypes import cdll, CDLL
 import platform
 from glob import glob
 from pathlib import Path
+import warnings
 import numpy as np
 import scipy
 
@@ -126,11 +127,6 @@ class Settings:
         return _has_pydiso()
 
     @property
-    def has_mkl(self) -> bool:
-        """ Whether qutip found an mkl installation. """
-        return self.mkl_lib is not None
-
-    @property
     def mkl_lib_location(self) -> str | None:
         """ Location of the mkl library file. The file is usually called:
 
@@ -141,42 +137,22 @@ class Settings:
         It search for the library in the python lib path per default.
         If the library is in other location, update this variable as needed.
         """
-        if self._mkl_lib_loc == "":
-            _mkl_lib_loc = _find_mkl()
-            try:
-                _mkl_lib = cdll.LoadLibrary(_mkl_lib_loc)
-            except OSError:
-                _mkl_lib = None
-            if not (
-                hasattr(_mkl_lib, "pardiso")
-                and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-            ):
-                self._mkl_lib_loc = None
-                self._mkl_lib = None
-            else:
-                self._mkl_lib = _mkl_lib
-                self._mkl_lib_loc = _mkl_lib_loc
-        return self._mkl_lib_loc
+        warnings.warn(
+            "The 'mkl_lib_location' property is deprecated; use 'has_mkl' instead.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return ""
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        _mkl_lib = cdll.LoadLibrary(new)
-        if not (
-            hasattr(_mkl_lib, "pardiso")
-            and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-        ):
-            raise ValueError(
-                "mkl sparse functions not available in the provided library"
-            )
-        self._mkl_lib_loc = new
-        self._mkl_lib = _mkl_lib
-
-    @property
-    def mkl_lib(self) -> CDLL | None:
-        """ Mkl library """
-        if self._mkl_lib == "":
-            self.mkl_lib_location
-        return self._mkl_lib
+        warnings.warn(
+            "The 'mkl_lib_location' setter is deprecated; it is not possible to point
+            qutip at a libmkl_rt in a non-standard location since pydiso links it at
+            a build time.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
 
     @property
     def ipython(self) -> bool:
