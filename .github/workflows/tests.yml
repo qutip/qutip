@@ -196,7 +196,7 @@ jobs:
 
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
-          elif [ "${{ matrix.oldcython }}" ]]; then
+          elif [[ "${{ matrix.oldcython }}" ]]; then
             python -m pip install cython==0.29.36 filelock
           fi
 
