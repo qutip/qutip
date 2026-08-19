@@ -12,7 +12,7 @@ import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 import scipy.special
-from scipy.special import genlaguerre, binom, factorial
+from scipy.special import genlaguerre, binom, factorial, gammaln, xlogy
 
 try:
     from scipy.special import sph_harm_y
@@ -958,6 +958,11 @@ def qfunc(
 # -----------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
+def _log_binomial(n, k):
+    """``log(binom(n, k))``, which stays finite where ``binom`` overflows."""
+    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+
+
 def spin_q_function(rho, theta, phi):
     r"""The Husimi Q function for spins is defined as ``Q(theta, phi) =
     SCS.dag() * rho * SCS`` for the spin coherent state ``SCS = spin_coherent(
@@ -1005,15 +1010,28 @@ def spin_q_function(rho, theta, phi):
     Q = np.zeros_like(THETA, dtype=complex)
     data = rho.full()
 
+    # The binomial coefficients and the trigonometric powers are individually
+    # outside the float range long before their product is -- `binom(2j, j)`
+    # overflows to `inf` around j = 550 while the powers underflow to zero --
+    # so each term is accumulated in log space and exponentiated once.
+    # `xlogy` keeps a zero exponent at zero rather than `0 * -inf`, which is
+    # what makes theta = 0 and theta = pi work.
+    cos_half = cos(THETA / 2)
+    sin_half = sin(THETA / 2)
+
+    def _log_coefficient(exp_cos, exp_sin):
+        """log of ``cos(theta/2)**exp_cos * sin(theta/2)**exp_sin``."""
+        return xlogy(exp_cos, cos_half) + xlogy(exp_sin, sin_half)
+
     for m1 in arange(-j, j + 1):
-        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * \
-             sin(THETA / 2) ** (2 * (j - m1)) * \
-             data[int(j - m1), int(j - m1)]
+        log_b1 = _log_binomial(2 * j, j + m1)
+        Q += exp(log_b1 + _log_coefficient(2 * (j + m1), 2 * (j - m1))) * \
+            data[int(j - m1), int(j - m1)]
 
         for m2 in arange(m1 + 1, j + 1):
-            Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
-                  cos(THETA / 2) ** (2 * j + m1 + m2) *
-                  sin(THETA / 2) ** (2 * j - m1 - m2)) * \
+            log_b2 = _log_binomial(2 * j, j + m2)
+            Q += exp(0.5 * (log_b1 + log_b2) +
+                     _log_coefficient(2 * j + m1 + m2, 2 * j - m1 - m2)) * \
              (exp(1j * (m1 - m2) * PHI) * data[int(j - m1), int(j - m2)] +
               exp(1j * (m2 - m1) * PHI) * data[int(j - m2), int(j - m1)])
 
