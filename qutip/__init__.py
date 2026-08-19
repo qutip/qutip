@@ -47,6 +47,7 @@ from .wigner import *
 from .random_objects import *
 from .simdiag import *
 from .entropy import *
+from .berry import *
 from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
