@@ -59,7 +59,7 @@ jobs:
             # Both mpich and openmpi version 4 have caused problems in the past
             # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
             # version of mpi4py are currently only available on conda-forge:
-            conda-extra-pkgs: "openmpi>=5.0 mpi4py"
+            conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
 
           - case-name: no conda, version-1
             os: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
             qutip-optional: "[full]"
             pypi: 1
 
-          - case-name: p314 ubuntu arm mkl, version-2
+          - case-name: p313 ubuntu arm, version-2
             os: ubuntu-24.04-arm
             python-version: "3.13"
             numpy-run: "==2.2.*"
@@ -226,7 +226,7 @@ jobs:
           mv qutip/qutip*.whl .
           WHEEL=$( echo qutip*.whl )
           echo $WHEEL
-          python -m pip install $WHEEL${{ matrix.qutip-optional }} -v
+          python -m pip install "$WHEEL${{ matrix.qutip-optional }}" -v
 
           if [[ -n "${{ matrix.pypi-extra-pkgs }}" ]]; then
             python -m pip install ${{ matrix.pypi-extra-pkgs }}
