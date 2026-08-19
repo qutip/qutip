@@ -71,9 +71,6 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
 
-[tool.setuptools]
-packages = { find = { include = ["qutip*"] } }
-
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
