@@ -1049,6 +1049,7 @@ def test_mesolve_does_not_cache_isherm_for_propagator():
 
     assert propagator._isherm is None
     assert not qutip.data.isherm(propagator.data)
+    assert propagator.isherm is False
 
 
 def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
