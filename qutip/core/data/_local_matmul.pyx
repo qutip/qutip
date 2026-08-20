@@ -9,6 +9,7 @@ from qutip.core.data.add cimport iadd_dense
 from qutip.core.data.data_iterator cimport Data_iterator, _make_iter
 import numpy as np
 cimport cython
+include "_blas_int.pxi"
 from scipy.linalg.cython_blas cimport zaxpy
 
 cdef extern from "<complex>" namespace "std" nogil:
@@ -22,7 +23,7 @@ __all__ = [
 ]
 
 
-cdef int ONE = 1
+cdef blas_int ONE = 1
 cdef double NaN = np.nan
 
 
@@ -363,7 +364,7 @@ cpdef void n_mode_kernel(
     out_row_stride = 1 if out.fortran else out.shape[1]
     out_col_stride = 1 if not out.fortran else out.shape[0]
 
-    cdef int chunk_len = meta.pass_through_step
+    cdef blas_int chunk_len = meta.pass_through_step
     if not state.fortran and not out.fortran:
         chunk_len *= state.shape[1]
 
