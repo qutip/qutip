@@ -75,7 +75,7 @@ full = [
 # When building wheels on Windows, we have to force the Visual Studio environment
 # to be activated. Otherwise, meson would pick the first C++ compiler on PATH,
 # which is usually Strawberry Perl's MinGW g++ (instead of the
-# expected MSVC which expected by CPython used in cibuildwheel)
+# expected MSVC)
 setup = ["--vsenv"]
 
 [tool.cibuildwheel]
