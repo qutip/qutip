@@ -71,6 +71,13 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
 
+[tool.meson-python.args]
+# When building wheels on Windows, we have to force the Visual Studio environment
+# to be activated. Otherwise, meson would pick the first C++ compiler on PATH,
+# which is usually Strawberry Perl's MinGW g++ (instead of the
+# expected MSVC which expected by CPython used in cibuildwheel)
+setup = ["--vsenv"]
+
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
