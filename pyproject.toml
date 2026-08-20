@@ -3,9 +3,9 @@ requires = [
     "setuptools>=77.0.3",
     "packaging",
     "wheel",
-    "cython>=0.29.20",
+    "cython>=3.0.0",
     "numpy>=2.0.0",
-    "scipy>=1.9",
+    "scipy>=1.13",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -45,7 +45,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.23.2",
-    "scipy>=1.9.2,!=1.16.0,!=1.17.0",
+    "scipy>=1.13,!=1.16.0,!=1.17.0",
     "packaging",
 ]
 
