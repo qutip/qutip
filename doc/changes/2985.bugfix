@@ -1,0 +1,2 @@
+Fix ``bures_dist`` and ``bures_angle`` returning NaN when comparing a state to
+itself because floating-point error could push the fidelity slightly above one.

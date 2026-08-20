@@ -22,7 +22,7 @@ except ImportError:
 # These ones are the metrics functions that we actually want to test.
 from qutip import (
     fidelity, tracedist, hellinger_dist, dnorm, average_gate_fidelity,
-    unitarity, hilbert_dist, bures_dist, process_fidelity,
+    unitarity, hilbert_dist, bures_dist, bures_angle, process_fidelity,
 )
 from qutip.core.metrics import _hilbert_space_dims
 
@@ -193,6 +193,40 @@ class Test_hellinger_dist:
         dist = hellinger_dist(rhoA, sigmaA)
         assert hellinger_dist(rho, sigma) + tol > dist
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
+
+
+class Test_bures_dist:
+    @pytest.mark.parametrize('right_dm', [True, False], ids=['mixed', 'pure'])
+    @pytest.mark.parametrize('left_dm', [True, False], ids=['mixed', 'pure'])
+    def test_orthogonal(self, left_dm, right_dm, dimension):
+        if isinstance(dimension, Space):
+            left = basis(dimension, dimension.idx2dims(0))
+            right = basis(dimension, dimension.idx2dims(dimension.size // 2))
+        else:
+            left = basis(dimension, 0)
+            right = basis(dimension, dimension//2)
+        if left_dm:
+            left = left.proj()
+        if right_dm:
+            right = right.proj()
+        expected = np.sqrt(2)
+        assert bures_dist(left, right) == pytest.approx(expected, abs=1e-6)
+
+    def test_state_with_itself(self, state):
+        # Regression test for gh-2985: numerical error in the fidelity could
+        # make it slightly larger than one, producing NaN instead of zero.
+        assert bures_dist(state, state) == pytest.approx(0, abs=1e-6)
+
+    def test_state_with_itself_seed_2985(self):
+        rho = rand_dm(3, seed=465)
+        assert bures_dist(rho, rho) == 0
+
+
+class Test_bures_angle:
+    def test_state_with_itself(self, state):
+        # Same numerical-error path as gh-2985: arccos of a fidelity
+        # marginally larger than one is NaN.
+        assert bures_angle(state, state) == pytest.approx(0, abs=1e-6)
 
 
 class Test_average_gate_fidelity:

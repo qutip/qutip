@@ -345,7 +345,10 @@ def bures_dist(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    dist = np.sqrt(2 * (1 - fidelity(A, B)))
+    # np.maximum() is to avoid nan appearing sometimes due to numerical error
+    # making the fidelity slightly larger than one, which would make the
+    # argument of the square root negative.
+    dist = np.sqrt(2 * np.maximum(0, 1 - fidelity(A, B)))
     return dist
 
 
@@ -373,7 +376,10 @@ def bures_angle(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    return np.arccos(fidelity(A, B))
+    # np.minimum() is to avoid nan appearing sometimes due to numerical error
+    # making the fidelity slightly larger than one, which is outside the
+    # domain of arccos.
+    return np.arccos(np.minimum(1, fidelity(A, B)))
 
 
 def hellinger_dist(A, B, sparse=False, tol=0):
