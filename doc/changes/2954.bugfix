@@ -1,1 +1,0 @@
-Fixed `clebsch` silently returning wrong values (and later `nan` or raising) for large angular momenta, caused by negative exponents turning the exact integer factorial products into underflowing floats.

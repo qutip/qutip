@@ -35,7 +35,7 @@ jobs:
         condaforge: [1]
         numpy-build: [""]
         numpy-requirement: [""]
-        scipy-requirement: [">=1.9"]
+        scipy-requirement: [">=1.13"]
         coverage-requirement: ["==6.5"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # Extra special cases.  In these, the new variable defined should always
@@ -69,7 +69,7 @@ jobs:
             python-version: "3.12"
             numpy-build: ">=2.1.0,<2.2.0"
             numpy-requirement: ">=1.26,<1.27"
-            scipy-requirement: ">=1.11,<1.12"
+            scipy-requirement: ">=1.13,<1.14"
             pypi: 1
             oldmpl: 1
             coveralls: 1
@@ -78,9 +78,9 @@ jobs:
           - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.11"
-            numpy-build: ">=1.22.0,<1.23.0"
-            numpy-requirement: ">=1.22.0,<1.23.0"
-            scipy-requirement: ">=1.9,<1.10"
+            numpy-build: ">=1.23.2,<1.24.0"
+            numpy-requirement: ">=1.23.2,<1.24.0"
+            scipy-requirement: ">=1.13,<1.14"
             semidefinite: 1
             oldcython: 1
             oldmpl: 1
@@ -147,7 +147,7 @@ jobs:
         run: conda install pip -y -n test
 
       # TODO remove this once conda supports windows arm
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         if: matrix.os == 'windows-11-arm'
         with:
           python-version: ${{ matrix.python-version }}

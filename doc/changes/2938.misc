@@ -1,1 +1,0 @@
-Migrates QuTiP's data layer from ``scipy.sparse.*_matrix`` types to ``scipy.sparse.*_array`` types _internally_ while keeping user-facing behavior (via `Qobj.data_as` and `extract` functions) backward compatible. Adds a forward-compatibility guard so QuTiP won't break when SciPy fully removes the legacy matrix classes.

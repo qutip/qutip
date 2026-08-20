@@ -2,9 +2,9 @@
 build-backend = 'mesonpy'
 requires = [
     "meson-python>=0.17",
-    "cython>=0.29.36",
+    "cython>=3.0.0",
     "numpy>=2.0",
-    "scipy>=1.9",
+    "scipy>=1.13",
 ]
 
 [project]
@@ -43,7 +43,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.23.2",
-    "scipy>=1.9.2,!=1.16.0,!=1.17.0",
+    "scipy>=1.13,!=1.16.0,!=1.17.0",
     "packaging",
 ]
 

@@ -268,7 +268,7 @@ The documentation need not be updated for every patch release.
 HTML File Updates
 -----------------
 
-- Edit ``download.html``
+- Edit ``download.md``
 
     * The 'Latest release' version and date should be updated.
     * The tar.gz and zip links need to have their micro release numbers updated in their filenames, labels and trackEvent javascript.
@@ -276,12 +276,12 @@ HTML File Updates
       They should look something like ``https://github.com/qutip/qutip/archive/refs/tags/v4.6.0.tar.gz``.
     * For a minor or major release links to the last micro release of the previous version will need to be moved (copied) to the 'Previous releases' section.
 
-- Edit ``_includes/sidebar.html``
+- Edit ``_includes/old_sidebar.html``
 
     * Add the new version and release date. Only actively developed version should be listed. Micro replace the previous entry but the last major can be kept.
     * Link to the installation instruction, documentation, source code and changelog should be updated.
 
-- Edit ``documentation.html``
+- Edit ``documentation.md``
 
     * For major and minor release, the previous release tags should be moved (copied) to the 'Previous releases' section and the links to the readthedocs of the new version added the to 'Latest releases' section.
 
