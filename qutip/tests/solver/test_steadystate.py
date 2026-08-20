@@ -3,7 +3,6 @@ import scipy
 import pytest
 import qutip
 import warnings
-from packaging import version as pac_version
 from qutip.solver.steadystate import _permute_rcm, _permute_wbm
 import qutip.core.data as _data
 
@@ -41,10 +40,7 @@ def test_qubit(method, kwargs, dtype):
     sz = qutip.sigmaz().to(dtype)
     sm = qutip.destroy(2, dtype=dtype)
 
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -109,10 +105,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
 def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -153,10 +146,7 @@ def test_ho(method, kwargs):
     pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 

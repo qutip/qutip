@@ -35,7 +35,7 @@ jobs:
         condaforge: [1]
         numpy-build: [""]
         numpy-requirement: [""]
-        scipy-requirement: [">=1.9"]
+        scipy-requirement: [">=1.13"]
         coverage-requirement: ["==6.5"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # Extra special cases.  In these, the new variable defined should always
@@ -69,7 +69,7 @@ jobs:
             python-version: "3.12"
             numpy-build: ">=2.1.0,<2.2.0"
             numpy-requirement: ">=1.26,<1.27"
-            scipy-requirement: ">=1.11,<1.12"
+            scipy-requirement: ">=1.13,<1.14"
             pypi: 1
             oldmpl: 1
             coveralls: 1
@@ -78,9 +78,9 @@ jobs:
           - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.11"
-            numpy-build: ">=1.22.0,<1.23.0"
-            numpy-requirement: ">=1.22.0,<1.23.0"
-            scipy-requirement: ">=1.11,<1.12"
+            numpy-build: ">=1.23.2,<1.24.0"
+            numpy-requirement: ">=1.23.2,<1.24.0"
+            scipy-requirement: ">=1.13,<1.14"
             semidefinite: 1
             oldcython: 1
             oldmpl: 1
@@ -152,6 +152,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Meson, unlike setuptools/distutils, does not locate and activate the
+      # MSVC toolchain itself: it simply looks for cl.exe and link.exe in PATH.
+      # This writes the result to GITHUB_ENV, so every later step inherits it.
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: ${{ matrix.os == 'windows-11-arm' && 'arm64' || 'x64' }}
+
+      # Git for Windows ships a coreutils /usr/bin/link.exe,
+      # and bash puts that directory ahead of the MSVC toolchain in PATH.
+      # Deleting it same as what numpy, scipy do.
+      - name: Remove GNU link.exe (shadows MSVC link.exe under bash)
+        if: runner.os == 'Windows'
+        run: rm -f /usr/bin/link.exe /usr/bin/link
+
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
         # rather than in the GitHub Actions file directly, because bash gives us
@@ -161,12 +176,13 @@ jobs:
         # version use in the installation virtual environment.
         run: |
           # Install the extra requirement
-          python -m pip install pytest>=5.2 pytest-rerunfailures  # tests
+          python -m pip install meson-python meson ninja # build
+          python -m pip install setuptools  # runtime string-coefficient compilation
+          python -m pip install "pytest>=5.2" pytest-rerunfailures  # tests
           python -m pip install ipython  # ipython
           python -m pip install loky!=3.5.0 tqdm mpmath  # extras
           python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
           python -m pip install pytest-cov coveralls pytest-fail-slow
-          python -m pip install setuptools
 
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install "numpy${{ matrix.numpy-build }}"
@@ -192,7 +208,7 @@ jobs:
 
           python -m pip install cython filelock
 
-          python -m pip install -e . -v --no-build-isolation
+          python -m pip install . -v --no-build-isolation
 
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
@@ -219,6 +235,7 @@ jobs:
           fi
 
       - name: Package information
+        working-directory: ${{ runner.temp }}
         run: |
           if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
             pip list
@@ -238,10 +255,14 @@ jobs:
           fi
 
       - name: Run tests
+        working-directory: ${{ runner.temp }}
         # If our tests are running for longer than an hour, _something_ is wrong
         # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
         # to see if something hung.
         timeout-minutes: 60
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage
+          COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
         run: |
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
@@ -258,7 +279,9 @@ jobs:
             # For OpenMPI >= 5:
             export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
           fi
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+
+          QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
+          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
