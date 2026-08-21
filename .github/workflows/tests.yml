@@ -205,16 +205,15 @@ jobs:
             # version of mpi4py are currently only available on conda-forge:
             conda install --channel conda-forge "openmpi>=5.0" mpi4py
           fi
-          if [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock matplotlib==3.6
-          else
-            python -m pip install cython filelock
-          fi
+
+          python -m pip install cython filelock
 
           python -m pip install . -v --no-build-isolation
 
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
+          elif [[ "${{ matrix.oldcython }}" ]]; then
+            python -m pip install cython==0.29.36 filelock
           fi
 
           if [[ "${{ matrix.pypi }}" ]]; then

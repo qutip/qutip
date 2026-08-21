@@ -1,5 +1,4 @@
 #cython: language_level=3
-#cython: c_api_binop_methods=True
 
 import inspect
 import pickle
@@ -142,18 +141,23 @@ cdef class Coefficient:
         # All Coefficient sub-classes should overwrite this or __call__
         return complex(self(t))
 
-    def __add__(left, right):
-        if isinstance(left, Coefficient) and isinstance(right, Coefficient):
-            return SumCoefficient(left.copy(), right.copy())
+    def __add__(self, other):
+        if isinstance(other, Coefficient):
+            return SumCoefficient(self.copy(), other.copy())
         return NotImplemented
 
-    def __mul__(left, right):
-        if isinstance(left, Coefficient) and isinstance(right, Coefficient):
-            return MulCoefficient(left.copy(), right.copy())
-        if isinstance(left, qutip.Qobj):
-            return qutip.QobjEvo([left.copy(), right.copy()])
-        if isinstance(right, qutip.Qobj):
-            return qutip.QobjEvo([right.copy(), left.copy()])
+    def __mul__(self, other):
+        if isinstance(other, Coefficient):
+            return MulCoefficient(self.copy(), other.copy())
+        if isinstance(other, qutip.Qobj):
+            return qutip.QobjEvo([other.copy(), self.copy()])
+        return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, Coefficient):
+            return MulCoefficient(self.copy(), other.copy())
+        if isinstance(other, qutip.Qobj):
+            return qutip.QobjEvo([other.copy(), self.copy()])
         return NotImplemented
 
     cpdef Coefficient copy(self):
@@ -563,59 +567,53 @@ cdef class InterCoefficient(Coefficient):
         """Return a copy of the :obj:`.Coefficient`."""
         return InterCoefficient.restore(*self.np_arrays, self.dt)
 
-    def __add__(left, right):
-        cdef InterCoefficient self
-        cdef InterCoefficient other
+    def __add__(InterCoefficient self, other):
+        cdef InterCoefficient i_coeff
 
-        # Pre-cython 3 support
-        if type(left) is InterCoefficient:
-            self = left
-        else:
-            self = right
-            right = left
-
-        if isinstance(right, InterCoefficient):
-            other = <InterCoefficient> right
+        if isinstance(other, InterCoefficient):
+            i_coeff = <InterCoefficient> other
             if (
-                self.np_arrays[0].shape == other.np_arrays[0].shape
-                and (self.order == other.order)
+                self.np_arrays[0].shape == i_coeff.np_arrays[0].shape
+                and (self.order == i_coeff.order)
                 and np.allclose(
-                    self.np_arrays[0], other.np_arrays[0],
+                    self.np_arrays[0], i_coeff.np_arrays[0],
                     rtol=1e-15, atol=1e-15
                 )
             ):
                 return InterCoefficient.restore(
                     self.np_arrays[0],
-                    self.np_arrays[1] + other.np_arrays[1],
+                    self.np_arrays[1] + i_coeff.np_arrays[1],
                     self.dt
                 )
+            else:
+                return SumCoefficient(self, other)
 
-        if isinstance(right, ConstantCoefficient):
-            value = (<ConstantCoefficient> right).value
+        if isinstance(other, ConstantCoefficient):
+            value = (<ConstantCoefficient> other).value
             poly = self.np_arrays[1].copy()
             poly[-1, :] += value
             return InterCoefficient.restore(
                 self.np_arrays[0], poly, self.dt
             )
 
-        return SumCoefficient(left, right)
+        return NotImplemented
 
-    def __mul__(left, right):
-        cdef InterCoefficient self
-        cdef InterCoefficient other
+    def __radd__(InterCoefficient self, other):
+        if isinstance(other, ConstantCoefficient):
+            value = (<ConstantCoefficient> other).value
+            poly = self.np_arrays[1].copy()
+            poly[-1, :] += value
+            return InterCoefficient.restore(
+                self.np_arrays[0], poly, self.dt
+            )
+
+        return NotImplemented
+
+    def __mul__(InterCoefficient self, other):
+        cdef InterCoefficient i_coeff
         cdef int i, j, inv1, inv2, N, idx
 
-        # Pre-cython 3 support
-        if type(left) is InterCoefficient:
-            self = left
-        else:
-            self = right
-            right = left
-
-        if not isinstance(right, Coefficient):
-            return Coefficient.__mul__(self, right)
-
-        if isinstance(right, InterCoefficient):
+        if isinstance(other, InterCoefficient):
             """
             We create a spline of the same order as the input.
             The pure mathematical product should add orders, creating a 6th
@@ -625,32 +623,42 @@ cdef class InterCoefficient(Coefficient):
 
             Note: Should we add an option for this? Or limit to CubicSpline?
             """
-            other = <InterCoefficient> right
+            i_coeff = <InterCoefficient> other
             if (
-                self.np_arrays[0].shape == other.np_arrays[0].shape
-                and (self.order == other.order)
-                and (self.boundary_conditions == other.boundary_conditions)
+                self.np_arrays[0].shape == i_coeff.np_arrays[0].shape
+                and (self.order == i_coeff.order)
+                and (self.boundary_conditions == i_coeff.boundary_conditions)
                 and np.allclose(
-                    self.np_arrays[0], other.np_arrays[0],
+                    self.np_arrays[0], i_coeff.np_arrays[0],
                     rtol=1e-15, atol=1e-15
                 )
             ):
                 coeff1 = self.np_arrays[1][-1, :]
-                coeff2 = other.np_arrays[1][-1, :]
+                coeff2 = i_coeff.np_arrays[1][-1, :]
                 return InterCoefficient(
                     coeff1 * coeff2,
                     self.tlist,
                     self.order,
                     self.boundary_conditions
                 )
+            else:
+                return MulCoefficient(self, other)
 
-        if isinstance(right, ConstantCoefficient):
-            value = (<ConstantCoefficient> right).value
+        if isinstance(other, ConstantCoefficient):
+            value = (<ConstantCoefficient> other).value
             return InterCoefficient.restore(
                 self.np_arrays[0], self.np_arrays[1] * value, self.dt
             )
 
-        return MulCoefficient(left, right)
+        return super().__mul__(other)
+
+    def __rmul__(InterCoefficient self, other):
+        if isinstance(other, ConstantCoefficient):
+            value = (<ConstantCoefficient> other).value
+            return InterCoefficient.restore(
+                self.np_arrays[0], self.np_arrays[1] * value, self.dt
+            )
+        return super().__mul__(other)
 
     def conj(InterCoefficient self):
         if np.isreal(self.np_arrays[1]).all():
@@ -963,7 +971,7 @@ cdef class ConstantCoefficient(Coefficient):
                 (<ConstantCoefficient> self).value *
                 (<ConstantCoefficient> other).value
             )
-        return Coefficient.__mul__(self, other)
+        return super().__mul__(other)
 
     def conj(ConstantCoefficient self):
         if self.value.imag == 0:
