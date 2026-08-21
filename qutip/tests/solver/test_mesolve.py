@@ -1036,6 +1036,22 @@ def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
     assert result.final_state.isherm is False
 
 
+def test_mesolve_does_not_cache_isherm_for_propagator():
+    """Propagator evolved by mesolve must not inherit the fast path for isherm. """
+
+    propagator = mesolve(
+            qutip.num(2),
+            qutip.qeye([[2], [2]]),
+            [0, 1],
+            c_ops=[qutip.destroy(2)],
+            options={"progress_bar": None},
+        ).final_state
+
+    assert propagator._isherm is None
+    assert not qutip.data.isherm(propagator.data)
+    assert propagator.isherm is False
+
+
 def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
     """Hamiltonian and collapse-operator construction is known to be safe."""
     rho0 = qutip.ket2dm(qutip.basis(2, 1))
