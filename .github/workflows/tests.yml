@@ -118,7 +118,7 @@ jobs:
             qutip-optional: ""
             pypi-extra-pkgs: "cython==0.29.34 setuptools filelock"
             pypi: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:matplotlib:UserWarning"
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita"
 
           # Mac
           # Mac has issues with MKL since september 2022.
@@ -240,7 +240,7 @@ jobs:
             conda install nomkl $CORE_DEP
           fi
 
-          mv ${{ github.workspace }}/qutip*.whl .
+          cp "${{ github.workspace }}"/qutip*.whl .
           WHEEL=$( echo qutip*.whl )
           echo $WHEEL
           python -m pip install "$WHEEL${{ matrix.qutip-optional }}" -v
