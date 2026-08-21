@@ -51,32 +51,28 @@ class PETScHEOMSolver(HEOMSolver):
     def __init__(
         self, H, bath, max_depth, *, odd_parity=False, options=None, backend=None
     ):
-        # We temporarily patch _calculate_rhs to return a lightweight dummy QobjEvo.
-        # This prevents the expensive CSR matrix generation in the base class,
-        # while satisfying the QobjEvo type check in QuTiP's absolute base Solver.
-        original_calc_rhs = self._calculate_rhs
-        self._calculate_rhs = self._dummy_calc_rhs
-        
+        # The system Liouvillian (L_sys) should not be too large because this 
+        # backend constructs the complete L of the system in memory. The distributed 
+        # "partial constructions" only apply to the ADOs (Auxiliary Density Operators). 
+        # This is generally fine because the system L is usually relatively small.
         super().__init__(
             H, bath, max_depth, odd_parity=odd_parity, options=options, backend=backend
         )
         
-        self._calculate_rhs = original_calc_rhs
-        
         # Now we construct the actual distributed PETSc RHS
-        self.rhs = self._calculate_rhs()
+        self.rhs = self._petsc_calc_rhs()
         
         # Re-initialize the integrator with the new RHS
         self._integrator = self._get_integrator()
 
-    def _dummy_calc_rhs(self):
+    def _calculate_rhs(self):
         """ Return a zero QobjEvo with the correct dimensions to satisfy Solver.__init__ """
         dim = self._sup_shape * self._n_ados
         dummy_mat = _data.csr.zeros(dim, dim)
         dummy_qobj = Qobj(dummy_mat, dims=[[dim], [dim]])
         return QobjEvo(dummy_qobj)
 
-    def _calculate_rhs(self):
+    def _petsc_calc_rhs(self):
         """ Make the full RHS required by the solver. """
         if not self.L_sys.isconstant:
             raise NotImplementedError(
@@ -260,7 +256,7 @@ class IntegratorPETSc(Integrator):
         "pc_type": "bjacobi",
         "ksp_atol": 1e-8,
         "ksp_rtol": 1e-6,
-        "store_ado": False,
+        "store_ados": False,
     }
 
     support_time_dependant = False
