@@ -207,12 +207,14 @@ jobs:
 
       - name: Build QuTiP wheel
         run: |
+          cd ..  # Meson complain when the venv is in QuTiP's directory
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
           else
             source ./build_env/bin/activate
           fi
+          cd qutip
           python -m pip install meson-python meson ninja # build
           python -m pip install "cython${{ matrix.cython-build }}"
           python -m pip install "numpy${{ matrix.numpy-build }}"
@@ -220,7 +222,6 @@ jobs:
           python -m pip wheel . --no-build-isolation --no-deps
           echo "Build environment:"
           pip list
-          ls
 
       - name: Install QuTiP and dependencies
         working-directory: ${{ runner.temp }}
