@@ -41,6 +41,7 @@ jobs:
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # coveralls: [1]  # Why didn't we try to upload them all?
+
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -99,7 +100,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==1.26.*"
-            scipy-run: "==1.11.*"
+            scipy-run: "==1.13.*"
             nomkl: 1
             qutip-optional: "[runtime_compilation,ipython,extras]"
             # Installing matplotlib 3.9 with it's latest dependencies also raise this warnings
@@ -111,11 +112,11 @@ jobs:
             python-version: "3.11"
             numpy-build: "==2.0.*"
             scipy-build: "==1.13.*"
-            cython-build: "==0.29.36"
+            cython-build: "==3.0.*"
             numpy-run: "==1.23.*"
-            scipy-run: "==1.9.*"
+            scipy-run: "==1.13.*"
             qutip-optional: ""
-            pypi-extra-pkgs: "cython==0.29.36 setuptools filelock"
+            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock"
             pypi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\" -W ignore:matplotlib:UserWarning"
 
@@ -180,6 +181,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Meson, unlike setuptools/distutils, does not locate and activate the
+      # MSVC toolchain itself: it simply looks for cl.exe and link.exe in PATH.
+      # This writes the result to GITHUB_ENV, so every later step inherits it.
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: ${{ matrix.os == 'windows-11-arm' && 'arm64' || 'x64' }}
+
+      # Git for Windows ships a coreutils /usr/bin/link.exe,
+      # and bash puts that directory ahead of the MSVC toolchain in PATH.
+      # Deleting it same as what numpy, scipy do.
+      - name: Remove GNU link.exe (shadows MSVC link.exe under bash)
+        if: runner.os == 'Windows'
+        run: rm -f /usr/bin/link.exe /usr/bin/link
+
       - name: Environment information
         run: |
           uname -a
@@ -197,7 +213,7 @@ jobs:
           else
             source ./build_env/bin/activate
           fi
-          python -m pip install setuptools packaging wheel
+          python -m pip install meson-python meson ninja # build
           python -m pip install "cython${{ matrix.cython-build }}"
           python -m pip install "numpy${{ matrix.numpy-build }}"
           python -m pip install "scipy${{ matrix.scipy-build }}"
@@ -207,7 +223,7 @@ jobs:
           ls
 
       - name: Install QuTiP and dependencies
-        working-directory: ..
+        working-directory: ${{ runner.temp }}
         run: |
           # Install the extra requirement
           python -m pip install pytest pytest-rerunfailures
@@ -237,7 +253,7 @@ jobs:
           fi
 
       - name: Package information
-        working-directory: ..
+        working-directory: ${{ runner.temp }}
         run: |
           if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
             pip list
@@ -248,11 +264,14 @@ jobs:
           python -c "import qutip; print(qutip.settings)"
 
       - name: Run tests
+        working-directory: ${{ runner.temp }}
         # If our tests are running for longer than an hour, _something_ is wrong
         # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
         # to see if something hung.
         timeout-minutes: 60
-        working-directory: ..
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage
+          COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
         run: |
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
@@ -293,7 +312,6 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
-        # if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
