@@ -71,6 +71,12 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
 
+[tool.meson-python.args]
+# Force activation of the Visual Studio environment on Windows (ignored on other platforms);
+# Otherwise, meson would pick the first C++ compiler on PATH, which is often Strawberry Perl's MinGW g++, but MSVC is expected by qutip.
+# This setting will be used for both wheels and source builds.
+setup = ["--vsenv"]
+
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
