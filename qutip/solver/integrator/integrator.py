@@ -100,7 +100,7 @@ class Integrator:
         t : float
             Initial time
 
-        state0 : qutip.Data
+        state : qutip.Data
             Initial state.
 
         .. note:

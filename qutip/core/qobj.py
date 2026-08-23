@@ -840,11 +840,6 @@ class Qobj:
     def proj(self) -> Qobj:
         """Form the projector from a given ket or bra vector.
 
-        Parameters
-        ----------
-        Q : :class:`.Qobj`
-            Input bra or ket vector
-
         Returns
         -------
         P : :class:`.Qobj`
