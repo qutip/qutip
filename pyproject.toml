@@ -1,13 +1,11 @@
 [build-system]
+build-backend = 'mesonpy'
 requires = [
-    "setuptools>=77.0.3",
-    "packaging",
-    "wheel",
-    "cython>=0.29.20",
-    "numpy>=2.0.0",
-    "scipy>=1.9",
+    "meson-python>=0.17",
+    "cython>=3.0.0",
+    "numpy>=2.0",
+    "scipy>=1.13",
 ]
-build-backend = "setuptools.build_meta"
 
 [project]
 name = "qutip"
@@ -45,7 +43,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.23.2",
-    "scipy>=1.9.2,!=1.16.0,!=1.17.0",
+    "scipy>=1.13,!=1.16.0,!=1.17.0",
     "packaging",
 ]
 
@@ -75,8 +73,11 @@ full = [
 # mkl = ["pydiso>=0.2.0"]
 mkl = { git = "https://github.com/simpeg/pydiso.git", rev = "0ae5411" }
 
-[tool.setuptools]
-packages = { find = { include = ["qutip*"] } }
+[tool.meson-python.args]
+# Force activation of the Visual Studio environment on Windows (ignored on other platforms);
+# Otherwise, meson would pick the first C++ compiler on PATH, which is often Strawberry Perl's MinGW g++, but MSVC is expected by qutip.
+# This setting will be used for both wheels and source builds.
+setup = ["--vsenv"]
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
@@ -111,3 +112,14 @@ showcontent = true
 directory = "misc"
 name = "Miscellaneous"
 showcontent = true
+
+[tool.coverage.run]
+source = ["qutip"]
+parallel = true
+
+[tool.coverage.paths]
+qutip = [
+    "qutip/",
+    "*/site-packages/qutip/",        # posix installs
+    "*\\site-packages\\qutip\\",     # windows installs
+]
