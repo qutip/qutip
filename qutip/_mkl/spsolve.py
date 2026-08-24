@@ -4,23 +4,29 @@ import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-# TODO: dev note: after migration to pydiso (#...), using user-supplied permutations is not possible
-def _pardiso_parameters(hermitian,
-                        max_iter_refine,
-                        scaling_vectors,
-                        weighted_matching):
+# dev note: after migration to pydiso (#...), using user-supplied permutations is not possible
+# TODO: add proper explanation of overrides w.r.t. Intel's pardiso iparm Parameter reference
+def _iparm_overrides(
+                *,
+                hermitian,
+                max_iter_refine,
+                scaling_vectors,
+                weighted_matching):
     # Get QuTiP-defined iparms
-    iparm = {
-        # 0: 1, # forbidden to set by pydiso
+    overrides = {
         1: 3,
         7: max_iter_refine,
-        **({9: 8} if hermitian else {9: 13}),
-        **({10: int(scaling_vectors)} if not hermitian else {}),
-        **({12: int(weighted_matching)} if not hermitian else {}),
-        20: 1,
         23: 1,
         26: 0,
-        }
+    }
+
+    # Note: {0: 1} is forbidden to set by pydiso
+    # Add extra arguments in case of non-Hermitian matrix type
+    if not hermitian:
+        overrides |= {
+                10: int(scaling_vectors),
+                12: int(weighted_matching),
+            }
     # iparm = np.zeros(64, dtype=np.int32)
     # iparm[0] = 1  # Do not use default values
     # iparm[1] = 3  # Use openmp nested dissection
@@ -194,7 +200,7 @@ def mkl_splu(A,
                                   by the pydiso backend. ")
     # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
-    iparms = _pardiso_parameters(hermitian=hermitian, max_iter_refine=max_iter_refine,
+    iparms = _iparm_overrides(hermitian=hermitian, max_iter_refine=max_iter_refine,
                                  scaling_vectors=scaling_vectors,
                                  weighted_matching=weighted_matching)
     solver = MKLPardisoSolver(A, matrix_type=mtype, iparm_overrides=iparms)
