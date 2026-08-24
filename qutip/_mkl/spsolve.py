@@ -106,9 +106,9 @@ class MKLFactorization:
             # hence, we do data type conversion in advance
             b = b.astype(self._data_type)
 
-        _solve_start = time.time()
+        _solve_start = time.perf_counter()
         x = self._solver.solve(b)
-        self._solve_time = time.time() - _solve_start
+        self._solve_time = time.perf_counter() - _solve_start
         return x
 
     def info(self):
@@ -198,12 +198,12 @@ def mkl_splu(A,
     if perm is not None:
         raise NotImplementedError("User-defined permutations are not supported by the pydiso backend.")
     # Call solver # TODO: here, we will call the solver
-    _factor_start = time.time()
+    _factor_start = time.perf_counter()
     iparms = _iparm_overrides(hermitian=hermitian, max_iter_refine=max_iter_refine,
                                  scaling_vectors=scaling_vectors,
                                  weighted_matching=weighted_matching)
     solver = MKLPardisoSolver(A, matrix_type=mtype, iparm_overrides=iparms)
-    _factor_time = time.time() - _factor_start
+    _factor_time = time.perf_counter() - _factor_start
     if verbose:
         print('Analysis and Factorization Stage')
         print('--------------------------------')
