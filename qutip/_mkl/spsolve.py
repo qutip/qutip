@@ -17,11 +17,9 @@ def _pardiso_parameters(hermitian,
         **({9: 8} if hermitian else {9: 13}),
         **({10: int(scaling_vectors)} if not hermitian else {}),
         **({12: int(weighted_matching)} if not hermitian else {}),
-        17: -1, 
         20: 1,
         23: 1,
         26: 0,
-        34: 1
         }
     # iparm = np.zeros(64, dtype=np.int32)
     # iparm[0] = 1  # Do not use default values
