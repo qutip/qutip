@@ -185,7 +185,7 @@ def mkl_splu(A,
 
     data_type = A.dtype
 
-    mtype = _mkl_matrix_type(data_type, hermitian, posdef) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
+    mtype = _mkl_matrix_type(data_type, hermitian, posdef)
     
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
     if verbose:
