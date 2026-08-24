@@ -72,7 +72,8 @@ mpi = ["mpi4py"]
 full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
-mkl = ["pydiso>=0.2.0"]
+# mkl = ["pydiso>=0.2.0"]
+mkl = { git = "https://github.com/simpeg/pydiso.git", rev = "0ae5411" }
 
 [tool.setuptools]
 packages = { find = { include = ["qutip*"] } }
