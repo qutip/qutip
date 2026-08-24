@@ -71,7 +71,9 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,tests,ipython,extras]",
 ]
 # mkl = ["pydiso>=0.2.0"]
-mkl = { git = "https://github.com/simpeg/pydiso.git", rev = "0ae5411" }
+mkl = [
+    "pydiso @ git+https://github.com/simpeg/pydiso.git@0ae5411"
+]
 
 [tool.meson-python.args]
 # Force activation of the Visual Studio environment on Windows (ignored on other platforms);
