@@ -151,7 +151,16 @@ def _mkl_matrix_type(dtype, solver_args):
     return out if solver_args['posdef'] else -out
 
 # Returns factorisation object: important for tests
-def mkl_splu(A, perm=None, verbose=False, **kwargs):
+def mkl_splu(A,
+             perm=None,
+             verbose=False,
+             *,
+             hermitian=False,
+             posdef=False,
+             max_iter_refine=10,
+             scaling_vectors=True,
+             weighted_matching=True,
+        )
     """
     Returns the LU factorization of the sparse matrix A.
 
