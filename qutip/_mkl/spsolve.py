@@ -45,7 +45,7 @@ def _iparm_overrides(
     # iparm[23] = 1  # Parallel factorization
     # iparm[26] = 0  # Check matrix structure
     # iparm[34] = 1  # Use zero-based indexing
-    return iparm
+    return overrides
 
 # TODO: Hermitian is set to 1 in qutip/tests/test_mkl.py, so there are no tests for nonsymmetric matrices (i.e., the path where the upper triangular matrix is taken is not tested)
 
