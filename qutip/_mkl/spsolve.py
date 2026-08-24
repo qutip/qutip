@@ -104,9 +104,9 @@ class MKLFactorization:
         factor_time: float,
     ):
         self._solver = solver
-        self._mtype = matrix_type
-        self._data_type = dtype
-        self._is_complex = np.issubdtype(data_type, np.complexfloating)
+        self._matrix_type = matrix_type
+        self._dtype = dtype
+        self._is_complex = np.issubdtype(dtype, np.complexfloating)
         self._factor_time = factor_time
         self._solve_time = None
         self._info = None
