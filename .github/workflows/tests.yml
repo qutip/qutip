@@ -47,7 +47,7 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          - case-name: MPI
+          - case-name: MPI, version-1
             os: ubuntu-latest
             python-version: "3.13"
             numpy-run: "==2.4.*"
@@ -62,7 +62,7 @@ jobs:
             # version of mpi4py are currently only available on conda-forge:
             conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
 
-          - case-name: no conda, version-1
+          - case-name: no conda, version-2
             os: ubuntu-latest
             python-version: "3.14"
             numpy-run: "==2.3.*"
@@ -70,7 +70,7 @@ jobs:
             qutip-optional: "[full]"
             pypi: 1
 
-          - case-name: p313 ubuntu arm, version-2
+          - case-name: version-3
             os: ubuntu-24.04-arm
             python-version: "3.13"
             numpy-run: "==2.2.*"
@@ -78,14 +78,14 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-3
+          - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==2.1.*"
             scipy-run: "==1.14.*"
             qutip-optional: "[graphics]"
 
-          - case-name: version-2, mkl, version-4
+          - case-name: version-5
             os: ubuntu-latest
             python-version: "3.11"
             numpy-run: "==2.0.*"
