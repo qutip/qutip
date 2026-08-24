@@ -196,8 +196,7 @@ def mkl_splu(A,
         print('Input matrix NNZ:  ', A.nnz)
         print()
     if perm is not None:
-        raise NotImplementedError("User-defined permutations are not supported 
-                                  by the pydiso backend. ")
+        raise NotImplementedError("User-defined permutations are not supported by the pydiso backend.")
     # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
     iparms = _iparm_overrides(hermitian=hermitian, max_iter_refine=max_iter_refine,
