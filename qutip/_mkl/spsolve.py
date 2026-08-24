@@ -104,8 +104,8 @@ class MKLFactorization:
         factor_time: float,
     ):
         self._solver = solver
-        self._mtype = mtype
-        self._data_type = data_type
+        self._mtype = matrix_type
+        self._data_type = dtype
         self._is_complex = np.issubdtype(data_type, np.complexfloating)
         self._factor_time = factor_time
         self._solve_time = None
@@ -259,7 +259,7 @@ def mkl_splu(
 
     data_type = A.dtype
 
-    mtype = _mkl_matrix_type(data_type, hermitian, posdef)
+    matrix_type = _mkl_matrix_type(data_type, hermitian, posdef)
 
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
     # if verbose:
@@ -282,7 +282,7 @@ def mkl_splu(
         weighted_matching=weighted_matching,
     )
     solver = MKLPardisoSolver(
-        A, matrix_type=mtype, verbose=verbose, iparm_overrides=iparms
+        A, matrix_type=matrix_type, verbose=verbose, iparm_overrides=iparms
     )
     _factor_time = time.perf_counter() - _factor_start
     # if verbose:
@@ -292,7 +292,7 @@ def mkl_splu(
     #     print('Factorization memory (Mb):', round(solver.iparm[15]/1024, 4))
     #     print('NNZ in LU factors:        ', solver.iparm[17])
     #     print()
-    return MKLFactorization(solver, mtype, data_type, _factor_time)
+    return MKLFactorization(solver, matrix_type, data_type, _factor_time)
 
 
 # TODO: issue: we cannot use perm parameter with pydiso solver
