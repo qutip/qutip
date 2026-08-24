@@ -1,0 +1,1 @@
+Fixed `spin_q_function` returning `inf`/`nan` for large spin (j above about 550). The binomial coefficients overflowed a float while the trigonometric powers underflowed, although their product is bounded; the terms are now accumulated in log space.

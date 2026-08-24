@@ -3,6 +3,7 @@ from .coefficient import *
 from .qobj import *
 from .cy.qobjevo import *
 from .direct_sum import *
+from .einsum import *
 from .environment import *
 from .expect import *
 from .tensor import *

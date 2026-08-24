@@ -513,13 +513,7 @@ cdef class QobjEvo:
     ###########################################################################
     # Math function                                                           #
     ###########################################################################
-    def __add__(left, right):
-        if isinstance(left, QobjEvo):
-            self = left
-            other = right
-        else:
-            self = right
-            other = left
+    def __add__(self, other):
         if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
             return NotImplemented
         res = self.copy()
@@ -557,15 +551,12 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __sub__(left, right):
-        if isinstance(left, QobjEvo):
-            res = left.copy()
-            res += -right
-            return res
-        else:
-            res = -right.copy()
-            res += left
-            return res
+    def __sub__(self, other):
+        if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
+            return NotImplemented
+        res = self.copy()
+        res += -other
+        return res
 
     def __rsub__(self, other):
         if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
@@ -580,26 +571,8 @@ cdef class QobjEvo:
         self += (-other)
         return self
 
-    def __matmul__(left, right):
-        cdef QobjEvo res
-        if isinstance(left, QobjEvo):
-            return left.copy().__imatmul__(right)
-        elif isinstance(left, Qobj):
-            if left._dims[1] != (<QobjEvo> right)._dims[0]:
-                raise TypeError("incompatible dimensions" +
-                                 str(left.dims[1]) + ", " +
-                                 str((<QobjEvo> right).dims[0]))
-            res = right.copy()
-            res._dims = Dimensions(left._dims[0], right._dims[1])
-            res.shape = (left.shape[0], right.shape[1])
-            left = _ConstantElement(left)
-            res.elements = [left @ element for element in res.elements]
-            res._update_feedback()
-
-            return res
-
-        else:
-            return NotImplemented
+    def __matmul__(self, other):
+        return self.copy().__imatmul__(other)
 
     def __rmatmul__(QobjEvo self, other):
         cdef QobjEvo res
@@ -642,18 +615,11 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __mul__(left, right):
-        if isinstance(left, QobjEvo):
-            return left.copy().__imul__(right)
-        elif isinstance(left, Qobj):
-            return right.__rmatmul__(left)
-        elif isinstance(left, (numbers.Number, Coefficient)):
-            return right.copy().__imul__(left)
-        else:
-            return NotImplemented
+    def __mul__(self, other):
+        return self.copy().__imul__(other)
 
     def __rmul__(self, other):
-        if isinstance(other, Qobj):
+        if isinstance(other, (Qobj, QobjEvo)):
             return self.__rmatmul__(other)
         else:
             res = self.copy()
@@ -672,12 +638,8 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __truediv__(left, right):
-        if isinstance(left, QobjEvo) and isinstance(right, numbers.Number):
-            res = left.copy()
-            res *= 1 / right
-            return res
-        return NotImplemented
+    def __truediv__(self, other):
+        return self.copy().__imul__(1 / other)
 
     def __idiv__(self, other):
         if not isinstance(other, numbers.Number):

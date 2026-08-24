@@ -4,31 +4,43 @@ import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-# Keeping iparm values management to then reflect it 
-# def _pardiso_parameters(hermitian, has_perm,
-#                         max_iter_refine,
-#                         scaling_vectors,
-#                         weighted_matching):
-#     iparm = np.zeros(64, dtype=np.int32)
-#     iparm[0] = 1  # Do not use default values
-#     iparm[1] = 3  # Use openmp nested dissection
-#     if has_perm:
-#         iparm[4] = 1
-#     iparm[7] = max_iter_refine  # Max number of iterative refinements
-#     if hermitian:
-#         iparm[9] = 8
-#     else:
-#         iparm[9] = 13
-#     if not hermitian:
-#         iparm[10] = int(scaling_vectors)
-#         iparm[12] = int(weighted_matching)  # Non-symmetric weighted matching
-#     iparm[17] = -1
-#     iparm[20] = 1
-#     iparm[23] = 1  # Parallel factorization
-#     iparm[26] = 0  # Check matrix structure
-#     iparm[34] = 1  # Use zero-based indexing
-#     return iparm
-
+def _pardiso_parameters(hermitian, has_perm,
+                        max_iter_refine,
+                        scaling_vectors,
+                        weighted_matching):
+    iparm = {
+        # 0: 1, # forbidden to set by pydiso
+        1: 3,
+        **({4: 1} if has_perm else {}),
+        7: max_iter_refine,
+        **({9: 8} if hermitian else {9: 13}),
+        **({10: int(scaling_vectors)} if not hermitian else {}),
+        **({12: int(weighted_matching)} if not hermitian else {}),
+        17: -1, 
+        20: 1,
+        23: 1,
+        26: 0,
+        34: 1
+        }
+    # iparm = np.zeros(64, dtype=np.int32)
+    # iparm[0] = 1  # Do not use default values
+    # iparm[1] = 3  # Use openmp nested dissection
+    # if has_perm:
+    #     iparm[4] = 1
+    # iparm[7] = max_iter_refine  # Max number of iterative refinements
+    # if hermitian:
+    #     iparm[9] = 8
+    # else:
+    #     iparm[9] = 13
+    # if not hermitian:
+    #     iparm[10] = int(scaling_vectors)
+    #     iparm[12] = int(weighted_matching)  # Non-symmetric weighted matching
+    # iparm[17] = -1
+    # iparm[20] = 1
+    # iparm[23] = 1  # Parallel factorization
+    # iparm[26] = 0  # Check matrix structure
+    # iparm[34] = 1  # Use zero-based indexing
+    return iparm
 
 # TODO: Hermitian is set to 1 in qutip/tests/test_mkl.py, so there are no tests for nonsymmetric matrices (i.e., the path where the upper triangular matrix is taken is not tested)
 
@@ -36,6 +48,7 @@ def _default_solver_args():
     return {
         'hermitian': False,
         'posdef': False,
+        'has_perm': False,
         'max_iter_refine': 10,
         'scaling_vectors': True,
         'weighted_matching': True,
@@ -190,7 +203,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     # Call solver # TODO: here, we will call the solver
     _factor_start = time.time()
-    solver = MKLPardisoSolver(A, matrix_type=mtype)
+    solver_args.pop("posdef")
+    solver_args.pop("return_info")
+    iparms = _pardiso_parameters(**solver_args)
+    solver = MKLPardisoSolver(A, matrix_type=mtype, iparm_overrides=iparms)
     # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
     # TODO: we cannot set iparm before analysis and factorisation - the setter performs it after those steps;
     # we should find a way to pass 1/10/12/23 upon initialisation
@@ -235,7 +251,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
         if sp.issparse(b):
             # qutip's convention: a sparse RHS of shape (n, 1) produces dense solution
-            b = b.to_array()
+            b = b.toarray()
         x = lu.solve(b, verbose=verbose)
         if return_sparse:
             x = sp.csr_matrix(x)

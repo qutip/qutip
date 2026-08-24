@@ -790,3 +790,22 @@ def test_wigner_offset_sparse_consistency():
                             sparse=True, offset=20)
 
     np.testing.assert_allclose(W_dense, W_sparse, atol=1e-10)
+
+@pytest.mark.parametrize("j", [550, 600, 800])
+def test_spin_q_function_large_spin(j):
+    """`binom(2j, j)` overflows a float around j = 550 while the trigonometric
+    powers underflow, so the terms used to come out as `inf`/`nan` even though
+    the coefficient itself is bounded (gh-2962).
+
+    For the maximally mixed state the Q function is exactly 1/(2j+1).
+    """
+    dimension = int(2 * j + 1)
+    rho = qutip.Qobj(np.eye(dimension) / dimension)
+    theta = np.array([0.0, np.pi / 2, np.pi])
+    phi = np.array([0.0, 1.0])
+
+    Q, _, _ = qutip.spin_q_function(rho, theta, phi)
+
+    assert np.isfinite(Q).all()
+    np.testing.assert_allclose(Q, 1 / dimension, rtol=1e-10)
+
