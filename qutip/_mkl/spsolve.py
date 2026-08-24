@@ -160,7 +160,7 @@ def mkl_splu(A,
              max_iter_refine=10,
              scaling_vectors=True,
              weighted_matching=True,
-        )
+             ):
     """
     Returns the LU factorization of the sparse matrix A.
 
@@ -232,7 +232,18 @@ def mkl_splu(A,
     return mkl_lu(solver, mtype, data_type, _factor_time)
 
 # TODO: issue: we cannot use perm parameter with pydiso solver
-def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
+def mkl_spsolve(A,
+                b,
+                perm=None,
+                verbose=False,
+                *,
+                return_info=False
+                hermitian=False,
+                posdef=False,
+                max_iter_refine=10,
+                scaling_vectors=True,
+                weighted_matching=True,
+        ):
     """
     Solves a sparse linear system of equations using the
     Intel MKL Pardiso solver.
@@ -268,4 +279,4 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         info = lu.info()
     finally:
         lu.delete()
-    return (x, info) if kwargs.get('return_info', False) else x
+    return (x, info) if return_info else x
