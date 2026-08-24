@@ -155,10 +155,10 @@ class MKLFactorization:
                 "Got a complex right-hand side: cannot solve real-valued factorization"
             )
 
-        if b.dtype != self._data_type:
+        if b.dtype != self._dtype:
             # Pydiso wrapper would do the conversion and throw a warning;
             # hence, we do data type conversion in advance
-            b = b.astype(self._data_type)
+            b = b.astype(self._dtype)
 
         _solve_start = time.perf_counter()
         x = self._solver.solve(b)
