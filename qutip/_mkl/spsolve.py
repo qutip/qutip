@@ -85,7 +85,7 @@ class MKLFactorization:
         self._solve_time = None
         self._info = None
 
-    def solve(self, b, verbose=None):
+    def solve(self, b, verbose=False):
         if self._solver is None:
             raise RuntimeError("Solver's memory has been released. Initialise MKLFactorization again.")
 
@@ -188,13 +188,13 @@ def mkl_splu(A,
     mtype = _mkl_matrix_type(data_type, hermitian, posdef)
     
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
-    if verbose:
-        print('Solver Initialization')
-        print('---------------------')
-        print('Input matrix type: ', _MATRIX_TYPE_NAMES[mtype])
-        print('Input matrix shape:', A.shape)
-        print('Input matrix NNZ:  ', A.nnz)
-        print()
+    # if verbose:
+    #     print('Solver Initialization')
+    #     print('---------------------')
+    #     print('Input matrix type: ', _MATRIX_TYPE_NAMES[mtype])
+    #     print('Input matrix shape:', A.shape)
+    #     print('Input matrix NNZ:  ', A.nnz)
+    #     print()
     if perm is not None:
         raise NotImplementedError("User-defined permutations are not supported by the pydiso backend.")
     # Call solver # TODO: here, we will call the solver
@@ -202,15 +202,15 @@ def mkl_splu(A,
     iparms = _iparm_overrides(hermitian=hermitian, max_iter_refine=max_iter_refine,
                                  scaling_vectors=scaling_vectors,
                                  weighted_matching=weighted_matching)
-    solver = MKLPardisoSolver(A, matrix_type=mtype, iparm_overrides=iparms)
+    solver = MKLPardisoSolver(A, matrix_type=mtype, verbose=verbose, iparm_overrides=iparms)
     _factor_time = time.perf_counter() - _factor_start
-    if verbose:
-        print('Analysis and Factorization Stage')
-        print('--------------------------------')
-        print('Factorization time:       ', round(_factor_time, 4))
-        print('Factorization memory (Mb):', round(solver.iparm[15]/1024, 4))
-        print('NNZ in LU factors:        ', solver.iparm[17])
-        print()
+    # if verbose:
+    #     print('Analysis and Factorization Stage')
+    #     print('--------------------------------')
+    #     print('Factorization time:       ', round(_factor_time, 4))
+    #     print('Factorization memory (Mb):', round(solver.iparm[15]/1024, 4))
+    #     print('NNZ in LU factors:        ', solver.iparm[17])
+    #     print()
     return MKLFactorization(solver, mtype, data_type, _factor_time)
 
 # TODO: issue: we cannot use perm parameter with pydiso solver
