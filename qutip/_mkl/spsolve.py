@@ -111,7 +111,7 @@ class MKLFactorization:
         self._solve_time = None
         self._info = None
 
-    def solve(self, b):
+    def solve(self, b, verbose=False):
         """
         Solve a sparse linear system using the stored factorization.
 
@@ -119,6 +119,7 @@ class MKLFactorization:
         ----------
         b : array_like
             Dense right-hand side with shape ``(n,)`` or ``(n, k)``.
+        verbose : bool
 
         Returns
         -------
