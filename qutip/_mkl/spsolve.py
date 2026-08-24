@@ -200,12 +200,7 @@ def mkl_splu(A,
                                  scaling_vectors=scaling_vectors,
                                  weighted_matching=weighted_matching)
     solver = MKLPardisoSolver(A, matrix_type=mtype, iparm_overrides=iparms)
-    # TODO: Check if the class handles same iparm's by default to avoid redundant set_iparm calls
-    # TODO: we cannot set iparm before analysis and factorisation - the setter performs it after those steps;
-    # we should find a way to pass 1/10/12/23 upon initialisation
-    solver.set_iparm(7, solver_args['max_iter_refine'])
     _factor_time = time.time() - _factor_start
-    # TODO: iparm must be taken from solve
     if verbose:
         print('Analysis and Factorization Stage')
         print('--------------------------------')
