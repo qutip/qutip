@@ -248,7 +248,7 @@ def mkl_spsolve(A,
 
     """
     A = sp.csr_matrix(A)
-    lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
+    lu = mkl_splu(A, perm=perm, verbose=verbose, hermitian=hermitian, posdef=posdef, max_iter_refine=max_iter_refine, scaling_vectors=scaling_vectors, weighted_matching=weighted_matching)
     try:
         return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
         if sp.issparse(b):
