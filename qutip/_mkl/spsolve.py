@@ -137,12 +137,12 @@ _MATRIX_TYPE_NAMES = {
 }
 
 
-def _mkl_matrix_type(dtype, solver_args):
+def _mkl_matrix_type(dtype, hermitian, posdef):
     is_complex = np.issubdtype(dtype, np.complexfloating)
-    if not solver_args['hermitian']:
+    if not hermitian:
         return 13 if is_complex else 11
     out = 4 if is_complex else 2
-    return out if solver_args['posdef'] else -out
+    return out if posdef else -out
 
 # Returns factorisation object: important for tests
 def mkl_splu(A,
@@ -185,7 +185,7 @@ def mkl_splu(A,
 
     data_type = A.dtype
 
-    mtype = _mkl_matrix_type(data_type, solver_args) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
+    mtype = _mkl_matrix_type(data_type, hermitian, posdef) # TODO: wrapper also supports complex64/float64, we should adapt the matrix type inference
     
     # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
     if verbose:
