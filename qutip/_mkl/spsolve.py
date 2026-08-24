@@ -219,7 +219,7 @@ def mkl_spsolve(A,
                 perm=None,
                 verbose=False,
                 *,
-                return_info=False
+                return_info=False,
                 hermitian=False,
                 posdef=False,
                 max_iter_refine=10,
