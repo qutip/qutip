@@ -601,8 +601,6 @@ def molmer_sorensen(theta: float, *, dtype: LayerType = None) -> Qobj:
     ----------
     theta: float
         The duration of the interaction pulse.
-    target: int
-        The indices of the target qubits.
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.

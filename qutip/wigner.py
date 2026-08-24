@@ -179,7 +179,7 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
     Parameters
     ----------
 
-    state : qobj
+    psi : qobj
         A state vector or density matrix.
 
     xvec : array_like
@@ -978,7 +978,7 @@ def spin_q_function(rho, theta, phi):
 
     Parameters
     ----------
-    state : qobj
+    rho : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
         Polar (colatitude) angle at which to calculate the Husimi-Q function.
@@ -1085,7 +1085,7 @@ def spin_wigner(rho, theta, phi):
 
     Parameters
     ----------
-    state : qobj
+    rho : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
         Polar (colatitude) angle at which to calculate the W function.

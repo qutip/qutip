@@ -81,7 +81,7 @@ def concurrence(rho):
 
     Parameters
     ----------
-    state : qobj
+    rho : qobj
         Ket, bra, or density matrix for a two-qubit state.
 
     Returns
