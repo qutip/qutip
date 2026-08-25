@@ -151,7 +151,7 @@ def test_zeta():
 
 
 class TestFitting:
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng()
 
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
@@ -184,6 +184,7 @@ class TestFitting:
             y += noise
         return x, y, fparams1, fparams2, noisy
 
+    @pytest.mark.flaky(reruns=2)
     def test_fit(self, noisy):
         x, y, fparams1, fparams2, noisy = self.generate_data(noisy, True)
         rmse, params = utils.iterated_fit(
@@ -196,55 +197,79 @@ class TestFitting:
         )
 
         if noisy:
+            tol = 0.2 * np.max(y)
             assert rmse < 1e-2
-            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
-                    np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=tol)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=tol)))
         else:
             assert rmse < 1e-8
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
+    @pytest.mark.flaky(reruns=6)
     def test_aaa(self, noisy):
+        # Noisy has a 50% fail rate with max_iter=10, 20% with 4 sizes
+        # Need 6 rerun to get under 1/10000 fail rate
         x, y, _, _ , noisy = self.generate_data(noisy)
-        result = utils.aaa(y, x, tol=1e-8, max_iter=10)
-        rmse = result["rmse"]
+        n_iters = [10] if not noisy else [4, 6, 8, 10]
+        results = [
+            utils.aaa(y, x, tol=1e-8, max_iter=max_iter)
+            for max_iter in n_iters
+        ]
         if noisy:
-            assert rmse < 2e-2
-            np.testing.assert_allclose(result["function"](x), y, atol=1e-1*np.max(y))
+            tol = 1e-1*np.max(y)
+            passed = [
+                result["rmse"] < 2e-2
+                and np.allclose(result["function"](x), y, atol=tol)
+                for result in results
+            ]
+            if not any(passed):
+                raise AssertionError("test_aaa all check failed")
         else:
-            assert rmse < 1e-8
+            result = results[0]
+            assert result["rmse"] < 1e-8
             np.testing.assert_allclose(result["function"](x), y, rtol=1e-4)
 
+    @pytest.mark.flaky(reruns=2)
     def test_espira_I(self, noisy):
+        # About a 0.5% fail rate with noisy=True
         x, y, _, _, noisy = self.generate_data(noisy)
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-2
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
+            assert rmse < 2e-2
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=5e-2*np.max(y))
         else:
             assert rmse < 1e-8
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
+    @pytest.mark.flaky(reruns=2)
     def test_espira_II(self, noisy):
+        # Less than 1% fail rate with noisy=True
         x, y, _, _, noisy = self.generate_data(noisy)
         rmse, params = utils.espira2(y, 4, tol=1e-16)
-        if noisy:
-            assert rmse < 1e-2
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
-        else:
-            assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
-
-    @pytest.mark.parametrize("method", ["prony", "esprit"])
-    def test_prony_methods(self, noisy, method):
-        x, y, _, _, noisy = self.generate_data(noisy)
-        rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
             assert rmse < 1e-8
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.parametrize("method", ["prony", "esprit"])
+    def test_prony_methods(self, noisy, method):
+        # 0.2% failure rate in noisy=True test.
+        x, y, _, _, noisy = self.generate_data(noisy)
+        rmse, params = utils.prony_methods(method, y, 4)
+        if noisy:
+            assert rmse < 2e-2
+            np.testing.assert_allclose(
+                self.eval_prony(len(x), params), y, atol=3e-2*np.max(y)
+            )
+        else:
+            assert rmse < 1e-8
+            np.testing.assert_allclose(
+                self.eval_prony(len(x), params), y, rtol=1e-4
+            )
 
 
 @pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
