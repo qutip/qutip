@@ -20,7 +20,7 @@ ODE
 
       $$ \frac{dX}{dt} = f(t, X) $$
 
-SDE
+SDE / SODE
     Stochastic Differential Equation:
 
       $$ dX = f(t, X) dt + \sum_i g_i(t, X) dW_i $$

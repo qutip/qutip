@@ -1,7 +1,7 @@
 .. _internal_solveroptions:
 
 Solver Options Infrastructure
-=============================
+#############################
 
 The configuration of QuTiP's physical solvers and numerical integrators is
 handled via specialized dictionary objects. Rather than exposing raw Python
