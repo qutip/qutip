@@ -320,6 +320,7 @@ def mkl_splu(
         max_iter_refine=max_iter_refine,
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
+        has_perm=False
     )
     solver = MKLPardisoSolver(
         A, matrix_type=matrix_type, verbose=verbose, iparm_overrides=iparms
