@@ -621,8 +621,14 @@ class HEOMSolver(Solver):
 
     backend : str, optional
         The name of the HEOM backend to use. If not specified, the standard
-        CSR backend is used. Advanced backends can be dynamically loaded if
-        installed.
+        CSR backend is used. Supported backends:
+
+        - ``None`` (default) — sparse CSR backend, supports time-dependent H.
+        - ``"petsc"`` — distributed MPI backend using PETSc (requires
+          ``petsc4py`` and ``mpi4py``). Returns a
+          :class:`~qutip.solver.heom.PETScHEOMSolver` instance.
+          **Does not support time-dependent Hamiltonians.**
+          See :ref:`heom-petsc` for the full guide and option reference.
 
     Attributes
     ----------

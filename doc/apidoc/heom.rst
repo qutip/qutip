@@ -14,6 +14,20 @@ HEOM Solvers
 .. autoclass:: qutip.solver.heom.HSolverDL
     :members:
 
+PETSc Backend
+~~~~~~~~~~~~~
+
+.. note::
+   :class:`PETScHEOMSolver` requires ``petsc4py`` and ``mpi4py`` to be
+   installed and scripts to be launched via an MPI runner (e.g.
+   ``mpirun``). It supports **time-independent** systems only.
+   See :ref:`heom-petsc` for the full usage guide, option reference, and
+   worked examples.
+
+.. autoclass:: qutip.solver.heom.PETScHEOMSolver
+    :members:
+    :show-inheritance:
+
 .. autoclass:: qutip.solver.heom.HierarchyADOs
     :members:
 
