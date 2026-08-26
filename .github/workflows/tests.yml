@@ -188,7 +188,12 @@ jobs:
             pip install "numpy${{ matrix.numpy-build }}"
             pip install "scipy${{ matrix.scipy-requirement }}"
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
+            conda install \
+            blas=*=mkl \
+            mkl-devel \
+            pkg-config \
+            "numpy${{ matrix.numpy-build }}" \
+            "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
@@ -208,7 +213,7 @@ jobs:
 
           python -m pip install cython filelock
 
-          python -m pip install . -v --no-build-isolation
+          python -m pip install ".[mkl]" -v --no-build-isolation
 
           if [[ "${{ matrix.nocython }}" ]]; then
             python -m pip uninstall cython -y
