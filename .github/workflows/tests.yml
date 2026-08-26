@@ -189,11 +189,11 @@ jobs:
             pip install "scipy${{ matrix.scipy-requirement }}"
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install \
-            blas=*=mkl \
-            mkl-devel \
-            pkg-config \
-            "numpy${{ matrix.numpy-build }}" \
-            "scipy${{ matrix.scipy-requirement }}"
+              blas=*=mkl \
+              mkl-devel \
+              pkg-config \
+              "numpy${{ matrix.numpy-build }}" \
+              "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
@@ -215,6 +215,8 @@ jobs:
 
             if [[ -z "${{ matrix.pypi }}" && -z "${{ matrix.nomkl }}" ]]; then
               python -m pip install ".[mkl]" -v --no-build-isolation
+              python -c \
+                'import qutip; assert qutip.settings.has_mkl, "pydiso/MKL not detected"'
             else
               python -m pip install . -v --no-build-isolation
             fi
