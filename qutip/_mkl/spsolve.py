@@ -295,7 +295,7 @@ def mkl_splu(
         raise Exception("Input matrix must be square")
 
     if not np.issubdtype(A.dtype, np.inexact):
-        A = sp.csr_matrix(A, dtype=np.float64, copy=False)
+        A = sp.csr_array(A, dtype=np.float64, copy=None)
 
     data_type = A.dtype
 
@@ -371,7 +371,7 @@ def mkl_spsolve(
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
 
     """
-    A = sp.csr_matrix(A)
+    A = sp.csr_array(A)
     lu = mkl_splu(
         A,
         perm=perm,
