@@ -214,6 +214,7 @@ jobs:
           python -m pip install cython filelock
 
             if [[ -z "${{ matrix.pypi }}" && -z "${{ matrix.nomkl }}" ]]; then
+              python -m pip install "setuptools-scm[toml]>=6.2"
               python -m pip install ".[mkl]" -v --no-build-isolation
               python -c \
                 'import qutip; assert qutip.settings.has_mkl, "pydiso/MKL not detected"'
