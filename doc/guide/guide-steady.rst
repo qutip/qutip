@@ -84,6 +84,8 @@ system. To do so, there are multiple solvers available: ``
      - Intel oneMKL PARDISO sparse direct solver
 
 
+.. _steady-mkl:
+
 Intel MKL PARDISO
 -----------------
 
