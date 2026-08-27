@@ -80,16 +80,57 @@ system. To do so, there are multiple solvers available: ``
      - ``scipy.sparse.linalg.bicgstab``
      - BIConjugate Gradient STABilized iterative solver.
    * - "mkl_spsolve"
-     - ``pardiso``
-     - Intel Pardiso LU solver from MKL
+     - ``pydiso``
+     - Intel oneMKL PARDISO sparse direct solver
 
 
-QuTiP can take advantage of the Intel Pardiso LU solver in the Intel Math
-Kernel library that comes with the Anacoda (2.5+) and Intel Python
-distributions.  This gives a substantial increase in performance compared with
-the standard SuperLU method used by SciPy.  To verify that QuTiP can find the
-necessary libraries, one can check for ``INTEL MKL Ext: True`` in the QuTiP
-about box (:func:`.about`).
+Intel MKL PARDISO
+-----------------
+
+QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
+optional `pydiso <https://github.com/simPEG/pydiso>`_ package. PARDISO can
+provide substantially better performance than SciPy's SuperLU solver for
+large sparse systems.
+
+Install QuTiP with MKL support using:
+
+.. code-block:: bash
+
+   pip install "qutip[mkl]"
+
+MKL is available only on supported platforms. In particular, Intel MKL does
+not provide native Apple Silicon binaries.
+
+QuTiP detects MKL support automatically; no runtime activation is required.
+Availability and version information can be checked with:
+
+.. code-block:: python
+
+   import qutip
+
+   print(qutip.settings.has_mkl)
+   print(qutip.settings.pydiso_version)
+   print(qutip.settings.mkl_version)
+
+The MKL solver can be selected explicitly for a steady-state calculation:
+
+.. code-block:: python
+
+   rho_ss = qutip.steadystate(
+       H,
+       c_ops,
+       method="direct",
+       solver="mkl_spsolve",
+   )
+
+Requesting ``mkl_spsolve`` when MKL support is unavailable raises an error.
+When sparse solving is requested without an explicit solver, QuTiP uses
+``mkl_spsolve`` automatically if it is available and otherwise falls back to
+SciPy's ``spsolve``.
+
+Solver-specific options, such as ``max_iter_refine``, ``scaling_vectors``,
+and ``weighted_matching``, can be passed as keyword arguments to
+:func:`.steadystate`.
 
 
 .. _steady-usage:
