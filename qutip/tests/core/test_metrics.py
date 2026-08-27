@@ -194,10 +194,14 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho, sigma) + tol > dist
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
+
+
 class Test_bures_dist:
     def test_state_with_itself(self):
         state = rand_dm(3, seed=465)
         assert bures_dist(state, state) == pytest.approx(0, abs=1e-6)
+
+
 class Test_average_gate_fidelity:
     def test_identity(self, dimension):
         id = qeye(dimension)
