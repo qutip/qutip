@@ -5,88 +5,41 @@ import time
 from pydiso.mkl_solver import MKLPardisoSolver
 
 
-# dev note: after migration to pydiso (#...), using user-supplied permutations is not possible
-# TODO: add proper explanation of overrides w.r.t. Intel's pardiso iparm Parameter reference
-# TODO: decide what is user facing and what is not. So far, all args here are user-facing
-# TODO: maybe for power users we want to provide access to the full MKLPardisoSolver interface (i.e., more overrides)
-# TODO: match descriptions with Intel's docs
 def _iparm_overrides(
     hermitian: bool,
     max_iter_refine: int,
     scaling_vectors: bool,
     weighted_matching: bool,
-    has_perm: bool,
 ):
     """
-    Build PARDISO parameter overrides as expected by QuTiP.
+    Build QuTiP's PARDISO ``iparm`` overrides.
 
     Parameters
-
     ----------
     hermitian : bool
-        If passed matrix is Hermitian. Used for inferring the matrix type to be passed to
-        the solver's wrapper (pydiso).
+        Whether the matrix uses a Hermitian PARDISO matrix type.
     max_iter_refine : int
-        Possible values are:
-            0: solver automatically performs two steps of iterative refinement;
-            >0: maximum number of iterative refinement steps that the solver performs.
-            <0: maximum number of iterative refinement steps with a negative sign.
-                Supported only for sequential and OpenMP threading.
+        Maximum iterative-refinement steps. A value of ``0`` selects
+        PARDISO's automatic refinement behavior.
     scaling_vectors : bool
-        If PARDISO has to use scaling vectors.
-        PARDISO behaviour: By default is False for symmetric indefinite matrices and True for nonsymmetric matrices. The scaling method is applied only to nonsymmetric matrices (mtype = 11 or mtype = 13). Requires symmetric weighted matching if scaling has to be used for symmetric indefinite matrices.
-
+        Enable scaling vectors for non-Hermitian matrices. Ignored for
+        Hermitian matrices.
     weighted_matching : bool
-    has_perm : bool
-        If True, iparm[4] = 1. Otherwise, iparm[4] will keep its default value of 2.
+        Enable weighted matching for non-Hermitian matrices. Ignored for
+        Hermitian matrices.
 
     Returns
     -------
     dict[int, int]
-        Zero-based ``iparm`` indices and their override values.
-
-        Default overrides are:
-            1: 3 - use the parallel (OpenMP) version of the nested dissection algorithm.
-            4: 1 if has_perm is True (i.e., if the user provided a permutation)
-            7: 10 or {max_iter_refine} - iterative refinement step;
-            10: 1 if matrix is not hermitian - scaling vectors;
-            12: 1 if input matrix is not hermitian (metric weighted matching)
-            23: 1 - use two-level factorization algorithm (improves scalability in case of parallel factorization on many OpenMP threads (>8));
-            26: 0 - matrix checker. 0 means PARDISO does not check the sparse matrix representation for errors.
-
+        Mapping of zero-based ``iparm`` indices to values.
 
     Notes
     -----
-    Overrides are applied before PARDISO's analysis and factorization phases. The keys
-    are zero-based indices for pydiso's ``iparm`` array and match the notation used by Intel's C documentation.
+    QuTiP overrides ``iparm[1]``, ``iparm[7]``, ``iparm[23]``, and
+    ``iparm[26]``. For non-Hermitian matrices it additionally overrides
+    ``iparm[10]`` and ``iparm[12]``.
 
-    ``pydiso``'s default values:
-        iparm[0] = 1  # tell pardiso to not reset these values on the first call
-        iparm[1] = 2  # The nested dissection algorithm from the METIS (NOTE: overriden by us)
-        iparm[3] = 0  # The factorization is always computed as required by phase.
-        iparm[4] = 2  # fill perm with computed permutation vector (NOTE: we want(ed) to override it)
-        iparm[5] = 0  # The array x contains the solution; right-hand side vector b is kept unchanged.
-        iparm[7] = 0  # The solver automatically performs two steps of iterative refinement when perterbed pivots are obtained (NOTE: overriden by us)
-        iparm[9] = 13 if matrix_type in [11, 13] else 8
-        iparm[10] = 1 if matrix_type in [11, 13] else 0 (NOTE: overidden by us)
-        iparm[11] = 0  # Solve a linear system AX = B (as opposed to A.T or A.H)
-        iparm[12] = 1 if matrix_type in [11, 13] else 0 (NOTE: overriden by us)
-        iparm[17] = -1  # Return the number of non-zeros in this value after first call (We used to set it too)
-        iparm[18] = 0  # do not report flop count
-        iparm[20] = 1 if matrix_type in [-2, -4, 6] else 0 (We used to set it too, but it was always zero regardless matrix type)
-        iparm[23] = 0  # classic (not parallel) factorization (NOTE: overriden by us)
-        iparm[24] = 0  # Parallel forward/backward solve control (default option)
-        iparm[26] = 1  # Check the input matrix for errors (NOTE: overriden by us)
-        iparm[27] = is_single_precision  # 1 if single, 0 if double
-        iparm[30] = 0  # this would be used to enable sparse input/output for solves
-        iparm[33] = 0  # optimal number of thread for CNR mode
-        iparm[34] = 1  # zero based indexing (We used to set it too)
-        iparm[35] = 0  # Do not compute schur complement
-        iparm[36] = 0  # use CSR storage format
-        iparm[38] = 0  # Do not use low rank update
-        iparm[42] = 0  # Do not compute the diagonal of the inverse
-        iparm[55] = 0  # Internal function used to work with pivot and calculation of diagonal arrays turned off.
-        iparm[59] = 0  # operate in-core mode
+    See ``doc/internals/mkl-iparm-defaults.md`` for defaults and precedence.
     """
     overrides = {
         1: 3,
@@ -102,8 +55,6 @@ def _iparm_overrides(
             10: int(scaling_vectors),
             12: int(weighted_matching),
         }
-    if has_perm:
-        iparm[4] = 1  # support user-provided permutations
     return overrides
 
 
@@ -220,7 +171,9 @@ class MKLFactorization:
 
         if self._solver is None:
             return self._info
-        iparm = self._solver.iparm  # TODO: is it a legal way to access iparm values?
+        iparm = (
+            self._solver.iparm
+        )  # TODO: is it a legal way to access iparm values?
         return {
             "FactorTime": self._factor_time,
             "SolveTime": self._solve_time,
@@ -274,12 +227,26 @@ def mkl_splu(
 
     Parameters
     ----------
-    A : csr_matrix
-        Sparse input matrix.
-    perm : ndarray (optional)
-        User defined matrix factorization permutation.
-    verbose : bool {False, True}
+    A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
+        Sparse input matrix in CSR format.
+    perm : None, optional
+        User-defined permutations are not currently supported. Passing a
+        value other than ``None`` raises ``NotImplementedError``.
+    verbose : bool, default: False
         Report factorization details.
+    hermitian : bool, default: False
+        Treat ``A`` as Hermitian when selecting the PARDISO matrix type.
+    posdef : bool, default: False
+        Treat a Hermitian matrix as positive-definite.
+    max_iter_refine : int, default: 10
+        Maximum iterative-refinement steps. Use ``0`` for PARDISO's
+        automatic behavior.
+    scaling_vectors : bool, default: True
+        Enable PARDISO scaling vectors for non-Hermitian matrices. Ignored
+        when ``hermitian=True``.
+    weighted_matching : bool, default: True
+        Enable PARDISO weighted matching for non-Hermitian matrices. Ignored
+        when ``hermitian=True``.
 
     Returns
     -------
@@ -320,7 +287,6 @@ def mkl_splu(
         max_iter_refine=max_iter_refine,
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
-        has_perm=False
     )
     solver = MKLPardisoSolver(
         A, matrix_type=matrix_type, verbose=verbose, iparm_overrides=iparms
@@ -359,9 +325,28 @@ def mkl_spsolve(
     A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Sparse input matrix.
     b : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
-        The vector or matrix representing the right hand side of the equation. If a vector, b.shape must be (n,) or (n, 1).
-    perm : ndarray (optional)
-        User defined matrix factorization permutation.
+        Vector or matrix representing the right-hand side. A vector must have
+        shape ``(n,)`` or ``(n, 1)``.
+    perm : None, optional
+        User-defined permutations are not currently supported. Passing a
+        value other than ``None`` raises ``NotImplementedError``.
+    verbose : bool, default: False
+        Report factorization details.
+    return_info : bool, default: False
+        Return solver statistics together with the solution.
+    hermitian : bool, default: False
+        Treat ``A`` as Hermitian when selecting the PARDISO matrix type.
+    posdef : bool, default: False
+        Treat a Hermitian matrix as positive-definite.
+    max_iter_refine : int, default: 10
+        Maximum iterative-refinement steps. Use ``0`` for PARDISO's
+        automatic behavior.
+    scaling_vectors : bool, default: True
+        Enable PARDISO scaling vectors for non-Hermitian matrices. Ignored
+        when ``hermitian=True``.
+    weighted_matching : bool, default: True
+        Enable PARDISO weighted matching for non-Hermitian matrices. Ignored
+        when ``hermitian=True``.
 
     Returns
     -------
