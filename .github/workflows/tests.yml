@@ -199,7 +199,11 @@ jobs:
             # retaining conda's MKL libraries and headers.
             python -m pip install --ignore-installed --no-deps mkl-devel
             export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            mkl_pc="$CONDA_PREFIX/lib/pkgconfig/mkl-sdl.pc"
+            sed -i 's|${libdir}/libmkl_rt.so.[0-9][0-9]*|-lmkl_rt|' "$mkl_pc"
+            test -e "$CONDA_PREFIX/lib/libmkl_rt.so"
             pkg-config --modversion mkl-sdl
+            pkg-config --libs mkl-sdl
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
