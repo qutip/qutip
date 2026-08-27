@@ -38,8 +38,6 @@ def _iparm_overrides(
     QuTiP overrides ``iparm[1]``, ``iparm[7]``, ``iparm[23]``, and
     ``iparm[26]``. For non-Hermitian matrices it additionally overrides
     ``iparm[10]`` and ``iparm[12]``.
-
-    See ``doc/internals/mkl-iparm-defaults.md`` for defaults and precedence.
     """
     overrides = {
         1: 3,
@@ -55,8 +53,6 @@ def _iparm_overrides(
         }
     return overrides
 
-
-# TODO: Hermitian is set to 1 in qutip/tests/test_mkl.py, so there are no tests for nonsymmetric matrices (i.e., the path where the upper triangular matrix is taken is not tested)
 
 class MKLFactorization:
     """
