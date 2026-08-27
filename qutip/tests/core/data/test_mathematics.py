@@ -9,6 +9,7 @@ from qutip.core.data import Data, Dense, CSR, Dia
 from qutip.core.data.dense import OrderEfficiencyWarning
 
 from qutip.testing import random_data
+from qutip.testing import mixin
 
 # The ParameterSet is actually a pretty hidden type, so it's easiest to access
 # it like this.
@@ -482,7 +483,7 @@ class TestMatmulDag(ScaledBinaryOpMixin):
     ]
 
 
-class InPlaceMatmulMixin(_GenericOpMixin):
+class InPlaceMatmulMixin(mixin._GenericOpMixin):
     """
     Mix-in for in-place matmul operations: op(left, right, scale, out) -> out.
     Treats the operation as ternary with (left, right, out) as the three data
