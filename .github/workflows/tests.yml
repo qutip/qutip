@@ -194,6 +194,10 @@ jobs:
               pkg-config \
               "numpy${{ matrix.numpy-build }}" \
               "scipy${{ matrix.scipy-requirement }}"
+            # conda-forge's mkl-devel does not include Intel's pkg-config
+            # metadata. Install only that metadata from Intel's wheel while
+            # retaining conda's MKL libraries and headers.
+            python -m pip install --ignore-installed --no-deps mkl-devel
             export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
             pkg-config --modversion mkl-sdl
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
