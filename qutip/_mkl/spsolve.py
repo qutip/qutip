@@ -106,7 +106,7 @@ class MKLFactorization:
         Raises
         ------
         RuntimeError
-            If the factorization has been closed.
+            If the factorization has been deleted (dereferenced).
         TypeError
             If ``b`` is sparse, or if it is complex while the factorization is
             real-valued.
