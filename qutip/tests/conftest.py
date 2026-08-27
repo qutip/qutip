@@ -57,3 +57,13 @@ def in_temporary_directory():
         # than outside to prevent the case of the directory failing to be
         # removed because it is 'busy'.
         os.chdir(previous_dir)
+
+
+SEEDSEQ = np.random.SeedSequence()
+
+
+@pytest.fixture
+def random_generator(request):
+    seed = SEEDSEQ.spawn(1)[0]
+    request.node.user_properties.append(("numpy_generator", seed))
+    yield np.random.default_rng(seed)
