@@ -48,8 +48,6 @@ def _iparm_overrides(
         26: 0,
     }
 
-    # Add extra arguments in case of non-Hermitian matrix type
-    # TODO: does it really work correctly for non-hermitian matrices?
     if not hermitian:
         overrides |= {
             10: int(scaling_vectors),
@@ -59,7 +57,6 @@ def _iparm_overrides(
 
 
 # TODO: Hermitian is set to 1 in qutip/tests/test_mkl.py, so there are no tests for nonsymmetric matrices (i.e., the path where the upper triangular matrix is taken is not tested)
-
 
 class MKLFactorization:
     """
@@ -77,13 +74,6 @@ class MKLFactorization:
         Data type of the factorized matrix.
     factor_time : float
         Elapsed factorization time in seconds.
-
-    Examples
-    --------
-    Reuse a factorization for multiple right-hand sides:
-
-    TODO: example
-
     """
 
     def __init__(
@@ -173,7 +163,7 @@ class MKLFactorization:
             return self._info
         iparm = (
             self._solver.iparm
-        )  # TODO: is it a legal way to access iparm values?
+        )
         return {
             "FactorTime": self._factor_time,
             "SolveTime": self._solve_time,
@@ -192,16 +182,6 @@ class MKLFactorization:
         self._solver = None
 
 
-_MATRIX_TYPE_NAMES = {
-    4: "Complex Hermitian positive-definite",
-    -4: "Complex Hermitian indefinite",
-    2: "Real symmetric positive-definite",
-    -2: "Real symmetric indefinite",
-    11: "Real non-symmetric",
-    13: "Complex non-symmetric",
-}
-
-
 def _mkl_matrix_type(dtype, hermitian, posdef):
     is_complex = np.issubdtype(dtype, np.complexfloating)
     if not hermitian:
@@ -210,7 +190,6 @@ def _mkl_matrix_type(dtype, hermitian, posdef):
     return out if posdef else -out
 
 
-# Returns factorisation object: important for tests
 def mkl_splu(
     A,
     perm=None,
@@ -219,7 +198,7 @@ def mkl_splu(
     hermitian=False,
     posdef=False,
     max_iter_refine=10,
-    scaling_vectors=True,  # TODO: reflect the fact that this parameter will be used only if the matrix is non Hermitian
+    scaling_vectors=True,
     weighted_matching=True,
 ):
     """
@@ -280,7 +259,7 @@ def mkl_splu(
         raise NotImplementedError(
             "User-defined permutations are not supported by the pydiso backend."
         )
-    # Call solver # TODO: here, we will call the solver
+    # Call solver
     _factor_start = time.perf_counter()
     iparms = _iparm_overrides(
         hermitian=hermitian,
@@ -302,7 +281,6 @@ def mkl_splu(
     return MKLFactorization(solver, matrix_type, data_type, _factor_time)
 
 
-# TODO: issue: we cannot use perm parameter with pydiso solver
 def mkl_spsolve(
     A,
     b,
@@ -370,7 +348,6 @@ def mkl_spsolve(
     try:
         return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
         if sp.issparse(b):
-            # qutip's convention: a sparse RHS of shape (n, 1) produces dense solution
             b = b.toarray(order="F")
         x = lu.solve(b, verbose=verbose)
         if return_sparse:
