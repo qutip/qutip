@@ -188,12 +188,14 @@ jobs:
             pip install "numpy${{ matrix.numpy-build }}"
             pip install "scipy${{ matrix.scipy-requirement }}"
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install \
-              blas=*=mkl \
+            conda install --channel conda-forge \
+              "blas=*=mkl" \
               mkl-devel \
               pkg-config \
               "numpy${{ matrix.numpy-build }}" \
               "scipy${{ matrix.scipy-requirement }}"
+            export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            pkg-config --modversion mkl-sdl
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
