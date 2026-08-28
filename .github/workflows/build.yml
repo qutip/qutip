@@ -1,4 +1,6 @@
 name: Build wheels, optionally deploy to PyPI
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:

@@ -3,6 +3,8 @@
 #     Tests / ubuntu-latest, python-3.9, defaults
 # or similar.
 name: Tests
+permissions:
+  contents: read
 
 on:
     [push, pull_request]
