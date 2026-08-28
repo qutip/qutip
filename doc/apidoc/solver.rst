@@ -162,7 +162,7 @@ PETSc Integrator
    :class:`~qutip.solver.heom.HEOMSolver`. For the full option reference
    see :ref:`heom-petsc`.
 
-.. autoclass:: qutip.solver.heom.IntegratorPETSc
+.. autoclass:: qutip.solver.heom.backend_petsc.IntegratorPETSc
     :members: options
 
 

@@ -24,7 +24,7 @@ PETSc Backend
    See :ref:`heom-petsc` for the full usage guide, option reference, and
    worked examples.
 
-.. autoclass:: qutip.solver.heom.PETScHEOMSolver
+.. autoclass:: qutip.solver.heom.backend_petsc.PETScHEOMSolver
     :members:
     :show-inheritance:
 
