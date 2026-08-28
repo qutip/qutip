@@ -46,6 +46,7 @@ dependencies = [
     "scipy>=1.13,!=1.16.0,!=1.17.0",
     "packaging",
 ]
+# While updating the dependencies also update installation.rst
 
 # URLs for your project
 [project.urls]

@@ -44,7 +44,7 @@ You will most likely want to do this in a clean Python environment so that you d
 
    conda create -n qutip-dev python
 
-:ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source using setuptools section <build-setuptools>`, not the general installation.
+:ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source <build-meson>`, not the general installation.
 You will need all the *build* and *tests* "optional" requirements for the package.
 The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``project.optional-dependencies`` section of |pyproject.toml|_.
 You will also need the requirements for any optional features you want to test as well.
@@ -54,13 +54,13 @@ You will also need the requirements for any optional features you want to test a
 
 Refer to the main instructions for the most up-to-date version, however as of version 5.4 the requirements can be installed into a conda environment with ::
 
-   conda install meson-python meson ninja numpy scipy cython setuptools filelock pytest pytest-rerunfailures
+   conda install meson-python ninja numpy scipy cython setuptools filelock pytest pytest-rerunfailures
 
 Note that ``qutip`` should *not* be installed with ``conda install``.
 
 .. note::
    If you prefer, you can also use ``pip`` to install all the dependencies.
-   We typically recommend ``conda`` when doing main-library development because it is easier to switch low-level packages around like BLAS implementations, but if this doesn't mean anything to you, feel free to use ``pip``.
+   We typically recommend ``conda`` when doing main-library development because it is easier to switch low-level packages around like BLAS implementations, but if you don't require this, feel free to use ``pip``.
 
 You will need to make sure you have a functioning C++ compiler to build QuTiP.
 If you are on Linux or Mac, this is likely already done for you, however if you are on Windows, refer to the :ref:`Windows installation <install-on-windows>` section of the installation guide.
