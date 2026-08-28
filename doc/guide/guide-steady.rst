@@ -107,6 +107,8 @@ environment:
    conda install --channel conda-forge pydiso
    python -m pip install qutip
 
+Note: If you prefer installing `pydiso` from source, please refer to the respective instructions in `pydiso`'s [README](https://github.com/simpeg/pydiso/blob/main/README.md#installing-from-source).
+
 QuTiP detects MKL support automatically; no runtime activation is required.
 Availability and version information can be checked with:
 
