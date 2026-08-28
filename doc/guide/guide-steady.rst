@@ -94,14 +94,18 @@ optional `pydiso <https://github.com/simPEG/pydiso>`_ package. PARDISO can
 provide substantially better performance than SciPy's SuperLU solver for
 large sparse systems.
 
-Install QuTiP with MKL support using:
+Intel MKL and ``pydiso`` are available only on supported x86-64 platforms.
+They do not provide native Apple Silicon (``osx-arm64``) packages; on that
+platform, use one of QuTiP's SciPy solvers instead.
+
+On a supported platform, the recommended installation method is to install
+``pydiso`` and MKL from conda-forge, then install QuTiP in the same
+environment:
 
 .. code-block:: bash
 
-   pip install "qutip[mkl]"
-
-MKL is available only on supported platforms. In particular, Intel MKL does
-not provide native Apple Silicon binaries.
+   conda install --channel conda-forge pydiso
+   python -m pip install qutip
 
 QuTiP detects MKL support automatically; no runtime activation is required.
 Availability and version information can be checked with:
