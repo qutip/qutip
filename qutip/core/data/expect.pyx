@@ -97,7 +97,7 @@ cdef double complex _expect_csr_dm(CSR op, CSR state) except * nogil:
     return out
 
 
-cpdef double complex expect_super_csr(CSR op, CSR state) except *:
+cpdef double complex expect_super_csr(CSR op, CSR state):
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -115,7 +115,7 @@ cpdef double complex expect_super_csr(CSR op, CSR state) except *:
     return out
 
 
-cpdef double complex expect_csr(CSR op, CSR state) except *:
+cpdef double complex expect_csr(CSR op, CSR state):
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -189,7 +189,7 @@ cdef double complex _expect_dense_dense_dm(Dense op, Dense state) except * nogil
     return out
 
 
-cpdef double complex expect_csr_dense(CSR op, Dense state) except *:
+cpdef double complex expect_csr_dense(CSR op, Dense state):
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -204,7 +204,7 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) except *:
     return _expect_csr_dense_dm(op, state)
 
 
-cpdef double complex expect_dense(Dense op, Dense state) except *:
+cpdef double complex expect_dense(Dense op, Dense state):
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -256,7 +256,7 @@ cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
     return out
 
 
-cpdef double complex expect_dia(Dia op, Dia state) except *:
+cpdef double complex expect_dia(Dia op, Dia state):
     cdef double complex expect = 0.
     cdef idxint diag_bra, diag_op, diag_ket, i, length
     cdef idxint start_op, start_state, end_op, end_state
@@ -296,7 +296,7 @@ cpdef double complex expect_dia(Dia op, Dia state) except *:
     return expect
 
 
-cpdef double complex expect_dia_dense(Dia op, Dense state) except *:
+cpdef double complex expect_dia_dense(Dia op, Dense state):
     cdef double complex expect = 0.
     cdef idxint i, diag_op, start_op, end_op, strideR, stride, start_state
     if state.shape[1] == 1:
@@ -326,7 +326,7 @@ cpdef double complex expect_dia_dense(Dia op, Dense state) except *:
     return expect
 
 
-cpdef double complex expect_super_dia(Dia op, Dia state) except *:
+cpdef double complex expect_super_dia(Dia op, Dia state):
     cdef double complex expect = 0.
     _check_shape_super(op, state)
     cdef idxint diag_op, diag_state
@@ -343,7 +343,7 @@ cpdef double complex expect_super_dia(Dia op, Dia state) except *:
     return expect
 
 
-cpdef double complex expect_super_dia_dense(Dia op, Dense state) except *:
+cpdef double complex expect_super_dia_dense(Dia op, Dense state):
     cdef double complex expect = 0.
     _check_shape_super(op, state)
     cdef idxint col, diag_op, start, end
@@ -444,7 +444,7 @@ expect_super.add_specialisations([
 del _inspect, _Dispatcher
 
 
-cdef double complex expect_data_dense(Data op, Dense state) except *:
+cdef double complex expect_data_dense(Data op, Dense state):
     cdef double complex out
     if type(op) is CSR:
         out = expect_csr_dense(op, state)
@@ -455,7 +455,7 @@ cdef double complex expect_data_dense(Data op, Dense state) except *:
     return out
 
 
-cdef double complex expect_super_data_dense(Data op, Dense state) except *:
+cdef double complex expect_super_data_dense(Data op, Dense state):
     cdef double complex out
     if type(op) is CSR:
         out = expect_super_csr_dense(op, state)
