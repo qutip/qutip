@@ -291,7 +291,6 @@ cdef class Milstein:
         iadd_dense(out, system.a(), dt)
 
         if self.measurement_noise:
-            expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= system._shift_i(i).real * dt
 
@@ -353,7 +352,6 @@ cdef class PredCorr:
         system.set_state(t, state)
 
         if self.measurement_noise:
-            expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= system._shift_i(i).real * dt
 
