@@ -39,7 +39,7 @@ cdef int _check_shape(Data left, Data right) except -1 nogil:
     return 0
 
 
-cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:
+cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) noexcept nogil:
     """
     Perform the operation
         c := a + b
@@ -82,7 +82,7 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:
 
 
 cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c,
-                           double complex scale, double tol) nogil:
+                           double complex scale, double tol) noexcept nogil:
     """
     Perform the operation
         c := a + scale*b
@@ -170,7 +170,7 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     return out
 
 
-cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale):
+cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale) noexcept:
     cdef int size = left.shape[0] * left.shape[1]
     with nogil:
         blas.zaxpy(&size, &scale, right.data, &_ONE, left.data, &_ONE)

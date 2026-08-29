@@ -105,7 +105,7 @@ cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
     return True
 
 
-cpdef bint isherm_csr(CSR matrix, double tol=-1):
+cpdef bint isherm_csr(CSR matrix, double tol=-1) except -1:
     """
     Determine whether an input CSR matrix is Hermitian up to a given
     floating-point tolerance.
@@ -170,7 +170,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
         mem.PyMem_Free(out_row_index)
 
 
-cpdef bint isherm_dia(Dia matrix, double tol=-1) nogil:
+cpdef bint isherm_dia(Dia matrix, double tol=-1) except -1 nogil:
     cdef double complex val, valT
     cdef size_t diag, other_diag, col, start, end, other_start
     if tol < 0:
@@ -247,7 +247,7 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     return True
 
 
-cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
+cpdef bint isdiag_dia(Dia matrix, double tol=-1) except -1 nogil:
     cdef size_t diag, start, end, col
     if tol < 0:
         with gil:
@@ -264,7 +264,7 @@ cpdef bint isdiag_dia(Dia matrix, double tol=-1) nogil:
     return True
 
 
-cpdef bint isdiag_csr(CSR matrix) nogil:
+cpdef bint isdiag_csr(CSR matrix) noexcept nogil:
     cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
     for row in range(matrix.shape[0]):
         ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
@@ -276,7 +276,7 @@ cpdef bint isdiag_csr(CSR matrix) nogil:
     return True
 
 
-cpdef bint isdiag_dense(Dense matrix) nogil:
+cpdef bint isdiag_dense(Dense matrix) noexcept nogil:
     cdef size_t row, row_stride = 1 if matrix.fortran else matrix.shape[1]
     cdef size_t col, col_stride = matrix.shape[0] if matrix.fortran else 1
     for row in range(matrix.shape[0]):
@@ -286,7 +286,7 @@ cpdef bint isdiag_dense(Dense matrix) nogil:
     return True
 
 
-cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
+cpdef bint iszero_dia(Dia matrix, double tol=-1) except -1 nogil:
     cdef size_t diag, start, end, col
     if tol < 0:
         with gil:
@@ -301,7 +301,7 @@ cpdef bint iszero_dia(Dia matrix, double tol=-1) nogil:
     return True
 
 
-cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
+cpdef bint iszero_csr(CSR matrix, double tol=-1) except -1 nogil:
     cdef size_t ptr
     if tol < 0:
         with gil:
@@ -313,7 +313,7 @@ cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
     return True
 
 
-cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
+cpdef bint iszero_dense(Dense matrix, double tol=-1) except -1 nogil:
     cdef size_t ptr
     if tol < 0:
         with gil:

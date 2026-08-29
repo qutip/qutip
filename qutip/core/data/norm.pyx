@@ -23,7 +23,7 @@ cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
-cdef double abssq(double complex x) nogil:
+cdef double abssq(double complex x) noexcept nogil:
     return x.real*x.real + x.imag*x.imag
 
 # We always use BLAS routines where possible because architecture-specific
@@ -74,7 +74,7 @@ cpdef double trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
     return total
 
 
-cpdef double max_csr(CSR matrix) nogil:
+cpdef double max_csr(CSR matrix) noexcept nogil:
     cdef size_t ptr
     cdef double total=0, cur
     for ptr in range(csr.nnz(matrix)):
@@ -86,7 +86,7 @@ cpdef double max_csr(CSR matrix) nogil:
         total = cur if cur > total else total
     return math.sqrt(total)
 
-cpdef double frobenius_csr(CSR matrix) nogil:
+cpdef double frobenius_csr(CSR matrix) noexcept nogil:
     # The Frobenius norm is effectively the same as the L2 norm when
     # considering the non-zero elements as a vector.
     cdef int n=csr.nnz(matrix), inc=1
@@ -97,7 +97,7 @@ cpdef double l2_csr(CSR matrix) except -1 nogil:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_csr(matrix)
 
-cpdef double one_dense(Dense matrix) nogil:
+cpdef double one_dense(Dense matrix) noexcept nogil:
     cdef size_t ptr, col, row, col_stride, row_stride
     cdef double out=0, cur
     col_stride = matrix.shape[0] if matrix.fortran else 1
@@ -111,7 +111,7 @@ cpdef double one_dense(Dense matrix) nogil:
         out = cur if cur > out else out
     return out
 
-cpdef double max_dense(Dense matrix) nogil:
+cpdef double max_dense(Dense matrix) noexcept nogil:
     cdef size_t ptr
     cdef double total=0, cur
     for ptr in range(matrix.shape[0] * matrix.shape[1]):
@@ -123,7 +123,7 @@ cpdef double max_dense(Dense matrix) nogil:
         total = cur if cur > total else total
     return math.sqrt(total)
 
-cpdef double frobenius_dense(Dense matrix) nogil:
+cpdef double frobenius_dense(Dense matrix) noexcept nogil:
     cdef int n = matrix.shape[0] * matrix.shape[1]
     cdef int inc = 1
     return blas.dznrm2(&n, matrix.data, &inc)
@@ -133,7 +133,7 @@ cpdef double l2_dense(Dense matrix) except -1 nogil:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)
 
-cpdef double frobenius_dia(Dia matrix) nogil:
+cpdef double frobenius_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col=1
     cdef double total=0, cur
     for diag in range(matrix.num_diag):
@@ -149,7 +149,7 @@ cpdef double l2_dia(Dia matrix) except -1 nogil:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dia(matrix)
 
-cpdef double max_dia(Dia matrix) nogil:
+cpdef double max_dia(Dia matrix) noexcept nogil:
     cdef int offset, diag, start, end, col=1
     cdef double total=0, cur
     for diag in range(matrix.num_diag):

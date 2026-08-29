@@ -345,10 +345,10 @@ cpdef inline base.idxint nnz(CSR matrix) noexcept nogil:
     return matrix.row_index[matrix.shape[0]]
 
 
-cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) nogil:
+cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) noexcept nogil:
     return i[0] < j[0]
 
-cdef bool _sorter_cmp_struct(_data_col x, _data_col y) nogil:
+cdef bool _sorter_cmp_struct(_data_col x, _data_col y) noexcept nogil:
     return x.col < y.col
 
 ctypedef fused _swap_data:
@@ -367,7 +367,9 @@ cdef class Sorter:
     def __init__(self, size_t size):
         self.size = size
 
-    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) nogil:
+    # TODO: Come back to this as there is a bug - the realloc result is never checked
+    # Same for copy function
+    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) noexcept nogil:
         cdef size_t n
         cdef base.idxint col0, col1, col2
         # Fast paths for tridiagonal matrices.  These fast paths minimise the
@@ -422,7 +424,7 @@ cdef class Sorter:
     cdef void copy(self,
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
-                   size_t size) nogil:
+                   size_t size) noexcept nogil:
         cdef size_t n, ptr
         # Fast paths for small sizes.  Not pretty, but it speeds things up a
         # lot for up to triadiaongal systems (which are pretty common).
@@ -731,7 +733,7 @@ cpdef CSR from_dia(Dia matrix):
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
-) nogil:
+) noexcept nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset
