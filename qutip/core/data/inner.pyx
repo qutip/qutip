@@ -52,7 +52,7 @@ cdef int _check_shape_inner_op(Data left, Data op, Data right) except -1 nogil:
         ]))
     return 0
 
-cdef double complex _inner_csr_bra_ket(CSR left, CSR right) nogil:
+cdef double complex _inner_csr_bra_ket(CSR left, CSR right) noexcept nogil:
     cdef size_t col, ptr_bra, ptr_ket
     cdef double complex out = 0
     # We actually don't care if left is sorted or not.
@@ -63,7 +63,7 @@ cdef double complex _inner_csr_bra_ket(CSR left, CSR right) nogil:
             out += left.data[ptr_bra] * right.data[ptr_ket]
     return out
 
-cdef double complex _inner_csr_ket_ket(CSR left, CSR right) nogil:
+cdef double complex _inner_csr_ket_ket(CSR left, CSR right) noexcept nogil:
     cdef size_t row, ptr_l, ptr_r
     cdef double complex out = 0
     for row in range(left.shape[0]):
@@ -73,7 +73,7 @@ cdef double complex _inner_csr_ket_ket(CSR left, CSR right) nogil:
             out += conj(left.data[ptr_l]) * right.data[ptr_r]
     return out
 
-cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) except *:
+cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False):
     """
     Compute the complex inner product <left|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -163,7 +163,7 @@ cpdef double complex inner_dense(Dense left, Dense right, bint scalar_is_ket=Fal
     return out
 
 
-cdef double complex _inner_op_csr_bra_ket(CSR left, CSR op, CSR right) nogil:
+cdef double complex _inner_op_csr_bra_ket(CSR left, CSR op, CSR right) noexcept nogil:
     cdef size_t ptr_l, ptr_op, ptr_r, row, col
     cdef double complex sum, out=0
     # left does not need to be sorted.
@@ -178,7 +178,7 @@ cdef double complex _inner_op_csr_bra_ket(CSR left, CSR op, CSR right) nogil:
         out += left.data[ptr_l] * sum
     return out
 
-cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) nogil:
+cdef double complex _inner_op_csr_ket_ket(CSR left, CSR op, CSR right) noexcept nogil:
     cdef size_t ptr_l, ptr_op, ptr_r, row, col
     cdef double complex sum, out=0
     for row in range(op.shape[0]):
@@ -239,7 +239,7 @@ cpdef double complex inner_op_dia(Dia left, Dia op, Dia right,
     return inner
 
 cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
-                                  bint scalar_is_ket=False) except *:
+                                  bint scalar_is_ket=False):
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
@@ -262,7 +262,7 @@ cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
     return _inner_op_csr_ket_ket(left, op, right)
 
 cpdef double complex inner_op_dense(Dense left, Dense op, Dense right,
-                                  bint scalar_is_ket=False) except *:
+                                  bint scalar_is_ket=False):
     """
     Compute the complex inner product <left|op|right>.  The shape of `left` is
     used to determine if it has been supplied as a ket or a bra.  The result of
