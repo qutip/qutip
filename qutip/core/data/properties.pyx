@@ -214,7 +214,7 @@ cpdef bint isherm_dia(Dia matrix, double tol=-1) except -1 nogil:
     return True
 
 
-cpdef bint isherm_dense(Dense matrix, double tol=-1):
+cpdef bint isherm_dense(Dense matrix, double tol=-1) except -1 nogil:
     """
     Determine whether an input Dense matrix is Hermitian up to a given
     floating-point tolerance.
@@ -234,7 +234,11 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     """
     if matrix.shape[0] != matrix.shape[1]:
         return False
-    tol = tol if tol >= 0 else settings.core["atol"]
+
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+
     cdef size_t row, col, size=matrix.shape[0]
     for row in range(size):
         for col in range(row + 1):

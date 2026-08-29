@@ -1,5 +1,5 @@
-# cython: language_level=3
 # cython: boundscheck=False, wraparound=False, initializedcheck=False
+
 from cython cimport cdivision
 from qutip import settings
 from qutip.core.data cimport base, CSR, Dia, Dense
