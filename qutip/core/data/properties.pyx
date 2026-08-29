@@ -21,7 +21,7 @@ __all__ = [
     'isequal', 'isequal_csr', 'isequal_dense', 'isequal_dia',
 ]
 
-cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
+cdef inline bint _conj_feq(double complex a, double complex b, double tol) noexcept nogil:
     """Check whether a == conj(b) up to an absolute tolerance."""
     cdef double re = a.real - b.real
     cdef double im = a.imag + b.imag
@@ -31,13 +31,13 @@ cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil
     # Save the cycles: don't sqrt.
     return re*re + im*im < tol*tol
 
-cdef inline bint _feq_zero(double complex a, double tol) nogil:
+cdef inline bint _feq_zero(double complex a, double tol) noexcept nogil:
     return a.real*a.real + a.imag*a.imag < tol*tol
 
-cdef inline double _abssq(double complex x) nogil:
+cdef inline double _abssq(double complex x) noexcept nogil:
     return x.real*x.real + x.imag*x.imag
 
-cdef inline bint _feq(double complex a, double complex b, double atol, double rtol) nogil:
+cdef inline bint _feq(double complex a, double complex b, double atol, double rtol) noexcept nogil:
     """
     Follow numpy.allclose tolerance equation:
         |a - b| <= (atol + rtol * |b|)
