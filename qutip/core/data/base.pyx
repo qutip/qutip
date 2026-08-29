@@ -30,7 +30,7 @@ cdef class Data:
         raise NotImplementedError
 
     cpdef double complex trace(self):
-        return NotImplementedError
+        raise NotImplementedError
 
     cpdef Data adjoint(self):
         raise NotImplementedError
