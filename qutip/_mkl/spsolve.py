@@ -4,7 +4,6 @@ import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-
 def _iparm_overrides(
     hermitian: bool,
     max_iter_refine: int,
