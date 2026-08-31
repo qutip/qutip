@@ -222,14 +222,6 @@ def mkl_splu(
 
     matrix_type = _mkl_matrix_type(data_type, hermitian, posdef)
 
-    # TODO: evaluate pydiso's logging capabilities: what is there and what we should add
-    # if verbose:
-    #     print('Solver Initialization')
-    #     print('---------------------')
-    #     print('Input matrix type: ', _MATRIX_TYPE_NAMES[mtype])
-    #     print('Input matrix shape:', A.shape)
-    #     print('Input matrix NNZ:  ', A.nnz)
-    #     print()
     # Call solver
     _factor_start = time.perf_counter()
     iparms = _prepare_pydiso_args(
@@ -240,13 +232,6 @@ def mkl_splu(
         A, matrix_type=matrix_type, verbose=verbose, **iparms
     )
     _factor_time = time.perf_counter() - _factor_start
-    # if verbose:
-    #     print('Analysis and Factorization Stage')
-    #     print('--------------------------------')
-    #     print('Factorization time:       ', round(_factor_time, 4))
-    #     print('Factorization memory (Mb):', round(solver.iparm[15]/1024, 4))
-    #     print('NNZ in LU factors:        ', solver.iparm[17])
-    #     print()
     return MKLFactorization(solver, matrix_type, data_type, _factor_time)
 
 
