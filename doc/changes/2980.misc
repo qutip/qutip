@@ -1,0 +1,1 @@
+Remove requirements.txt as managing dependencies via pyproject.toml is sufficient for qutip.
