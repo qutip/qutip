@@ -3,10 +3,8 @@ import scipy.sparse as sp
 import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
-# TODO: what to do with these overrides?
-# we probably don't really need them as a layer between qutip and pydiso's class. but maybe we need to include this info into docs
-def _iparm_overrides(
-    hermitian: bool,
+
+def _prepare_pydiso_args(
     max_iter_refine: int,
     perm = None
 ):
@@ -15,8 +13,6 @@ def _iparm_overrides(
 
     Parameters
     ----------
-    hermitian : bool
-        Whether the matrix uses a Hermitian PARDISO matrix type.
     max_iter_refine : int
         Maximum iterative-refinement steps. A value of ``0`` selects
         PARDISO's automatic refinement behavior.
@@ -30,9 +26,13 @@ def _iparm_overrides(
 
     Notes
     -----
-    QuTiP overrides ``iparm[1]``, ``iparm[7]``, ``iparm[23]``, and
-    ``iparm[26]``. For non-Hermitian matrices it additionally overrides
-    ``iparm[10]`` and ``iparm[12]``.
+    QuTiP overrides the following iparm arguments:
+        - ``iparm[7]`` (maximum iterative refinement steps) is user-provided. Set via ``max_iterative_refinement_steps`` argument of MKLPardisoSolver
+        - ``iparm[26]`` (parallel factorization) is set to 1 via ``parallel_factorization`` argument of MKLPardisoSolver
+        - ``iparm[1]`` (fill-in reducing permutation) is set to 3 via ``fill_reducing_ordering`` argument of MKLPardisoSolver
+          - Note: if a user-defined permutation is passed via ``perm``, value for ``iparm[1]`` will be ignored in pydiso.
+
+    The rest of ``iparms`` is handled by pydiso's defaults.
     """
     overrides = {
         "fill_reducing_ordering": perm if perm else 3,
@@ -233,8 +233,7 @@ def mkl_splu(
     #     print()
     # Call solver
     _factor_start = time.perf_counter()
-    iparms = _iparm_overrides(
-        hermitian=hermitian,
+    iparms = _prepare_pydiso_args(
         max_iter_refine=max_iter_refine,
         perm=perm
     )
