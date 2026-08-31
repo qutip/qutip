@@ -9,7 +9,7 @@ def _prepare_pydiso_args(
     perm = None
 ):
     """
-    Build QuTiP's PARDISO ``iparm`` overrides.
+    Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
 
     Parameters
     ----------
@@ -21,8 +21,8 @@ def _prepare_pydiso_args(
 
     Returns
     -------
-    dict[int, int]
-        Mapping of zero-based ``iparm`` indices to values.
+    dict[string, value]
+        Mapping of ``iparm``-related pydiso's arguments to values.
 
     Notes
     -----
