@@ -73,6 +73,8 @@ the arguments ``'heterodyne=True'`` to :func:`~qutip.solver.stochastic.ssesolve`
 Stochastic Master Equation
 ==========================
 
+.. _sme-solver:
+
 .. Stochastic Master equation
 
 When the initial state of the system is a density matrix :math:`\rho`, the stochastic master equation solver :func:`qutip.stochastic.smesolve` must be used.
