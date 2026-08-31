@@ -85,13 +85,18 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     N = tlist.shape[0]
     dt = tlist[1] - tlist[0]
     #constructing negative values to maintain symmetry of the FFT
-    neg_tlist = -tlist[:0:-1]
-    neg_y = np.conj(y[:0:-1])
+    if np.any(tlist<0):
+        final_tlist = tlist
+        final_y = y
+        total_N = len(final_tlist)
+    else:    
+        neg_tlist = -tlist[:0:-1]
+        neg_y = np.conj(y[:0:-1])
     # combining to make it suitable for evaluation on two sided interval as demanded by FFT
-    final_tlist = np.hstack((neg_tlist, tlist))
-    final_y = np.hstack((neg_y, y))
-    total_N = len(final_tlist)
-    if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
+        final_tlist = np.hstack((neg_tlist, tlist))
+        final_y = np.hstack((neg_y, y))
+        total_N = len(final_tlist)
+    if not np.allclose(np.diff(final_tlist), dt * np.ones(total_N - 1, dtype=float)):
         raise ValueError('tlist must be equally spaced for FFT.')
     #shift t=0 to the centre of the interval for FFT
     final_y = np.fft.ifftshift(final_y)
