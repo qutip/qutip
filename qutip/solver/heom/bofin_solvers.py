@@ -1036,8 +1036,6 @@ class HEOMSolver(Solver):
                 perm=None,
                 verbose=False,
                 max_iter_refine=mkl_max_iter_refine,
-                scaling_vectors=True,
-                weighted_matching=mkl_weighted_matching,
             )
         else:
             L = L.tocsc()
