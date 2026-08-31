@@ -207,11 +207,11 @@ We recommend creating an empty ``conda`` environment containing only Python with
    conda create -n qutip-doc python=3.8
 
 and install all further dependencies with ``pip``.
-There is a ``requirements.txt`` file in the ``doc`` directory that fixes all package versions exactly into a known-good configuration for a completely empty environment, using ::
+There is a ``requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using ::
 
-   pip install -r doc/requirements.txt
+   pip install -r requirements.txt
 
-This is the same set of pinned versions that Read the Docs uses to build the documentation.
+This known-good configuration was intended for Python 3.8, though in principle it is possible that other Python versions will work.
 
 .. note::
 
@@ -221,8 +221,7 @@ The documentation build includes running many components of the main QuTiP libra
 You therefore need to have a version of QuTiP available in the same Python environment.
 If you are only interested in updating the users' guide, you can use a release version of QuTiP, for example by running ``pip install qutip``.
 If you are also modifying the main library, you need to make your development version accessible in this environment.
-See the `above section on building QuTiP <contributing-qutip_>`_ for more details.
-The build requirements are declared in ``pyproject.toml`` and will be installed automatically, so you should be able to simply run ::
+See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run ::
 
    python setup.py develop
 
