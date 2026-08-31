@@ -191,8 +191,7 @@ def mkl_splu(
     A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Sparse input matrix in CSR format.
     perm : None, optional
-        User-defined permutations are not currently supported. Passing a
-        value other than ``None`` raises ``NotImplementedError``.
+        User-defined permutations.
     verbose : bool, default: False
         Report factorization details.
     hermitian : bool, default: False
