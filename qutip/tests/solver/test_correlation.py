@@ -477,31 +477,11 @@ class TestCorrelationSpeedup:
 
 
 ## Test for issue related to spectrum correlation function
-def test_spectrum_correlation_fft_issue_():
+@pytest.mark.parametrize("times", [np.linspace(0,100,1000),np.linspace(-100,100,1000)])
+def test_spectrum_correlation_fft_issue_(times):
     H = qutip.sigmaz()
     a = qutip.destroy(2)
     c_ops = [np.sqrt(0.5) * a]
-    times = np.linspace(0, 100, 1000)
-    dimension = H.dims[0][0]
-    state = qutip.basis(dimension, 1)
-    w_0 = 2.0
-    df = 2 * np.pi / (times[-1] - times[0])
-    correlation = qutip.correlation_2op_1t(H, state, times, c_ops, a.dag(), a)
-    correlation_no_dc = correlation - np.mean(correlation)
-    frequencies, spectrum = qutip.spectrum_correlation_fft(times, correlation_no_dc)
-    #CHECKING PEAK OCCURS AT CORRECT FREQUENCY NEAR W_0 = 2.0
-    peak_freq = frequencies[np.argmax(np.abs(spectrum))]
-    assert np.isclose(np.abs(peak_freq), w_0, atol= df)
-    #CHECKING ARRAY SHAPES MATCH
-    assert frequencies.shape == spectrum.shape
-    #non-zero spectrum check
-    assert np.max(np.abs(spectrum)) > 0
-#test if the input contains full tlist with negative values, the output should be the same as if the input only contains positive values
-def test_spectrum_correlation_fft_symmetric():
-    H = qutip.sigmaz()
-    a = qutip.destroy(2)
-    c_ops = [np.sqrt(0.5) * a]
-    times = np.linspace(-100, 100, 1000)
     dimension = H.dims[0][0]
     state = qutip.basis(dimension, 1)
     w_0 = 2.0
