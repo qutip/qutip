@@ -6,7 +6,9 @@ import numpy as np
 import pytest
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
+import scipy.sparse as sp
 
+from qutip.solver.heom import bofin_solvers
 from qutip import (
     basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz, sigmay,
     tensor, Qobj, QobjEvo, fidelity, fdestroy
@@ -749,6 +751,22 @@ class TestHEOMSolver:
             assert rho_final == ado_state.extract(0)
         else:
             assert_raises_steady_state_time_dependent(hsolver)
+
+    def test_steady_state_mkl(self):
+         H = 0.25 * sigmaz() + 0.5 * sigmay()
+         bath = DrudeLorentzBath(
+             sigmaz(), lam=0.025, gamma=0.05, T=1 / 0.95, Nk=0,
+         )
+         solver = HEOMSolver(H, bath, max_depth=1)
+
+         rho_mkl, ados_mkl = solver.steady_state(use_mkl=True)
+         rho_scipy, ados_scipy = solver.steady_state(use_mkl=False)
+
+         np.testing.assert_allclose(rho_mkl.full(), rho_scipy.full())
+         np.testing.assert_allclose(
+             ados_mkl._ado_state,
+             ados_scipy._ado_state,
+         )
 
     def test_steady_state(
         self, atol=1e-3
