@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -436,7 +435,7 @@ cpdef Dia clean_dia(Dia matrix, bint inplace=False):
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
-) nogil:
+) noexcept nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset

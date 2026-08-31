@@ -1,4 +1,3 @@
-#cython: language_level=3
 """
 Class to represent a stochastic differential equation system.
 """

@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 """
 Cythonized code for permutationally invariant Lindbladian generation
 """

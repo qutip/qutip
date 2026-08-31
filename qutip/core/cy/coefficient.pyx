@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 import inspect
 import pickle
 import typing
