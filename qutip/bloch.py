@@ -1,6 +1,6 @@
 __all__ = ['Bloch']
 
-import os
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -190,6 +190,8 @@ class Bloch:
         self.vectors = []
         # Transparency of vectors, alpha value from 0 to 1
         self.vector_alpha = []
+        # Store kwargs for each vector
+        self.vector_kwargs = []
         # Data for annotations
         self.annotations = []
         # Number of times sphere has been saved
@@ -198,6 +200,8 @@ class Bloch:
         self.point_style = []
         # Transparency of points, alpha value from 0 to 1
         self.point_alpha = []
+        # Store kwargs for each point
+        self.point_kwargs = []
         # Data for line segment
         self._lines = []
         # Data for arcs and arc style
@@ -221,40 +225,48 @@ class Bloch:
             - "polarization stokes"
               see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
-        ketex = "$\\left.|%s\\right\\rangle$"
-        # \left.| is on purpose, so that every ket has the same size
+        ket = lambda state: rf"$\left.|{state}\right\rangle$"
 
-        if convention == "original":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "xyz":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$z$', '']
-        elif convention == "sx sy sz":
-            self.xlabel = ['$s_x$', '']
-            self.ylabel = ['$s_y$', '']
-            self.zlabel = ['$s_z$', '']
-        elif convention == "01":
-            self.xlabel = ['', '']
-            self.ylabel = ['', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "polarization jones":
-            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
-                           ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
-            self.ylabel = [ketex % "\\circlearrowleft", ketex %
-                           "\\circlearrowright"]
-            self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
-        elif convention == "polarization jones letters":
-            self.xlabel = [ketex % "D", ketex % "A"]
-            self.ylabel = [ketex % "L", ketex % "R"]
-            self.zlabel = [ketex % "H", ketex % "V"]
-        elif convention == "polarization stokes":
-            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$",
-                           "$\\nwarrow\\hspace{-1.46}\\searrow$"]
-            self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
-            self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
+        bloch_conventions = {
+            "original": (
+                ['$x$', ''], 
+                ['$y$', ''], 
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "xyz": (
+                ['$x$', ''], 
+                ['$y$', ''], 
+                ['$z$', '']
+            ),
+            "sx sy sz": (
+                ['$s_x$', ''], 
+                ['$s_y$', ''], 
+                ['$s_z$', '']
+            ),
+            "01": (
+                ['', ''], 
+                ['', ''], 
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "polarization stokes": (
+                ["$\\leftrightarrow$", "$\\updownarrow$"],
+                ["$\\nearrow\\hspace{-1.46}\\swarrow$", "$\\nwarrow\\hspace{-1.46}\\searrow$"],
+                ["$\\circlearrowleft$", "$\\circlearrowright$"],
+            ),
+            "polarization jones": (
+                [ket(r"\nearrow\hspace{-1.46}\swarrow"), ket(r"\nwarrow\hspace{-1.46}\searrow")],
+                [ket(r"\circlearrowleft"), ket(r"\circlearrowright")],
+                [ket(r"\leftrightarrow"), ket(r"\updownarrow")]
+            ),
+            "polarization jones letters": (
+                [ket("D"), ket("A")],
+                [ket("L"), ket("R")],
+                [ket("H"), ket("V")]
+            )
+        }
+
+        if convention in bloch_conventions:
+            self.xlabel, self.ylabel, self.zlabel = bloch_conventions[convention]
         else:
             raise Exception("No such convention.")
 
@@ -312,15 +324,17 @@ class Bloch:
         self.vectors = []
         self.point_style = []
         self.point_alpha = []
+        self.point_kwargs = []
         self.vector_alpha = []
         self.annotations = []
         self.vector_color = []
+        self.vector_kwargs = []
         self.point_color = None
         self._lines = []
         self._arcs = []
 
     def add_points(self, points, meth: Literal['s', 'm', 'l'] = 's',
-                   colors=None, alpha=1.0):
+                   colors=None, alpha=1.0, **kwargs):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -338,6 +352,9 @@ class Bloch:
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
+
+        **kwargs : dict
+            Additional parameters for matplotlib.axes.Axes.scatter.
 
         Notes
         -----
@@ -368,11 +385,12 @@ class Bloch:
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
+        self.point_kwargs.append(kwargs)
         self._inner_point_color.append(colors)
 
     def add_states(self, state: Qobj,
                    kind: Literal['vector', 'point'] = 'vector',
-                   colors=None, alpha=1.0):
+                   colors=None, alpha=1.0, **kwargs):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
@@ -389,6 +407,11 @@ class Bloch:
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
+
+        **kwargs : dict
+            Additional parameters to pass to the underlying matplotlib
+            functions.
+
         """
         state = np.asarray(state)
 
@@ -426,15 +449,17 @@ class Bloch:
         for k, st in enumerate(state):
             vec = _state_to_cartesian_coordinates(st)
 
+            c = None if colors[k] is None else [colors[k]]
+
             if kind == 'vector':
-                self.add_vectors(vec, colors=[colors[k]], alpha=alpha)
+                self.add_vectors(vec, colors=c, alpha=alpha, **kwargs)
             elif kind == 'point':
-                self.add_points(vec, colors=[colors[k]], alpha=alpha)
+                self.add_points(vec, colors=c, alpha=alpha, **kwargs)
             else:
                 raise ValueError("The included kind is not valid. "
                                  f"It should be vector or point, not {kind}.")
 
-    def add_vectors(self, vectors, colors=None, alpha=1.0):
+    def add_vectors(self, vectors, colors=None, alpha=1.0, **kwargs):
         """Add a list of vectors to Bloch sphere.
 
         Parameters
@@ -448,6 +473,9 @@ class Bloch:
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
+
+        **kwargs : dict
+            Additional parameters for matplotlib.patches.FancyArrowPatch.
 
         """
         vectors = np.asarray(vectors)
@@ -483,6 +511,7 @@ class Bloch:
             self.vectors.append(vec)
             self.vector_alpha.append(alpha)
             self.vector_color.append(colors[k])
+            self.vector_kwargs.append(kwargs)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """
@@ -502,7 +531,7 @@ class Bloch:
             or escape backslashes
             e.g. "$\\\\langle x \\\\rangle$".
 
-        kwargs :
+        **kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
 
@@ -843,17 +872,29 @@ class Bloch:
 
             alpha = self.vector_alpha[k]
             color = self.vector_color[k]
+
             if color is None:
                 idx = k % len(self.vector_default_color)
                 color = self.vector_default_color[idx]
 
-            # decorated style, with arrow heads
-            a = Arrow3D(xs3d, ys3d, zs3d,
-                        mutation_scale=self.vector_mutation,
-                        lw=self.vector_width,
-                        arrowstyle=self.vector_style,
-                        color=color, alpha=alpha)
+            arrow_kwargs = {
+                'mutation_scale': self.vector_mutation,
+                'arrowstyle': self.vector_style,
+                'alpha': alpha
+            }
 
+            kwargs = self.vector_kwargs[k]
+
+            if not any(key in kwargs for key in
+                       ('color', 'c', 'facecolor', 'edgecolor')):
+                arrow_kwargs['color'] = color
+
+            if not any(key in kwargs for key in ('lw', 'linewidth')):
+                arrow_kwargs['lw'] = self.vector_width
+
+            arrow_kwargs.update(kwargs)
+
+            a = Arrow3D(xs3d, ys3d, zs3d, **arrow_kwargs)
             self.axes.add_artist(a)
 
     def plot_points(self):
@@ -891,25 +932,35 @@ class Bloch:
                 color = list(color)
 
             if style in ['s', 'm']:
+                scatter_kwargs = {
+                    's': s,
+                    'marker': marker,
+                    'color': color,
+                    'alpha': self.point_alpha[k],
+                    'zdir': 'z'
+                }
+                scatter_kwargs.update(self.point_kwargs[k])
+
                 self.axes.scatter(np.real(points[1][indperm]),
                                   -np.real(points[0][indperm]),
                                   np.real(points[2][indperm]),
-                                  s=s,
-                                  marker=marker,
-                                  color=color,
-                                  alpha=self.point_alpha[k],
-                                  edgecolor=None,
-                                  zdir='z',
+                                  **scatter_kwargs
                                   )
 
             elif style == 'l':
                 color = color[k % len(color)]
+
+                plot_kwargs = {
+                    'color': color,
+                    'alpha': self.point_alpha[k],
+                    'zdir': 'z'
+                }
+                plot_kwargs.update(self.point_kwargs[k])
+
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),
-                               color=color,
-                               alpha=self.point_alpha[k],
-                               zdir='z',
+                               **plot_kwargs
                                )
 
     def plot_annotations(self):
@@ -977,19 +1028,12 @@ class Bloch:
 
         """
         self.render()
-        # Conditional variable for first argument to savefig
-        # that is set in subsequent if-elses
-        complete_path = ""
-        if dirc:
-            if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
-                os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
+            base = Path.cwd()
             if dirc:
-                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-                                + str(self.savenum) + '.' + format
-            else:
-                complete_path = os.getcwd() + '/bloch_' + \
-                                str(self.savenum) + '.' + format
+                base = base / str(dirc)
+                base.mkdir(parents=True, exist_ok=True)
+            complete_path = base / f'bloch_{self.savenum}.{format}'
         else:
             complete_path = name
 

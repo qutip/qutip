@@ -1011,17 +1011,11 @@ class TestUDEnvironment:
 ])
 class TestOhmicEnvironment:
     def test_matches_reference(self, params):
-        mpmath_missing = (find_spec('mpmath') is None)
-
         ref = OhmicReference(**params)
-        if mpmath_missing:
-            with pytest.warns(UserWarning):
-                env = OhmicEnvironment(**params)
-        else:
-            env = OhmicEnvironment(**params)
+        env = OhmicEnvironment(**params)
 
-        assert_guarantees(env, skip_cf=mpmath_missing)
-        assert_equivalent(env, ref, tol=1e-8, skip_cf=mpmath_missing)
+        assert_guarantees(env)
+        assert_equivalent(env, ref, tol=1e-8)
 
 
 class TestCFExponent:

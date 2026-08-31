@@ -7,6 +7,7 @@ import sys
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
+from pathlib import Path
 import numpy as np
 import scipy
 
@@ -110,9 +111,9 @@ def _find_mkl():
         # mkl is not supported on emscripten
         return ""
 
-    python_dir = os.path.dirname(sys.executable)
+    python_dir = Path(sys.executable).parent
     if plat in ['darwin', 'linux2', 'linux']:
-        python_dir = os.path.dirname(python_dir)
+        python_dir = python_dir.parent
 
     # Try in default Anaconda location first
     if plat in ['darwin', 'linux2', 'linux']:
@@ -143,8 +144,8 @@ def _find_mkl():
         scipy_lapack,
         numpy_blas,
         numpy_lapack,
-        python_dir + lib_dir_anaconda,
-        python_dir + lib_dir_intel_python,
+        str(python_dir) + lib_dir_anaconda,
+        str(python_dir) + lib_dir_intel_python,
     ]
 
     if plat == 'darwin':
@@ -176,7 +177,7 @@ class Settings:
         self._mkl_lib = ""
         self._mkl_lib_loc = ""
         try:
-            self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
+            self.tmproot = str(Path.home() / '.qutip')
         except OSError:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
@@ -253,17 +254,9 @@ class Settings:
         Whether `eigh` call is reliable.
         Some implementation of blas have some issues on some OS.
         """
-        from packaging import version as pac_version
-        import scipy
-        is_old_scipy = (
-            pac_version.parse(scipy.__version__) < pac_version.parse("1.5")
-        )
         return (
             # macOS OpenBLAS eigh is unstable, see #1288
-            (_blas_info() == "OPENBLAS" and platform.system() == 'Darwin')
-            # The combination of scipy<1.5 and MKL causes wrong results when
-            # calling eigh for big matrices.  See #1495, #1491 and #1498.
-            or (is_old_scipy and (_blas_info() == 'INTEL MKL'))
+            _blas_info() == "OPENBLAS" and platform.system() == 'Darwin'
         )
 
     @property
@@ -277,9 +270,9 @@ class Settings:
 
     @tmproot.setter
     def tmproot(self, root: str) -> None:
-        if not os.path.exists(root):
-            os.mkdir(root)
-        self._tmproot = root
+        root = Path(root)
+        root.mkdir(exist_ok=True)
+        self._tmproot = str(root)
 
     @property
     def coeffroot(self) -> str:
@@ -292,11 +285,12 @@ class Settings:
 
     @coeffroot.setter
     def coeffroot(self, root: str) -> None:
-        if not os.path.exists(root):
-            os.mkdir(root)
-        if root not in sys.path:
-            sys.path.insert(0, root)
-        self._coeffroot = root
+        root = Path(root)
+        root.mkdir(exist_ok=True)
+        root_str = str(root)
+        if root_str not in sys.path:
+            sys.path.insert(0, root_str)
+        self._coeffroot = root_str
 
     @property
     def coeff_write_ok(self) -> bool:

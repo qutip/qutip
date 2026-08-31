@@ -15,3 +15,8 @@ Describe here the proposed change.
 
 **Related issues or PRs**
 Please mention the related issues or PRs here. If the PR fixes an issue, use the keyword fix/fixes/fixed followed by the issue id, e.g. fix #1184
+
+**AI Tools Usage Disclosure**
+- [ ] No AI tools were used for this contribution.
+- [ ] AI tools were used, as described below:
+  - `Model/Tool Name: Describe how it was used`

@@ -105,11 +105,14 @@ class Solver:
 
         self._state_metadata = {
             'dims': state._dims,
-            # This is herm flag take for granted that the liouvillian keep
-            # hermiticity.  But we do not check user passed super operator for
-            # anything other than dimensions.
-            'isherm': not (self.rhs._dims == state._dims) and state._isherm,
         }
+        if (
+            self.rhs.issuper
+            and not (self.rhs._dims == state._dims)
+            and state.isherm
+            and getattr(self, "_rhs_preserves_hermiticity", False)
+        ):
+            self._state_metadata['isherm'] = True
         if state.isket:
             norm = state.norm()
         elif state._dims.issquare:
@@ -286,7 +289,22 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs, self.options)
+        if integrator.rhs_format == "callable":
+            integrator_instance = integrator(
+                self.rhs.matmul_data, self.options
+            )
+        elif integrator.rhs_format == "matrix":
+            if not self.rhs.isconstant:
+                raise TypeError(
+                    f"The integration method {method} "
+                    "only support constant systems."
+                )
+            integrator_instance = integrator(self.rhs(0).data, self.options)
+        elif integrator.rhs_format == "solver":
+            integrator_instance = integrator(self, self.options)
+        else:
+            raise ValueError("Integrator entry point not supported.")
+
         self._init_integrator_time = time() - _time_start
         return integrator_instance
 
@@ -358,7 +376,7 @@ class Solver:
             self._options = {}
         if new_options is None:
             new_options = {}
-        if not isinstance(new_options, dict):
+        if not isinstance(new_options, (dict, _SolverOptions)):
             raise TypeError("options must to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
@@ -439,7 +457,7 @@ class Solver:
         """Update the args, for the `rhs` and other operators."""
         if args:
             self.rhs.arguments(args)
-            self._integrator.arguments(args)
+            self._integrator.reset()
 
     @classmethod
     def avail_integrators(cls):
@@ -464,7 +482,7 @@ class Solver:
         integrator : Integrator
             The ODE solver to register.
 
-        keys : list of str
+        key : list of str
             Values of the method options that refer to this integrator.
         """
         if not issubclass(integrator, Integrator):
@@ -495,117 +513,3 @@ class Solver:
             Initial value to be used at setup.
         """
         return _ExpectFeedback(operator, default)
-
-
-def _solver_deprecation(kwargs, options, solver="me"):
-    """
-    Function to help the transition from v4 to v5.
-    Raise warnings for solver input that where moved from parameter to options.
-    """
-    if options is None:
-        options = {}
-    # TODO remove by 5.1
-    if "progress_bar" in kwargs:
-        warnings.warn(
-            '"progress_bar" is now included in options:\n Use '
-            '`options={"progress_bar": False / True / "tqdm" / "enhanced"}`',
-            FutureWarning
-        )
-        options["progress_bar"] = kwargs.pop("progress_bar")
-
-    if "_safe_mode" in kwargs:
-        warnings.warn(
-            '"_safe_mode" is no longer supported.',
-            FutureWarning
-        )
-        del kwargs["_safe_mode"]
-
-    if "verbose" in kwargs and solver == "br":
-        warnings.warn(
-            '"verbose" is no longer supported.',
-            FutureWarning
-        )
-        del kwargs["verbose"]
-
-    if "tol" in kwargs and solver == "br":
-        warnings.warn(
-            'The "tol" parameter is no longer used. '
-            '`qutip.settings.core["auto_tidyup_atol"]` '
-            'is now used for rounding small values in sparse arrays.',
-            FutureWarning
-        )
-        del kwargs["tol"]
-
-    if "map_func" in kwargs and solver in ["mc", "stoc"]:
-        warnings.warn(
-            '"map_func" is now included in options:\n'
-            'Use `options={"map": "serial" / "parallel" / "loky"}`',
-            FutureWarning
-        )
-        del kwargs["map_func"]
-
-    if "map_kwargs" in kwargs and solver in ["mc", "stoc"]:
-        warnings.warn(
-            '"map_kwargs" are now included in options:\n'
-            'Use `options={"num_cpus": N}`',
-            FutureWarning
-        )
-        del kwargs["map_kwargs"]
-
-    if "nsubsteps" in kwargs and solver == "stoc":
-        warnings.warn(
-            '"nsubsteps" is now replaced by "dt" in options:\n'
-            'Use `options={"dt": 0.001}`\n'
-            'The given value of "nsubsteps" is ignored in this call.',
-            FutureWarning
-        )
-        # Could be (tlist[1] - tlist[0]) / kwargs["nsubsteps"]
-        del kwargs["nsubsteps"]
-
-    if "tol" in kwargs and solver == "stoc":
-        warnings.warn(
-            'The "tol" parameter is now the "atol" options:\n'
-            'Use `options={"atol": tol}`',
-            FutureWarning
-        )
-        options["atol"] = kwargs.pop("tol")
-
-    if "store_all_expect" in kwargs and solver == "stoc":
-        warnings.warn(
-            'The "store_all_expect" parameter is now the '
-            '"keep_runs_results" options:\n'
-            'Use `options={"keep_runs_results": False / True}`',
-            FutureWarning
-        )
-        options["keep_runs_results"] = kwargs.pop("store_all_expect")
-
-    if "store_measurement" in kwargs and solver == "stoc":
-        warnings.warn(
-            'The "store_measurement" parameter is now an options:\n'
-            'Use `options={"store_measurement": False / True}`',
-            FutureWarning
-        )
-        options["store_measurement"] = kwargs.pop("store_measurement")
-
-    if ("dW_factors" in kwargs or "m_ops" in kwargs) and solver == "stoc":
-        raise TypeError(
-            '"m_ops" and "dW_factors" are now properties of '
-            'the stochastic solver class, use:\n'
-            '>>> solver = SMESolver(H, c_ops)\n'
-            '>>> solver.m_ops = m_ops\n'
-            '>>> solver.dW_factors = dW_factors\n'
-        )
-
-    if kwargs:
-        raise TypeError(f"unexpected keyword argument {kwargs.keys()}")
-    return options
-
-
-def _kwargs_migration(position, keyword, name):
-    if position is not None:
-        warnings.warn(
-            f"{name} will be keyword only from qutip 5.3 for all solver",
-            FutureWarning
-        )
-        return position
-    return keyword

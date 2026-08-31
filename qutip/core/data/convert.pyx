@@ -18,7 +18,7 @@ import numbers
 from typing import Literal
 from collections import namedtuple
 import numpy as np
-from scipy.sparse import dok_matrix, csgraph
+from scipy.sparse import dok_array, csgraph
 cimport cython
 from qutip.core.data.base cimport Data
 
@@ -285,7 +285,7 @@ cdef class _to:
         # all-pairs-shortest-path problem.  We forbid negative weights and
         # there are unlikely to be many data types, so the choice of algorithm
         # is unimportant (Dijkstra's, Floyd--Warshall, Bellman--Ford, etc).
-        graph = dok_matrix((len(order), len(order)))
+        graph = dok_array((len(order), len(order)))
         for (to_type, from_type), (_, weight) in self._direct_convert.items():
             graph[index[from_type], index[to_type]] = weight
         weights, predecessors =\

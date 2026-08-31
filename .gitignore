@@ -1,6 +1,8 @@
 *~
 *.py[cod]
 *.so
+*.pyd
+*.dylib
 .DS_Store
 .f2py_f2cmap
 .idea/
@@ -37,6 +39,12 @@ qutip/core/*.h
 qutip/**/*.html
 qutip/solver/ode/*.c
 
+# meson
+build/
+builddir/
+
+# generated
+qutip/core/data/src/intdtype.h
 
 *.qo
 

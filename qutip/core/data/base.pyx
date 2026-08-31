@@ -1,5 +1,4 @@
 #cython: language_level=3
-#cython: c_api_binop_methods=True
 
 import numpy as np
 cimport numpy as cnp
@@ -62,17 +61,21 @@ cdef class Data:
             return _data.matmul(left, right)
         return NotImplemented
 
-    def __mul__(left, right):
-        data, number = (left, right) if isinstance(left, Data) else (right, left)
+    def __mul__(self, number):
         try:
-            return _data.mul(data, number)
+            return _data.mul(self, number)
         except TypeError:
             return NotImplemented
 
-    def __truediv__(left, right):
-        data, number = (left, right) if isinstance(left, Data) else (right, left)
+    def __rmul__(self, number):
         try:
-            return _data.mul(data, 1/number)
+            return _data.mul(self, number)
+        except TypeError:
+            return NotImplemented
+
+    def __truediv__(self, number):
+        try:
+            return _data.mul(self, 1/number)
         except TypeError:
             return NotImplemented
 

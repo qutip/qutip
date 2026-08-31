@@ -259,7 +259,7 @@ def enr_to_reg(q):
         mat = q.to("csr").data_as().tocoo()
         newrows = [newindices[i] for i in mat.row]
         newcols = [newindices[i] for i in mat.col]
-        newmat = scipy.sparse.coo_matrix(
+        newmat = scipy.sparse.coo_array(
             (mat.data, (newrows, newcols)), shape=newshape)
 
     return qutip.Qobj(newmat, dims=newdims, dtype=dtype)

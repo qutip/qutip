@@ -14,7 +14,7 @@ def inv_dense(data, /):
     if data.shape[0] != data.shape[1]:
         raise ValueError('Cannot compute the matrix inverse'
                          ' of a nonsquare matrix')
-    return Dense(scipy.linalg.inv(data.as_ndarray()), copy=False)
+    return Dense(scipy.linalg.inv(data.as_ndarray()), copy=None)
 
 
 def inv_csr(data, /):
@@ -26,8 +26,11 @@ def inv_csr(data, /):
         raise ValueError('Cannot compute the matrix inverse '
                          'of a nonsquare matrix')
     inv = scipy.sparse.linalg.inv(data.as_scipy().tocsc())
+    # Handle scalar case (shape = (1,) )
+    if len(inv.shape) == 1:
+        inv = inv.reshape((1, 1))
     # scipy.sparse.linalg.inv can return dense or sparse arrays.
-    return CSR(scipy.sparse.csr_matrix(inv), copy=False)
+    return CSR(scipy.sparse.csr_array(inv), copy=None)
 
 
 from .dispatch import Dispatcher as _Dispatcher

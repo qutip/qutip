@@ -347,8 +347,3 @@ Or when using :class:`.MESolver` directly:
 The matrix-form solver supports all the same features as the standard solver,
 including time-dependent Hamiltonians and collapse operators, expectation value
 feedback, and most available ODE integrators.
-
-.. note::
-
-   The matrix-form solver requires the input state to be a Hermitian density
-   matrix.

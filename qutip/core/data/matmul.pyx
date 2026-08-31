@@ -239,8 +239,8 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
         out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
     if bool(right.fortran) != bool(out.fortran):
         msg = (
-            "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
-            + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
+            f"out matrix is {'Fortran' if out.fortran else 'C'}-ordered"
+            + f" but input is {'Fortran' if right.fortran else 'C'}-ordered"
         )
         warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
@@ -622,8 +622,8 @@ cpdef Dense matmul_dag_dense_csr_dense(
         out = dense.zeros(left.shape[0], right.shape[0], left.fortran)
     if bool(left.fortran) != bool(out.fortran):
         msg = (
-            "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
-            + " but input is {}-ordered".format('Fortran' if left.fortran else 'C')
+            f"out matrix is {'Fortran' if out.fortran else 'C'}-ordered"
+            + f" but input is {'Fortran' if left.fortran else 'C'}-ordered"
         )
         warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
@@ -881,10 +881,10 @@ cpdef Dense matmul_dag_dense_dia_dense(
 ):
     """
     Compute out = scale * (left @ dag(right)) where right is DIA.
-    
+
     dag(right) is the conjugate transpose (adjoint) of right.
     For DIA matrices, the adjoint operation conjugates the data and negates the offsets.
-    
+
     Parameters
     ----------
     left : Dense
@@ -895,7 +895,7 @@ cpdef Dense matmul_dag_dense_dia_dense(
         Scalar multiplier
     out : Dense, optional
         Output matrix (m × n)
-        
+
     Returns
     -------
     out : Dense
@@ -904,12 +904,12 @@ cpdef Dense matmul_dag_dense_dia_dense(
     cdef idxint m = left.shape[0]
     cdef idxint k_dim = left.shape[1]
     cdef idxint n = right.shape[0]  # rows of right, cols of dag(right)
-    
+
     if right.shape[1] != k_dim:
         raise ValueError(
             f"incompatible matrix shapes ({m}, {k_dim}) and ({right.shape[0]}, {right.shape[1]})"
         )
-    
+
     if out is None:
         out = dense.zeros(m, n, left.fortran)
     elif out.shape[0] != m or out.shape[1] != n:
@@ -954,11 +954,11 @@ cpdef Dense matmul_dag_dense_dia_dense(
             end_i = min(right.shape[1], right.shape[0] + offset)
             start_j = max(0, -offset)
             length = end_i - start_i
-            
+
             start_left = start_i + row * strideR_in
             start_right = diag * right.shape[1] + start_i
             start_out = start_j + row * strideR_out
-            
+
             # _matmul_dag_diag_vector conjugates the first argument (data)
             # We want to conjugate the diagonal (right), so pass it first
             _matmul_dag_diag_vector(
@@ -978,7 +978,7 @@ cpdef Dense matmul_dag_dense_dia_dense(
             end_i = min(right.shape[1], right.shape[0] + offset)
             start_j = max(0, -offset)
             length = end_i - start_i
-            
+
             for k in range(length):
               i = start_i + k
               j = start_j + k
@@ -1218,14 +1218,14 @@ cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense
 cdef void imatmul_dag_dense_data(Dense state, Data data, double complex scale, Dense out):
     """
     In-place Dense @ dag(Data) multiplication with data-type-specific optimizations.
-    
+
     Computes out += scale * (state @ dag(data)) efficiently by using specialized
     implementations for different data types:
     - CSR: Uses matmul_dag_dense_csr_dense for on-the-fly adjoint computation
     - DIA: Uses matmul_dag_dense_dia_dense for efficient diagonal adjoint operations
     - Dense: Uses matmul_dag_dense for efficient BLAS-based adjoint multiplication
     - Other: Falls back to iadd_dense(out, matmul(state, data.adjoint(), dtype=Dense), scale)
-    
+
     Parameters
     ----------
     state : Dense

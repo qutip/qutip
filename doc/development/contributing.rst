@@ -52,9 +52,9 @@ You will also need the requirements for any optional features you want to test a
 .. |pyproject.toml| replace:: ``pyproject.toml`` file
 .. _pyproject.toml: https://github.com/qutip/qutip/blob/master/pyproject.toml
 
-Refer to the main instructions for the most up-to-date version, however as of version 4.6 the requirements can be installed into a conda environment with ::
+Refer to the main instructions for the most up-to-date version, however as of version 5.4 the requirements can be installed into a conda environment with ::
 
-   conda install setuptools wheel numpy scipy cython packaging pytest pytest-rerunfailures
+   conda install meson-python meson ninja numpy scipy cython setuptools filelock pytest pytest-rerunfailures
 
 Note that ``qutip`` should *not* be installed with ``conda install``.
 
@@ -67,21 +67,20 @@ If you are on Linux or Mac, this is likely already done for you, however if you 
 
 The command to build QuTiP in editable mode is ::
 
-   python setup.py develop
+   pip install --no-build-isolation --editable .
 
 from the repository directory.
 If you now load up a Python interpreter, you should be able to ``import qutip`` from anywhere as long as the correct Python environment is active.
 Any changes you make to the Python files in the git repository should be immediately present if you restart your Python interpreter and re-import ``qutip``.
 
-On the first run, the setup command will compile many C++ extension modules built from Cython sources (files ending ``.pxd`` and ``.pyx``).
+On the first run, the editable install command will compile many C++ extension modules built from Cython sources (files ending ``.pxd`` and ``.pyx``).
 Generally the low-level linear algebra routines that QuTiP uses are written in these files, not in pure Python.
-Unlike Python files, changes you make to Cython files will not appear until you run ``python setup.py develop`` again; you will only need to re-run this if you are changing Cython files.
-Cython will detect and compile only the files that have been changed, so this command will be faster on subsequent runs.
 
-.. note::
+.. warning::
 
-   When undertaking Cython development, the reason we use ``python setup.py develop`` instead of ``pip install -e .`` is because Cython's changed-file detection does not reliably work in the latter.
-   ``pip`` tends to build in temporary virtual environments, which often makes Cython think its core library files have been updated, triggering a complete, slow rebuild of everything.
+   The ``--no-build-isolation`` flag is required, not merely an optimisation.
+   Without it, ``pip`` builds inside a temporary virtual environment which it then deletes, leaving the build directory pointing at header files that no longer exist.
+   The install itself will appear to succeed, but the next time anything needs recompiling you will get an unhelpful ``ImportError`` about the rebuild having failed.
 
 .. note::
 
@@ -93,6 +92,22 @@ Cython will detect and compile only the files that have been changed, so this co
     In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in a patch.
 
 .. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
+
+Build options
+~~~~~~~~~~~~~
+
+You can pass build options are passed through ``pip`` using ``--config-settings`` (``-C`` for short) ::
+
+   pip install --no-build-isolation -Csetup-args=-Didxint_64=true --editable .
+
+Here ``idxint_64`` selects 64-bit integers for the internal sparse-matrix memory indices.
+All the available build options are declared in the ``meson.options`` file in the repository root.
+
+Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile ::
+
+   meson setup build
+   meson compile -C build
 
 
 Code Style

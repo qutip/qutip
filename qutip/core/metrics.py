@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
@@ -13,7 +11,7 @@ from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
 from .dimensions import Dimensions
-from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
+from .superop_reps import to_choi, to_superpauli, to_super, kraus_to_choi
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye, qeye_like
 from .states import ket2dm
@@ -543,11 +541,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
-        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+        Jr.value = sp.csr_array((J_dat.data.real, J_dat.indices,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
 
-        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+        Ji.value = sp.csr_array((J_dat.data.imag, J_dat.indices,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
     else:
@@ -573,7 +571,7 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
-    Eu = _to_superpauli(oper).full()[1:, 1:]
+    Eu = to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
 
 

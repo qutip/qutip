@@ -1,7 +1,6 @@
 include README.md
 include LICENSE.txt
 include VERSION
-include requirements.txt
 include CITATION.bib
 include pyproject.toml
 recursive-include qutip *.pyx

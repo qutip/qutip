@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed May 29 11:23:46 2013
 
 @author: dcriger
 """
-
-from __future__ import division
 
 import numpy as np
 import pytest
@@ -13,8 +10,9 @@ import pytest
 from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
     rand_super_bcsz, rand_dm, tensor, super_tensor, kraus_to_choi,
-    kraus_to_super, to_super, to_choi, to_kraus, to_chi, to_stinespring,
-    operator_to_vector, vector_to_operator, sprepost, CoreOptions
+    kraus_to_super, to_super, to_superpauli, superpauli_to_super, to_choi,
+    to_kraus, to_chi, to_stinespring, operator_to_vector, vector_to_operator,
+    sprepost, CoreOptions
 )
 from qutip.core.dimensions import Space
 from qutip.core.energy_restricted import EnrSpace
@@ -63,6 +61,67 @@ class TestSuperopReps:
     A test class for the QuTiP function for applying superoperators to
     subsystems.
     """
+
+    def test_ToSuperPauli(self):
+        """
+        Superoperator: Check that the Pauli Transfer Matrix of an Identity
+        channel is an Identity matrix.
+        """
+        id_gate = to_super(qeye(2))
+
+        ptm = to_superpauli(id_gate)
+
+        expected_ptm = np.eye(4)
+
+        assert np.allclose(ptm.full(), expected_ptm, atol=1e-12)
+
+    def test_SuperPauliRoundTrip(self):
+        """
+        Superoperator: Check that converting to Pauli basis and back
+        is an identity: superpauli_to_super(to_superpauli(S)) == S.
+        """
+        superop = rand_super(2)
+
+        pauli_rep = to_superpauli(superop)
+        back_to_super = superpauli_to_super(pauli_rep)
+
+        assert (back_to_super - superop).norm() < 1e-12
+
+    def test_SuperPauliInvalidArgs(self):
+        """
+        Superoperator: Ensure to_superpauli and superpauli_to_super
+        raises ValueError for invalid arguments
+        """
+        qutrit_super = rand_super(3)
+        invalid_type = np.eye(4)
+        wrong_superrep = Qobj(np.eye(9))
+        non_square = to_super(Qobj(np.ones((3, 4))))
+        non_square.superrep = 'pauli'
+        invalid_dims = to_super(Qobj(np.eye(9)))
+        invalid_dims.superrep = 'pauli'
+
+        with pytest.raises(ValueError, match="only defined for qubits."):
+            to_superpauli(qutrit_super)
+        with pytest.raises(TypeError, match="must be a Qobj."):
+            superpauli_to_super(invalid_type)
+        with pytest.raises(ValueError, match="superrep='pauli'"):
+            superpauli_to_super(wrong_superrep)
+        with pytest.raises(ValueError, match="only defined for qubit"):
+            superpauli_to_super(invalid_dims)
+        with pytest.raises(ValueError, match="must be a square."):
+            superpauli_to_super(non_square)
+
+    def test_to_choi_to_chi_unsupported_type_raises_TypeError(self):
+        """
+        Superoperator: Ensure to_choi and to_chi raise TypeError (not
+        AttributeError) for a Qobj whose type is neither 'super' nor 'oper'.
+        """
+        unsupported = basis(2, 0)
+
+        with pytest.raises(TypeError, match="not supported"):
+            to_choi(unsupported)
+        with pytest.raises(TypeError, match="not supported"):
+            to_chi(unsupported)
 
     def test_SuperChoiSuper(self, superoperator):
         """

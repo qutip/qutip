@@ -1,0 +1,2 @@
+typedef @IDXINT_TYPE@ idxint;
+int _idxint_size=@IDXINT_SIZE@;

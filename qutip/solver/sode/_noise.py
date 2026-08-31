@@ -7,14 +7,18 @@ class Wiener:
     """
     Wiener process.
     """
-    def __init__(self, t0, dt, generator, shape):
+    def __init__(self, t0, dt, generator, num_diffusion):
         self.t0 = t0
         self.dt = dt
-        self.shape = shape
+        self.num_diffusion = num_diffusion
         self.generator = generator
-        self.noise = np.zeros((0,) + shape, dtype=float)
-        self.last_W = np.zeros(shape[-1], dtype=float)
         self.idx_last_0 = 0
+        self.is_measurement = False
+
+    def _prepare(self, N_dW):
+        self.shape = N_dW, self.num_diffusion
+        self.noise = np.zeros((0,) + self.shape, dtype=float)
+        self.last_W = np.zeros(self.shape[-1], dtype=float)
 
     def _extend(self, idx):
         N_new_vals = idx - self.noise.shape[0]
@@ -73,12 +77,14 @@ class PreSetWiener(Wiener):
                     f"{(n_sc_ops, len(tlist)-1)}"
                 )
 
+        print(noise.shape)
         self.t0 = tlist[0]
         self.dt = tlist[1] - tlist[0]
         self.shape = noise.shape[1:]
         self.noise = noise.T[:, np.newaxis, :].copy()
-        self.last_W = np.zeros(self.shape[-1], dtype=float)
+        print(self.noise.shape)
         self.idx_last_0 = 0
+        self.num_diffusion = n_sc_ops
         self.is_measurement = is_measurement
         if self.is_measurement:
             # Measurements is scaled as <M> + dW / dt
@@ -88,6 +94,14 @@ class PreSetWiener(Wiener):
 
     def _extend(self, N):
         raise ValueError("Requested time is outside the integration range.")
+
+    def _prepare(self, N_dW):
+        if N_dW != 1:
+            raise NotImplementedError(
+                "High level Taylor methods are not supported "
+                "for run_from_experiment."
+            )
+        self.last_W = np.zeros(self.shape[-1], dtype=float)
 
 
 class _Noise:

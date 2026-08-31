@@ -1,0 +1,1 @@
+Switch from setuptools to meson for build, bump minimum cython version to 3.0

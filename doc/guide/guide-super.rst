@@ -66,8 +66,37 @@ We can think of the :math:`\scriptstyle \rm CNOT` here as a system-environment r
    :width: 2.5in
 
 
-The two tensor wires on the left indicate where we must take a tensor contraction to obtain the measurement map.
-Numbering the tensor wires from 0 to 3, this corresponds to a :func:`.tensor_contract` argument of ``(1, 3)``.
+The integer arguments to :func:`.tensor_contract` address the scalar entries
+of :attr:`.Qobj.dims` after flattening the nested list from left to right.  For
+an ordinary operator with ``dims = [[a0, a1], [b0, b1]]``, the indices are:
+
+.. list-table::
+   :header-rows: 1
+
+   * - index
+     - dimension entry
+   * - ``0``
+     - ``a0``, the first row-space subsystem
+   * - ``1``
+     - ``a1``, the second row-space subsystem
+   * - ``2``
+     - ``b0``, the first column-space subsystem
+   * - ``3``
+     - ``b1``, the second column-space subsystem
+
+Thus, ``tensor_contract(qobj, (1, 3))`` contracts ``a1`` with ``b1`` and
+leaves an operator with ``dims = [[a0], [b0]]``.  For superoperators, the same
+rule applies to the nested ``dims`` labels passed by the user, while QuTiP
+internally converts those labels to tensor axes using its column-stacking
+convention.  For example, ``to_super(identity([2, 2])).dims`` is
+``[[[2, 2], [2, 2]], [[2, 2], [2, 2]]]``.  In this case, index ``1`` is the
+second output ket-space subsystem and index ``3`` is the matching output
+bra-space subsystem.
+
+The two tensor wires on the left indicate where we must take a tensor
+contraction to obtain the measurement map.  With the ``dims`` labels described
+above, these are indices ``1`` and ``3``, so the corresponding
+:func:`.tensor_contract` argument is ``(1, 3)``.
 
 .. plot::
    :context:

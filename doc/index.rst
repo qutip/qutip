@@ -20,6 +20,8 @@ Here, you can also find a collection of `tutorials for QuTiP <https://qutip.org/
    guide/guide.rst
    apidoc/apidoc.rst
 
+   internals/index.rst
+
    changelog.rst
    contributors.rst
    development/development.rst

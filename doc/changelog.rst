@@ -6,6 +6,129 @@ Change Log
 
 .. towncrier release notes start
 
+
+QuTiP 5.3.1 (2026-08-04)
+========================
+
+Features
+--------
+
+- Optimize "rouchon" method for stochastic solvers (#2936, by Eric Giguère (Ericgig))
+- `Qobj.data_as` now accepts "csr_array" and "dia_array", returning modern SciPy sparse arrays alongside the existing matrix formats. (#2938, by Veronika Kurth (veronikakurth))
+
+Bug Fixes
+---------
+
+- Use normalized mixed-state weights for trajectory allocation in ``mcsolve`` so that unnormalized density matrices correctly allocate the requested number of trajectories while preserving the original state trace. (#2927, by Rahul Shastri (RahulShastri003))
+- Cache ``_ishp``, ``_iscp``, ``_istp`` and ``_iscptp`` on ``Qobj``, and
+  invalidate all affected caches when ``dims``, ``superrep`` or ``data`` are
+  mutated. Fixes stale-cache bug where accessing ``type`` before reassigning
+  ``dims``/``superrep`` would cause subsequent calls to return incorrect results. (#2886, by Alexis Le Gall/(QubitGoblin31)
+- Fix `to_choi` and `to_chi` raising `AttributeError` instead of `TypeError` for unsupported Qobj types, caused by formatting a nonexistent `Qobj.choi` attribute in the error message. (#2930, by Mike German (steps-re))
+- Fix a batch of small correctness bugs: `Qobj.logm` now reports "logm" in its non-square error, `HEOMResult.final_ado_state` returns the ADO state instead of the density matrix, `qdiags` no longer marks sub-unit-modulus diagonals as unitary, `qzero`/`qzero_like` no longer mark non-square operators as Hermitian, and the scipy lsoda excess-work message has a missing space restored. (#2931, by Mike German (steps-re))
+- Increase qfunc validity range to show coherent(alpha>=13) properly (#2937, by Eric Giguère (EricGig), reported by Dong-Sheng Liu (DS-Liu) in #2932)
+- Accessing `HEOMResult.final_ado_state` no longer raises an `AttributeError` when `store_ados` is not set; the attribute is now always initialized and returns `None` when ADOs were not stored. (#2933, by Mike German (steps-re))
+- Fix typehint for tensor() function when passing iterables like list, tuples etc. (#2949, by Mayank Goel (Mayank447))
+- Fix an integer overflow in ``qutip.piqs.energy_degeneracy`` and ``qutip.piqs.state_degeneracy``. Degeneracies larger than ``int64`` are now returned as ``float`` so that arrays built from them keep a numeric (``float64``) dtype instead of falling back to ``object``, which SciPy does not support (e.g. ``piqs.block_matrix(80, elements="degeneracy")`` no longer raises). (#2948, by Udit Jain (uditjainstjis))
+- Fixed `clebsch` silently returning wrong values (and later `nan` or raising) for large angular momenta, caused by negative exponents turning the exact integer factorial products into underflowing floats. (#2954, by Udit Jain (uditjainstjis))
+- Restore unintentionally dropped support of tuples for specifying outer dimensions. List stays a prefer data structure for this, but tuples are allowed. (#2955, by Veronika Kurth (veronikakurth))
+
+
+Documentation
+-------------
+
+- Document how `tensor_contract` indices map to flattened `Qobj.dims` entries. (#2920, by Jeonghoon Lee (jeonghoon-ad))
+- Refine the PR template and the contribution guideline to request filling out the AI tools usage disclosure also for cases when no AI tools were used. (#2943, by Veronika Kurth (veronikakurth))
+- Minor typo correction in `direct_sum_sparse`'s docstring explaining the list/tuple syntax for dimensions. (#2947, by Paul Menczel (pmenczel)
+
+
+Miscellaneous
+-------------
+
+- Added dependabot to update github actions (#2906, by Mayank Goel (Mayank447))
+- Tightens the absolute tolerance of ``sesolve`` by one order of magnitude in order to make Floquet solver tests with randomized inputs more robust. (#2913, by Veronika Kurth (veronikakurth))
+- Adds a temporary link to the user survey to the nagivation sidebar. (#2917, by Veronika Kurth (veronikakurth))
+- Ensures output of `block_diag` function in ``qutip/piqs/piqs.py`` and ``qutip/tests/piqs/test_piqs.py`` stays of type ``scipy.sparse.spmatrix`` in order to prevent pre-mature switch to ``scipy.sparse.sparray`` output before the migration to ``sparray`` is complete in qutip. (#2925, by Veronika Kurth (veronikakurth))
+- Migrates QuTiP's data layer from ``scipy.sparse.*_matrix`` types to ``scipy.sparse.*_array`` types _internally_ while keeping user-facing behavior (via `Qobj.data_as` and `extract` functions) backward compatible. Adds a forward-compatibility guard so QuTiP won't break when SciPy fully removes the legacy matrix classes. (#2938, by Veronika Kurth (veronikakurth))
+
+
+QuTiP 5.3.0 (2026-05-22)
+========================
+
+Features
+--------
+
+
+**Solvers improvements**
+
+- Introduces a matrix-form solver that leverages matrix-matrix products for better memory efficiency. It can be used by passing ``options={"matrix_form": True}`` to ``mesolve`` or ``MESolver``. (#2811, by Ashley Milsted)
+- Allow the matrix-form ``mesolve`` (``options={"matrix_form": True}``) to evolve non-Hermitian initial states such as transition matrices ``|i><j|``. (#2898, by Ashley Milsted)
+- Enables Krylov subspace method for density matrices in closed and open (Lindblad-like) systems. Adds Arnoldi and fully-reorthogonalized Lanczos to algorithms for Krylov basis construction. (#2725, by Maximilian MM)
+- Uses the ``mean_abs_nonzero`` function from qutip/core/data/mean.pyx module in the direct method of the steady state solver. The function is overloaded for different data layer types (Dense, CSR, and Dia) and hence enables replacing if-else conditional with one function call. (#2824, Veronika Kurth)
+- Adds ``plot_expect()`` to ``Result`` and ``MultiTrajResult``, and ``plot_photocurrent()`` to ``McResult``, for visualising solver output directly from result objects. Based on initial work by @famous111 in PR #2724. (#2837, by Chinmay-Tangal)
+
+**Matrix operations**
+
+- Adds ``local_matmul``: applying a smaller operator on a state on an extended Hilbert space. (#2743)
+- Support for direct sums: create direct sum objects using ``qt.direct_sum``, extract blocks with ``qt.direct_component``, and overwrite blocks with ``qt.set_direct_component``. Added new ``qt.dimensions.SumSpace`` to describe dimensions of direct sum objects. (#2785)
+- Adds operator overloading for functions ``mean_nonzero`` and ``mean_abs_nonzero`` (mean of absolute values) for complex matrices (qutip.data.Dia, qutip.data.CSR, qutip.data.Dense). (#2817, by Veronika Kurth)
+
+**Superoperators improvements**
+
+- Adds the commutator and anticommutator for superoperators. (#2861, by Mudit Maheshwari)
+- Adds support for constructing superoperators to/from Pauli using to_superpauli() and from_superpauli() (#2835, by Mudit Maheshwari)
+
+**Other improvements**
+
+- Adds ``propagator_piecewise`` function and ``piecewise_t`` parameter to ``propagator`` for efficient computation of propagators for piecewise constant Hamiltonians and Liouvillians. This optimization uses direct matrix exponentiation on each constant interval instead of numerical ODE integration, providing significant speedup for systems with discontinuous time-dependence. (#2774, by Rafael Haenel)
+- Adds adjoint (dag) in-place matmul for QobjEvo and optimize matmul ops on Apple Silicon. (#2802, Ashley Milsted)
+- Adds ``max_t_plus_tau`` and map parameters to ``correlation_3op``, ``correlation_3op_2t``, and ``correlation_2op_2t`` for improved performance. Solves #2315 (#2831, by Chinmay-Tangal).
+- Adds the offset parameter to the wigner function and other visualization functions. (#2839, by Mudit Maheshwari)
+- Adds ``Qobj.full_tensor()`` to return a dense ndarray reshaped according to the quantum object's tensor dimensions. (#2841, by K Soveet Kumar Prusty)
+- Adds ``**kwargs`` to arguments of: ``add_state``, ``add_vector``, ``add_points`` to pass to underlying matplotlib function (#2847, by Mudit Maheshwari)
+- Adds ubuntu-24-arm64, windows-11-arm64 to wheels build target (#2855, by Mayank Goel)
+
+Bug Fixes
+---------
+
+- Fixes color ordering for single points in Bloch sphere. Previously, when plotting a single point on a Bloch sphere via ``Bloch.add_points(colors=...)`` or by modifying ``Bloch.point_color``, the color list could become mismatched with the point order after internal sorting. This fix ensures colors are reordered correctly, eliminating miscoloring. Fixes #2681 (#2754, by QiLin Xue)
+- Fixes missing binding of docstrings of ``tensor_swap`` and ``expand_operator`` into APIdoc (#2775, by Clemens Possel)
+- Enables performing computations on sparse matrices of high dimensionalities in the "direct" method of the steady-state solver without running into out-of-memory allocation problems. Fixes issue #2747. (#2803, by Veronika Kurth)
+- Fixes scipy.linalg.LinAlgWarning: Matrix is singular when calculating the fidelity of pure state denisty matrix. (#2822, by Tim Liao)
+- Fixes UnboundLocalError in ``plot_spin_distribution`` and improved function by changing cmap implementation and adding kwargs. (#2834, by Mudit Maheshwarih)
+- Fixes bug in ``Propagator`` used for negative times. (#2858)
+- Fixes overflow error occuring in krylovsolve when calculating large krylov dimensions (#2885, by Maximilian MM)
+
+Documentation
+-------------
+
+- Clarifies the x and y axis order for the arrays returned by the phase-space functions wigner, ``spin_wigner``, ``qfunc`` and ``spin_q_function``. Fixes #1532. (#2830, by harsshg31085)
+- Adds user-guide documentation for solver progress bar options, including available values and ``progress_kwargs`` usage. (#2846, by DeconBear)
+- Adds the sphinx-copybutton extension. This shows a copy button towards the right corner for codeblocks in the documentation. (#2851, by Mayank Goel)
+- Aligns the Read the Docs build with the shared pip-based documentation requirements and remove the stale RTD-specific environment file. (#2866, by Asish Kumar)
+- Migrates Jake Lishman development documentation (#2867)
+
+Deprecations
+------------
+- Removes support for Python 3.10 (#2875)
+- Updates ``Qobj.__matmul__`` to throw deprecation warning for Qobj @ numpy.array operation (#2829, by Mudit Maheshwari)
+- Renames ``steadystate_floquet`` to ``steadystate_fourier``. The old name is deprecated and will be removed in a future release. (#2823, by Chinmay-Tangal)
+- Removes support for position entry of options, e_ops and args. (#2870)
+- Removes passing solver options as kwargs instead of in options dict. (#2870)
+- Removes deprecated Environment approximation methods. (#2870)
+- Adds deprecation warning for dict coefficient format. (#2889)
+
+Miscellaneous
+-------------
+
+- Adds type annotations to ``core.qobj._require_equal_type`` to ensure proper typing for ``Qobj.__add__`` and ``Qobj.__sub__``. (#2848, by JacobHast)
+- Adds fallback for missing mpmath module for OhmicEnvironment (#2859)
+- Adds GitHub Sponsors button. (#2869)
+- Updates manylinux-x86_64-image from manylinux2014 to manylinux_2_28. Update build-frontend to build from pip. This allows to use custom build frontends like uv in the future. Update wheel number from 20 to 24 while deploying. (#2883, by Mayank Goel)
+- Adds AI Tool Usage Policy (#2891, by Mayank Goel)
+- Remove outdated code (#2899, by Mayank Goel)
+
+
 QuTiP 5.2.3 (2026-01-21)
 ========================
 

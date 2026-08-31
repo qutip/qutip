@@ -123,6 +123,33 @@ def test_cpu_count(monkeypatch):
     assert new_ncpus >= 1
 
 
+def test_zeta():
+    mpmath = pytest.importorskip("mpmath")
+    N = 50
+    s_list = np.random.rand(N) + 1.0001
+    # could randomly fail if q is an integer <=0
+    q_list = (np.random.rand(N) + 0.05) * 10
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    q_list = (np.random.rand(N) * 0.9 - .95 - np.random.randint(10))
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    s_list = np.random.rand(N) + 1.001
+    q_list = (np.random.rand(N) - 0.5) * 10 + np.random.randn(N) * 10j
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    s_list = (
+        1 + (np.random.lognormal(size=N) + 1e-6)
+        * np.exp((np.random.rand(N) * 0.8 - 0.4) * 1j * np.pi)
+    )  # Real part > 1.000001
+    q_list = (np.random.rand(N) + 0.1) * 10 + np.random.randn(N) * 10j
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+
 class TestFitting:
     rng = np.random.default_rng(seed=42)
 
@@ -218,3 +245,24 @@ class TestFitting:
         else:
             assert rmse < 1e-8
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+
+
+@pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
+def test_clebsch_large_j(j):
+    """<j 0; j 0 | 0 0> = (-1)^j / sqrt(2j + 1).
+
+    The intermediate factorials leave the float range long before the
+    coefficient itself does, so these used to underflow silently to 0.0, then
+    to nan, then raise ZeroDivisionError/OverflowError as j grew.
+    """
+    expected = (-1) ** j / np.sqrt(2 * j + 1)
+    assert clebsch(j, j, 0, 0, 0, 0) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize('j', [60, 90, 120])
+def test_clebsch_large_j_normalisation(j):
+    """sum_j3 C(j,j,j3,m1,m2,m1+m2)^2 = 1, for j large enough to overflow."""
+    m1, m2 = j / 2, -j / 2
+    total = sum(clebsch(j, j, j3, m1, m2, m1 + m2) ** 2
+                for j3 in range(2 * j + 1))
+    assert total == pytest.approx(1.0)

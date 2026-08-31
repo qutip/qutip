@@ -128,8 +128,8 @@ cdef class QobjEvo:
 
     .. code-block::
 
-        def f(t, args):
-            return qutip.qeye(N) * np.exp(args['w'] * t)
+        def f(t, w):
+            return qutip.qeye(N) * np.exp(w * t)
 
         QobjEvo(f, args={'w': 1j})
 
@@ -150,8 +150,8 @@ cdef class QobjEvo:
 
     .. code-block::
 
-        def f1_t(t, args):
-            return np.exp(-1j * t * args["w1"])
+        def f1_t(t, w1):
+            return np.exp(-1j * t * w1)
 
         QobjEvo([[H1, f1_t]], args={"w1": 1.})
 
@@ -270,6 +270,7 @@ cdef class QobjEvo:
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args, order=order,
+                            function_style=function_style,
                             boundary_conditions=boundary_conditions)
             )
             qobj = op[0]
@@ -283,13 +284,13 @@ cdef class QobjEvo:
                 raise TypeError(
                     "Function based time-dependent elements must have the"
                     " signature f(t: double, args: dict) -> Qobj, but"
-                    " {!r} returned: {!r}".format(op, qobj)
+                    f" {op!r} returned: {qobj!r}"
                 )
         else:
             raise TypeError(
                 "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"
                 " or a function f(t: double, args: dict) -> Qobj, but"
-                " received: {!r}".format(op)
+                f" received: {op!r}"
             )
 
         if self._dims is None:
@@ -512,13 +513,7 @@ cdef class QobjEvo:
     ###########################################################################
     # Math function                                                           #
     ###########################################################################
-    def __add__(left, right):
-        if isinstance(left, QobjEvo):
-            self = left
-            other = right
-        else:
-            self = right
-            other = left
+    def __add__(self, other):
         if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
             return NotImplemented
         res = self.copy()
@@ -556,15 +551,12 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __sub__(left, right):
-        if isinstance(left, QobjEvo):
-            res = left.copy()
-            res += -right
-            return res
-        else:
-            res = -right.copy()
-            res += left
-            return res
+    def __sub__(self, other):
+        if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
+            return NotImplemented
+        res = self.copy()
+        res += -other
+        return res
 
     def __rsub__(self, other):
         if not isinstance(other, (Qobj, QobjEvo, numbers.Number)):
@@ -579,26 +571,8 @@ cdef class QobjEvo:
         self += (-other)
         return self
 
-    def __matmul__(left, right):
-        cdef QobjEvo res
-        if isinstance(left, QobjEvo):
-            return left.copy().__imatmul__(right)
-        elif isinstance(left, Qobj):
-            if left._dims[1] != (<QobjEvo> right)._dims[0]:
-                raise TypeError("incompatible dimensions" +
-                                 str(left.dims[1]) + ", " +
-                                 str((<QobjEvo> right).dims[0]))
-            res = right.copy()
-            res._dims = Dimensions(left._dims[0], right._dims[1])
-            res.shape = (left.shape[0], right.shape[1])
-            left = _ConstantElement(left)
-            res.elements = [left @ element for element in res.elements]
-            res._update_feedback()
-
-            return res
-
-        else:
-            return NotImplemented
+    def __matmul__(self, other):
+        return self.copy().__imatmul__(other)
 
     def __rmatmul__(QobjEvo self, other):
         cdef QobjEvo res
@@ -641,18 +615,11 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __mul__(left, right):
-        if isinstance(left, QobjEvo):
-            return left.copy().__imul__(right)
-        elif isinstance(left, Qobj):
-            return right.__rmatmul__(left)
-        elif isinstance(left, (numbers.Number, Coefficient)):
-            return right.copy().__imul__(left)
-        else:
-            return NotImplemented
+    def __mul__(self, other):
+        return self.copy().__imul__(other)
 
     def __rmul__(self, other):
-        if isinstance(other, Qobj):
+        if isinstance(other, (Qobj, QobjEvo)):
             return self.__rmatmul__(other)
         else:
             res = self.copy()
@@ -671,12 +638,8 @@ cdef class QobjEvo:
             return NotImplemented
         return self
 
-    def __truediv__(left, right):
-        if isinstance(left, QobjEvo) and isinstance(right, numbers.Number):
-            res = left.copy()
-            res *= 1 / right
-            return res
-        return NotImplemented
+    def __truediv__(self, other):
+        return self.copy().__imul__(1 / other)
 
     def __idiv__(self, other):
         if not isinstance(other, numbers.Number):

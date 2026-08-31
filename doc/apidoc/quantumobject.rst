@@ -71,7 +71,7 @@ Tensor
 ------
 
 .. automodule:: qutip.core.tensor
-    :members: tensor, super_tensor, composite, tensor_contract
+    :members: tensor, super_tensor, composite, tensor_swap, tensor_contract, expand_operator
 
 .. automodule:: qutip.core.qobj
     :members: ptrace
@@ -83,7 +83,7 @@ Superoperators and Liouvillians
 -------------------------------
 
 .. automodule:: qutip.core.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, lindblad_dissipator
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator,lindblad_dissipator
 
 Superoperators and Liouvillians
 -------------------------------
@@ -95,8 +95,14 @@ Superoperator Representations
 -----------------------------
 
 .. automodule:: qutip.core.superop_reps
-    :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring
+    :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring, to_superpauli, superpauli_to_super
     :undoc-members:
+
+Direct Sum
+----------
+
+.. automodule:: qutip.core.direct_sum
+    :members: direct_sum, direct_sum_sparse, direct_component, set_direct_component
 
 Operators and Superoperator Dimensions
 --------------------------------------

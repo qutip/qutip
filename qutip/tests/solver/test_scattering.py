@@ -32,9 +32,9 @@ class TestScattering:
         tlist = np.geomspace(gamma, 10 * gamma, 40) - gamma
         # Define TLS Hamiltonian
         H0S = w0 * create(2) * destroy(2)
-        H1S1 = lambda t, args: \
+        H1S1 = lambda t: \
             RabiFreq * 1j * np.exp(-1j * w0 * t) * (t < pulseLength)
-        H1S2 = lambda t, args: \
+        H1S2 = lambda t: \
             RabiFreq * -1j * np.exp(1j * w0 * t) * (t < pulseLength)
         Htls = [H0S, [sm.dag(), H1S1], [sm, H1S2]]
         # Run the test
@@ -59,9 +59,9 @@ class TestScattering:
         tlist = np.linspace(0, 1 / gamma, T)
         # Define TLS Hamiltonian
         H0S = w0 * create(2) * destroy(2)
-        H1S1 = lambda t, args: \
+        H1S1 = lambda t: \
             RabiFreq * 1j * np.exp(-1j * w0 * t) * (t < pulseLength)
-        H1S2 = lambda t, args: \
+        H1S2 = lambda t: \
             RabiFreq * -1j * np.exp(1j * w0 * t) * (t < pulseLength)
         Htls = [H0S, [sm.dag(), H1S1], [sm, H1S2]]
         # Run the test
@@ -82,7 +82,7 @@ class TestScattering:
         psi0 = basis(2, 0)
         tlist = np.geomspace(gamma, 10 * gamma, 40) - gamma
         # Define TLS Hamiltonian with rotating frame transformation
-        Htls = [[sm.dag() + sm, lambda t, args: RabiFreq * (t < pulseLength)]]
+        Htls = [[sm.dag() + sm, lambda t: RabiFreq * (t < pulseLength)]]
         # Run the test
         c_ops = [sm]
         c_ops_split = [sm / np.sqrt(2), sm / np.sqrt(2)]

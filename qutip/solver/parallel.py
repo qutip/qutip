@@ -311,11 +311,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     """
 
     map_kw = _read_map_kw(map_kw)
-    if sys.version_info >= (3, 7):
-        # ProcessPoolExecutor only supports mp_context from 3.7 onwards
-        ctx_kw = {"mp_context": mp_context}
-    else:
-        ctx_kw = {}
+    ctx_kw = {"mp_context": mp_context}
 
     def setup_executor():
         return concurrent.futures.ProcessPoolExecutor(

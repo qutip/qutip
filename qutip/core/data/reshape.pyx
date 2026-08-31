@@ -158,7 +158,7 @@ cpdef list split_columns_dense(Dense matrix, copy=True):
 
 
 cpdef list split_columns_csr(CSR matrix, copy=True):
-    return [CSR(matrix.as_scipy()[:, k], copy=copy)
+    return [CSR(matrix.as_scipy()[:, [k]], copy=copy)
             for k in range(matrix.shape[1])]
 
 

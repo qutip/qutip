@@ -5,12 +5,12 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
-def _return_constant(t, args):
-    return args['constant']
+def _return_constant(t, constant):
+    return constant
 
 
-def _return_decay(t, args):
-    return args['constant'] * np.exp(-args['rate'] * t)
+def _return_decay(t, constant, rate):
+    return constant * np.exp(-rate * t)
 
 
 class callable_qobj:
@@ -18,9 +18,9 @@ class callable_qobj:
         self.oper = oper
         self.coeff = coeff
 
-    def __call__(self, t, args):
+    def __call__(self, t, **args):
         if self.coeff is not None:
-            return self.oper * self.coeff(t, args)
+            return self.oper * self.coeff(t, **args)
         return self.oper
 
 
@@ -133,7 +133,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         collapse_op = qutip.destroy(self.size)
         c_op_types = [
             (np.sqrt(coupling)*collapse_op, {}, "constant"),
-            ([collapse_op, 'sqrt({})'.format(coupling)], {}, "string"),
+            ([collapse_op, f'sqrt({coupling})'], {}, "string"),
             (callable_qobj(collapse_op, _return_constant),
              {'constant': np.sqrt(coupling)}, "function"),
         ]
@@ -165,7 +165,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         coupling = 0.2
         collapse_op = qutip.destroy(self.size)
         collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
-        collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
+        collapse_string = f'sqrt({coupling} * exp(-t))'
         c_op_types = [
             ([collapse_op, _return_decay], collapse_args, "function"),
             ([collapse_op, collapse_string], {}, "string"),
@@ -649,10 +649,44 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert isinstance(mixed_result.ntraj_per_initial_state, list)
     assert mixed_result.ntraj_per_initial_state == ntraj
     assert (
-        sum(mixed_result.runs_weights + mixed_result.deterministic_weights) 
+        sum(mixed_result.runs_weights + mixed_result.deterministic_weights)
         == pytest.approx(1.)
     )
     assert (
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
+    )
+
+
+@pytest.mark.parametrize(
+    "weight_0, weight_1, expected_trace",
+    [
+        (0.5, 0.25, 0.75),
+        (0.75, 0.5, 1.25),
+    ],
+)
+def test_mcsolve_unnormalized_mixed_state(
+    weight_0, weight_1, expected_trace
+):
+    ntraj = 10
+
+    # Test density matrices with traces below and above one.
+    initial_state = (
+        weight_0 * qutip.fock_dm(2, 0)
+        + weight_1 * qutip.fock_dm(2, 1)
+    )
+
+    result = mcsolve(
+        qutip.sigmaz(),
+        initial_state,
+        np.linspace(0, 1, 100),
+        [qutip.sigmam()],
+        ntraj=ntraj,
+        options={"progress_bar": False},
+    )
+    assert result.num_trajectories == ntraj
+    assert sum(result.ntraj_per_initial_state) == ntraj
+    assert all(
+        state.tr() == pytest.approx(expected_trace)
+        for state in result.states
     )

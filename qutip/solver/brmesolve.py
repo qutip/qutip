@@ -17,7 +17,7 @@ from .. import Qobj, QobjEvo, coefficient, Coefficient
 from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
-from .solver_base import Solver, _solver_deprecation
+from .solver_base import Solver
 from .options import _SolverOptions
 from ._feedback import _QobjFeedback, _DataFeedback
 from ..typing import EopsLike, QobjEvoLike, CoefficientLike
@@ -30,12 +30,11 @@ def brmesolve(
     tlist: ArrayLike,
     a_ops: list[tuple[QobjEvoLike, CoefficientLike]] = None,
     sec_cutoff: float = 0.1,
-    *_pos_args,
+    *,
     c_ops: list[QobjEvoLike] = None,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
-    options: dict[str, Any] = None,
-    **kwargs
+    options: dict[str, Any] = None
 ):
     r"""
     Solves for the dynamics of a system using the Bloch-Redfield master
@@ -65,7 +64,7 @@ def brmesolve(
 
         spectra : :obj:`.Coefficient`, str, func, Environment
             The corresponding bath spectra.
-            Bath can be provided as :class:`.BosonicEnvironment`, 
+            Bath can be provided as :class:`.BosonicEnvironment`,
             :class:`.FermionicEnvironment` or power spectra function.  These
             can be a :obj:`.Coefficient`, function or string. For coefficient,
             the frequency is passed as the 'w' args. The
@@ -99,14 +98,6 @@ def brmesolve(
     sec_cutoff : float, default: 0.1
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
-
-    *_pos_args :
-        | Temporary shim to update the signature from
-        | ``(..., a_ops, e_ops, c_ops, args, sec_cutoff, options)``
-        | to
-        | ``(..., a_ops, sec_cutoff, *, e_ops, c_ops, args, options)``
-        | making ``e_ops``, ``c_ops``, ``args`` and ``options`` keyword only
-          parameter from qutip 5.3.
 
     c_ops : list of (:obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format), optional
         List of collapse operators.
@@ -168,26 +159,6 @@ def brmesolve(
         either an array of expectation values, for operators given in e_ops,
         or a list of states for the times specified by ``tlist``.
     """
-    if _pos_args or not isinstance(sec_cutoff, (int, float)):
-        # Old signature used
-        warnings.warn(
-            "c_ops, e_ops, args and options will be keyword only"
-            " from qutip 5.3",
-            FutureWarning
-        )
-        # Re order for previous signature
-        e_ops = sec_cutoff
-        sec_cutoff = 0.1
-        if len(_pos_args) >= 1:
-            c_ops = _pos_args[0]
-        if len(_pos_args) >= 2:
-            args = _pos_args[1]
-        if len(_pos_args) >= 3:
-            sec_cutoff = _pos_args[2]
-        if len(_pos_args) >= 4:
-            options = _pos_args[3]
-
-    options = _solver_deprecation(kwargs, options, "br")
     args = args or {}
     H = QobjEvo(H, args=args, tlist=tlist)
 

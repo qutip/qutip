@@ -1,0 +1,2 @@
+Raise the minimum supported SciPy version to 1.13, and the minimum NumPy version to 1.23.2, and fixes Cython to 3.0.0 as the minimal version for build. Runtime dependencies still support Cython 0.29.x.
+Removes dead version-based branching for lower SciPy versions.
