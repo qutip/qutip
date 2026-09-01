@@ -1,0 +1,1 @@
+Fix Bloch sphere view angle updating for animations. Fixes issue #1106.
