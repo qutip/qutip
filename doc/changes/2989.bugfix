@@ -1,1 +1,1 @@
-Fix ``MCSolver.StateFeedback``, whose ``open`` argument was missing from the signature and never reached the feedback.
+Fix ``MCSolver.StateFeedback``, whose ``open`` argument was missing from the signature and never reached the feedback. The ``prop`` argument it carried instead is removed, since a Monte Carlo run never propagates: a call passing ``prop`` was silently ignored before and now raises ``TypeError``.
