@@ -55,18 +55,17 @@ behind high-level functional wrappers:
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Sections
 
    terminology
    integrator
+   integrator_stochastic
    solveroptions
 
 ..
   Sections to add later:
   motivation
   solver
-  integrator_stochastic
   result
-  solveroptions
   feedback

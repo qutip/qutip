@@ -13,7 +13,7 @@ You should build or install the version of QuTiP you want to build the documenta
 You will also need a sensible copy of `make`, and if you want to build the LaTeX documentation then also a `pdflatex` distribution.
 As of 2021-04-20, the `conda` recipe for `sphinx_rtd_theme` is rather old compared to the `pip` version, so it's recommended to use a mostly `pip`-managed environment to do the documentation build.
 
-The simplest way to get a functional build environment is to use the `requirements.txt` file in this repository, which completely defines a known-good `pip` environment (tested on Python 3.8, but not necessarily limited to it).
+The simplest way to get a functional build environment is to use the `doc/requirements.txt` file in this repository, which completely defines a known-good `pip` environment (tested on Python 3.8, but not necessarily limited to it).
 If you typically use conda, the way to do this is
 ```bash
 $ conda create -n qutip-doc-build python=3.8
@@ -23,7 +23,7 @@ $ pip install -r /path/to/qutip/doc/requirements.txt
 You will also need to build or install the main QuTiP library in the same environment.
 If you simply want to build the documentation without editing the main library, you can install a release version of QuTiP with `pip install qutip`.
 Otherwise, refer to [the main repository](https://github.com/qutip/qutip) for the current process to build from source.
-You need to have the optional QuTiP dependency `Cython` to build the documentation, but this is included in this repository's `requirements.txt` so you do not need to do anything separately.
+You need to have the optional QuTiP dependency `Cython` to build the documentation, but this is included in `doc/requirements.txt` so you do not need to do anything separately.
 
 After you have done this, you can effect the build with `make`.
 The targets you might want are `html`, `latexpdf` and `clean`, which build the HTML pages, build the PDFs, and delete all built files respectively.

@@ -31,105 +31,134 @@ jobs:
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
-        case-name: ["python 3.14 - Latest"]
-        condaforge: [1]
+        case-name: ["Latest"]
         numpy-build: [""]
-        numpy-requirement: [""]
-        scipy-requirement: [">=1.13"]
-        coverage-requirement: ["==6.5"]
+        scipy-build: [""]
+        cython-build: [""]
+        numpy-run: [""]
+        scipy-run: [""]
+        # Skip semidefinite: CVXOPT fail to converge, reason unknown...
+        qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        # coveralls: [1]  # Why didn't we try to upload them all?
+
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          - case-name: p313 numpy 2
+          - case-name: MPI, version-1
             os: ubuntu-latest
             python-version: "3.13"
-            numpy-build: ">=2.2.0,<2.3.0"
-            numpy-requirement: ">=2.2.0,<2.3.0"
-            scipy-requirement: ">=1.15,<1.16"
+            numpy-run: "==2.4.*"
+            scipy-run: "==1.17.*"
             pypi: 1
+
+            qutip-optional: "[full]"
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
-            includempi: 1
+            # Both mpich and openmpi version 4 have caused problems in the past
+            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
+            # version of mpi4py are currently only available on conda-forge:
+            conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
 
-          - case-name: p314 ubuntu arm
-            os: ubuntu-24.04-arm
+          - case-name: no conda, version-2
+            os: ubuntu-latest
             python-version: "3.14"
-            numpy-build: ">=2.2.0"
-            numpy-requirement: ">=2.2.0"
+            numpy-run: "==2.3.*"
+            scipy-run: "==1.16.*"
+            qutip-optional: "[full]"
             pypi: 1
-            # Install mpi4py to test mpi_pmap
-            # Should be enough to include this in one of the runs
-            includempi: 1
 
-          - case-name: p312, numpy fallback
+          - case-name: version-3
+            os: ubuntu-24.04-arm
+            python-version: "3.13"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            pypi: 1
+
+          - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-build: ">=2.1.0,<2.2.0"
-            numpy-requirement: ">=1.26,<1.27"
-            scipy-requirement: ">=1.13,<1.14"
-            pypi: 1
-            oldmpl: 1
-            coveralls: 1
+            numpy-run: "==2.1.*"
+            scipy-run: "==1.14.*"
+            qutip-optional: "[graphics]"
+
+          - case-name: version-5
+            os: ubuntu-latest
+            python-version: "3.11"
+            numpy-run: "==2.0.*"
+            scipy-run: "==1.13.*"
             nomkl: 1
+            qutip-optional: "[semidefinite]"
+            # Installing matplotlib 3.8 with it's latest dependencies raise this warnings
+            pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
+            pypi-extra-pkgs: "matplotlib==3.8.*"
+
+          - case-name: numpy fallback, nomkl
+            os: ubuntu-latest
+            python-version: "3.12"
+            numpy-run: "==1.26.*"
+            scipy-run: "==1.13.*"
+            nomkl: 1
+            qutip-optional: "[runtime_compilation,ipython,extras]"
+            # Installing matplotlib 3.9 with it's latest dependencies also raise this warnings
+            pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
+            pypi-extra-pkgs: "matplotlib==3.9.*"
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
             python-version: "3.11"
-            numpy-build: ">=1.23.2,<1.24.0"
-            numpy-requirement: ">=1.23.2,<1.24.0"
-            scipy-requirement: ">=1.13,<1.14"
-            semidefinite: 1
-            oldcython: 1
-            oldmpl: 1
+            numpy-build: "==2.0.*"
+            scipy-build: "==1.13.*"
+            cython-build: "==3.0.*"
+            numpy-run: "==1.23.*"
+            scipy-run: "==1.13.*"
+            qutip-optional: ""
+            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock"
             pypi: 1
-            coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita"
 
           # Mac
           # Mac has issues with MKL since september 2022.
-          - case-name: macos
+          - case-name: macos - latest
             os: macos-latest
             python-version: "3.14"
-            numpy-build: ">=2.0.0"
-            numpy-requirement: ">=2.0.0"
-            condaforge: 1
             nomkl: 1
+            qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
-          - case-name: macos - numpy fallback
+          - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
             python-version: "3.11"
-            numpy-build: ">=2.0.0"
-            numpy-requirement: ">=1.25,<1.26"
-            scipy-requirement: "==1.16.*"
-            condaforge: 1
+            numpy-build: "==2.0.*"
+            numpy-run: "==1.25.*"
+            scipy-run: "==1.16.*"
             nomkl: 1
-            coveralls: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+            qutip-optional: "[ipython,extras]"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
+            pypi-extra-pkgs: "matplotlib==3.8.*"
 
-          - case-name: Windows
+          # Windows
+          # Test 1 recent and one old
+          - case-name: Windows - latest - minimal install
             os: windows-11-arm
             python-version: "3.14"
-            numpy-build: ">=2.0.0"
-            numpy-requirement: ">=2.0.0"
             pypi: 1
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+            qutip-optional: ""
+            # matplotlib not installed
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
-            numpy-build: ">=2.0.0"
-            numpy-requirement: ">=1.24,<1.25"
-            semidefinite: 1
-            oldmpl: 1
-            nocython: 1
-            condaforge: 1
-            nomkl: 1
-            coveralls: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            numpy-build: "==2.0.*"
+            numpy-run: "==1.26.*"
+            scipy-run: "==1.17.*"
+            qutip-optional: "[ipython,extras]"
+            pypi-extra-pkgs: "matplotlib==3.7.*"
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
       - uses: actions/checkout@v7
@@ -139,7 +168,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
+          channels: conda-forge
 
       - name: Install pip
         if: matrix.os != 'windows-11-arm'
@@ -167,26 +196,44 @@ jobs:
         if: runner.os == 'Windows'
         run: rm -f /usr/bin/link.exe /usr/bin/link
 
+      - name: Environment information
+        run: |
+          uname -a
+          if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
+              hostnamectl
+              lscpu
+              free -h
+          fi
+
+      - name: Build QuTiP wheel
+        run: |
+          cd ..  # Meson complain when the venv is in QuTiP's directory
+          python -m venv build_env
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            source ./build_env/Scripts/activate
+          else
+            source ./build_env/bin/activate
+          fi
+          cd qutip
+          python -m pip install meson-python meson ninja # build
+          python -m pip install "cython${{ matrix.cython-build }}"
+          python -m pip install "numpy${{ matrix.numpy-build }}"
+          python -m pip install "scipy${{ matrix.scipy-build }}"
+          python -m pip wheel . --no-build-isolation --no-deps
+          echo "Build environment:"
+          pip list
+
       - name: Install QuTiP and dependencies
-        # In the run, first we handle any special cases.  We do this in bash
-        # rather than in the GitHub Actions file directly, because bash gives us
-        # a proper programming language to use.
-        # We install without build isolation so qutip is compiled with the
-        # version of cython, scipy, numpy in the test matrix, not a temporary
-        # version use in the installation virtual environment.
+        working-directory: ${{ runner.temp }}
         run: |
           # Install the extra requirement
-          python -m pip install meson-python meson ninja # build
-          python -m pip install setuptools  # runtime string-coefficient compilation
-          python -m pip install "pytest>=5.2" pytest-rerunfailures  # tests
-          python -m pip install ipython  # ipython
-          python -m pip install loky!=3.5.0 tqdm mpmath  # extras
-          python -m pip install "coverage${{ matrix.coverage-requirement }}" chardet
+          python -m pip install pytest pytest-rerunfailures
           python -m pip install pytest-cov coveralls pytest-fail-slow
+          python -m pip install coverage[toml] chardet
 
+          CORE_DEP="numpy${{ matrix.numpy-run }} scipy${{ matrix.scipy-run }}"
           if [[ "${{ matrix.pypi }}" ]]; then
-            pip install "numpy${{ matrix.numpy-build }}"
-            pip install "scipy${{ matrix.scipy-requirement }}"
+            pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install --channel conda-forge \
               "blas=*=mkl" \
@@ -204,56 +251,20 @@ jobs:
             test -e "$CONDA_PREFIX/lib/libmkl_rt.so"
             pkg-config --modversion mkl-sdl
             pkg-config --libs mkl-sdl
-          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
-            # Conda doesn't supply forced nomkl builds on Windows, so we rely on
-            # pip not automatically linking to MKL.
-            pip install "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
           else
-            conda install nomkl "numpy${{ matrix.numpy-build }}" "scipy${{ matrix.scipy-requirement }}"
-          fi
-          if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
-            conda install "${{ matrix.conda-extra-pkgs }}"
-          fi
-          if [[ "${{ matrix.includempi }}" ]]; then
-            # Both mpich and openmpi version 4 have caused problems in the past
-            # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
-            # version of mpi4py are currently only available on conda-forge:
-            conda install --channel conda-forge "openmpi>=5.0" mpi4py
+            conda install nomkl $CORE_DEP
           fi
 
-          python -m pip install cython filelock
-
-            if [[ -z "${{ matrix.pypi }}" && -z "${{ matrix.nomkl }}" ]]; then
-              python -m pip install "setuptools-scm[toml]>=6.2"
-              python -m pip install ".[mkl]" -v --no-build-isolation
-              python -P -c \
-                'import qutip; assert qutip.settings.has_mkl, "pydiso/MKL not detected"'
-            else
-              python -m pip install . -v --no-build-isolation
-            fi
-
-          if [[ "${{ matrix.nocython }}" ]]; then
-            python -m pip uninstall cython -y
-          elif [[ "${{ matrix.oldcython }}" ]]; then
-            python -m pip install cython==0.29.36 filelock
+          cp "${{ github.workspace }}"/qutip*.whl .
+          WHEEL=$( echo qutip*.whl )
+          echo $WHEEL
+          python -m pip install "$WHEEL${{ matrix.qutip-optional }}" -v
+          if [[ -n "${{ matrix.pypi-extra-pkgs }}" ]]; then
+            python -m pip install ${{ matrix.pypi-extra-pkgs }}
           fi
 
-          if [[ "${{ matrix.pypi }}" ]]; then
-            python -m pip install "numpy${{ matrix.numpy-requirement }}"
-          elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install "numpy${{ matrix.numpy-requirement }}"
-          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
-            python -m pip install "numpy${{ matrix.numpy-requirement }}"
-          else
-            conda install nomkl "numpy${{ matrix.numpy-requirement }}"
-          fi
-          if [[ -n "${{ matrix.semidefinite }}" ]]; then
-            python -m pip install cvxpy>=1.0 cvxopt
-          fi
-          if [[ "${{ matrix.oldmpl }}" ]]; then
-            python -m pip install matplotlib==3.7.* "pyparsing<=3.2.0" # graphics
-          else
-            python -m pip install matplotlib  # graphics
+          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install ${{ matrix.conda-extra-pkgs }}
           fi
 
       - name: Package information
@@ -266,15 +277,6 @@ jobs:
           fi
           python -c "import qutip; qutip.about()"
           python -c "import qutip; print(qutip.settings)"
-
-      - name: Environment information
-        run: |
-          uname -a
-          if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
-              hostnamectl
-              lscpu
-              free -h
-          fi
 
       - name: Run tests
         working-directory: ${{ runner.temp }}
@@ -292,15 +294,11 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          if [[ "${{ matrix.includempi }}" ]]; then
-            # By default, the max. number of allowed worker processes in openmpi is
-            # (number of physical cpu cores) - 1.
-            # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
-            # For OpenMPI <= 4:
-            # export OMPI_MCA_rmaps_base_oversubscribe=true
-            # For OpenMPI >= 5:
-            export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
-          fi
+
+          # By default, the max. number of allowed worker processes in openmpi is
+          # (number of physical cpu cores) - 1.
+          # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+          export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
 
           QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
           pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
@@ -329,7 +327,6 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Upload to Coveralls
-        if: ${{ matrix.coveralls }}
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}

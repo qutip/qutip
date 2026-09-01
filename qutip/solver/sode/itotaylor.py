@@ -23,7 +23,9 @@ class EulerSODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Euler
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
+    rhs_format = "SDESystem"
 
 
 class Milstein_SODE(_Explicit_Simple_Integrator):
@@ -41,7 +43,9 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Milstein
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
+    rhs_format = "SDETaylorSystem"
 
 
 class Taylor1_5_SODE(_Explicit_Simple_Integrator):
@@ -59,6 +63,7 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Taylor15
     N_dw = 2
+    rhs_format = "SDETaylorSystem"
 
     @property
     def options(self):
@@ -95,6 +100,7 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
     """
     stepper = _sode.Explicit15
     N_dw = 2
+    rhs_format = "SDESystem"
 
 
 class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
@@ -109,6 +115,7 @@ class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
     """
     stepper = _sode.Milstein_imp
     N_dw = 1
+    rhs_format = "SDETaylorSystem"
 
 
 class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
@@ -125,10 +132,11 @@ class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
         "tol": 1e-10,
         "solve_method": None,
         "solve_options": {},
-        "deff_dt": 1e-6
+        "derr_dt": 1e-6
     }
     stepper = _sode.Taylor15_imp
     N_dw = 2
+    rhs_format = "SDETaylorSystem"
 
     @property
     def options(self):

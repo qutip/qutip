@@ -482,7 +482,7 @@ class Solver:
         integrator : Integrator
             The ODE solver to register.
 
-        keys : list of str
+        key : list of str
             Values of the method options that refer to this integrator.
         """
         if not issubclass(integrator, Integrator):

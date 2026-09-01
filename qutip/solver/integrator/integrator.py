@@ -31,8 +31,8 @@ class Integrator:
     ----------
     derivative: callable | QobjEvo
         Function to integrate.
-        Note that specific integrators may require other input types. These types are specified by
-        the ``rhs_format`` attribute.
+        Note that specific integrators may require other input types. These
+        types are specified by the ``rhs_format`` attribute.
 
     options: dict
         Options for the integrator.
@@ -50,9 +50,9 @@ class Integrator:
           "callable" is the default for most ODE methods.
         - "matrix": The integrator takes a constant matrix as a ``Data`` object
           as the RHS and will solve the equation ``dX/dt = RHS @ X``.
-        - "solver": The integrator takes the Solver instance that created it and
-          builds the RHS itself. Typically used only by integration methods that
-          mix the system physics and the integrator numerics.
+        - "solver": The integrator takes the Solver instance that created it
+          and builds the RHS itself. Typically used only by integration methods
+          that mix the system physics and the integrator numerics.
 
     integrator_options : dict
         A dictionary of options used by the integrator and their default
@@ -100,7 +100,7 @@ class Integrator:
         t : float
             Initial time
 
-        state0 : qutip.Data
+        state : qutip.Data
             Initial state.
 
         .. note:

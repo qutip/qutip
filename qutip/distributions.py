@@ -309,7 +309,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        psi : Qobj
             A wavefunction from which the distribution is generated.
 
         """
@@ -339,7 +339,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        rho : Qobj
             A density matrix from which the distribution is generated.
 
         """
@@ -506,7 +506,7 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        rho : Qobj
             A density matrix from which the distribution is generated.
 
         """

@@ -369,7 +369,7 @@ class HierarchyADOsState:
 
         Parameters
         ----------
-        idx : int or label
+        idx_or_label : int or label
             The index of the ADO to extract. If an ADO label, e.g.
             ``(0, 1, 0, ...)`` is supplied instead, then the ADO
             is extracted by label instead.

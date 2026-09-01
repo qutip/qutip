@@ -707,7 +707,7 @@ def rand_super(
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    superrop : str, default: "super"
+    superrep : str, default: "super"
         Representation of the super operator
 
     seed : int, SeedSequence, Generator, optional
@@ -773,7 +773,7 @@ def rand_super_bcsz(
         Seed to create the random number generator or a pre prepared
         generator. When none is suplied, a default generator is used.
 
-    superrop : str, default: "super"
+    superrep : str, default: "super"
         representation of the
 
     dtype : type or str, optional

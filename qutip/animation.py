@@ -601,7 +601,7 @@ def anim_schmidt(kets, theme='light', splitting=None,
 
     Parameters
     ----------
-    ket : :class:`.Result` or list of :class:`.Qobj`
+    kets : :class:`.Result` or list of :class:`.Qobj`
         Pure states for animation.
 
     theme : str {'light', 'dark'}, default: 'light'
