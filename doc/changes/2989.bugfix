@@ -1,1 +1,1 @@
-Fix ``MCSolver.StateFeedback``, which was built as an open system feedback and could not be used.
+Fix ``MCSolver.StateFeedback``, whose ``open`` argument was missing from the signature and never reached the feedback.

@@ -566,9 +566,6 @@ def test_feedback(func, kind):
 
 
 def test_state_feedback():
-    # MCSolver evolves a ket, so StateFeedback must not be built as an open
-    # system feedback. Before the fix it was created with the builtin `open`,
-    # which is always truthy, and the run failed on the state dimensions.
     psi0 = qutip.basis(2, 0)
     H = qutip.QobjEvo(
         [qutip.sigmaz(), [qutip.sigmax(), lambda t, state: 0.1]],
@@ -581,9 +578,10 @@ def test_state_feedback():
     assert len(result.states) == 3
 
 
-def test_state_feedback_prop():
-    # `prop` was accepted by the signature and then never passed on.
-    assert qutip.MCSolver.StateFeedback(prop=True).prop is True
+@pytest.mark.parametrize("open", [True, False])
+def test_state_feedback_open(open):
+    assert qutip.MCSolver.StateFeedback(open=open).open is open
+    assert qutip.MCSolver.StateFeedback(open=open, raw_data=True).open is open
 
 
 @pytest.mark.parametrize(["initial_state", "ntraj"], [
