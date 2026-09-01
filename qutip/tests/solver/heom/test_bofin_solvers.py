@@ -70,6 +70,35 @@ def assert_raises_steady_state_time_dependent(hsolver):
     )
 
 
+def assert_ado_hierarchies_close(
+    rho_a,
+    ados_a,
+    rho_b,
+    ados_b,
+    *,
+    atol=1e-12,
+    rtol=1e-10,
+):
+    """Assert that rho and ADO states coming from different
+    solvers are equal."""
+    assert ados_a.labels == ados_b.labels
+
+    np.testing.assert_allclose(
+        rho_a.full(),
+        rho_b.full(),
+        atol=atol,
+        rtol=rtol,
+    )
+
+    for label in ados_a.labels:
+        np.testing.assert_allclose(
+            ados_a.extract(label).full(),
+            ados_b.extract(label).full(),
+            atol=atol,
+            rtol=rtol,
+            err_msg=f"ADO mismatch at label {label}",
+        )
+
 class TestHierarchyADOs:
     def mk_exponents(self, dims):
         return [
@@ -761,12 +790,8 @@ class TestHEOMSolver:
 
          rho_mkl, ados_mkl = solver.steady_state(use_mkl=True)
          rho_scipy, ados_scipy = solver.steady_state(use_mkl=False)
+         assert_ado_hierarchies_close(rho_scipy, ados_scipy, rho_mkl, ados_mkl)
 
-         np.testing.assert_allclose(rho_mkl.full(), rho_scipy.full())
-         np.testing.assert_allclose(
-             ados_mkl._ado_state,
-             ados_scipy._ado_state,
-         )
 
     def test_steady_state(
         self, atol=1e-3
