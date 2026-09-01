@@ -72,8 +72,7 @@ full = [
 ]
 #mkl = ["pydiso>=0.2.0"]
  mkl = [
-    # "pydiso @ git+https://github.com/simpeg/pydiso.git@0ae5411" # last commit in main
-    "pydiso @ git+https://github.com/jcapriot/pydiso.git@better_kwargs"
+    "pydiso @ git+https://github.com/simpeg/pydiso.git@51dc35c" # last commit in main
 ]
 
 [tool.meson-python.args]
