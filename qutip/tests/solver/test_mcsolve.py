@@ -565,6 +565,25 @@ def test_feedback(func, kind):
     assert np.all(result.expect[0] > 4. - tol)
 
 
+def test_state_feedback():
+    psi0 = qutip.basis(2, 0)
+    H = qutip.QobjEvo(
+        [qutip.sigmaz(), [qutip.sigmax(), lambda t, state: 0.1]],
+        args={"state": qutip.MCSolver.StateFeedback()},
+    )
+    solver = qutip.MCSolver(
+        H, c_ops=[qutip.sigmam()], options={"map": "serial"}
+    )
+    result = solver.run(psi0, np.linspace(0, 1, 3), ntraj=2)
+    assert len(result.states) == 3
+
+
+@pytest.mark.parametrize("open", [True, False])
+def test_state_feedback_open(open):
+    assert qutip.MCSolver.StateFeedback(open=open).open is open
+    assert qutip.MCSolver.StateFeedback(open=open, raw_data=True).open is open
+
+
 @pytest.mark.parametrize(["initial_state", "ntraj"], [
     pytest.param(qutip.maximally_mixed_dm(2), 5, id="dm"),
     pytest.param([(qutip.basis(2, 0), 0.3), (qutip.basis(2, 1), 0.7)],
