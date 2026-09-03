@@ -345,7 +345,9 @@ def bures_dist(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    dist = np.sqrt(2 * (1 - fidelity(A, B)))
+    if A == B:
+        return 0
+    dist = np.sqrt(2 * np.maximum(0, 1 - np.real(fidelity(A, B))))
     return dist
 
 

@@ -195,6 +195,21 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
+class Test_bures_dist:
+    def test_state_with_itself(self, state):
+        dist = bures_dist(state, state)
+        assert np.isfinite(dist)
+        assert dist == pytest.approx(0, abs=1e-12)
+
+    def test_state_with_itself_pure_and_mixed_edges(self):
+        psi = basis(2, 0)
+        rho = qeye(2) / 2
+        assert np.isfinite(bures_dist(psi, psi))
+        assert bures_dist(psi, psi) == pytest.approx(0, abs=1e-12)
+        assert np.isfinite(bures_dist(rho, rho))
+        assert bures_dist(rho, rho) == pytest.approx(0, abs=1e-12)
+
+
 class Test_average_gate_fidelity:
     def test_identity(self, dimension):
         id = qeye(dimension)
