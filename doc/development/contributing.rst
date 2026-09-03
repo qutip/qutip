@@ -93,7 +93,7 @@ Generally the low-level linear algebra routines that QuTiP uses are written in t
     These coincide with the versions employed for testing in continuous integration.
 
     In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
-    In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in the patch releases.
+    In any case, python and dependency upgrades will only happen in major or minor versions of QuTiP, not in the patch releases.
 
 .. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
 
