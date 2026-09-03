@@ -1009,26 +1009,12 @@ class HEOMSolver(Solver):
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
-        L += sp.csr_matrix((
+        L += sp.csr_array((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
         ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
-            # Currently, the way qutip interfaces MKL Pardiso
-            # requires a scipy csr_matrix with 32-bit indices.
-            # After migration to sparse array (PR 2938) in qutip, CSR.as_scipy
-            # returns csr_array representation, which may have indices
-            # of type int64.
-            # Since qutip/_mkl/spsolve.py is not compatible with this index
-            # resolution, we recreate a csr_matrix with 32-bit indices explicitly
-            # before it is passed to mkl_spsolve
-            L = sp.csr_matrix(
-                (L.data,
-                 L.indices.astype(np.int32, copy=False),
-                 L.indptr.astype(np.int32, copy=False)),
-                shape=L.shape,
-            )
             L.sort_indices()
             solution = mkl_spsolve(
                 L,
