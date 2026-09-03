@@ -1,0 +1,1 @@
+Fix four cross-references that named modules removed or renamed in v5 (``qutip.operators.sigmaz``, ``qutip.propagator.propagator``, ``qutip.stochastic.smesolve``, and the misspelled ``qutip.core.data.csr.zeroes``), and four dead documentation links.

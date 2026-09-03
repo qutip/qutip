@@ -136,7 +136,7 @@ We can also choose what to measure by specifying a *list of projection operators
 example, we could select the projection operators :math:`\ket{0} \bra{0}` and
 :math:`\ket{1} \bra{1}` which measure the state in the :math:`\ket{0}, \ket{1}`
 basis. Note that these projection operators are simply the projectors determined by
-the eigenstates of the :func:`~qutip.operators.sigmaz` operator.
+the eigenstates of the :func:`~qutip.core.operators.sigmaz` operator.
 
 .. testcode::
 
