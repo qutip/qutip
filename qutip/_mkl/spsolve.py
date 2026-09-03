@@ -4,10 +4,8 @@ import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-def _prepare_pydiso_args(
-    max_iter_refine: int,
-    perm = None
-):
+
+def _prepare_pydiso_args(max_iter_refine: int, perm=None):
     """
     Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
 
@@ -145,9 +143,7 @@ class MKLFactorization:
 
         if self._solver is None:
             return self._info
-        iparm = (
-            self._solver.iparm
-        )
+        iparm = self._solver.iparm
         return {
             "FactorTime": self._factor_time,
             "SolveTime": self._solve_time,
@@ -224,10 +220,7 @@ def mkl_splu(
 
     # Call solver
     _factor_start = time.perf_counter()
-    iparms = _prepare_pydiso_args(
-        max_iter_refine=max_iter_refine,
-        perm=perm
-    )
+    iparms = _prepare_pydiso_args(max_iter_refine=max_iter_refine, perm=perm)
     solver = MKLPardisoSolver(
         A, matrix_type=matrix_type, verbose=verbose, **iparms
     )
