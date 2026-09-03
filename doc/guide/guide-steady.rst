@@ -136,9 +136,8 @@ When sparse solving is requested without an explicit solver, QuTiP uses
 ``mkl_spsolve`` automatically if it is available and otherwise falls back to
 SciPy's ``spsolve``.
 
-Solver-specific options, such as ``max_iter_refine``, ``scaling_vectors``,
-and ``weighted_matching``, can be passed as keyword arguments to
-:func:`.steadystate`.
+Solver-specific options can be passed as keyword arguments to
+:func:`.steadystate`. For example, ``max_iter_refine`` specifies the maximum number of iterative refinement steps that the solver performs.
 
 
 .. _steady-usage:
