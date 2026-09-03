@@ -81,3 +81,7 @@ def pytest_runtest_makereport(item, call):
                 f"{name}: {value}" for name, value in item.user_properties
             ])
             report.longrepr = f"{report.longrepr}\n\n{props_str}"
+
+
+def pytest_sessionstart(session):
+    print("Run global seed:", SEEDSEQ)

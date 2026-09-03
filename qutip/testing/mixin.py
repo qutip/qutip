@@ -8,6 +8,8 @@ import warnings
 # The ParameterSet is actually a pretty hidden type, so it's easiest to access
 # it like this.
 _ParameterSet = type(pytest.param())
+NoParam = object()
+
 
 # First set up a bunch of allowable shapes, for different types of functions so
 # we don't have to respecify a whole lot of things on repeat.
@@ -128,7 +130,7 @@ def shapes_not_square(dim=DIM):
 # Data generators for the test
 # For a type, map to a function of the shape that return a list of cases for
 # that type.
-# Case are functions taking taking an optional RNG
+# Case are functions taking taking an RNG
 # {
 #    CRS: lambda shape: [
 #            lambda _: csr.zeros(*shape),
@@ -143,7 +145,13 @@ CORRECT_CASES = {}
 WRONG_CASES = {}
 
 
-def cases_type_shape_product(cases_lookup, op, types, shapes, out_type=None):
+def cases_type_shape_product(
+    cases_lookup,
+    op,
+    types,
+    shapes,
+    out_type=None
+):
     """
     Return a list of `pytest.ParameterSet` which is a flat list of all the
     special cases that should be tested for this operator specialisation `op`,
@@ -238,6 +246,45 @@ def cases_type_shape_product(cases_lookup, op, types, shapes, out_type=None):
     return cases
 
 
+def build_extra_cases(extra_param):
+    cases = [({}, [], ())]
+    for param_name, param_values in extra_param.items():
+        new_cases = []
+        for case, value in itertools.product(cases, param_values):
+            if isinstance(value, _ParameterSet):
+                if len(value.values) != 1:
+                    raise ValueError
+                id = value.id
+                val = value.values[0]
+                mark = value.marks
+            else:
+                id = None
+                val = value
+                mark = ()
+
+            if val is NoParam:
+                id = f"No {param_name}"
+                val = {}
+            else:
+                id = id or f"{param_name}={val}"
+                val = {param_name: val}
+
+            new_cases.append((
+                {**val, **case[0]},
+                case[1] + [id],
+                case[2] + mark
+            ))
+        cases = new_cases
+
+    return [
+        pytest.param(
+            kwargs,
+            id="-".join(ids),
+            marks=marks
+        )
+        for kwargs, ids, marks in cases
+    ]
+
 # Now we start to actually build up all the test cases.  Since all the
 # mathematical operations are really pretty similar, and most just need the
 # basic testing functionality, we do this with a series of mix-in classes which
@@ -305,6 +352,10 @@ class _GenericOpMixin:
     shapes = []
     bad_shapes = []
     specialisations = []
+    correct_cases = None
+    wrong_cases = None
+    extra_param = {}
+    wrong_extra_param = {}
 
     def generate_mathematically_correct(self, metafunc):
         parameters = (
@@ -315,12 +366,19 @@ class _GenericOpMixin:
         )
 
         cases = []
+        cases_map = self.correct_cases or CORRECT_CASES
         for p_op in self.specialisations:
             op, *types, out_type = p_op.values
             args = (op, types, self.shapes, out_type)
-            cases.extend(cases_type_shape_product(CORRECT_CASES, *args))
+            cases.extend(cases_type_shape_product(cases_map, *args))
 
         metafunc.parametrize(parameters, cases)
+
+        if self.extra_param:
+            cases = build_extra_cases(self.extra_param)
+            metafunc.parametrize(["kw"], cases)
+        else:
+            metafunc.parametrize(["kw"], [pytest.param({}, id="")])
 
     def generate_incorrect_shape_raises(self, metafunc):
         parameters = (
@@ -340,12 +398,20 @@ class _GenericOpMixin:
                                       id="no test")
             metafunc.parametrize(parameters, [false_case])
             return
+
         cases = []
+        cases_map = self.wrong_cases or WRONG_CASES
         for p_op in self.specialisations:
             op, *types, _ = p_op.values
             args = (op, types, self.bad_shapes)
-            cases.extend(cases_type_shape_product(WRONG_CASES, *args))
+            cases.extend(cases_type_shape_product(cases_map, *args))
         metafunc.parametrize(parameters, cases)
+
+        if self.wrong_extra_param:
+            cases = build_extra_cases(self.wrong_extra_param)
+            metafunc.parametrize(["kw"], cases)
+        else:
+            metafunc.parametrize(["kw"], [pytest.param({}, id="")])
 
     def pytest_generate_tests(self, metafunc):
         # For every test function "test_xyz", we use the test generator
@@ -364,6 +430,25 @@ class _GenericOpMixin:
             return
         generator(metafunc)
 
+    def check_result(self, test, expected, out_type):
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+        """
+            elif out_type is list:
+                for test_, expected_ in zip(test, expected):
+                    assert test_.shape == expected_.shape
+                    np.testing.assert_allclose(
+                        test_.to_array(), expected_,
+                        atol=self.atol, rtol=self.rtol
+                    )
+        """
+
 
 class UnaryOpMixin(_GenericOpMixin):
     """
@@ -374,55 +459,577 @@ class UnaryOpMixin(_GenericOpMixin):
     bad_shapes = []
 
     def test_mathematically_correct(
-        self, op, data_m, out_type, random_generator
+        self, op, data_m, out_type, random_generator, kw,
     ):
-        matrix = data_m(random_generator)
-        expected = self.op_numpy(matrix.to_array())
-        test = op(matrix)
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        elif out_type is list:
-            for test_, expected_ in zip(test, expected):
-                assert test_.shape == expected_.shape
-                np.testing.assert_allclose(test_.to_array(), expected_,
-                                           atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
+        matrix = data_m(shape, random_generator)
+        expected = self.op_numpy(matrix.to_array(), **kw)
+        test = op(matrix, **kw)
 
-    def test_incorrect_shape_raises(self, op, data_m, random_generator):
+        self.check_result(test, expected, out_type)
+
+    def test_incorrect_shape_raises(self, op, data_m, random_generator, kw):
         """
         Test that the operation produces a suitable error if the shape of the
         given operand is not compatible with the operation. Useful for
         operations that require square matrices (trace, pow, ...).
         """
         with pytest.raises(ValueError):
-            op(data_m(random_generator))
+            op(data_m(random_generator), **kw)
 
 
-class UnaryScalarOpMixin(_GenericOpMixin):
+class SquareUnaryOpMixin(UnaryOpMixin):
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+
+
+class BinaryOpMixin(_GenericOpMixin):
     """
-    Mix-in for unary mathematical operations on Data instances, but that also
-    take in a numeric scalar (e.g. scalar multiplication).  Only generates
-    the test `mathematically_correct`, since there can't be a shape mismatch
-    when there's only one Data argument.
+    Mix-in for binary mathematical operations on Data instances (e.g. binary
+    addition).
     """
-    shapes = [(x,) for x in shapes_unary()]
+    def test_mathematically_correct(
+        self, op, data_l, data_r, out_type, random_generator, kw,
+    ):
+        """
+        Test that the binary operation is mathematically correct for all the
+        known type specialisations.
+        """
+        left, right = data_l(random_generator), data_r(random_generator)
+        expected = self.op_numpy(left.to_array(), right.to_array(), **kw)
+        test = op(left, right, **kw)
 
-    @pytest.mark.parametrize('scalar', [
+        self.check_result(test, expected, out_type)
+        """
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+        """
+
+    def test_incorrect_shape_raises(
+        self, op, data_l, data_r, random_generator, kw,
+    ):
+        """
+        Test that the operation produces a suitable error if the shapes of the
+        given operands are not compatible.
+        """
+        with pytest.raises(ValueError):
+            op(data_l(random_generator), data_r(random_generator), **kw)
+
+
+class TernaryOpMixin(_GenericOpMixin):
+    """
+    Mix-in for ternary mathematical operations on Data instances (e.g. inner
+    product with an operator in the middle).  This is pretty rare.
+    """
+    def test_mathematically_correct(
+        self, op,
+        data_l, data_m, data_r,
+        out_type, random_generator,
+        kw,
+    ):
+        """
+        Test that the ternary operation is mathematically correct for all the
+        known type specialisations.
+        """
+        rng = random_generator
+        left, mid, right = data_l(rng), data_m(rng), data_r(rng)
+        expected = self.op_numpy(
+            left.to_array(),
+            mid.to_array(),
+            right.to_array(),
+            **kw,
+        )
+        test = op(left, mid, right, **kw)
+
+        self.check_result(test, expected, out_type)
+        """
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+        """
+
+    def test_incorrect_shape_raises(
+        self, op, data_l, data_m, data_r, random_generator, kw,
+    ):
+        """
+        Test that the operation produces a suitable error if the shapes of the
+        given operands are not compatible.
+        """
+        rng = random_generator
+        with pytest.raises(ValueError):
+            op(data_l(rng), data_m(rng), data_r(rng), **kw)
+
+
+#=============================================================================#
+#                           Unitary specialisation                            #
+#=============================================================================#
+
+class TestAdjoint(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.conj(matrix.T)
+
+
+class TestConj(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.conj(matrix)
+
+
+class TestTranspose(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return matrix.T
+
+
+class TestNeg(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return -matrix
+
+
+class TestZeros_like(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.zeros_like(matrix)
+
+
+class TestIdentity_like(SquareUnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.eye(matrix.shape[0])
+
+
+class TestProject(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        if matrix.shape[0] == 1:
+            return np.outer(np.conj(matrix), matrix)
+        else:
+            return np.outer(matrix, np.conj(matrix))
+
+    shapes = [
+        (pytest.param((1, 1), id="scalar"),),
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((100, 1), id="ket"),),
+    ]
+    bad_shapes = [
+        (pytest.param((10, 10), id="square"),),
+        (pytest.param((2, 10), id="nonsquare"),),
+    ]
+
+
+class TestSqrtm(SquareUnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.sqrtm(matrix)
+
+
+class TestLogm(SquareUnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.logm(matrix)
+
+
+@pytest.mark.filterwarnings("ignore:Constructing a DIA matrix")
+class TestExpm(SquareUnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.expm(matrix)
+
+
+class TestPow(SquareUnaryOpMixin):
+    def op_numpy(self, matrix, n):
+        return np.linalg.matrix_power(matrix, n)
+
+    extra_param = {"n": [0, 1, 10]}
+    wrong_extra_param = {"n": [10]}
+
+
+class TestTrace_oper_ket(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        N = int(matrix.shape[0] ** 0.5)
+        return np.sum(np.diag(matrix.reshape((N, N))))
+
+    shapes = [
+        (pytest.param((100, 1), id="oper-ket"),),
+    ]
+    bad_shapes = [
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((99, 1), id="ket"),),
+        (pytest.param((99, 99), id="ket"),),
+        (pytest.param((2, 99), id="nonsquare"),),
+    ]
+
+
+class TestTrace(SquareUnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.sum(np.diag(matrix))
+
+
+class TestMul(UnaryOpMixin):
+    def op_numpy(self, matrix, value):
+        return scalar * matrix
+
+    extra_param = {"value": [
         pytest.param(0, id='zero'),
         pytest.param(4.5, id='real'),
         pytest.param(3j, id='complex'),
-    ])
+    ]}
+    wrong_extra_param = {"value": [10]}
+
+
+class TestInv(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.linalg.inv(matrix)
+
+    shapes = [
+        (pytest.param((1, 1), id="scalar"),),
+        (pytest.param((10, 10), id="square"),),
+    ]
+    bad_shapes = [
+        (pytest.param((2, 10), id="nonsquare"),),
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((100, 1), id="ket"),),
+    ]
+
+    # Usual creator do not ensure that the array can be inverted
+    # Specialized creator are needed.
+    # NotImplementedError will raise an error if not overwritten
+    correct_cases = NotImplementedError
+    wrong_cases = NotImplementedError
+
+
+#=============================================================================#
+#                            Binary specialisation                            #
+#=============================================================================#
+
+class TestAdd(BinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return np.add(left, scale * right)
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+
+    extra_param = {"scale": [
+        pytest.param(0.2, id="scale[real]"),
+        pytest.param(1.2 + 0.5j, id="scale[complex]"),
+        pytest.param(NoParam, id="unscaled"),
+    ]}
+
+
+class TestSub(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return left - right
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+
+
+class TestInner(BinaryOpMixin):
+    # The inner product is a bit more specialist, since it has to handle inputs
+    # in a 1D space specially.  In order to keep things simple, we just
+    # generate those test cases completely separately from the standard
+    # `mathematically_correct`.
+
+    def op_numpy(self, left, right, scalar_is_ket=False):
+        if left.shape[1] == 1:
+            if left.shape[0] != 1 or scalar_is_ket:
+                left = np.conj(left.T)
+        return (left @ right)[0, 0]
+
+    # These shapes are a little more non-standard.
+    _dim = 100
+    _scalar = pytest.param((1, 1), id="scalar")
+    _bra = pytest.param((1, _dim), id="bra")
+    _ket = pytest.param((_dim, 1), id="ket")
+    _op = pytest.param((_dim, _dim), id="square")
+    shapes = [
+        (_bra, _ket),
+        (_ket, _ket),
+    ]
+    bad_shapes = [
+        (_bra, _bra),
+        (_ket, _bra),
+        (_op, _ket),
+        (_op, _bra),
+        (_bra, _op),
+        (_ket, _op),
+    ]
+
+    def generate_scalar_is_ket(self, metafunc):
+        # For 1D subspaces, the special cases don't really matter since there's
+        # only really one type of matrix available, so this is parametrised
+        # with only case for each input argument.
+        parameters = (
+            ['op']
+            + [x for x in metafunc.fixturenames
+               if x.startswith("data_")]
+            + ['out_type']
+        )
+        cases = []
+        cases_map = self.correct_cases or CORRECT_CASES
+        for p_op in self.specialisations:
+            op, *types, out_type = p_op.values
+            args = (op, types, [(self._scalar, self._scalar)], out_type)
+            cases.extend(cases_type_shape_product(cases_map, *args))
+        metafunc.parametrize(parameters, cases)
+        metafunc.parametrize('scalar_is_ket',
+                             [True, False],
+                             ids=["ket", "bra"])
+
+    def test_scalar_is_ket(self, op, data_l, data_r, out_type, scalar_is_ket):
+        left, right = data_l(), data_r()
+        expected = self.op_numpy(left.to_array(), right.to_array(),
+                                 scalar_is_ket)
+        test = op(left, right, scalar_is_ket)
+        assert isinstance(test, out_type)
+        if issubclass(out_type, Data):
+            assert test.shape == expected.shape
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.atol, rtol=self.rtol)
+        else:
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
+
+
+class TestKron(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.kron(left, right)
+
+    # Keep the dimension low because kron can get very expensive.
+    shapes = shapes_binary_unrestricted(dim=5)
+    bad_shapes = shapes_binary_bad_unrestricted(dim=5)
+
+
+class TestKronT(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return np.kron(left.T, right)
+
+    # Keep the dimension low because kron can get very expensive.
+    shapes = shapes_binary_unrestricted(dim=5)
+    bad_shapes = shapes_binary_bad_unrestricted(dim=5)
+
+
+class TestMatmul(BinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right)
+
+    shapes = shapes_binary_matmul()
+    bad_shapes = shapes_binary_bad_matmul()
+
+    extra_param = {"scale": [
+        pytest.param(NoParam),
+        pytest.param(0.2, id="scale[real]"),
+        pytest.param(0.5j, id="scale[complex]"),
+    ]}
+
+
+class TestMatmulDag(BinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return scale * np.matmul(left, right.T.conj())
+
+    shapes = [
+        (x, y)
+        for x, y in itertools.product(shapes_unary(50), repeat=2)
+        if x.values[0][1] == y.values[0][1]
+    ]
+    bad_shapes = [
+        (x, y)
+        for x, y in itertools.product(shapes_unary(50), repeat=2)
+        if x.values[0][1] != y.values[0][1]
+    ]
+
+    extra_param = {"scale": [
+        pytest.param(NoParam),
+        pytest.param(0.2, id="scale[real]"),
+        pytest.param(0.5j, id="scale[complex]"),
+    ]}
+
+
+class TestMultiply(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return left * right
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+
+
+class TestMatmul_Outer(BinaryOpMixin):
+    def op_numpy(self, left, right, scale=1):
+        return np.matmul(left, right)
+
+    shapes = [
+        (pytest.param((100, 1), id="ket"), pytest.param((1, 100), id="bra")),
+        (pytest.param((100, 1), id="ket"), pytest.param((1, 1), id="scalar")),
+        (pytest.param((100, 2), id="kets"), pytest.param((2, 100), id="bras")),
+    ]
+    bad_shapes = [
+        (pytest.param((10, 1), id="ket"), pytest.param((10, 1), id="ket")),
+        (pytest.param((10, 10), id="square"), pytest.param((1, 10), id="bra")),
+    ]
+
+    extra_param = {"scale": [
+        pytest.param(NoParam),
+        pytest.param(0.2, id="scale[real]"),
+        pytest.param(0.5j, id="scale[complex]"),
+    ]}
+
+
+class TestWRMN_error(BinaryOpMixin):
+    def op_numpy(self, left, right, atol, rtol):
+        return np.linalg.norm(
+            np.abs(left)
+            / (atol + rtol * np.abs(right))
+        ) / left.size**0.5
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+
+    extra_param = {
+        "atol": [1e-7, 0.5],
+        "rtol": [0, 1e-10, 0.5],
+    }
+    wrong_extra_param = {
+        "atol": [0.5],
+        "rtol": [0.5],
+    }
+
+#=============================================================================#
+#                           Ternary specialisation                            #
+#=============================================================================#
+
+class TestMatmulInPlace(TernaryOpMixin):
+    """Test in-place matmul operations that support out parameter."""
+
+    def op_numpy(self, left, right, out, scale=1):
+        return scale * np.matmul(left, right) + out
+
     def test_mathematically_correct(
-        self, op, data_m, scalar, out_type, random_generator
+        self, op,
+        data_l, data_r, data_out,
+        out_type, random_generator,
+        kw,
     ):
-        matrix = data_m(random_generator)
-        expected = self.op_numpy(matrix.to_array(), scalar)
-        test = op(matrix, scalar)
+        left, right = data_l(random_generator), data_r(random_generator)
+        out = data_out(random_generator)
+        expected = self.op_numpy(left.to_array(), right.to_array(), out, **kw)
+
+        test = op(left, right, out=out, **kw)
+        self.check_result(test, expected, out_type)
+
+    shapes = [
+        (x, y, pytest.param((x.values[0][0], y.values[0][1]), id=""))
+        for x, y in itertools.product(shapes_unary(50), repeat=2)
+        if x.values[0][1] == y.values[0][0]
+    ]
+    bad_shapes = [
+        (
+            pytest.param((2, 2), id=""),
+            pytest.param((3, 2), id=""),
+            pytest.param((2, 2), id="[2x2@3x2->2x2]")
+        ),
+        (
+            pytest.param((2, 2), id=""),
+            pytest.param((2, 3), id=""),
+            pytest.param((2, 2), id="[2x2@2x3->2x2]")
+        ),
+    ]
+
+
+class TestMatmulDagInPlace(TernaryOpMixin):
+    """Test in-place matmul operations that support out parameter."""
+
+    def op_numpy(self, left, right, out, scale=1):
+        return scale * np.matmul(left, right.T.conj()) + out
+
+    def test_mathematically_correct(
+        self, op,
+        data_l, data_r, data_out,
+        out_type, random_generator,
+        kw,
+    ):
+        left, right = data_l(random_generator), data_r(random_generator)
+        out = data_out(random_generator)
+        expected = self.op_numpy(left.to_array(), right.to_array(), out, **kw)
+
+        test = op(left, right, out=out, **kw)
+        self.check_result(test, expected, out_type)
+
+    shapes = [
+        (x, y, pytest.param((x.values[0][0], y.values[0][0]), id=""))
+        for x, y in itertools.product(shapes_unary(50), repeat=2)
+        if x.values[0][1] == y.values[0][1]
+    ]
+    bad_shapes = [
+        (
+            pytest.param((2, 2), id=""),
+            pytest.param((2, 3), id=""),
+            pytest.param((2, 2), id="[2x2@3x2->2x2]")
+        ),
+        (
+            pytest.param((2, 2), id=""),
+            pytest.param((3, 2), id=""),
+            pytest.param((2, 2), id="[2x2@2x3->2x2]")
+        ),
+    ]
+
+
+class TestInnerOp(TernaryOpMixin):
+    # This is very very similar to TestInner.
+    def op_numpy(self, left, mid, right, scalar_is_ket=False):
+        if left.shape[1] == 1:
+            if left.shape[0] != 1 or scalar_is_ket:
+                left = np.conj(left.T)
+        return (left @ mid @ right)[0, 0]
+
+    _dim = 100
+    _scalar = pytest.param((1, 1), id="scalar")
+    _bra = pytest.param((1, _dim), id="bra")
+    _ket = pytest.param((_dim, 1), id="ket")
+    _op = pytest.param((_dim, _dim), id="square")
+    shapes = [
+        (_bra, _op, _ket),
+        (_ket, _op, _ket),
+    ]
+    bad_shapes = [
+        (_bra, _op, _bra),
+        (_ket, _op, _bra),
+        (_op, _op, _ket),
+        (_op, _op, _bra),
+        (_bra, _op, _op),
+        (_ket, _op, _op),
+        (_bra, _bra, _ket),
+        (_ket, _bra, _ket),
+        (_bra, _ket, _ket),
+        (_ket, _ket, _ket),
+    ]
+
+    def generate_scalar_is_ket(self, metafunc):
+        parameters = (
+            ['op']
+            + [x for x in metafunc.fixturenames
+               if x.startswith("data_")]
+            + ['out_type']
+        )
+        cases = []
+        cases_map = self.correct_cases or CORRECT_CASES
+        for p_op in self.specialisations:
+            op, *types, out_type = p_op.values
+            args = (op, types, [(self._scalar,) * 3], out_type)
+            cases.extend(cases_type_shape_product(cases_map, *args))
+        metafunc.parametrize(parameters, cases)
+        metafunc.parametrize('scalar_is_ket',
+                             [True, False], ids=["ket", "bra"])
+
+    def test_scalar_is_ket(self, op, data_l, data_m, data_r, out_type,
+                           scalar_is_ket):
+        left, mid, right = data_l(), data_m(), data_r()
+        expected = self.op_numpy(left.to_array(),
+                                 mid.to_array(),
+                                 right.to_array(),
+                                 scalar_is_ket)
+        test = op(left, mid, right, scalar_is_ket)
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
@@ -432,113 +1039,3 @@ class UnaryScalarOpMixin(_GenericOpMixin):
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
-
-
-class BinaryOpMixin(_GenericOpMixin):
-    """
-    Mix-in for binary mathematical operations on Data instances (e.g. binary
-    addition).
-    """
-    def test_mathematically_correct(
-        self, op, data_l, data_r, out_type, random_generator
-    ):
-        """
-        Test that the binary operation is mathematically correct for all the
-        known type specialisations.
-        """
-        left, right = data_l(random_generator), data_r(random_generator)
-        expected = self.op_numpy(left.to_array(), right.to_array())
-        test = op(left, right)
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
-
-    def test_incorrect_shape_raises(
-        self, op, data_l, data_r, random_generator
-    ):
-        """
-        Test that the operation produces a suitable error if the shapes of the
-        given operands are not compatible.
-        """
-        with pytest.raises(ValueError):
-            op(data_l(random_generator), data_r(random_generator))
-
-
-class ScaledBinaryOpMixin(BinaryOpMixin):
-    """
-    Mix-in for binary mathematical operations that support a scale parameter.
-
-    Subclasses should define op_numpy(left, right, scale=1) that returns
-    the expected result with scaling applied.
-    """
-
-    @pytest.mark.parametrize('scale', [None, 0.2, 0.5j],
-                             ids=['unscaled', 'scale[real]',
-                                  'scale[complex]'])
-    def test_mathematically_correct(
-        self, op, data_l, data_r, out_type, scale, random_generator
-    ):
-        """
-        Test that the binary operation is mathematically correct for all the
-        known type specialisations, including with scaling.
-        """
-        left, right = data_l(random_generator), data_r(random_generator)
-        if scale is not None:
-            expected = self.op_numpy(left.to_array(), right.to_array(), scale)
-            test = op(left, right, scale)
-        else:
-            expected = self.op_numpy(left.to_array(), right.to_array())
-            test = op(left, right)
-
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
-
-
-class TernaryOpMixin(_GenericOpMixin):
-    """
-    Mix-in for ternary mathematical operations on Data instances (e.g. inner
-    product with an operator in the middle).  This is pretty rare.
-    """
-    def test_mathematically_correct(self, op,
-                                    data_l, data_m, data_r,
-                                    out_type, random_generator):
-        """
-        Test that the ternary operation is mathematically correct for all the
-        known type specialisations.
-        """
-        rng = random_generator
-        left, mid, right = data_l(rng), data_m(rng), data_r(rng)
-        expected = self.op_numpy(left.to_array(),
-                                 mid.to_array(),
-                                 right.to_array())
-        test = op(left, mid, right)
-        assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
-
-    def test_incorrect_shape_raises(
-        self, op, data_l, data_m, data_r, random_generator
-    ):
-        """
-        Test that the operation produces a suitable error if the shapes of the
-        given operands are not compatible.
-        """
-        rng = random_generator
-        with pytest.raises(ValueError):
-            op(data_l(rng), data_m(rng), data_r(rng))
