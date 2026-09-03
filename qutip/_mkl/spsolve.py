@@ -33,7 +33,7 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
     The rest of ``iparms`` is handled by pydiso's defaults.
     """
     overrides = {
-        "fill_reducing_ordering": perm if perm else 3,
+        "fill_reducing_ordering": perm if perm is not None else 3,
         "max_iterative_refinement_steps": max_iter_refine,
         "parallel_factorization": True,
     }
