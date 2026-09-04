@@ -96,21 +96,6 @@ def shapes_binary_bad_matmul(dim=DIM):
     ]
 
 
-def shapes_ternary_matmul_inplace(dim=DIM):
-    """
-    Shapes for in-place matmul: (left, right, out) where out.shape ==
-    (left.rows, right.cols) and left.cols == right.rows.
-    """
-    shapes = []
-    for left, right in shapes_binary_matmul(dim):
-        left_shape = left.values[0]
-        right_shape = right.values[0]
-        out_shape = (left_shape[0], right_shape[1])
-        out = pytest.param(out_shape, id=f"{out_shape[0]}x{out_shape[1]}")
-        shapes.append((left, right, out))
-    return shapes
-
-
 def shapes_square(dim=DIM):
     """Allowed shapes for operations that require square matrices. Examples of
     these operations are trace, pow, expm and the trace norm."""
@@ -257,6 +242,9 @@ def build_extra_cases(extra_param):
     }
     with create the 4 cases for each values of scale and alpha.
     If the entrise are pytest.param, id and mask will be kept.
+
+    The sentinel value NoParam can be used to set no values: use the default
+    of keyword argument.
     """
     cases = [({}, [], ())]
     for param_name, param_values in extra_param.items():
