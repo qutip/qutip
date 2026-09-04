@@ -959,7 +959,7 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_perm=None, mkl_verbose=False
     ):
         """
         Compute the steady state of the system.
@@ -974,16 +974,17 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(7) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+            For a complete description, see iparm[7] in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
 
-        mkl_weighted_matching : bool
-            MKL PARDISO can use a maximum weighted matching algorithm to
-            permute large elements close the diagonal. This strategy adds an
-            additional level of reliability to the factorization methods.
+        mkl_perm : array_like
+            Fill-in reducing permutation.
 
-            For a complete description, see iparm(12) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+            For a complete description, see iparm[4] in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+
+        mkl_verbose : bool
+            Enable logging for MKL solver.
 
         Returns
         -------
@@ -1009,35 +1010,19 @@ class HEOMSolver(Solver):
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
-        L += sp.csr_matrix((
+        L += sp.csr_array((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
         ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
-            # Currently, the way qutip interfaces MKL Pardiso
-            # requires a scipy csr_matrix with 32-bit indices.
-            # After migration to sparse array (PR 2938) in qutip, CSR.as_scipy
-            # returns csr_array representation, which may have indices
-            # of type int64.
-            # Since qutip/_mkl/spsolve.py is not compatible with this index
-            # resolution, we recreate a csr_matrix with 32-bit indices explicitly
-            # before it is passed to mkl_spsolve
-            L = sp.csr_matrix(
-                (L.data,
-                 L.indices.astype(np.int32, copy=False),
-                 L.indptr.astype(np.int32, copy=False)),
-                shape=L.shape,
-            )
             L.sort_indices()
             solution = mkl_spsolve(
                 L,
                 b_mat,
-                perm=None,
-                verbose=False,
+                perm=mkl_perm,
+                verbose=mkl_verbose,
                 max_iter_refine=mkl_max_iter_refine,
-                scaling_vectors=True,
-                weighted_matching=mkl_weighted_matching,
             )
         else:
             L = L.tocsc()

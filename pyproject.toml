@@ -70,6 +70,10 @@ mpi = ["mpi4py"]
 full = [
   "qutip[graphics,runtime_compilation,semidefinite,ipython,extras]",
 ]
+#mkl = ["pydiso>=0.2.0"]
+ mkl = [
+    "pydiso @ git+https://github.com/simpeg/pydiso.git@51dc35c" # last commit in main
+]
 
 [dependency-groups]
 tests = ["pytest>=7.2", "pytest-rerunfailures"]

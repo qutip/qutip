@@ -237,7 +237,22 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
+            conda install --channel conda-forge \
+              "blas=*=mkl" \
+              mkl-devel \
+              pkg-config \
+              "numpy${{ matrix.numpy-build }}" \
+              "scipy${{ matrix.scipy-requirement }}"
+            # conda-forge's mkl-devel does not include Intel's pkg-config
+            # metadata. Install only that metadata from Intel's wheel while
+            # retaining conda's MKL libraries and headers.
+            python -m pip install --ignore-installed --no-deps mkl-devel
+            export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+            mkl_pc="$CONDA_PREFIX/lib/pkgconfig/mkl-sdl.pc"
+            sed -i 's|${libdir}/libmkl_rt.so.[0-9][0-9]*|-lmkl_rt|' "$mkl_pc"
+            test -e "$CONDA_PREFIX/lib/libmkl_rt.so"
+            pkg-config --modversion mkl-sdl
+            pkg-config --libs mkl-sdl
           else
             conda install nomkl $CORE_DEP
           fi
