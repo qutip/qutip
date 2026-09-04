@@ -57,3 +57,31 @@ def in_temporary_directory():
         # than outside to prevent the case of the directory failing to be
         # removed because it is 'busy'.
         os.chdir(previous_dir)
+
+
+SEEDSEQ = np.random.SeedSequence()
+
+
+@pytest.fixture
+def random_generator(request):
+    seed = SEEDSEQ.spawn(1)[0]
+    request.node.user_properties.append(("numpy_generator", seed))
+    yield np.random.default_rng(seed)
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_makereport(item, call):
+    # Print the seeds at the end of error messages
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call" and report.failed:
+        if item.user_properties:
+            props_str = "\n".join([
+                f"{name}: {value}" for name, value in item.user_properties
+            ])
+            report.longrepr = f"{report.longrepr}\n\n{props_str}"
+
+
+def pytest_sessionstart(session):
+    print("Run global seed:", SEEDSEQ)
