@@ -250,9 +250,8 @@ def mkl_spsolve(
     b : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Vector or matrix representing the right-hand side. A vector must have
         shape ``(n,)`` or ``(n, 1)``.
-    perm : None, optional
-        User-defined permutations are not currently supported. Passing a
-        value other than ``None`` raises ``NotImplementedError``.
+    perm : array_like, optional
+        User-defined permutation.
     verbose : bool, default: False
         Report factorization details.
     return_info : bool, default: False
