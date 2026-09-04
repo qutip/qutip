@@ -12,6 +12,15 @@ pytestmark = [
                        reason='MKL extensions not found.'),
 ]
 
+def _nonhermitian_sparse(n, seed):
+    """Random complex, non-Hermitian sparse matrix."""
+    rng = np.random.default_rng(seed)
+    A = scipy.sparse.random_array(
+        (n, n), density=0.3, rng=rng, dtype=np.complex128,
+        data_sampler=lambda size: rng.standard_normal(size)
+                                  + 1j * rng.standard_normal(size),
+    )
+    return scipy.sparse.csr_array(A)
 
 class Test_spsolve:
     def test_single_rhs_vector_real(self):
@@ -24,6 +33,32 @@ class Test_spsolve:
         b = As * x
         x2 = mkl_spsolve(As, b, verbose=True)
         np.testing.assert_allclose(x, x2)
+
+    def test_complex_nonhermitian_single_rhs(self):
+        A = scipy.sparse.csr_array(np.array([
+            [2 + 1j, 0, 1 - 3j],
+            [4j, 1, 0],
+            [0, -2 + 1j, 3],
+        ], dtype=np.complex128))
+        # Ensure non-hermitian
+        assert (A.toarray() != A.toarray().conj().T).any()
+        rng = np.random.default_rng(1234)
+        x = rng.standard_normal(3) + 1j * rng.standard_normal(3)
+        b = A @ x
+        np.testing.assert_allclose(x, mkl_spsolve(A, b, verbose=True))
+
+    @pytest.mark.parametrize("k", [None, 1, 4])
+    def test_random_sparse_nonhermitian(self, k):
+        """Test single- and multi-RHS with large non-hermitian sparse matrix.
+        The case of flat-array shape is tested too."""
+        A = _nonhermitian_sparse(30, seed=42)
+        rng = np.random.default_rng(7)
+        shape = (30,) if k is None else (30, k)
+        x = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
+        b = A @ x
+        y = mkl_spsolve(A, b, verbose=True)
+        assert y.shape == b.shape
+        np.testing.assert_allclose(x, y, atol=1e-10)
 
     def test_single_rhs_vector_complex(self):
         A = qutip.rand_herm(10, density=0.8, dtype='csr')
