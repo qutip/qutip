@@ -4,94 +4,19 @@ import pytest
 import scipy
 import warnings
 
+from .conftest import CORRECT_CASES, WRONG_CASES
+
 from qutip.core import data
 from qutip.core.data import Data, Dense, CSR, Dia
 from qutip.core.data.dense import OrderEfficiencyWarning
-
-from qutip.testing import random_data
-from qutip.testing import mixin
-
-
-# Set up the special cases for each type of matrix that will be tested.  These
-# should be kept low, because mathematical operations will test a Cartesian
-# product of all the cases of the same order as the operation, which can get
-# very large very fast.  The operations should each complete in a small amount
-# of time, so having 10000+ tests in this file still ought to take less than 2
-# minutes, but it's easy to accidentally add orders of magnitude on.
-#
-# There is a layer of indirection---the cases are returned as 0-ary generator
-# closures---for two reasons:
-#   1. we don't have to store huge amounts of data at test collection time, but
-#      the matrices are only generated, and subsequently freed, within in each
-#      individual test.
-#   2. each test can be repeated, and new random matrices will be generated for
-#      each repeat, rather than re-using the same set.  This is somewhat
-#      "defeating" pytest fixtures, but here we're not worried about re-usable
-#      inputs, we just want the managed parametrisation.
-
-def cases_csr(shape):
-    """
-    Return a list of generators of the different special cases for CSR
-    matrices of a given shape.
-    """
-    def factory(density, sort):
-        return lambda gen: random_generator.random_csr(shape, density, sort, gen)
-
-    def zero_factory():
-        return lambda _: data.csr.zeros(shape[0], shape[1])
-    return [
-        pytest.param(factory(0.001, True), id="sparse"),
-        pytest.param(factory(0.8, True), id="filled,sorted"),
-        pytest.param(factory(0.8, False), id="filled,unsorted"),
-        pytest.param(zero_factory(), id="zero"),
-    ]
-
-
-def cases_dense(shape):
-    """
-    Return a list of generators of the different special cases for Dense
-    matrices of a given shape.
-    """
-    def factory(fortran):
-        return lambda gen: random_generator.random_dense(shape, fortran, gen)
-    return [
-        pytest.param(factory(False), id="C"),
-        pytest.param(factory(True), id="Fortran"),
-    ]
-
-
-def cases_diag(shape):
-    """
-    Return a list of generators of the different special cases for Dense
-    matrices of a given shape.
-    """
-    def factory(density, sort=False):
-        return lambda gen: random_generator.random_diag(shape, density, sort, gen)
-
-    def zero_factory():
-        return lambda _: data.dia.zeros(shape[0], shape[1])
-
-    return [
-        pytest.param(factory(0.001), id="sparse"),
-        pytest.param(factory(0.8, True), id="filled,sorted"),
-        pytest.param(factory(0.8, False), id="filled,unsorted"),
-        pytest.param(zero_factory(), id="zero"),
-    ]
+from qutip.testing import mixin, random_data
 
 
 # Factory methods for generating the cases, mapping type to the function.
-# _ALL_CASES is for getting all the special cases to test, _RANDOM is for
-# getting just a single case from each.
-mixin.CORRECT_CASES = {
-    CSR: cases_csr,
-    Dia: cases_diag,
-    Dense: cases_dense,
-}
-mixin.WRONG_CASES = {
-    CSR: lambda shape: [lambda gen: random_generator.random_csr(shape, 0.5, True, gen)],
-    Dense: lambda shape: [lambda: random_generator.random_dense(shape, False, gen)],
-    Dia: lambda shape: [lambda: random_generator.random_diag(shape, 0.5, gen=gen)],
-}
+# CORRECT_CASES is for getting all the special cases to test, WRONG_CASES is
+# for getting just a single case from each.
+mixin.CORRECT_CASES = CORRECT_CASES
+mixin.WRONG_CASES = WRONG_CASES
 
 
 class TestAdd(mixin.TestAdd):
@@ -179,6 +104,7 @@ class TestMatmulDag(mixin.TestMatmulDag):
     ]
 
 
+
 class TestMatmulInPlace(mixin.TestMatmulInPlace):
     specialisations = [
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense, Dense),
@@ -187,6 +113,18 @@ class TestMatmulInPlace(mixin.TestMatmulInPlace):
         pytest.param(data.matmul_dense_dia_dense, Dense, Dia, Dense, Dense),
     ]
 
+    @pytest.mark.filterwarnings(
+        "ignore::qutip.core.data.dense.OrderEfficiencyWarning"
+    )
+    def test_mathematically_correct(
+        self, op, data_l, data_r, data_out,
+        out_type, random_generator, kw
+    ):
+        super().test_mathematically_correct(
+            op, data_l, data_r, data_out,
+            out_type, random_generator, kw
+        )
+
 
 class TestMatmulDagInPlace(mixin.TestMatmulDagInPlace):
     specialisations = [
@@ -194,6 +132,18 @@ class TestMatmulDagInPlace(mixin.TestMatmulDagInPlace):
         pytest.param(data.matmul_dag_dense_dia_dense, Dense, Dia, Dense, Dense),
         pytest.param(data.matmul_dag_dense, Dense, Dense, Dense, Dense),
     ]
+
+    @pytest.mark.filterwarnings(
+        "ignore::qutip.core.data.dense.OrderEfficiencyWarning"
+    )
+    def test_mathematically_correct(
+        self, op, data_l, data_r, data_out,
+        out_type, random_generator, kw
+    ):
+        super().test_mathematically_correct(
+            op, data_l, data_r, data_out,
+            out_type, random_generator, kw
+        )
 
 
 class TestMultiply(mixin.TestMultiply):
@@ -308,66 +258,55 @@ class TestProject(mixin.TestProject):
     ]
 
 
+def _non_singular(factory):
+    def wrapped(*args):
+        mat = factory(*args)
+        return mat + data.identity_like(mat) * 2
+
+    return wrapped
+
+
+_non_singular_csr = _non_singular(random_data.random_csr)
+_non_singular_dense = _non_singular(random_data.random_dense)
+
+
 class TestInv(mixin.TestInv):
     specialisations = [
         pytest.param(data.inv_csr, CSR, CSR),
         pytest.param(data.inv_dense, Dense, Dense),
     ]
 
-    def add_diag(mat):
-        return mat + data.identity_like(mat) * 2
-
     correct_cases = {
         CSR:
             lambda shape: [
                 pytest.param(
-                    lambda gen: add_diag(random_generator.random_csr(
-                        shape, 0.8, True, gen
-                    )),
+                    lambda gen: _non_singular_csr(shape, 0.8, True, gen),
                     id="Sorted",
                 ),
                 pytest.param(
-                    lambda gen: add_diag(random_generator.random_csr(
-                        shape, 0.8, False, gen
-                    )),
-                    id="Unsorted",
-                ),
-            ],
-        Dia:
-            lambda shape: [
-                pytest.param(
-                    lambda gen: add_diag(random_generator.random_diag(
-                        shape, 0.8, True, gen
-                    )),
-                    id="Sorted",
-                ),
-                pytest.param(
-                    lambda gen: add_diag(random_generator.random_diag(
-                        shape, 0.8, False, gen
-                    )),
+                    lambda gen: _non_singular_csr(shape, 0.8, False, gen),
                     id="Unsorted",
                 ),
             ],
         Dense:
             lambda shape: [
                 pytest.param(
-                    lambda gen: add_diag(random_generator.random_dense(
-                        shape, True, gen
-                    )),
+                    lambda gen: _non_singular_dense(shape, True, gen),
                     id="Fortran"
                 ),
                 pytest.param(
-                    lambda gen: add_diag(random_generator.random_dense(
-                        shape, False, gen
-                    )),
+                    lambda gen: _non_singular_dense(shape, False, gen),
                     id="C"
                 ),
             ],
     }
     wrong_cases = {
-        CSR: lambda shape: [lambda gen: random_generator.random_csr(shape, 0.5, True, gen)],
-        Dense: lambda shape: [lambda: random_generator.random_dense(shape, False, gen)],
-        Dia: lambda shape: [lambda: random_generator.random_diag(shape, 0.5, gen=gen)],
+        CSR: lambda shape: [
+            lambda gen: _non_singular_csr(shape, 0.5, True, gen)
+        ],
+        Dense: lambda shape: [
+            lambda gen: _non_singular_dense(shape, False, gen)
+        ],
     }
 
 
@@ -390,4 +329,13 @@ class TestWRMN_error(mixin.TestWRMN_error):
         pytest.param(data.ode.wrmn_error_csr, CSR, CSR, float),
         pytest.param(data.ode.wrmn_error_dense, Dense, Dense, float),
         pytest.param(data.ode.wrmn_error_dia, Dia, Dia, float),
+    ]
+
+
+class TestPtrace(mixin.TestPtrace):
+    specialisations = [
+        pytest.param(data.ptrace_csr, CSR, CSR),
+        pytest.param(data.ptrace_csr_dense, CSR, Dense),
+        pytest.param(data.ptrace_dense, Dense, Dense),
+        pytest.param(data.ptrace_dia, Dia, Dia),
     ]

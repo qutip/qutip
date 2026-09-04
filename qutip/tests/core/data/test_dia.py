@@ -5,7 +5,7 @@ import pytest
 from qutip.core import data, qeye, CoreOptions
 from qutip.core.data import dia, Dense, Dia
 
-from . import conftest
+from qutip.testing import random_data
 
 # We only choose a small subset of dtypes to test so it isn't crazy.
 _dtype_complex = ['complex128']
@@ -42,12 +42,12 @@ def density(request): return request.param
 
 @pytest.fixture(scope='function')
 def scipy_dia(shape, density):
-    return conftest.random_scipy_dia(shape, density)
+    return random_data.random_scipy_dia(shape, density)
 
 
 def _valid_scipy():
     """Arbitrary valid scipy Dia"""
-    return conftest.random_scipy_dia((10, 10), 0.5)
+    return random_data.random_scipy_dia((10, 10), 0.5)
 
 
 def _valid_arg():
@@ -60,7 +60,7 @@ def _valid_arg():
 
 @pytest.fixture(scope='function')
 def data_diag(shape, density):
-    return conftest.random_diag(shape, density)
+    return random_data.random_diag(shape, density)
 
 
 class TestClassMethods:
