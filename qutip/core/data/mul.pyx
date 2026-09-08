@@ -1,5 +1,4 @@
-#cython: language_level=3
-#cython: boundscheck=False, wrapround=False, initializedcheck=False
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data, Dia, dia
 from scipy.linalg.cython_blas cimport zscal

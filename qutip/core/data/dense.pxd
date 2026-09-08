@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 cimport numpy as cnp
 
 from . cimport base

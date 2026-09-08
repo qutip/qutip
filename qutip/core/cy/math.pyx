@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 cimport cython
 from libc.math cimport (fabs, sinh, cosh, exp, pi, sqrt, cos, sin, copysign)
 

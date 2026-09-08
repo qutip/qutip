@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -76,7 +75,7 @@ cdef class _Indexer:
         return out
 
     @cython.cdivision(True)
-    cdef idxint single(self, idxint idx) nogil:
+    cdef idxint single(self, idxint idx) noexcept nogil:
         cdef size_t i
         cdef idxint out=0, dim
         for i in range(self.ndims - 1, -1, -1):

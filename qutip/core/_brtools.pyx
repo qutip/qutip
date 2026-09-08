@@ -1,4 +1,3 @@
-#cython: language_level=3
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 

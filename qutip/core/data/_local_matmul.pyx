@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport Data, Dense, dense, Dia, CSR
 from qutip.core.data.matmul cimport (
     imatmul_data_dense, matmul_dense, matmul_dense_dia_dense
