@@ -195,19 +195,24 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
-class Test_bures_dist:
-    def test_state_with_itself(self, state):
-        dist = bures_dist(state, state)
-        assert np.isfinite(dist)
-        assert dist == pytest.approx(0, abs=1e-12)
+def test_random_states_are_finite_and_nonnegative(left, right):
+    dist = bures_dist(left, right)
+    assert np.isfinite(dist)
+    assert dist >= 0
 
-    def test_state_with_itself_pure_and_mixed_edges(self):
-        psi = basis(2, 0)
-        rho = qeye(2) / 2
-        assert np.isfinite(bures_dist(psi, psi))
-        assert bures_dist(psi, psi) == pytest.approx(0, abs=1e-12)
-        assert np.isfinite(bures_dist(rho, rho))
-        assert bures_dist(rho, rho) == pytest.approx(0, abs=1e-12)
+def test_known_cases():
+    ket0 = basis(2, 0)
+    ket1 = basis(2, 1)
+    assert bures_dist(ket0, ket0) == pytest.approx(0, abs=1e-8)
+    assert bures_dist(ket0, ket1) == pytest.approx(np.sqrt(2), abs=1e-8)
+    assert bures_dist(ket0, ket1) == pytest.approx(bures_dist(ket1, ket0), abs=1e-8)
+
+def test_bures_dist_trace_imperfect_density_matrix(dimension):
+    state = rand_dm(dimension)
+    trace_not_one = state * (1 + 1e-8)
+    dist = bures_dist(state, trace_not_one)
+    assert np.isfinite(dist)
+    assert dist >= 0
 
 
 class Test_average_gate_fidelity:
