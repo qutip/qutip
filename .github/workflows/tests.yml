@@ -32,6 +32,7 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
         case-name: ["Latest"]
+        pydiso-source: [1]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -81,9 +82,10 @@ jobs:
           - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-run: "==2.1.*"
-            scipy-run: "==1.14.*"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
             qutip-optional: "[graphics]"
+            pydiso-source: 1
 
           - case-name: pydiso source
             os: ubuntu-latest
