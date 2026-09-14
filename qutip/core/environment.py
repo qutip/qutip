@@ -1068,7 +1068,7 @@ class _BosonicEnvironment_fromJC(BosonicEnvironment):
     def __init__(self, g, tlist, tMax, T, tag, args):
         super().__init__(T, tag)
         self._jc = _complex_interpolation(
-            C, tlist, 'jump correlator function', args)
+            g, tlist, 'jump correlator function', args)
         if tlist is not None:
             self.tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
         else:

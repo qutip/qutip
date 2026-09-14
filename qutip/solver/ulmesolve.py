@@ -8,7 +8,7 @@ import itertools
 from numpy.typing import ArrayLike
 from .. import Qobj, QobjEvo
 from .mesolve import MESolver
-from .solver_base import _solver_deprecation, _kwargs_migration, Solver
+from .solver_base import Solver
 from ..typing import EopsLike, QobjEvoLike
 from . import Result
 import qutip.core.data as _data
@@ -17,7 +17,7 @@ from ..core.environment import BosonicEnvironment
 from typing import Any
 
 
-__all__ = ["ulmesolve", "ULMESolver", "ultransform"]
+__all__ = ["ulmesolve", "ULMESolver", "ul_transform"]
 
 
 def ulmesolve(
@@ -25,14 +25,10 @@ def ulmesolve(
     rho0: Qobj,
     tlist: ArrayLike,
     a_ops: list[tuple[QobjEvoLike, BosonicEnvironment]] | tuple[QobjEvoLike, BosonicEnvironment],
-    _e_ops=None,
-    _args=None,
-    _options=None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
-    **kwargs
 ) -> Result:
     """
     Evolution of a density matrix using the Universal Lindblad Master Equation
@@ -83,10 +79,6 @@ def ulmesolve(
         values and/or states.
     """
     # Backward compatibility warnings
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    args = _kwargs_migration(_args, args, "args")
-    options = _kwargs_migration(_options, options, "options")
-    options = _solver_deprecation(kwargs, options)
 
     H = QobjEvo(H, args=args, tlist=tlist)
     if not a_ops:
@@ -265,9 +257,11 @@ class ULMESolver(MESolver):
         Solver.options.fset(self, new_options)
 
 
-def ultransform(
+def ul_transform(
     H: Qobj | QobjEvo,
-    a_ops: tuple[Qobj | QobjEvo, BosonicEnvironment] | list[tuple[Qobj | QobjEvo, BosonicEnvironment]],
+    a_ops:
+        tuple[Qobj | QobjEvo, BosonicEnvironment]
+        | list[tuple[Qobj | QobjEvo, BosonicEnvironment]],
     options: dict=None
 ) -> tuple[Qobj | QobjEvo, list[Qobj | QobjEvo]]:
     """
@@ -472,6 +466,7 @@ class OP:
             Us = Ut @ self.U2(0, t - s)
             Xm = Us @ self.X(t - s) @ Us.dag()
             g = self.g(s)
+
             Lp += Xp * g.conjugate()
             Lm += Xm * g
             Ip += Xp * g
