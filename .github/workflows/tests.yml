@@ -85,6 +85,22 @@ jobs:
             scipy-run: "==1.14.*"
             qutip-optional: "[graphics]"
 
+          - case-name: pydiso source
+            os: ubuntu-latest
+            python-version: "3.12"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            pydiso-source: 1
+
+          - case-name: pydiso source
+            os: windows-latest
+            python-version: "3.12"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            pydiso-source: 1
+
           - case-name: version-5
             os: ubuntu-latest
             python-version: "3.11"
@@ -235,24 +251,11 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install --channel conda-forge \
+            conda install --yes --channel conda-forge \
               "blas=*=mkl" \
               mkl-devel \
-              pkg-config \
               cmake \
-              "numpy${{ matrix.numpy-build }}" \
-              "scipy${{ matrix.scipy-requirement }}"
-            pip install .
-            # conda-forge's mkl-devel does not include Intel's pkg-config
-            # metadata. Install only that metadata from Intel's wheel while
-            # retaining conda's MKL libraries and headers.
-            # python -m pip install --ignore-installed --no-deps mkl-devel
-            # export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-            # mkl_pc="$CONDA_PREFIX/lib/pkgconfig/mkl-sdl.pc"
-            # sed -i 's|${libdir}/libmkl_rt.so.[0-9][0-9]*|-lmkl_rt|' "$mkl_pc"
-            # test -e "$CONDA_PREFIX/lib/libmkl_rt.so"
-            # pkg-config --modversion mkl-sdl
-            # pkg-config --libs mkl-sdl
+              $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi
@@ -268,6 +271,42 @@ jobs:
           if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }}
           fi
+
+      - name: Build and verify pydiso from source
+        if: matrix.pydiso-source
+        working-directory: ${{ runner.temp }}
+        env:
+          # Keep in sync with the mkl extra in pyproject.toml.
+          PYDISO_REV: 25df6402bbde745f495abb5bac0100c787298d58
+        run: |
+          python -m pip install \
+            "meson-python>=0.21.0" meson ninja \
+            "Cython>=3.1.0" "setuptools_scm[toml]>=6.2"
+
+          # Windows conda packages use Library; Unix packages use the prefix.
+          mkl_prefix=$(python -c \
+            'import os; from pathlib import Path; p = Path(os.environ["CONDA_PREFIX"]); print((p / "Library" if os.name == "nt" else p).as_posix())')
+          test -f "$mkl_prefix/lib/cmake/mkl/MKLConfig.cmake"
+
+          # Use conda's MKL and preserve the matrix's runtime dependencies.
+          python -m pip install --verbose \
+            --no-build-isolation --no-deps \
+            -Csetup-args="-Dcmake_prefix_path=$mkl_prefix" \
+            -Csetup-args="-Dvsenv=true" \
+            "pydiso @ git+https://github.com/simpeg/pydiso.git@${PYDISO_REV}"
+
+          python - <<'PY'
+          import numpy as np
+          from scipy.sparse import csr_matrix
+          from pydiso.mkl_solver import MKLPardisoSolver
+          import qutip
+
+          a = csr_matrix([[4.0, 1.0], [1.0, 3.0]])
+          b = np.array([1.0, 2.0])
+          solver = MKLPardisoSolver(a)
+          np.testing.assert_allclose(a @ solver.solve(b), b)
+          assert qutip.settings.has_mkl
+          PY
 
       - name: Package information
         working-directory: ${{ runner.temp }}
