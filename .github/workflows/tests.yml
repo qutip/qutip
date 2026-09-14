@@ -152,6 +152,13 @@ jobs:
             # matplotlib not installed
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
 
+          - case-name: Python 3.15
+            os: ubuntu-latest
+            python-version: "3.15"
+            no-conda: 1
+            pypi: 1
+            qutip-optional: ""
+
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
@@ -165,7 +172,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
-        if: matrix.os != 'windows-11-arm'
+        if: matrix.os != 'windows-11-arm' && !matrix.no-conda
         # Currently miniconda doesn't support window-11 arms
         with:
           auto-update-conda: true
@@ -173,15 +180,16 @@ jobs:
           channels: conda-forge
 
       - name: Install pip
-        if: matrix.os != 'windows-11-arm'
+        if: matrix.os != 'windows-11-arm' && !matrix.no-conda
         shell: bash -l {0}
         run: conda install pip -y -n test
 
       # TODO remove this once conda supports windows arm
       - uses: actions/setup-python@v7
-        if: matrix.os == 'windows-11-arm'
+        if: matrix.os == 'windows-11-arm' || matrix.no-conda
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       # Meson, unlike setuptools/distutils, does not locate and activate the
       # MSVC toolchain itself: it simply looks for cl.exe and link.exe in PATH.
@@ -257,7 +265,7 @@ jobs:
       - name: Package information
         working-directory: ${{ runner.temp }}
         run: |
-          if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
+          if [[ "${{ matrix.os }}" == "windows-11-arm" || "${{ matrix.no-conda }}" ]]; then
             pip list
           else
             conda list
