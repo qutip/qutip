@@ -158,6 +158,7 @@ jobs:
             no-conda: 1
             pypi: 1
             qutip-optional: ""
+            pytest-extra-options: "-W ignore:matplotlib:UserWarning"
 
           - case-name: Windows - numpy fallback
             os: windows-latest
