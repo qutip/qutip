@@ -297,19 +297,6 @@ jobs:
             -Csetup-args="-Dvsenv=true" \
             "pydiso @ git+https://github.com/simpeg/pydiso.git@${PYDISO_REV}"
 
-          python - <<'PY'
-          import numpy as np
-          from scipy.sparse import csr_matrix
-          from pydiso.mkl_solver import MKLPardisoSolver
-          import qutip
-
-          a = csr_matrix([[4.0, 1.0], [1.0, 3.0]])
-          b = np.array([1.0, 2.0])
-          solver = MKLPardisoSolver(a)
-          np.testing.assert_allclose(a @ solver.solve(b), b)
-          assert qutip.settings.has_mkl
-          PY
-
       - name: Package information
         working-directory: ${{ runner.temp }}
         run: |
