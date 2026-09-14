@@ -20,7 +20,8 @@ if sys.platform == 'darwin':
 elif sys.platform == 'linux':
     # forkserver would handle threads better, but is much slower at starting
     # the executor and spawning tasks
-    mp_context = multiprocessing.get_context('fork')
+    #mp_context = multiprocessing.get_context('fork')
+    mp_context = multiprocessing.get_context('forkserver')
 else:
     mp_context = multiprocessing.get_context()
 
