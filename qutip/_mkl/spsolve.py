@@ -4,10 +4,8 @@ import time
 
 from pydiso.mkl_solver import MKLPardisoSolver
 
-def _prepare_pydiso_args(
-    max_iter_refine: int,
-    perm = None
-):
+
+def _prepare_pydiso_args(max_iter_refine: int, perm=None):
     """
     Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
 
@@ -35,7 +33,7 @@ def _prepare_pydiso_args(
     The rest of ``iparms`` is handled by pydiso's defaults.
     """
     overrides = {
-        "fill_reducing_ordering": perm if perm else 3,
+        "fill_reducing_ordering": perm if perm is not None else 3,
         "max_iterative_refinement_steps": max_iter_refine,
         "parallel_factorization": True,
     }
@@ -145,9 +143,7 @@ class MKLFactorization:
 
         if self._solver is None:
             return self._info
-        iparm = (
-            self._solver.iparm
-        )
+        iparm = self._solver.iparm
         return {
             "FactorTime": self._factor_time,
             "SolveTime": self._solve_time,
@@ -224,10 +220,7 @@ def mkl_splu(
 
     # Call solver
     _factor_start = time.perf_counter()
-    iparms = _prepare_pydiso_args(
-        max_iter_refine=max_iter_refine,
-        perm=perm
-    )
+    iparms = _prepare_pydiso_args(max_iter_refine=max_iter_refine, perm=perm)
     solver = MKLPardisoSolver(
         A, matrix_type=matrix_type, verbose=verbose, **iparms
     )
@@ -257,9 +250,8 @@ def mkl_spsolve(
     b : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Vector or matrix representing the right-hand side. A vector must have
         shape ``(n,)`` or ``(n, 1)``.
-    perm : None, optional
-        User-defined permutations are not currently supported. Passing a
-        value other than ``None`` raises ``NotImplementedError``.
+    perm : array_like, optional
+        User-defined permutation.
     verbose : bool, default: False
         Report factorization details.
     return_info : bool, default: False

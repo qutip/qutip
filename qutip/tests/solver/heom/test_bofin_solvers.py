@@ -782,6 +782,8 @@ class TestHEOMSolver:
             assert_raises_steady_state_time_dependent(hsolver)
 
     def test_steady_state_mkl(self):
+         """Ensure outputs of MKL-based steady state solver are equivalent
+         to SciPy-based one."""
          H = 0.25 * sigmaz() + 0.5 * sigmay()
          bath = DrudeLorentzBath(
              sigmaz(), lam=0.025, gamma=0.05, T=1 / 0.95, Nk=0,
@@ -791,6 +793,24 @@ class TestHEOMSolver:
          rho_mkl, ados_mkl = solver.steady_state(use_mkl=True)
          rho_scipy, ados_scipy = solver.steady_state(use_mkl=False)
          assert_ado_hierarchies_close(rho_scipy, ados_scipy, rho_mkl, ados_mkl)
+
+    def test_steady_state_mkl_with_perm(self):
+         """Ensure outputs of MKL-based steady state solver are equivalent
+         with respect to a user-defined permutation. """
+         H = 0.25 * sigmaz() + 0.5 * sigmay()
+         bath = DrudeLorentzBath(
+             sigmaz(), lam=0.025, gamma=0.05, T=1 / 0.95, Nk=0,
+         )
+         solver = HEOMSolver(H, bath, max_depth=1)
+
+         n = H.shape[0]
+         size = n ** 2 * len(solver.ados.labels)
+         # Test with identity permutation
+         perm = np.arange(size)
+
+         rho, ados = solver.steady_state(use_mkl=True)
+         rho_with_perm, ados_with_perm = solver.steady_state(use_mkl=True, mkl_perm=perm)
+         assert_ado_hierarchies_close(rho, ados, rho_with_perm, ados_with_perm)
 
 
     def test_steady_state(

@@ -959,7 +959,7 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100
+        use_mkl=True, mkl_max_iter_refine=100, mkl_perm=None, mkl_verbose=False
     ):
         """
         Compute the steady state of the system.
@@ -976,6 +976,15 @@ class HEOMSolver(Solver):
 
             For a complete description, see iparm[7] in
             https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+
+        mkl_perm : array_like
+            Fill-in reducing permutation.
+
+            For a complete description, see iparm[4] in
+            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+
+        mkl_verbose : bool
+            Enable logging for MKL solver.
 
         Returns
         -------
@@ -1011,8 +1020,8 @@ class HEOMSolver(Solver):
             solution = mkl_spsolve(
                 L,
                 b_mat,
-                perm=None,
-                verbose=False,
+                perm=mkl_perm,
+                verbose=mkl_verbose,
                 max_iter_refine=mkl_max_iter_refine,
             )
         else:
