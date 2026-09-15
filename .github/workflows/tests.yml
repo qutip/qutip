@@ -96,7 +96,7 @@ jobs:
             qutip-optional: "[semidefinite]"
             # Installing matplotlib 3.8 with it's latest dependencies raise this warnings
             pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
-            pypi-extra-pkgs: "matplotlib==3.8.*"
+            pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: numpy fallback, nomkl
             os: ubuntu-latest
@@ -140,7 +140,7 @@ jobs:
             nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
-            pypi-extra-pkgs: "matplotlib==3.8.*"
+            pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
           # Test 1 recent and one old
@@ -159,7 +159,7 @@ jobs:
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
-            pypi-extra-pkgs: "matplotlib==3.7.*"
+            pypi-extra-pkgs: "matplotlib==3.9.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
@@ -233,6 +233,12 @@ jobs:
           python -m pip install pytest-cov coveralls pytest-fail-slow
           python -m pip install coverage[toml] chardet
 
+          # CORE_DEP installed here, but add it at each step to force pip to
+          # not update the versions at a later step.
+          # ps. conda install after a pip install of the same version will
+          # priorize the conda build. pip after the conda install will detect
+          # it as already installed.
+
           CORE_DEP="numpy${{ matrix.numpy-run }} scipy${{ matrix.scipy-run }}"
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
@@ -245,13 +251,15 @@ jobs:
           cp "${{ github.workspace }}"/qutip*.whl .
           WHEEL=$( echo qutip*.whl )
           echo $WHEEL
-          python -m pip install "$WHEEL${{ matrix.qutip-optional }}" -v
+
+          python -m pip install "$WHEEL${{ matrix.qutip-optional }}" $CORE_DEP -v
+
           if [[ -n "${{ matrix.pypi-extra-pkgs }}" ]]; then
-            python -m pip install ${{ matrix.pypi-extra-pkgs }}
+            python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
           fi
 
           if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
-            conda install ${{ matrix.conda-extra-pkgs }}
+            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
       - name: Package information

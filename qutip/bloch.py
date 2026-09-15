@@ -15,15 +15,9 @@ try:
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import Axes3D, proj3d
 
-    # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
+
+
+
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -229,23 +223,23 @@ class Bloch:
 
         bloch_conventions = {
             "original": (
-                ['$x$', ''], 
-                ['$y$', ''], 
+                ['$x$', ''],
+                ['$y$', ''],
                 [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
             ),
             "xyz": (
-                ['$x$', ''], 
-                ['$y$', ''], 
+                ['$x$', ''],
+                ['$y$', ''],
                 ['$z$', '']
             ),
             "sx sy sz": (
-                ['$s_x$', ''], 
-                ['$s_y$', ''], 
+                ['$s_x$', ''],
+                ['$s_y$', ''],
                 ['$s_z$', '']
             ),
             "01": (
-                ['', ''], 
-                ['', ''], 
+                ['', ''],
+                ['', ''],
                 [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
             ),
             "polarization stokes": (
@@ -747,7 +741,12 @@ class Bloch:
                 plt.close(self.fig)
 
         if self.axes is None:
-            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            self.axes = self.fig.add_axes(Axes3D(
+                self.fig,
+                azim=self.view[0],
+                elev=self.view[1],
+                auto_add_to_figure=False,
+            ))
 
         # Clearing the axes is horrifically slow and loses a lot of the
         # axes state, but matplotlib doesn't seem to provide a better way

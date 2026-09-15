@@ -29,15 +29,8 @@ try:
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
 
-    # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(mpl.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
+
+
 
 except ImportError:
     pass
@@ -71,7 +64,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = _axes3D(fig)
+                ax = fig.add_axes(Axes3D(fig, auto_add_to_figure=False))
         else:
             fig = ax.get_figure()
     else:
@@ -79,7 +72,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = _axes3D(fig)
+                ax = fig.add_axes(Axes3D(fig, auto_add_to_figure=False))
 
     return fig, ax
 
