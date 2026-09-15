@@ -118,7 +118,7 @@ jobs:
             numpy-run: "==1.23.*"
             scipy-run: "==1.13.*"
             qutip-optional: ""
-            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock"
+            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock matplotlib==3.8.*"
             pypi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita"
 
@@ -140,7 +140,7 @@ jobs:
             nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
-            pypi-extra-pkgs: "matplotlib==3.9.*"
+            pypi-extra-pkgs: "matplotlib==3.8.*"
 
           # Windows
           # Test 1 recent and one old
@@ -159,7 +159,7 @@ jobs:
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
-            pypi-extra-pkgs: "matplotlib==3.9.*"
+            pypi-extra-pkgs: "matplotlib==3.8.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
