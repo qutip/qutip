@@ -120,7 +120,7 @@ jobs:
             qutip-optional: ""
             pypi-extra-pkgs: "cython==0.29.34 setuptools filelock matplotlib==3.8.*"
             pypi: 1
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita"
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
           # Mac
           # Mac has issues with MKL since september 2022.
