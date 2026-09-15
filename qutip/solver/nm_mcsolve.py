@@ -53,6 +53,9 @@ def nm_mcsolve(
     to allow for negative rates. Options for the underlying ODE solver are
     given by the Options class.
 
+    See the Users Guide on :ref:`monte-nonmarkov` for an introduction and
+    worked examples.
+
     Parameters
     ----------
     H : :class:`.Qobj`, :class:`.QobjEvo`, ``list``, callable.
@@ -327,6 +330,9 @@ class NonMarkovianMCSolver(MCSolver):
     negative. The ``c_ops`` parameter of :class:`.MCSolver` is replaced by
     an ``ops_and_rates`` parameter to allow for negative rates. Options for the
     underlying ODE solver are given by the Options class.
+
+    See the Users Guide on :ref:`monte-nonmarkov` for an introduction and
+    worked examples.
 
     Parameters
     ----------
