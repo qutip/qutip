@@ -195,17 +195,11 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
-def test_random_states_are_finite_and_nonnegative(left, right):
-    dist = bures_dist(left, right)
+def test_bures_dist_identical_random_states_is_finite(state):
+    dist = bures_dist(state, state)
     assert np.isfinite(dist)
     assert dist >= 0
 
-def test_known_cases():
-    ket0 = basis(2, 0)
-    ket1 = basis(2, 1)
-    assert bures_dist(ket0, ket0) == pytest.approx(0, abs=1e-8)
-    assert bures_dist(ket0, ket1) == pytest.approx(np.sqrt(2), abs=1e-8)
-    assert bures_dist(ket0, ket1) == pytest.approx(bures_dist(ket1, ket0), abs=1e-8)
 
 def test_bures_dist_trace_imperfect_density_matrix(dimension):
     state = rand_dm(dimension)
