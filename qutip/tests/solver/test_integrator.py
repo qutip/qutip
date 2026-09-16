@@ -20,7 +20,7 @@ WARN_MISSING_MODULE[0] = 0
 class TestIntegratorCallable:
 
     @pytest.fixture(autouse=True)
-    def setup(self):
+    def setup(self, random_generator):
         def derivative_1(t, state, out=None):
             x = state.to_array()
             der = np.array([
@@ -43,7 +43,7 @@ class TestIntegratorCallable:
             ])
             return out
 
-        mat = qutip.rand_herm(3, density=0.75) * -1j
+        mat = qutip.rand_herm(3, density=0.75, seed=random_generator) * -1j
 
         derivative_2 = qutip.QobjEvo(mat).matmul_data
 
@@ -99,11 +99,16 @@ class TestIntegratorCallable:
 
 
 class TestIntegratorMatrix:
-    hermitian = qutip.rand_herm(10).data
-    non_hermitian = (
-        qutip.rand_stochastic(10, density=0.4) +
-        qutip.rand_stochastic(10, density=0.4) *1j
-    ).data
+    @pytest.fixture
+    def hermitian(self, random_generator):
+        return qutip.rand_herm(10, seed=random_generator).data
+
+    @pytest.fixture
+    def non_hermitian(self, random_generator):
+        return (
+            qutip.rand_stochastic(10, density=0.4, seed=random_generator) +
+            qutip.rand_stochastic(10, density=0.4, seed=random_generator) * 1j
+        ).data
 
     @pytest.fixture(params=[
         (IntegratorKrylov, {"krylov_dim": 5}),
@@ -129,22 +134,26 @@ class TestIntegratorMatrix:
         assert t == 3.
         assert_allclose(analytical(t, state0), state.to_array(), atol=2e-5)
 
-    def test_integration_hermitian(self, integrator):
+    def test_integration_hermitian(
+        self, integrator, hermitian, random_generator
+    ):
         integrator, options = integrator
-        integrator_instance = integrator(self.hermitian, options)
-        state0 = qutip.rand_ket(10).data
+        integrator_instance = integrator(hermitian, options)
+        state0 = qutip.rand_ket(10, seed=random_generator).data
         self._check_integrator(
             integrator_instance, state0,
-            functools.partial(self.analytical, self.hermitian)
+            functools.partial(self.analytical, hermitian)
         )
 
-    def test_integration_non_hermitian(self, integrator):
+    def test_integration_non_hermitian(
+        self, integrator, non_hermitian, random_generator
+    ):
         integrator, options = integrator
-        integrator_instance = integrator(self.non_hermitian, options)
-        state0 = qutip.rand_ket(10).data
+        integrator_instance = integrator(non_hermitian, options)
+        state0 = qutip.rand_ket(10, seed=random_generator).data
         self._check_integrator(
             integrator_instance, state0,
-            functools.partial(self.analytical, self.non_hermitian)
+            functools.partial(self.analytical, non_hermitian)
         )
 
 

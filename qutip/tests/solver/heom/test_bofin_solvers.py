@@ -204,6 +204,10 @@ class TestHierarchyADOs:
 
 
 class TestHierarchyADOsState:
+    @pytest.fixture(autouse=True)
+    def _set_random_generator(self, random_generator):
+        self.random_generator = random_generator
+
     def mk_ados(self, bath_dims, max_depth):
         exponents = [
             BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
@@ -213,7 +217,9 @@ class TestHierarchyADOsState:
 
     def mk_rho_and_soln(self, ados, rho_dims):
         n_ados = len(ados.labels)
-        ado_soln = np.random.rand(n_ados, *[np.prod(d) for d in rho_dims])
+        ado_soln = self.random_generator.random(
+            (n_ados, *[np.prod(d) for d in rho_dims])
+        )
         rho = Qobj(ado_soln[0, :], dims=rho_dims)
         return rho, ado_soln
 
@@ -1778,6 +1784,10 @@ class TestHSolverDL:
 
 
 class TestHEOMResult:
+    @pytest.fixture(autouse=True)
+    def _set_random_generator(self, random_generator):
+        self.random_generator = random_generator
+
     def mk_ados(self, bath_dims, max_depth):
         exponents = [
             BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
@@ -1787,7 +1797,9 @@ class TestHEOMResult:
 
     def mk_rho_and_soln(self, ados, rho_dims):
         n_ados = len(ados.labels)
-        ado_soln = np.random.rand(n_ados, *[np.prod(d) for d in rho_dims])
+        ado_soln = self.random_generator.random(
+            (n_ados, *[np.prod(d) for d in rho_dims])
+        )
         rho = Qobj(ado_soln[0, :], dims=rho_dims)
         return rho, ado_soln
 

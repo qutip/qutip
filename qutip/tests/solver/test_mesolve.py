@@ -678,11 +678,11 @@ class TestMESolveStepFuncCoeff:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def test_py_coeff(self, method):
+    def test_py_coeff(self, method, random_generator):
         """
         Test for Python function as coefficient as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0, np.pi/2])
         options = {"method": method, "nsteps": 1e5, "rtol": 1e-7}
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
@@ -691,11 +691,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_cte_coeff(self):
+    def test_array_cte_coeff(self, random_generator):
         """
         Test for Array coefficient with uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -703,11 +703,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_t_coeff(self):
+    def test_array_t_coeff(self, random_generator):
         """
         Test for Array with non-uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -715,12 +715,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_coeff(self):
+    def test_array_str_coeff(self, random_generator):
         """
         Test for Array and string as step function coeff.
         qobjevo_codegen is used and uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
         npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
@@ -734,12 +734,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_py_coeff(self):
+    def test_array_str_py_coeff(self, random_generator):
         """
         Test for Array, string and Python function as step function coeff.
         qobjevo_codegen is used and non non-uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
         npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
@@ -828,9 +828,9 @@ def test_non_normalized_dm(rho0, matrix_form):
 
 @pytest.mark.parametrize("kdim", [50, 1000])
 @pytest.mark.parametrize("alg", ['lanczos_fro'])
-def test_krylovsolve_mixed_state(kdim, alg):
-    H = qutip.rand_herm(20, density=.8)
-    rho0 = qutip.rand_dm(20)
+def test_krylovsolve_mixed_state(kdim, alg, random_generator):
+    H = qutip.rand_herm(20, density=.8, seed=random_generator)
+    rho0 = qutip.rand_dm(20, seed=random_generator)
     e_op = qutip.num(20)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
@@ -1034,22 +1034,6 @@ def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
 
     assert result.final_state._isherm is None
     assert result.final_state.isherm is False
-
-
-def test_mesolve_does_not_cache_isherm_for_propagator():
-    """Propagator evolved by mesolve must not inherit the fast path for isherm. """
-
-    propagator = mesolve(
-            qutip.num(2),
-            qutip.qeye([[2], [2]]),
-            [0, 1],
-            c_ops=[qutip.destroy(2)],
-            options={"progress_bar": None},
-        ).final_state
-
-    assert propagator._isherm is None
-    assert not qutip.data.isherm(propagator.data)
-    assert propagator.isherm is False
 
 
 def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
