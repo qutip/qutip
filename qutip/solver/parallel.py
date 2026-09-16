@@ -15,11 +15,12 @@ import warnings
 from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
 
-if sys.platform == 'linux':
-    mp_context = multiprocessing.get_context('forkserver')
-else:
-    mp_context = multiprocessing.get_context()
+# if sys.platform == 'linux':
+#     mp_context = multiprocessing.get_context('forkserver')
+# else:
 
+mp_context = multiprocessing.get_context()
+print(f"======= mp_context: {mp_context} =========")
 
 default_map_kw = {
     'timeout': threading.TIMEOUT_MAX,
