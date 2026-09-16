@@ -174,7 +174,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
-        if: !matrix.no-conda
+        if: ${{ !matrix.no-conda }}
         # Currently miniconda doesn't support window-11 arms
         with:
           auto-update-conda: true
@@ -182,7 +182,7 @@ jobs:
           channels: conda-forge
 
       - name: Install pip
-        if: !matrix.no-conda
+        if: ${{ !matrix.no-conda }}
         shell: bash -l {0}
         run: conda install pip -y -n test
 
