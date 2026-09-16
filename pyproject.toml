@@ -57,7 +57,7 @@ Documentation = "https://qutip.readthedocs.io/en/stable/"
 Funding = "https://github.com/sponsors/qutip"
 
 [project.optional-dependencies]
-graphics = ["matplotlib>=3.8"]
+graphics = ["matplotlib>=3.9"]
 runtime_compilation = ["cython>=0.29.34", "filelock", "setuptools"]
 semidefinite = ["cvxpy>=1.3", "cvxopt"]
 ipython = ["ipython"]
