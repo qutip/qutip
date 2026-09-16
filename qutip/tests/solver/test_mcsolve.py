@@ -565,17 +565,32 @@ def test_feedback(func, kind):
     assert np.all(result.expect[0] > 4. - tol)
 
 
-def test_state_feedback():
+@pytest.mark.parametrize("default", [None, qutip.basis(2, 0)],
+                         ids=["no-default", "default"])
+def test_state_feedback(default):
     psi0 = qutip.basis(2, 0)
+    states = []
+
+    def coeff(t, state):
+        states.append(state)
+        return 0.1
+
     H = qutip.QobjEvo(
-        [qutip.sigmaz(), [qutip.sigmax(), lambda t, state: 0.1]],
-        args={"state": qutip.MCSolver.StateFeedback()},
+        [qutip.sigmaz(), [qutip.sigmax(), coeff]],
+        args={"state": qutip.MCSolver.StateFeedback(default=default)},
     )
     solver = qutip.MCSolver(
         H, c_ops=[qutip.sigmam()], options={"map": "serial"}
     )
     result = solver.run(psi0, np.linspace(0, 1, 3), ntraj=2)
     assert len(result.states) == 3
+
+    # QobjEvo evaluates the coefficient once while building it, when the
+    # feedback is still its default. Everything after that is the state.
+    evolving = [state for state in states if state is not None]
+    assert evolving, "the feedback never reached the coefficient"
+    assert all(isinstance(state, qutip.Qobj) for state in evolving)
+    assert all(state.isket for state in evolving)
 
 
 @pytest.mark.parametrize("open", [True, False])
