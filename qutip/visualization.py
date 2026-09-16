@@ -29,9 +29,6 @@ try:
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
 
-
-
-
 except ImportError:
     pass
 
@@ -64,7 +61,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = fig.add_axes(Axes3D(fig, auto_add_to_figure=False))
+                ax = fig.add_axes(Axes3D(fig))
         else:
             fig = ax.get_figure()
     else:
@@ -72,7 +69,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = fig.add_axes(Axes3D(fig, auto_add_to_figure=False))
+                ax = fig.add_axes(Axes3D(fig))
 
     return fig, ax
 

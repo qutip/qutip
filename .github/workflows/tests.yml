@@ -94,8 +94,6 @@ jobs:
             scipy-run: "==1.13.*"
             nomkl: 1
             qutip-optional: "[semidefinite]"
-            # Installing matplotlib 3.8 with it's latest dependencies raise this warnings
-            pytest-extra-options: "-W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: numpy fallback, nomkl
