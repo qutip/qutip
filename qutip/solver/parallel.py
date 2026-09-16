@@ -20,7 +20,6 @@ from qutip.settings import available_cpu_count
 # else:
 
 mp_context = multiprocessing.get_context()
-print(f"======= mp_context: {mp_context} =========")
 
 default_map_kw = {
     'timeout': threading.TIMEOUT_MAX,
