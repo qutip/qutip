@@ -132,13 +132,13 @@ def _reference_dm(dimensions, n_excitations, nbars):
 
 
 @pytest.mark.parametrize("nbar_type", ["scalar", "vector"])
-def test_thermal_dm(dimensions, n_excitations, nbar_type):
+def test_thermal_dm(dimensions, n_excitations, nbar_type, random_generator):
     # Ensure that the average number of excitations over all the states is
     # much less than the total number of allowed excitations.
     if nbar_type == "scalar":
         nbars = 0.1 * n_excitations / len(dimensions)
     else:
-        nbars = np.random.rand(len(dimensions))
+        nbars = random_generator.random(len(dimensions))
         nbars *= (0.1 * n_excitations) / np.sum(nbars)
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
@@ -282,7 +282,7 @@ def dtype(request):
                              ([4, 4, 4], []),
                              ([4, 4, 4], [0, 1, 2]),
                          ])
-@pytest.mark.filterwarnings("ignore:enr_ptrace")  
+@pytest.mark.filterwarnings("ignore:enr_ptrace")
 def test_enr_ptrace(dims, sel, n_excitations, dtype):
     nstates_enr = _n_enr_states(dims, n_excitations)
     # use qutip to make a random sparse Hermitian matrix w/ trace 1

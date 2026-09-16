@@ -344,9 +344,9 @@ def test_qft(dims):
 
 @pytest.mark.parametrize('N', [1, 3, 5, 8])
 @pytest.mark.parametrize('M', [2, 3, 5, 8])
-def test_swap(N, M):
-    ket1 = qutip.rand_ket(N)
-    ket2 = qutip.rand_ket(M)
+def test_swap(N, M, random_generator):
+    ket1 = qutip.rand_ket(N, seed=random_generator)
+    ket2 = qutip.rand_ket(M, seed=random_generator)
 
     assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
 
@@ -358,8 +358,8 @@ def test_swap(N, M):
     pytest.param([[2], [2]], "chi", id="chi"),
 ])
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
-def test_qeye_like(dims, superrep, dtype):
-    op = qutip.rand_herm(dims, dtype=dtype)
+def test_qeye_like(dims, superrep, dtype, random_generator):
+    op = qutip.rand_herm(dims, dtype=dtype, seed=random_generator)
     op.superrep = superrep
     new = qutip.qeye_like(op)
     expected = qutip.qeye(dims, dtype=dtype)
@@ -388,8 +388,8 @@ def test_qeye_like_error():
     pytest.param([[2], [2]], "chi", id="chi"),
 ])
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
-def test_qzero_like(dims, superrep, dtype):
-    op = qutip.rand_herm(dims, dtype=dtype)
+def test_qzero_like(dims, superrep, dtype, random_generator):
+    op = qutip.rand_herm(dims, dtype=dtype, seed=random_generator)
     op.superrep = superrep
     new = qutip.qzero_like(op)
     expected = qutip.qzero(dims, dtype=dtype)
