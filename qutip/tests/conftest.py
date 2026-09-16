@@ -69,6 +69,14 @@ def random_generator(request):
     yield np.random.default_rng(seed)
 
 
+@pytest.fixture
+def with_seeded_random(request):
+    # Spawning does not update the entropy
+    seed = np.random.default_rng(SEEDSEQ.spawn(1)[0]).integers(2**32)
+    request.node.user_properties.append(("numpy_global_seed", seed))
+    yield np.random.seed(seed)
+
+
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_makereport(item, call):
     # Print the seeds at the end of error messages
