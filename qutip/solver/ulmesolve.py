@@ -570,3 +570,102 @@ def _make_lambda_prop_old(
         return op(0)
 
     return QobjEvo(op)
+
+
+
+###############################################################################
+#             Continuous integration try                                      #
+###############################################################################
+class ULOP():
+    def __init__(self, H, X, env, options={}):
+        self.H = H
+        self.X = X
+        self.size = H.shape[0]
+        self.g = env.jump_correlator
+        self.t_scale = 1
+        self.options = options
+        self.t = None
+        self._L = None
+        self._Lamd = None
+        self.integrator = qt.solver.integrator.IntegratorTsit5(self.derr, {})
+
+    @staticmethod
+    def merge_states(list_state):
+        if isinstance(list_state, qt.Qobj):
+            state0 = [op.data for op in list_state]
+        else:
+            state0 = list_state
+        state0 = [qt.core.data.column_stack(state) for state in state0]
+        state = qt.core.data.dense.zeros(state0[0].shape[0], 8, fortran=True)
+        for i in range(8):
+            state.as_ndarray()[:, i] = state0[i].to_array()[:, 0]
+        return state
+
+    @staticmethod
+    def split_states(state, ncol):
+        if isinstance(state, qt.Qobj):
+            state = state.data
+        return [qt.data.column_unstack(op, ncol) for op in qt.core.data.split_columns(state)]
+
+    def initial(self, t):
+        Xp = self.X(t).data
+        Xm = self.X(t).data
+        Id = qt.data.identity_like(Xp)
+        zero = qt.core.data.zeros_like(Xp)
+        g = self.g(0)
+
+        Lp = zero # Xp * (g.conjugate() * 0.5)
+        Lm = zero # Xm * (g * 0.5)
+        Ip = zero # Xp * (g * 0.5)
+        Im = zero # Xm * (g.conjugate() * 0.5)
+        Yp = zero # Xp @ Lp * g
+        Ym = zero # Xm @ Lm * (-g.conjugate())
+
+        return self.merge_states([Id, Id, Lp, Lm, Ip, Im, Yp, Ym])
+
+    def derr(self, s, state):
+        states = self.split_states(state, self.size)
+        Xp = states[0].adjoint() @ self.X._call(s + self.t) @ states[0]
+        Xm = states[1] @ self.X._call(s + self.t) @ states[1].adjoint()
+        g = self.g(s)
+        derr = [
+            -1j * self.H._call(s + self.t) @ states[0], # prop(t+s, t)
+            -1j * states[1] @ self.H._call(self.t - s), # prop(t, t-s)
+            Xp * g.conjugate(), # int^s+t_t x(T)
+            Xm * g, # int^s+t_t x(T)
+            Xp * g, # int^s+t_t x(T)
+            Xm * g.conjugate(), # int^s+t_t x(T)
+            Xp @ states[2] * (2 * g),
+            Xm @ states[3] * (-2 * g.conjugate()),
+        ]
+        return self.merge_states(derr)
+
+    def L(self, t):
+        if t != self.t:
+            self.compute(t)
+        return self._L
+
+    def Lamd(self, t):
+        if t != self.t:
+            self.compute(t)
+        return self._Lamd
+
+    def compute(self, t):
+        prev = self.initial(t)
+        self.t = t
+        self.integrator.set_state(0, prev)
+        t_scale = self.t_scale
+        tol = 1e-4
+        diff = tol + 1
+        s = 0
+        while diff > tol:
+            print(s, diff)
+            s += t_scale
+            _, state = self.integrator.integrate(s)
+            diff = np.linalg.norm(
+                state.to_array()[:, 2] - prev.to_array()[:, 2], 2
+            )
+            prev = state
+        state = self.split_states(state, self.size)
+        self._L = (state[2] + state[3])
+        self._Lamd = ((state[4] + state[5]) @ (-state[2] + state[3]) + (state[6] + state[7])) * -0.5j
