@@ -62,11 +62,22 @@ def in_temporary_directory():
 SEEDSEQ = np.random.SeedSequence()
 
 
+class NotReprGenerator(np.random.Generator):
+    """
+    Numpy generator without repr for test listing.
+    Usual repr is "Generator(PCG64) at 0x7ECCB9C91000" which is not useful for
+    in a test name.
+    """
+    def __repr__(self):
+        return ""
+
+
 @pytest.fixture
 def random_generator(request):
     seed = SEEDSEQ.spawn(1)[0]
     request.node.user_properties.append(("numpy_generator", seed))
-    yield np.random.default_rng(seed)
+    default = np.random.default_rng(seed)
+    yield NotReprGenerator(default._bit_generator)
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
