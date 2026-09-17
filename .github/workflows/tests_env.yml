@@ -79,10 +79,8 @@ jobs:
     strategy:
       matrix:
         include:
-          # Pre-release Python builds are available from setup-python before
-          # they are available from conda-forge.
-          - python-version: "3.15.0-rc.2"
-            no-conda: true
+          - python-version: "3.12"
+            no-conda: false
 
     steps:
       - uses: actions/checkout@v7
