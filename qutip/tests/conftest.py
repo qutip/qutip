@@ -65,7 +65,7 @@ SEEDSEQ = np.random.SeedSequence()
 class NotReprGenerator(np.random.Generator):
     """
     Numpy generator without repr for test listing.
-    Usual repr is "Generator(PCG64) at 0x7ECCB9C91000" which is not useful for
+    Usual repr is "Generator(PCG64) at 0x7ECCB9C91000" which is not useful
     in a test name.
     """
     def __repr__(self):
