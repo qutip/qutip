@@ -11,7 +11,7 @@ Installation
 Quick Start
 ===========
 
-From QuTiP version 4.6 onwards, you should be able to get a working version of QuTiP with the standard
+You can get a working version of QuTiP with the standard
 
 .. code-block:: bash
 
@@ -33,15 +33,15 @@ The following packages are currently required:
 
 .. cssclass:: table-striped
 
-+----------------+--------------+-----------------------------------------------------+
-| Package        | Version      | Details                                             |
-+================+==============+=====================================================+
-| **Python**     | 3.9+         | 3.6+ for version 4.7                                |
-+----------------+--------------+-----------------------------------------------------+
-| **NumPy**      | 1.22+ <2.0   | 1.16+ for version 4.7                               |
-+----------------+--------------+-----------------------------------------------------+
-| **SciPy**      | 1.8+         | 1.0+ for version 4.7                                |
-+----------------+--------------+-----------------------------------------------------+
++----------------+--------------+
+| Package        | Version      |
++================+==============+
+| **Python**     | 3.11+        |
++----------------+--------------+
+| **NumPy**      | 1.23.2+      |
++----------------+--------------+
+| **SciPy**      | 1.13+        |
++----------------+--------------+
 
 
 In addition, there are several optional packages that provide additional functionality:
@@ -51,19 +51,16 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | Package                  | Version      | Details                                             |
 +==========================+==============+=====================================================+
-| ``matplotlib``           | 1.2.1+       | Needed for all visualisation tasks.                 |
+| ``matplotlib``           | 3.6+         | Needed for all visualisation tasks.                 |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``cython``               | 0.29.20+     | Needed for compiling some time-dependent            |
-| ``setuptools``           |              | Hamiltonians. Cython needs a working C++ compiler.  |
+| ``cython``               | 0.29.34+     | Needed for compiling some time-dependent            |
+| ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cvxpy``                | 1.0+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``pytest``,              | 5.3+         | For running the test suite.                         |
+| ``pytest``,              | 7.2+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
-+--------------------------+--------------+-----------------------------------------------------+
-| LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |
-|                          |              | nice circuit drawings in IPython.                   |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``loky``, ``mpi4py``     |              | Extra parallel map back-ends.                       |
 +--------------------------+--------------+-----------------------------------------------------+
@@ -73,21 +70,29 @@ In addition, there are several optional packages that provide additional functio
 In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
 `IPython <https://ipython.org/>`_ provides an improved text-based Python interpreter that is far more full-featured that the default interpreter, and runs in a terminal.
 If you prefer a more graphical set-up, `Jupyter <https://jupyter.org/>`_ provides a notebook-style interface to mix code and mathematical notes together.
-Alternatively, `Spyder <https://www.spyder-ide.org/>`_ is a free integrated development environment for Python, with several nice features for debugging code.
 QuTiP will detect if it is being used within one of these richer environments, and various outputs will have enhanced formatting.
 
-.. _install-with-conda:
 
-Installing with conda
-=====================
+.. _building-conda-environment:
 
-If you already have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
+New conda environments
+----------------------
+
+The default Anaconda environment has all the Python packages needed for running QuTiP installed already.
+If you have only installed Miniconda, or you want a completely clean virtual environment to install QuTiP in, the ``conda`` package manager provides a convenient way to do this.
+
+To create a conda environment for QuTiP called ``qutip-env``:
 
 .. code-block:: bash
 
-   conda install qutip
+   conda create -n qutip-env python
 
-This will install the minimum set of dependences, but none of the optional packages.
+You activate the new environment by running
+
+.. code-block:: bash
+
+   conda activate qutip-env
+
 
 .. _adding-conda-forge:
 
@@ -101,30 +106,21 @@ The following command adds this channel with lowest priority, so conda will stil
 
    conda config --append channels conda-forge
 
-If you want to change the order of your channels later, you can edit your ``.condarc`` (user home folder) file manually, but it is recommended to keep ``defaults`` as the highest priority.
+It is recommended to keep ``defaults`` channel as the highest priority, but if you want to change the order of your channels later you can edit your ``.condarc`` (user home folder) file manually.
 
 
-.. _building-conda-environment:
+.. _install-with-conda:
 
-New conda environments
-----------------------
+Installing with conda
+=====================
 
-The default Anaconda environment has all the Python packages needed for running QuTiP installed already, so you will only need to add the ``conda-forge`` channel and then install the package.
-If you have only installed Miniconda, or you want a completely clean virtual environment to install QuTiP in, the ``conda`` package manager provides a convenient way to do this.
-
-To create a conda environment for QuTiP called ``qutip-env``:
+If you already have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
 
 .. code-block:: bash
 
-   conda create -n qutip-env python qutip
+   conda install qutip
 
-This will automatically install all the necessary packages, and none of the optional packages.
-You activate the new environment by running
-
-.. code-block:: bash
-
-   conda activate qutip-env
-
+This will install the minimum set of dependences, but none of the optional packages.
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
 
 
@@ -136,14 +132,14 @@ Installing from Source
 Official releases of QuTiP are available from the download section on `the project's web pages <https://qutip.org/download.html>`_, and the latest source code is available in `our GitHub repository <https://github.com/qutip/qutip>`_.
 In general we recommend users to use the latest stable release of QuTiP, but if you are interested in helping us out with development or wish to submit bug fixes, then use the latest development version from the GitHub repository.
 
-You can install from source by using the `Python-recommended PEP 517 procedure <build-pep517_>`_, or if you want more control or to have a development version, you can use the `low-level build procedure with setuptools <build-setuptools_>`_.
+You can install from source by using the `Python-recommended PEP 517 procedure <build-pep517_>`_, or if you want more control or to have a development version, you can use the `low-level build procedure with meson <build-meson>`_.
 
 .. _build-pep517:
 
 PEP 517 Source Builds
 ---------------------
 
-The easiest way to build QuTiP from source is to use a PEP-517-compatible builder such as the ``build`` package available on ``pip``.
+The easiest way to build QuTiP from source is to use a PEP-517-compatible builder such as the ``build`` package available on ``pip`` to build the wheel.
 These will automatically install all build dependencies for you, and the ``pip`` installation step afterwards will install the minimum runtime dependencies.
 You can do this by doing (for example)
 
@@ -156,43 +152,43 @@ You can do this by doing (for example)
 The first command installs the reference PEP-517 build tool, the second effects the build and the third uses ``pip`` to install the built package.
 You will need to replace ``<path to qutip>`` with the actual path to the QuTiP source code.
 The string ``<version>`` will depend on the version of QuTiP, the version of Python and your operating system.
-It will look something like ``4.6.0-cp39-cp39-manylinux1_x86_64``, but there should only be one ``.whl`` file in the ``dist/`` directory, which will be the correct one.
+It will look something like ``5.4.0-cp314-cp314-manylinux_2_28_x86_64``, but there should only be one ``.whl`` file in the ``dist/`` directory, which will be the correct one.
 
 
-.. _build-setuptools:
+.. _build-meson:
 
-Direct Setuptools Source Builds
--------------------------------
+Direct Source Builds
+--------------------
 
 This is the method to have the greatest amount of control over the installation, but it the most error-prone and not recommended unless you know what you are doing.
 You first need to have all the runtime dependencies installed.
 The most up-to-date requirements will be listed in ``pyproject.toml`` file, in the ``build-system.requires`` key.
-As of the 5.0.0 release, the build requirements can be installed with
+
+The build requirements can be installed with
 
 .. code-block:: bash
 
-   pip install setuptools wheel packaging cython 'numpy<2.0.0' scipy
+    pip install meson-python ninja cython numpy scipy
 
-or similar with ``conda`` if you prefer.
-You will also need to have a functional C++ compiler installed on your system.
+You will also need to have a functional C++ compiler installed on your system for Cython.
 This is likely already done for you if you are on Linux or macOS, but see the `section on Windows installations <install-on-windows_>`_ if that is your operating system.
 
 To install QuTiP from the source code run:
 
 .. code-block:: bash
 
-   pip install .
+   pip install . --no-build-isolation
 
 If you wish to contribute to the QuTiP project, then you will want to create your own fork of `the QuTiP git repository <https://github.com/qutip/qutip>`_, clone this to a local folder, and install it into your Python environment using:
 
 .. code-block:: bash
 
-   python setup.py develop
+   pip install -e . --no-build-isolation
 
-When you do ``import qutip`` in this environment, you will then load the code from your local fork, enabling you to edit the Python files and have the changes immediately available when you restart your Python interpreter, without needing to rebuild the package.
-Note that if you change any Cython files, you will need to rerun the build command.
+When you do ``import qutip``, you will then load the code from your local fork, enabling you to edit any file in the qutip source code and have the changes immediately available when you restart your Python interpreter, without needing to rebuild the package.
+Note that if you add a new Cython file (extension module), you will need to rerun the build command.
 
-You should not need to use ``sudo`` (or other superuser privileges) to install into a personal virtual environment; if it feels like you need it, there is a good chance that you are installing into the system Python environment instead.
+**Note:** You should not need to use ``sudo`` (or other superuser privileges) to install into a personal virtual environment; if it feels like you need it, there is a good chance that you are installing into the system Python environment instead.
 
 
 .. _install-on-windows:
@@ -203,21 +199,32 @@ Installation on Windows
 As with other operating systems, the easiest method is to use ``pip install qutip``, or use the ``conda`` procedure described above.
 If you want to build from source or use runtime compilation with Cython, you will need to have a working C++ compiler.
 
-You can `download the Visual Studio IDE from Microsoft <https://visualstudio.microsoft.com/downloads/>`_, which has a free Community edition containing a sufficient C++ compiler.
-This is the recommended compiler toolchain on Windows.
-When installing, be sure to select the following components:
+On Windows, the recommended compiler is the Microsoft Visual C++ compiler (MSVC), distributed with Visual Studio IDE and the standalone Visual Studio Build Tools.
 
-- Windows "X" SDK (where "X" stands for your version: 7/8/8.1/10)
-- Visual Studio C++ build tools
+You can `download Visual Studio IDE from Microsoft <https://visualstudio.microsoft.com/downloads/>_`. The free Community edition provides everything required to compile QuTiP.
+When running the Visual Studio Installer, select the:
 
-You can then follow the `installation from source <install-from-source_>`_ section as normal.
+- Desktop development with C++ workload
 
-.. important::
+and ensure that the following components are installed:
 
-   In order to prevent issues with the ``PATH`` environment variable not containing the compiler and associated libraries, it is recommended to use the developer command prompt in the Visual Studio installation folder instead of the built-in command prompt.
+- MSVC C++ build tools for x64/x86
+- a recent Windows SDK, such as the Windows 10 SDK or Windows 11 SDK
 
-The Community edition of Visual Studio takes around 10GB of disk space.
-If this is prohibitive for you, it is also possible to install `only the build tools and necessary SDKs <https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_ instead, which should save about 2GB of space.
+If you do not need the full Visual Studio IDE, you can instead install the
+Visual Studio Build Tools <https://visualstudio.microsoft.com/visual-cpp-build-tools/>_.
+In the Build Tools installer, select the same Desktop development with C++
+workload. This installs the MSVC compiler, Windows SDK and associated build
+tools without installing the complete Visual Studio IDE.
+
+You can verify that the compiler is available by running::
+
+.. code-block::
+
+   cl
+
+If MSVC is configured correctly, this should print the Microsoft C++ compiler version and usage information.
+You can then follow the installation from source <install-from-source_>_ section as normal.
 
 
 .. _install-verify:
@@ -227,11 +234,10 @@ Verifying the Installation
 
 QuTiP includes a collection of built-in test scripts to verify that an installation was successful.
 To run the suite of tests scripts you must also have the ``pytest`` testing library.
-After installing QuTiP, leave the installation directory and call:
 
 .. code-block:: bash
 
-   python -c "import qutip.testing; qutip.testing.run()"
+   pytest .
 
 This will take between 10 and 30 minutes, depending on your computer.
 At the end, the testing report should report a success; it is normal for some tests to be skipped, and for some to be marked "xfail" in yellow.

@@ -1,138 +1,75 @@
-import numpy as np
-import scipy.sparse
+import pytest
 
-import qutip
+from qutip.testing import random_data
+from qutip.core.data import Dense, CSR, Dia
+from qutip.core import data
+
+# Set up the special cases for each type of matrix that will be tested.  These
+# should be kept low, because mathematical operations will test a Cartesian
+# product of all the cases of the same order as the operation, which can get
+# very large very fast.  The operations should each complete in a small amount
+# of time, so having 10000+ tests in this file still ought to take less than 2
+# minutes, but it's easy to accidentally add orders of magnitude on.
 
 
-def shuffle_indices_scipy_csr(matrix, gen=None):
+def cases_csr(shape):
     """
-    Given a scipy CSR matrix or array, shuffle the indices within each row and
-    return a new object of the same type.  This should represent the same
-    matrix, but in the less efficient, "unsorted" manner.  All mathematical
-    operations should still work the same after this, but may be slower.
-
-    This is not guaranteed to change the order of the indices in every case.
-    If there is at most one value per row, there is no unsorted order.  In
-    general, we attempt to shuffle, and if this returns the same order as
-    before, we just reverse it to ensure it's different.
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
+    Return a list of generators of the different special cases for CSR
+    matrices of a given shape.
     """
-    if gen is None:
-        gen = np.random.default_rng()
-    out = matrix.copy()
-    for row in range(out.shape[0]):
-        ptr = (out.indptr[row], out.indptr[row + 1])
-        if ptr[1] - ptr[0] > 1:
-            order = np.argsort(gen.uniform(size=(ptr[1] - ptr[0])))
-            # If sorted, reverse it.
-            order = np.flip(order) if np.all(order[:-1] < order[1:]) else order
-            out.indices[ptr[0]:ptr[1]] = out.indices[ptr[0]:ptr[1]][order]
-            out.data[ptr[0]:ptr[1]] = out.data[ptr[0]:ptr[1]][order]
-    return out
+    def factory(density, sort):
+        return lambda gen: random_data.random_csr(shape, density, sort, gen)
+
+    def zero_factory():
+        return lambda _: data.csr.zeros(shape[0], shape[1])
+    return [
+        pytest.param(factory(0.001, True), id="sparse"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
+        pytest.param(zero_factory(), id="zero"),
+    ]
 
 
-def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
+def cases_dense(shape):
     """
-    Generate a random scipy dia array with the given shape, density.
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.  Pass ``sparray=False`` to generate a
-    legacy ``dia_matrix`` instead of a ``dia_array``.
+    Return a list of generators of the different special cases for Dense
+    matrices of a given shape.
     """
-    if gen is None:
-        gen = np.random.default_rng()
-    num_diag = int(density * (shape[0] + shape[1] - 1)) or 1
-    offsets = []
-    data = []
-    diags = gen.choice(
-        np.arange(-shape[0] + 1, shape[1]),
-        num_diag,
-        replace=False
-    )
-    for diag in diags:
-        offsets.append(diag)
-        num_elements = min(
-            shape[0], shape[1], shape[0] + diag, shape[1] - diag
-        )
-        data.append(
-            gen.uniform(size=num_elements)
-            + 1j * gen.uniform(size=num_elements)
-        )
-    if sort:
-        order = np.argsort(offsets)
-        offsets = [offsets[i] for i in order]
-        data = [data[i] for i in order]
-    dia = scipy.sparse.diags(data, offsets=offsets, shape=shape)
-    return scipy.sparse.dia_array(dia) if sparray else dia.todia()
+    def factory(fortran):
+        return lambda gen: random_data.random_dense(shape, fortran, gen)
+    return [
+        pytest.param(factory(False), id="C"),
+        pytest.param(factory(True), id="Fortran"),
+    ]
 
 
-def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
+def cases_diag(shape):
     """
-    Generate a random scipy CSR array with the given shape, nnz density, and
-    with indices that are either sorted or unsorted.  The nnz elements will
-    always be at least one.
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.  Pass ``sparray=False`` to generate a
-    legacy ``csr_matrix`` instead of a ``csr_array``.
+    Return a list of generators of the different special cases for Dense
+    matrices of a given shape.
     """
-    if gen is None:
-        gen = np.random.default_rng()
-    nnz = int(shape[0] * shape[1] * density) or 1
-    data = gen.uniform(size=nnz) + 1j * gen.uniform(size=nnz)
-    rows = gen.choice(np.arange(shape[0]), nnz)
-    cols = gen.choice(np.arange(shape[1]), nnz)
-    csr_container = scipy.sparse.coo_array if sparray else scipy.sparse.coo_matrix
-    sci = csr_container((data, (rows, cols)), shape=shape).tocsr()
-    if not sorted_:
-        sci = shuffle_indices_scipy_csr(sci, gen)
-    return sci
+    def factory(density, sort=False):
+        return lambda gen: random_data.random_diag(shape, density, sort, gen)
+
+    def zero_factory():
+        return lambda _: data.dia.zeros(shape[0], shape[1])
+
+    return [
+        pytest.param(factory(0.001), id="sparse"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
+        pytest.param(zero_factory(), id="zero"),
+    ]
 
 
-def random_numpy_dense(shape, fortran, gen=None):
-    """
-    Generate a random numpy dense matrix with the given shape.
+CORRECT_CASES = {
+    CSR: cases_csr,
+    Dia: cases_diag,
+    Dense: cases_dense,
+}
 
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
-    """
-    if gen is None:
-        gen = np.random.default_rng()
-    out = gen.uniform(size=shape) + 1j * gen.uniform(size=shape)
-    if fortran:
-        out = np.asfortranarray(out)
-    return out
-
-
-def random_csr(shape, density, sorted_, gen=None):
-    """
-    Generate a random qutip CSR matrix with the given shape, nnz density, and
-    with indices that are either sorted or unsorted.  The nnz elements will
-    always be at least one (use data.csr.zeros otherwise).
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
-    """
-    return qutip.core.data.CSR(random_scipy_csr(shape, density, sorted_, gen))
-
-
-def random_dense(shape, fortran, gen=None):
-    """
-    Generate a random qutip Dense matrix of the given shape.
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
-    """
-    return qutip.core.data.Dense(random_numpy_dense(shape, fortran, gen))
-
-
-def random_diag(shape, density, sort=False, gen=None):
-    """
-    Generate a random qutip Dia matrix of the given shape and density.
-
-    An optional numpy random generator can be passed as `gen`.
-    If not provided one will be created.
-    """
-    return qutip.core.data.Dia(random_scipy_dia(shape, density, sort, gen))
+WRONG_CASES = {
+    CSR: lambda shape: [lambda gen: random_data.random_csr(shape, 0.5, True, gen)],
+    Dense: lambda shape: [lambda gen: random_data.random_dense(shape, False, gen)],
+    Dia: lambda shape: [lambda gen: random_data.random_diag(shape, 0.5, gen=gen)],
+}

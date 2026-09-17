@@ -171,9 +171,9 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 :scQubits: `scQubits <https://scqubits.readthedocs.io/en/latest/>`_ is a Python library which provides a convenient way to simulate superconducting qubits by providing an interface to QuTiP
 
-:SimulaQron: `SimulaQron <https://softwarequtech.github.io/SimulaQron/html/index.html>`_ is a distributed simulation of the end nodes in a quantum internet with the specific goal to explore application development
+:SimulaQron: `SimulaQron <https://github.com/SoftwareQuTech/SimulaQron>`_ is a distributed simulation of the end nodes in a quantum internet with the specific goal to explore application development
 
-:QInfer: `QInfer <http://qinfer.org/>`_ is a library for working with sequential Monte Carlo methods for parameter estimation in quantum information
+:QInfer: `QInfer <https://github.com/QInfer/python-qinfer>`_ is a library for working with sequential Monte Carlo methods for parameter estimation in quantum information
 
 :QPtomographer: `QPtomographer <https://qptomographer.readthedocs.io/en/latest/>`_ derive quantum error bars for quantum processes in terms of the diamond norm to a reference quantum channel
 

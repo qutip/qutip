@@ -35,7 +35,7 @@ an array should follow this type within C or Cython code.
 SciPy's :obj:`~scipy.sparse.csr_matrix`, but it also provides fast-path
 initialisation from Python or C using the type's
 :meth:`~qutip.core.data.CSR.copy` method, or the low-level constructors
-:obj:`~qutip.core.data.csr.empty`, :obj:`~qutip.core.data.csr.zeroes`,
+:obj:`~qutip.core.data.csr.empty`, :obj:`~qutip.core.data.csr.zeros`,
 :obj:`~qutip.core.data.csr.identity`, and
 :obj:`~qutip.core.data.csr.copy_structure`.
 
