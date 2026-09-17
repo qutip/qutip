@@ -74,41 +74,97 @@ jobs:
           pytest tests -vv -W "ignore::DeprecationWarning"
 
   tutorials:
-    name: qutip-tutorials
+    name: qutip-tutorials, python${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Pre-release Python builds are available from setup-python before
+          # they are available from conda-forge.
+          - python-version: "3.15.0-rc.2"
+            no-conda: true
 
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
+        if: ${{ !matrix.no-conda }}
         with:
           miniforge-version: latest
           activate-environment: test
-          python-version: 3.15.0rc2
+          python-version: ${{ matrix.python-version }}
           channels: conda-forge
           conda-remove-defaults: "true"
+
+      - uses: actions/setup-python@v7
+        if: ${{ matrix.no-conda }}
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Checkout qutip-tutorials
         run: |
           cd ..
           git clone https://github.com/qutip/qutip-tutorials.git
 
-      - name: Install tutorial dependencies
+      - name: Install tutorial environment with Conda
+        if: ${{ !matrix.no-conda }}
         run: |
-          conda env update -n test -f ../qutip-tutorials/test_environment-v5.yml
-          python -m pip install "jax<0.7.0" "jax[cpu]<0.7.0" equinox diffrax
-          python -m pip install qutip-qip
-          python -m pip install --no-deps git+https://github.com/qutip/qutip-jax
-          python -m pip install --no-deps git+https://github.com/qutip/qutip-qtrl
-          python -m pip install --no-deps git+https://github.com/qutip/qutip-qoc
+          conda install -y \
+            "pip>=22.1.2" \
+            "numpy>=2.0.0" \
+            "scipy>=1.9" \
+            "matplotlib>=3.9" \
+            "imagemagick>=7.1.0_36" \
+            "mpmath>=1.2.1" \
+            "pytest>=7.1.2" \
+            "nbmake>=1.3.4" \
+            "jupytext>=1.13.8" \
+            "jupyter>=1.0.0" \
+            "ipykernel>=6.17.1" \
+            "cython>=0.29.20"
+
+      - name: Install tutorial environment with pip
+        if: ${{ matrix.no-conda }}
+        run: |
+          python -m pip install --upgrade \
+            "pip>=22.1.2" \
+            "numpy>=2.0.0" \
+            "scipy>=1.9" \
+            "matplotlib>=3.9" \
+            "mpmath>=1.2.1" \
+            "pytest>=7.1.2" \
+            "nbmake>=1.3.4" \
+            "jupytext>=1.13.8" \
+            "jupyter>=1.0.0" \
+            "ipykernel>=6.17.1" \
+            "cython>=0.29.20"
 
       - name: Install QuTiP from this checkout
         run: |
           python -m pip install '.[runtime_compilation]'
 
+      - name: Install JAX dependencies
+        if: ${{ !matrix.no-conda }}
+        run: |
+          python -m pip install "jax<0.7.0" "jax[cpu]<0.7.0" equinox diffrax
+
+      - name: Install JAX dependencies for pre-release Python
+        if: ${{ matrix.no-conda }}
+        run: |
+          # Old jaxlib releases do not provide Python pre-release wheels.
+          python -m pip install "jax[cpu]" equinox diffrax
+
+      - name: Install tutorial family packages
+        run: |
+          python -m pip install qutip-qip
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-jax
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-qtrl
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-qoc
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg texlive-latex-extra
+          sudo apt-get install -y ffmpeg imagemagick texlive-latex-extra
 
       - name: Convert v5 tutorials to notebooks
         run: |
