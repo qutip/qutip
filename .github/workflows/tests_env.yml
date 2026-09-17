@@ -79,7 +79,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.12"
+          - python-version: "3.13"
+            no-conda: false
+          - python-version: "3.14"
             no-conda: false
 
     steps:
