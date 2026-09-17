@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 from scipy import sparse
 from qutip import data, CoreOptions
-from .test_mathematics import UnaryOpMixin
+from qutip.testing import mixin
+from .conftest import CORRECT_CASES, WRONG_CASES
 
 
 def test_init_empty_data():
@@ -91,9 +92,12 @@ def test_parse_error(input, error, msg):
     assert str(exc.value) == msg
 
 
-class TestConvert(UnaryOpMixin):
+class TestConvert(mixin.UnaryOpMixin):
     def op_numpy(self, mat):
         return mat
+
+    correct_cases = CORRECT_CASES
+    wrong_cases = WRONG_CASES
 
     specialisations = [
         pytest.param(data.dense.from_csr, data.CSR, data.Dense),

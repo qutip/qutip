@@ -1,5 +1,5 @@
-from .about import about
-from .settings import settings as qset
+from qutip.about import about
+from qutip.settings import settings as qset
 
 def run(full=False):
     """
