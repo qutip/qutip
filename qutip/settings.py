@@ -306,7 +306,7 @@ class Settings:
         # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
     @property
-    def mp_context(self) -> multiprocessing.context.ForkServerContext:
+    def mp_context(self):
         return self._mp_context
 
     @mp_context.setter
