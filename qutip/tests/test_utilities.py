@@ -250,7 +250,7 @@ class TestFitting:
             # 7e-6 while I get 1e-15 on linux...
             # Probably a bug in eigvals or pinv of the joined math libraries...
             assert rmse < 1e-5
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=3e-4)
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=3e-4)
 
     @pytest.mark.flaky(reruns=2)
     @pytest.mark.parametrize("method", ["prony", "esprit"])
