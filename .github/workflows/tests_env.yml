@@ -72,3 +72,56 @@ jobs:
         run: |
           cd ../${{ matrix.repo }}
           pytest tests -vv -W "ignore::DeprecationWarning"
+
+  tutorials:
+    name: qutip-tutorials
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: test
+          python-version: 3.15.0rc2
+          channels: conda-forge
+          conda-remove-defaults: "true"
+
+      - name: Checkout qutip-tutorials
+        run: |
+          cd ..
+          git clone https://github.com/qutip/qutip-tutorials.git
+
+      - name: Install tutorial dependencies
+        run: |
+          conda env update -n test -f ../qutip-tutorials/test_environment-v5.yml
+          python -m pip install "jax<0.7.0" "jax[cpu]<0.7.0" equinox diffrax
+          python -m pip install qutip-qip
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-jax
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-qtrl
+          python -m pip install --no-deps git+https://github.com/qutip/qutip-qoc
+
+      - name: Install QuTiP from this checkout
+        run: |
+          python -m pip install '.[runtime_compilation]'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg texlive-latex-extra
+
+      - name: Convert v5 tutorials to notebooks
+        run: |
+          cd ../qutip-tutorials
+          mkdir notebooks
+          cp -r tutorials-v5/* notebooks
+          cd notebooks
+          find . -name '*.md' -exec jupytext --to notebook {} +
+          find . -name '*.md' -delete
+          # This notebook requires a CUDA-capable runner.
+          rm miscellaneous/cuQuantum_backend.ipynb
+
+      - name: Run tutorial notebooks
+        run: |
+          cd ../qutip-tutorials/notebooks
+          find . -name '*.ipynb' -exec pytest --nbmake --nbmake-timeout=900 {} +
