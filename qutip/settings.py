@@ -6,6 +6,7 @@ import os
 import sys
 from ctypes import cdll, CDLL
 import platform
+import multiprocessing
 from glob import glob
 from pathlib import Path
 import numpy as np
@@ -176,6 +177,7 @@ class Settings:
     def __init__(self):
         self._mkl_lib = ""
         self._mkl_lib_loc = ""
+        self._mp_context = multiprocessing.get_context()
         try:
             self.tmproot = str(Path.home() / '.qutip')
         except OSError:
@@ -302,6 +304,14 @@ class Settings:
         return False
         # We keep this as a reminder for when openmp is restored: see Pull #652
         # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+    @property
+    def mp_context(self) -> multiprocessing.context.ForkServerContext:
+        return self._mp_context
+
+    @mp_context.setter
+    def mp_context(self, new_mp_context: str) -> None:
+        self._mp_context = multiprocessing.get_context(new_mp_context)
 
     @property
     def idxint_size(self) -> int:
