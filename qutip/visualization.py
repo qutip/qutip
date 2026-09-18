@@ -13,8 +13,6 @@ import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle, log2, sqrt
 
-from packaging.version import parse as parse_version
-
 from . import (
     Qobj, isket, ket2dm, tensor, vector_to_operator, settings
 )
@@ -28,16 +26,6 @@ try:
     import matplotlib.animation as animation
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
-
-    # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(mpl.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
 
 except ImportError:
     pass
@@ -71,7 +59,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = _axes3D(fig)
+                ax = fig.add_axes(Axes3D(fig))
         else:
             fig = ax.get_figure()
     else:
@@ -79,7 +67,7 @@ def _is_fig_and_ax(fig, ax, projection='2d'):
             if projection == '2d':
                 ax = fig.add_subplot(1, 1, 1)
             else:
-                ax = _axes3D(fig)
+                ax = fig.add_axes(Axes3D(fig))
 
     return fig, ax
 
@@ -579,13 +567,6 @@ def _remove_margins(axis):
     removes margins about z = 0 and improves the style
     by monkey patching
     """
-
-    def _get_coord_info_new_mpl38(renderer):
-        mins, maxs, centers, deltas, tc, highs = _get_coord_info_old(renderer)
-        mins += deltas / 4
-        maxs -= deltas / 4
-        return mins, maxs, centers, deltas, tc, highs
-
     def _get_coord_info_new_mpl39():
         mins, maxs, bounds_proj, highs = _get_coord_info_old()
         centers, deltas = axis._calc_centers_deltas(maxs, mins)
@@ -594,12 +575,8 @@ def _remove_margins(axis):
         return mins, maxs, bounds_proj, highs
 
     _get_coord_info_old = axis._get_coord_info
+    axis._get_coord_info = _get_coord_info_new_mpl39
 
-    # Select correct version of the function based on matplotlib version
-    if parse_version(mpl.__version__) >= parse_version("3.9"):
-        axis._get_coord_info = _get_coord_info_new_mpl39
-    else:
-        axis._get_coord_info = _get_coord_info_new_mpl38
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
@@ -1326,11 +1303,7 @@ def plot_wigner(rho, xvec=None, yvec=None, method='clenshaw', projection='2d',
     artist_list = list()
     for W in Ws:
         if projection == '2d':
-            if parse_version(mpl.__version__) >= parse_version('3.8'):
-                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
-            else:
-                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
-                                 cmap=cmap).collections
+            cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
         else:
             X, Y = np.meshgrid(xvec, yvec)
             cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,
@@ -1438,11 +1411,7 @@ def plot_qfunc(rho, xvec=None, yvec=None, projection='2d',
     artist_list = list()
     for W in Ws:
         if projection == '2d':
-            if parse_version(mpl.__version__) >= parse_version('3.8'):
-                cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
-            else:
-                cf = ax.contourf(xvec, yvec, W, 100, norm=norm,
-                                 cmap=cmap).collections
+            cf = [ax.contourf(xvec, yvec, W, 100, norm=norm, cmap=cmap)]
         else:
             X, Y = np.meshgrid(xvec, yvec)
             cf = [ax.plot_surface(X, Y, W, rstride=5, cstride=5, linewidth=0.5,

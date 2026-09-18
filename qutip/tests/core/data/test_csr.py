@@ -6,7 +6,7 @@ from qutip.core import data
 from qutip.core.data import csr
 from qutip import qeye, CoreOptions
 
-from . import conftest
+from qutip.testing import random_data
 
 # We only choose a small subset of dtypes to test so it isn't crazy.
 _dtype_complex = ['complex128']
@@ -37,7 +37,7 @@ def sorted_(request): return request.param
 
 def _valid_scipy():
     """Arbitrary valid scipy CSR"""
-    return conftest.random_scipy_csr((10, 10), 0.5, True)
+    return random_data.random_scipy_csr((10, 10), 0.5, True)
 
 
 def _valid_arg():
@@ -50,12 +50,12 @@ def _valid_arg():
 
 @pytest.fixture(scope='function')
 def scipy_csr(shape, density, sorted_):
-    return conftest.random_scipy_csr(shape, density, sorted_)
+    return random_data.random_scipy_csr(shape, density, sorted_)
 
 
 @pytest.fixture(scope='function')
 def data_csr(shape, density, sorted_):
-    return conftest.random_csr(shape, density, sorted_)
+    return random_data.random_csr(shape, density, sorted_)
 
 
 class TestClassMethods:

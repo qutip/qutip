@@ -75,7 +75,7 @@ Stochastic Master Equation
 
 .. Stochastic Master equation
 
-When the initial state of the system is a density matrix :math:`\rho`, the stochastic master equation solver :func:`qutip.stochastic.smesolve` must be used.
+When the initial state of the system is a density matrix :math:`\rho`, the stochastic master equation solver :func:`qutip.solver.stochastic.smesolve` must be used.
 The stochastic master equation is given by (see section 4.4, [Wis09]_)
 
 .. math::
