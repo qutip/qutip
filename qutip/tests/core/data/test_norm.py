@@ -8,7 +8,6 @@ from qutip.core.data import CSR, Dense, Dia
 from qutip.testing import mixin, stat_mixin
 
 
-
 mixin.CORRECT_CASES = CORRECT_CASES
 mixin.WRONG_CASES = WRONG_CASES
 

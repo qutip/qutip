@@ -1,0 +1,1 @@
+Fixed ``bures_dist`` returning ``nan`` for identical density matrices.

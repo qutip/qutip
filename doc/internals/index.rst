@@ -10,7 +10,7 @@ that is what you are looking for, please refer to the :ref:`guide` or the large
 collection of `example notebooks`_.
 
 .. _GitHub repository qutip/qutip: https://github.com/qutip/qutip
-.. _user guide: http://qutip.org/docs/latest/
+.. _user guide: https://qutip.readthedocs.io/en/latest/guide/guide.html
 .. _example notebooks: http://qutip.org/tutorials.html
 
 .. toctree::

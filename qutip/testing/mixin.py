@@ -167,7 +167,7 @@ def cases_type_shape_product(
 
     shapes: Iterable[Tuple[(int, int) | ParameterSet[(int, int)]]]
         An iterable containing several sets of shapes to parameterise over.
-        Each element of the iterable should be s tuple of shapes, or
+        Each element of the iterable should be a tuple of shapes, or
         `pytest.ParameterSet` instances each containing a single shape.  A
         shape is a 2-tuple of integers.  There should be as many elements of
         this inner tuple as there are `types`, since each individual `shape`
@@ -234,14 +234,14 @@ def cases_type_shape_product(
 
 def build_extra_cases(extra_param):
     """
-    Create the combination of all extra_param entrys.
+    Create the combination of all extra_param entries.
 
     extra_param = {
         "scale": [0, 1],
         "alpha": [1, pytest.param(1j, id="complex")],
     }
-    with create the 4 cases for each values of scale and alpha.
-    If the entrise are pytest.param, id and mask will be kept.
+    will create the 4 cases for each values of scale and alpha.
+    If the entries are pytest.param, id and mask will be kept.
 
     The sentinel value NoParam can be used to set no values: use the default
     of keyword argument.
