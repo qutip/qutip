@@ -314,7 +314,7 @@ def isoper(request):
                              ([[3, 2], [2, 2]], [2, 1]),
                              ([[3, 2], [4], [2, 2]], [2, 3, 2]),
                          ])
-def test_enr_tensor(dims_list, n_ex_list, isoper, dtype):
+def test_enr_tensor(dims_list, n_ex_list, isoper, dtype, random_generator):
     # isoper = 1 to test for operators, 0 to test for kets
     # figure out how big the matrices/vectors will be
     nstates_list = [_n_enr_states(dims, n_ex)
@@ -325,9 +325,13 @@ def test_enr_tensor(dims_list, n_ex_list, isoper, dtype):
     ncol_arr = nstates_list if isoper else [1]*len(nstates_list)
 
     # generate the random matrices
-    rand_mat_list = [scipy.sparse.random(
-        nstates, ncol,
-        density=dens, dtype="complex128")
+    rand_mat_list = [
+        scipy.sparse.random_array(
+            (nstates, ncol),
+            density=dens,
+            dtype="complex128",
+            rng=random_generator
+        )
         for (nstates, ncol, dens)
         in zip(nstates_list, ncol_arr, dens_list)]
 

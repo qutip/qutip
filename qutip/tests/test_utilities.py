@@ -216,7 +216,7 @@ class TestFitting:
     @pytest.mark.parametrize("noisy", [0.0005, 0], ids =["True", "False"])
     def test_aaa(self, noisy, random_generator):
         # 0.1% failure rate in noisy=True test.
-        x, y, _, _ , noisy = self.generate_data(noisy, random_generator)
+        x, y, _, _ , noisy = self.generate_data(noisy, False, random_generator)
         # Can't have a better fit that the noise
         tol = 0.05 if noisy else 1e-8
         result = utils.aaa(y, x, tol=tol, max_iter=10)
@@ -232,7 +232,7 @@ class TestFitting:
     @pytest.mark.flaky(reruns=2)
     def test_espira_I(self, noisy, random_generator):
         # Less than 0.1% fail rate with noisy=True
-        x, y, _, _, noisy = self.generate_data(noisy, random_generator)
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 2e-2
@@ -244,7 +244,7 @@ class TestFitting:
     @pytest.mark.flaky(reruns=2)
     def test_espira_II(self, noisy, random_generator):
         # Less than 0.1% fail rate with noisy=True
-        x, y, _, _, noisy = self.generate_data(noisy, random_generator)
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
         rmse, params = utils.espira2(y, 4, tol=1e-16)
         if noisy:
             assert rmse < 1e-2
@@ -260,7 +260,7 @@ class TestFitting:
     @pytest.mark.parametrize("method", ["prony", "esprit"])
     def test_prony_methods(self, noisy, method, random_generator):
         # Less than 0.1% failure rate in noisy=True test.
-        x, y, _, _, noisy = self.generate_data(noisy, random_generator)
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
         rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 2e-2

@@ -7,6 +7,11 @@ import qutip
 from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 
+@pytest.fixture(autouse=True)
+def numpy_test_seed(with_seeded_random):
+    pass
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize("mixed_initial_state", [True, False])

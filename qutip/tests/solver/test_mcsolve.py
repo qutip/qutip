@@ -5,6 +5,9 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
+pytestmark = pytest.mark.usefixtures("with_seeded_random")
+
+
 def _return_constant(t, constant):
     return constant
 
