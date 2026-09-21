@@ -1546,3 +1546,28 @@ def test_basis_expansion(state: qutip.Qobj, expected: str, kwargs: dict):
     result = state.basis_expansion(**kwargs)
 
     assert result == expected
+
+
+@pytest.mark.parametrize(["value", "expected"], [
+    pytest.param(-1.115e-6, r"-1.115\times10^{ -6 }", id="small-negative"),
+    pytest.param(1e5, r"1.000\times10^{ 5 }", id="large"),
+    pytest.param(5e-4, r"5.000\times10^{ -4 }", id="small"),
+    pytest.param(2.5, "2.500", id="plain"),
+    pytest.param(3.0, "3", id="integral"),
+    pytest.param(0, "0", id="zero"),
+])
+def test_latex_real(value, expected):
+    """Values outside [0.001, 1000) are rendered in scientific notation.
+
+    ``\\times`` must survive as a LaTeX macro; written without a raw string the
+    ``\\t`` becomes a tab and the macro renders as a stray ``imes``.
+    """
+    assert qutip.core.qobj._latex_real(value) == expected
+
+
+def test_repr_latex_scientific_notation():
+    """A Qobj whose entries need scientific notation renders \\times, not a tab."""
+    latex = qutip.Qobj([[-1.115e-6], [-5.515e-6]])._repr_latex_()
+
+    assert r"\times" in latex
+    assert "\t" not in latex
