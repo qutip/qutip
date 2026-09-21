@@ -476,23 +476,51 @@ class TestCorrelationSpeedup:
         self._check_truncation(trunc, full, 4.0)
 
 
-## Test for issue related to spectrum correlation function
-@pytest.mark.parametrize("times", [np.linspace(0,100,1000),np.linspace(-100,100,1000)])
-def test_spectrum_correlation_fft_issue_(times):
-    H = qutip.sigmaz()
-    a = qutip.destroy(2)
-    c_ops = [np.sqrt(0.5) * a]
-    dimension = H.dims[0][0]
-    state = qutip.basis(dimension, 1)
-    w_0 = 2.0
-    df = 2 * np.pi / (times[-1] - times[0])
-    correlation = qutip.correlation_2op_1t(H, state, times, c_ops, a.dag(), a)
-    correlation_no_dc = correlation - np.mean(correlation)
-    frequencies, spectrum = qutip.spectrum_correlation_fft(times, correlation_no_dc)
-    #CHECKING PEAK OCCURS AT CORRECT FREQUENCY NEAR W_0 = 2.0
-    peak_freq = frequencies[np.argmax(np.abs(spectrum))]
-    assert np.isclose(np.abs(peak_freq), w_0, atol= df)
-    #CHECKING ARRAY SHAPES MATCH
-    assert frequencies.shape == spectrum.shape
-    #non-zero spectrum check
-    assert np.max(np.abs(spectrum)) > 0
+## Test for issueS related to spectrum correlation function
+#ERROR HANDLING TESTS
+ # Test for missing zero error
+def test_spectrum_correlation_fft_missing_zero():
+    # Grid missing the value 0
+    tlist = np.array([1.0, 2.0, 3.0, 4.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(ValueError, match="tlist must contain zero"):
+        spectrum_correlation_fft(tlist, g_tau)
+
+# Test for asymmetry error
+def test_spectrum_correlation_fft_asymmetric():
+    # Asymmetric grid around zero
+    tlist = np.array([-2.0, -1.0, 0.0, 1.0, 3.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(ValueError, match="tlist must be symmetric around zero"):
+        spectrum_correlation_fft(tlist, g_tau)
+
+#Lorentzian TEST
+from qutip.solver.spectrum import spectrum_correlation_fft
+@pytest.mark.parametrize("t_mode", ["symmetric", "single_sided"])
+def test_spectrum_correlation_fft_lorentzian(t_mode):
+    w0 = 1.0 * 2 * np.pi
+    gamma = 0.2
+    N = 2000
+    T = 100.0
+
+    if t_mode == "symmetric":
+        tlist = np.linspace(-T / 2, T / 2, N+1)
+    else: # single_sided
+        tlist = np.linspace(0, T / 2, (N // 2) + 1)
+
+    # Damped oscillator correlation function
+    g_tau = np.exp(-gamma * np.abs(tlist) / 2) * np.exp(1j * w0 * tlist)
+
+    # Compute spectrum via FFT
+    w_fft, s_fft = spectrum_correlation_fft(tlist, g_tau)
+
+    # Comparing FFT against exact finite_window Fourier Transform of the correlation function
+    #Note: Using finite-time analytic function instead of infinite  time limit 
+    # to account for spectral leakage and finite-window truncation effects.
+    dw = w_fft - w0
+    s_analytical = (gamma / (dw** 2 + (gamma / 2) ** 2)) * (1 - np.exp(-gamma * T / 4) * (np.cos(dw * T / 2) - (2 * dw/ gamma) * np.sin(dw * T / 2)))
+    atol_threshold = 1e-2
+    max_error = np.max(np.abs(s_fft - s_analytical))
+    # Verify numerical match
+    np.testing.assert_allclose(s_fft, s_analytical, atol=atol_threshold)
+
