@@ -232,59 +232,31 @@ class TestHusimiQ:
         np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
 
     def test_large_size(self):
-        xs = np.linspace(0, 30, 31)
-        arr = np.zeros(200, dtype=complex)
-        arr[155] = 1.
-        arr[165] = 1j
-        arr[175] = -1j
-        state = qutip.Qobj(arr)
+        xs = [-20, -15, -10, 10, 15, 20]
+        for x, y in itertools.product(xs, repeat=2):
+            state = qutip.coherent(600, alpha=(x + 1j * y) / 2**0.5)
 
-        qfunc_150 = qutip.qfunc(state, xs, xs, cutoff=150)
-        qfunc_160 = qutip.qfunc(state, xs, xs, cutoff=160)
-        qfunc_170 = qutip.qfunc(state, xs, xs, cutoff=170)
+            func_out = qutip.qfunc(state, [x], [y])[0, 0]
+            cls_out = qutip.QFunc([x], [y])(state)[0, 0]
 
-        QFunc_150 = qutip.QFunc(xs, xs, cutoff=150)
-        QFunc_160 = qutip.QFunc(xs, xs, cutoff=160)
-        QFunc_170 = qutip.QFunc(xs, xs, cutoff=170)
+            msg = f"failed as {x=}, {y=}"
 
-        np.testing.assert_allclose(qfunc_150, qfunc_160, rtol=1e-6)
-        np.testing.assert_allclose(qfunc_170, qfunc_160, rtol=1e-6)
-
-        np.testing.assert_allclose(QFunc_150(state), qfunc_150, rtol=1e-13)
-        np.testing.assert_allclose(QFunc_160(state), qfunc_160, rtol=1e-13)
-        np.testing.assert_allclose(QFunc_170(state), qfunc_170, rtol=1e-13)
+            assert func_out == pytest.approx(0.5 / np.pi, abs=1e-13), msg
+            assert cls_out == pytest.approx(0.5 / np.pi, abs=1e-13), msg
 
     def test_QFunc_large_size_step(self):
-        xs = np.linspace(0, 30, 31)
-        arr = np.zeros(200, dtype=complex)
-        arr[155] = 1.
-        arr[165] = 1j
-        state = qutip.Qobj(arr)
+        xs = np.linspace(0, 20, 21)
 
-        QFinst = qutip.QFunc(xs, xs, cutoff=160)
-        one_step = QFinst(qutip.Qobj(arr))
+        QFinst = qutip.QFunc(xs, [0])
+        step1 = QFinst(qutip.coherent(50, alpha=4/2**0.5))
+        assert step1[0, 4] == pytest.approx(0.5 / np.pi, abs=1e-13)
 
-        QFinst = qutip.QFunc(xs, xs, cutoff=160)
-        # Internal buffer computed up to the size of the first state
-        QFinst(qutip.Qobj(arr[::150]))
-        # Expand the buffer to full size
-        pre_data = QFinst(qutip.Qobj(arr))
-        np.testing.assert_allclose(one_step, pre_data, rtol=1e-13)
+        step2 = QFinst(qutip.coherent(100, alpha=7/2**0.5))
+        assert step2[0, 7] == pytest.approx(0.5 / np.pi, abs=1e-13)
 
-        QFinst = qutip.QFunc(xs, xs, cutoff=160)
-        QFinst(qutip.Qobj(arr[::158]))
-        pre_cutoff = QFinst(qutip.Qobj(arr))
-        np.testing.assert_allclose(one_step, pre_cutoff, rtol=1e-13)
-
-        QFinst = qutip.QFunc(xs, xs, cutoff=160)
-        QFinst(qutip.Qobj(arr[::163]))
-        post_cutoff = QFinst(qutip.Qobj(arr))
-        np.testing.assert_allclose(one_step, post_cutoff, rtol=1e-13)
-
-        QFinst = qutip.QFunc(xs, xs, cutoff=160)
-        QFinst(qutip.Qobj(arr[::168]))
-        post_data = QFinst(qutip.Qobj(arr))
-        np.testing.assert_allclose(one_step, post_data, rtol=1e-13)
+        step3 = QFinst(qutip.coherent(200, alpha=14/2**0.5))
+        assert step3[0, 14] == pytest.approx(0.5 / np.pi, abs=1e-13)
+        assert step1[0, 14] != pytest.approx(0.5 / np.pi, abs=1e-13)
 
 
 def test_wigner_bell1_su2parity():
@@ -647,6 +619,7 @@ def test_wigner_clenshaw_sp_iter_dm():
         Wdiff = abs(W - Wclen)
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
+
 @pytest.mark.parametrize(['spin'], [
     pytest.param(1/2, id="spin-one-half"),
     pytest.param(3, id="spin-three"),
@@ -670,6 +643,7 @@ def test_spin_q_function(spin, pure):
         state = qutip.spin_coherent(spin, theta_prime, phi_prime)
         direct_Q = abs(state.dag() * rho * state)
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
+
 
 @pytest.mark.parametrize(['spin'], [
     pytest.param(1/2, id="spin-one-half"),
@@ -719,6 +693,7 @@ def test_spin_wigner_normalized(spin, pure):
         trapezoid(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi
     )
     assert_almost_equal(norm, 1, decimal=4)
+
 
 @pytest.mark.parametrize(['spin'], [
     pytest.param(1 / 2, id="spin-one-half"),
