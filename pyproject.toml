@@ -84,6 +84,10 @@ setup = ["--vsenv"]
 manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
 
+[tool.cibuildwheel.pyodide]
+test-groups = ["tests"]
+test-command = "python -m pytest --pyargs qutip"
+
 [tool.towncrier]
 directory = "doc/changes"
 filename = "doc/changelog.rst"
