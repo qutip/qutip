@@ -45,8 +45,8 @@ cdef class SpectraCoefficient(Coefficient):
             kwargs.update(_args)
         if kwargs:
             return SpectraCoefficient(
-                self.coeff_w.replace(**kwargs),
-                self.coeff_t.replace(**kwargs) if self.coeff_t else None,
+                self.coeff_w.replace(**kwargs),  # FIXME: replace is undefined
+                self.coeff_t.replace(**kwargs) if self.coeff_t else None, # FIXME: replace is undefined
                 kwargs.get('w', w or self.w)
               )
         if w is not None:
