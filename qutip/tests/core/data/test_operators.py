@@ -12,9 +12,11 @@ from qutip import settings
     pytest.param(lambda left, right: left - right, _data.sub, id="sub"),
     pytest.param(lambda left, right: left @ right, _data.matmul, id="matmul"),
 ])
-def test_data_binary_operator(type_left, type_right, operator, dispatch):
-    left = qutip.rand_dm(5, dtype=type_left).data
-    right = qutip.rand_dm(5, dtype=type_right).data
+def test_data_binary_operator(
+    type_left, type_right, operator, dispatch, random_generator
+):
+    left = qutip.rand_dm(5, dtype=type_left, seed=random_generator).data
+    right = qutip.rand_dm(5, dtype=type_right, seed=random_generator).data
     numpy.testing.assert_allclose(
         operator(left, right).to_array(),
         dispatch(left, right).to_array(),
@@ -49,9 +51,10 @@ def test_data_neg_operator(type_):
 
 @pytest.mark.parametrize('type_left', _data.to.dtypes)
 @pytest.mark.parametrize('type_right', _data.to.dtypes)
-def test_data_eq_operator(type_left, type_right):
-    mat = qutip.rand_dm(5)
-    noise = qutip.rand_dm(5) * settings.core["atol"] / 10
+def test_data_eq_operator(type_left, type_right, random_generator):
+    noise_scale = settings.core["atol"] / 10
+    mat = qutip.rand_dm(5, seed=random_generator)
+    noise = qutip.rand_dm(5, seed=random_generator) * noise_scale
 
     left = mat.to(type_left).data
     right = mat.to(type_right).data

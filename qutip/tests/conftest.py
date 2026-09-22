@@ -3,6 +3,7 @@ import functools
 import os
 import tempfile
 import numpy as np
+import hashlib
 
 
 def _add_repeats_if_marked(metafunc):
@@ -75,16 +76,23 @@ class NotReprGenerator(np.random.Generator):
 
 @pytest.fixture
 def random_generator(request):
-    seed = SEEDSEQ.spawn(1)[0]
+    # We avoid using the spawn to create a seed that do not change with test
+    # order.
+    # The seed is determined from the global seed and test name
+    test_name = request.node.nodeid.split("::")[1].encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
+    seed = (SEEDSEQ.entropy + name_hash) % 2**128
     request.node.user_properties.append(("numpy_generator", seed))
+    request.node.user_properties.append(("test_name", test_name))
     default = np.random.default_rng(seed)
     yield NotReprGenerator(default._bit_generator)
 
 
 @pytest.fixture
 def with_seeded_random(request):
-    # Spawning does not update the entropy
-    seed = np.random.default_rng(SEEDSEQ.spawn(1)[0]).integers(2**32)
+    test_name = request.node.nodeid.split("::")[1].encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:8], 16)
+    seed = (SEEDSEQ.entropy + name_hash) % 2**32
     request.node.user_properties.append(("numpy_global_seed", seed))
     np.random.seed(seed)
     yield None
