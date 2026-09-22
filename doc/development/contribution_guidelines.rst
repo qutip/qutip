@@ -25,10 +25,13 @@ In QuTiP's test there are two common sources of randomness in tests:
   as an option, that functionality should also be tested.
 
 
-To ensure tests are reproducible while maintaining non-deterministic test coverage, two fixtures are available:
+To ensure tests are reproducible while maintaining non-deterministic test coverage,
+two fixtures are available:
 
-- ``random_generator``: Provides a seeded ``numpy.random.Generator`` instance. Use this for functions accepting an explicit RNG or when generating random test inputs.
-- ``with_seeded_random``: Calls ``numpy.random.seed(...)`` prior to test execution. Use this for legacy code or functions relying on global numpy random state.
+- ``random_generator``: Provides a seeded ``numpy.random.Generator`` instance.
+  Use this for functions accepting an explicit RNG or when generating random test inputs.
+- ``with_seeded_random``: Calls ``numpy.random.seed(...)`` prior to test execution.
+  Use this for legacy code or functions relying on global numpy random state.
 
 The seed used in each case is attached to the test report and will be displayed automatically in the error message if a test fails.
 
@@ -43,6 +46,7 @@ The seed used in each case is attached to the test report and will be displayed 
     def test_1(number, random_generator):
         # qutip.rand_* functions accept integers, SeedSequence and
         # pre-made Generator instances for the ``seed`` parameter.
+        # We use the fixture pre-made Generator in tests:
         oper = qutip.rand_herm([5, 5], density=number, seed=random_generator)
         assert oper.isherm
 
