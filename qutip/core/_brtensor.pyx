@@ -587,7 +587,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
         if not self.eig_basis and out is not None:
             out = self.H.to_eigbasis(t, out)
         A_eig = self.H.to_eigbasis(t, self.a_op._call(t))
-        B_eig = self.H.to_eigbasis(t, self.a_op._call(t))
+        B_eig = self.H.to_eigbasis(t, self.b_op._call(t))
         BR_eig = self._br_cterm(A_eig, B_eig, cutoff)
         out = _data.add(_data.matmul(BR_eig, state, scale), out)
         if not self.eig_basis:
