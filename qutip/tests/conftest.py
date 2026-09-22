@@ -75,24 +75,19 @@ class NotReprGenerator(np.random.Generator):
 
 @pytest.fixture
 def random_generator(request):
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="RANDOM", category=UserWarning)
-
-        seed = SEEDSEQ.spawn(1)[0]
-        request.node.user_properties.append(("numpy_generator", seed))
-        default = np.random.default_rng(seed)
-        yield NotReprGenerator(default._bit_generator)
+    seed = SEEDSEQ.spawn(1)[0]
+    request.node.user_properties.append(("numpy_generator", seed))
+    default = np.random.default_rng(seed)
+    yield NotReprGenerator(default._bit_generator)
 
 
 @pytest.fixture
 def with_seeded_random(request):
     # Spawning does not update the entropy
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="RANDOM", category=UserWarning)
-        seed = np.random.default_rng(SEEDSEQ.spawn(1)[0]).integers(2**32)
-        request.node.user_properties.append(("numpy_global_seed", seed))
-        np.random.seed(seed)
-        yield None
+    seed = np.random.default_rng(SEEDSEQ.spawn(1)[0]).integers(2**32)
+    request.node.user_properties.append(("numpy_global_seed", seed))
+    np.random.seed(seed)
+    yield None
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
