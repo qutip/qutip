@@ -5,7 +5,10 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
-pytestmark = pytest.mark.usefixtures("with_seeded_random")
+@pytest.fixture(autouse=True)
+def fix_mtsolver_seed(random_generator):
+    seedseq = random_generator.bit_generator.seed_seq
+    MCSolver.seed_sequence = seedseq
 
 
 def _return_constant(t, constant):
