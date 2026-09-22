@@ -83,7 +83,6 @@ def random_generator(request):
     name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
     seed = (SEEDSEQ.entropy + name_hash) % 2**128
     request.node.user_properties.append(("numpy_generator", seed))
-    request.node.user_properties.append(("test_name", test_name))
     default = np.random.default_rng(seed)
     yield NotReprGenerator(default._bit_generator)
 

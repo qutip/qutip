@@ -9,8 +9,9 @@ from qutip.core import data as _data
 
 
 @pytest.fixture(autouse=True)
-def fix_mtsolver_seed(random_generator):
-    seedseq = random_generator.bit_generator.seed_seq
+def fix_ssolver_seed(random_generator):    
+    seed = random_generator.integers(2**63)
+    seedseq = np.random.SeedSequence(seed)
     SMESolver.seed_sequence = seedseq
     SSESolver.seed_sequence = seedseq
 

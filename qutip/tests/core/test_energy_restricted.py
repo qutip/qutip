@@ -7,7 +7,7 @@ import scipy.sparse
 
 from qutip.core.dimensions import flatten
 from qutip.core.energy_restricted import EnrSpace, Space
-
+from qutip.testing.random_data import random_scipy_csr
 
 def _n_enr_states(dimensions, n_excitations):
     """
@@ -326,11 +326,11 @@ def test_enr_tensor(dims_list, n_ex_list, isoper, dtype, random_generator):
 
     # generate the random matrices
     rand_mat_list = [
-        scipy.sparse.random_array(
+        random_scipy_csr(
             (nstates, ncol),
             density=dens,
-            dtype="complex128",
-            rng=random_generator
+            gen=random_generator,
+            sorted_=True,
         )
         for (nstates, ncol, dens)
         in zip(nstates_list, ncol_arr, dens_list)]

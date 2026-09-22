@@ -7,8 +7,8 @@ from qutip.solver.mcsolve import mcsolve, MCSolver
 
 @pytest.fixture(autouse=True)
 def fix_mtsolver_seed(random_generator):
-    seedseq = random_generator.bit_generator.seed_seq
-    MCSolver.seed_sequence = seedseq
+    seed = random_generator.integers(2**63)
+    MCSolver.seed_sequence = np.random.SeedSequence(seed)
 
 
 def _return_constant(t, constant):

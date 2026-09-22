@@ -9,8 +9,8 @@ from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 @pytest.fixture(autouse=True)
 def fix_mtsolver_seed(random_generator):
-    seedseq = random_generator.bit_generator.seed_seq
-    NonMarkovianMCSolver.seed_sequence = seedseq
+    seed = random_generator.integers(2**63)
+    NonMarkovianMCSolver.seed_sequence = np.random.SeedSequence(seed)
 
 
 @pytest.mark.slow
