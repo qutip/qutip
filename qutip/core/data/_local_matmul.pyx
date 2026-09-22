@@ -21,7 +21,6 @@ __all__ = [
 
 
 cdef int ONE = 1
-cdef double NaN = np.nan
 
 
 cdef int _mul(list numbers) except -1:
@@ -372,7 +371,7 @@ cpdef void n_mode_kernel(
 
         if val == 0+0j:
             continue
-        if val == NaN:
+        if val != val: # NaN test
             raise RuntimeError(f"Oper out of bound, row={row}, col={col}")
 
         for i in range(meta.n_pass_through):

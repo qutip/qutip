@@ -785,7 +785,7 @@ cpdef CSR multiply_csr(CSR left, CSR right):
                 ptr_right += 1
                 nnz += 1
             elif col_left <= col_right:
-                if left.data[ptr_left] is np.nan:
+                if left.data[ptr_left] != left.data[ptr_left]:
                     # Test for NaN since `NaN * 0 = NaN`
                     nans.append((row, col_left))
                 ptr_left += 1
