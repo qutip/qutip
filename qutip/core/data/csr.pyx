@@ -369,7 +369,7 @@ cdef class Sorter:
 
     # TODO: Come back to this as there is a bug - the realloc result is never checked
     # Same for copy function
-    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) except -1 nogil:
+    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) except * nogil:
         cdef size_t n
         cdef base.idxint col0, col1, col2
         # Fast paths for tridiagonal matrices.  These fast paths minimise the
@@ -427,7 +427,7 @@ cdef class Sorter:
     cdef void copy(self,
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
-                   size_t size) noexcept nogil:
+                   size_t size) except * nogil:
         cdef size_t n, ptr
         # Fast paths for small sizes.  Not pretty, but it speeds things up a
         # lot for up to triadiaongal systems (which are pretty common).
@@ -502,6 +502,8 @@ cdef class Sorter:
                     <base.idxint **>
                     mem.PyMem_Realloc(self.argsort, self.size * sizeof(base.idxint *))
                 )
+                if self.argsort == NULL:
+                    raise MemoryError
         # We do the argsort with two levels of indirection to minimise memory
         # allocation and copying requirements when this function is being used
         # to assemble a CSR matrix under an operation which may change the

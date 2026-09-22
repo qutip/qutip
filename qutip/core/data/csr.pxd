@@ -140,11 +140,11 @@ cdef class Sorter:
     cdef base.idxint **argsort
     cdef _data_col *sort
 
-    cdef void inplace(Sorter self, CSR matrix, base.idxint ptr, size_t size) noexcept nogil
+    cdef void inplace(Sorter self, CSR matrix, base.idxint ptr, size_t size) except * nogil
     cdef void copy(Sorter self,
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
-                   size_t size) noexcept nogil
+                   size_t size) except * nogil
 
 
 cpdef CSR fast_from_scipy(object sci)
