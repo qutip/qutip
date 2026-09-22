@@ -1,5 +1,7 @@
 from qutip.about import about
 from qutip.settings import settings as qset
+import numpy as np
+
 
 def run(full=False):
     """
@@ -32,3 +34,26 @@ def run(full=False):
     # if qset.has_openmp:
     #     qset.num_cpus = real_num_cpu
     #     qset.openmp_thresh = real_thresh
+
+
+def get_test_generator(entropy, test_name):
+    """
+    Recreate the generator used in tests as random_generator fixture from the
+    test global seed and test name.
+
+    Parameters
+    ----------
+    entropy: int128
+        Number printed at the start of the test suite:
+        Run global seed: *********
+
+    test_name: str
+        Name of the test with parametrisation ids:
+        "test_data_binary_operator[matmul-CSR-Dense]"
+        The file name is not used.
+    """
+    if "::" in test_name:
+        test_name = request.node.nodeid.split("::")[-1]
+    test_name = test_name.encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
+    return np.random.default_rng( (entropy + name_hash) % 2**128 )

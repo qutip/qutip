@@ -113,4 +113,4 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_sessionstart(session):
-    print("Run global seed:", SEEDSEQ)
+    print("Run global seed:", SEEDSEQ.entropy)
