@@ -614,7 +614,7 @@ cdef class _BlochRedfieldCrossElement(_BlochRedfieldElement):
         if H is None:
             H = _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
                                      type(self.H.oper) is CSR)
-        new_ = _BlochRedfieldElement(
+        new_ = _BlochRedfieldCrossElement(
             H, QobjEvo(self.a_op, args=args), QobjEvo(self.b_op, args=args),
             self.spectra.replace_arguments(**args), self.sec_cutoff
         )
