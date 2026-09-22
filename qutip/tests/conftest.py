@@ -114,3 +114,5 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_sessionstart(session):
     print("Run global seed:", SEEDSEQ.entropy)
+    default_type = type(np.random.default_rng().bit_generator)
+    print("Type of bit generator:", default_type.__name__)

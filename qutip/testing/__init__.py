@@ -1,6 +1,7 @@
 from qutip.about import about
 from qutip.settings import settings as qset
 import numpy as np
+import hashlib
 
 
 def run(full=False):
