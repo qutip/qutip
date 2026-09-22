@@ -182,7 +182,7 @@ class TestFitting:
             fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
         if noisy:
-            noise = self.rng.normal(0, noisy, len(x))
+            noise = random_generator.normal(0, noisy, len(x))
             y += noise
         return x, y, fparams1, fparams2, noisy
 
