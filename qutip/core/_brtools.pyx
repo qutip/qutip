@@ -38,7 +38,7 @@ cdef class SpectraCoefficient(Coefficient):
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
-        return SpectraCoefficient(self.coeff_t, self.coeff_w, self.w)
+        return SpectraCoefficient(self.coeff_w, self.coeff_t, self.w)
 
     def replace_arguments(self, _args=None, *, w=None, **kwargs):
         if _args:

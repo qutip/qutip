@@ -369,7 +369,7 @@ cdef class Sorter:
 
     # TODO: Come back to this as there is a bug - the realloc result is never checked
     # Same for copy function
-    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) noexcept nogil:
+    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) except -1 nogil:
         cdef size_t n
         cdef base.idxint col0, col1, col2
         # Fast paths for tridiagonal matrices.  These fast paths minimise the
@@ -413,6 +413,9 @@ cdef class Sorter:
             with gil:
                 self.sort = <_data_col *> mem.PyMem_Realloc(self.sort,
                                                             self.size * sizeof(_data_col))
+                if self.sort == NULL:
+                    raise MemoryError
+
         for n in range(size):
             self.sort[n].data = matrix.data[ptr + n]
             self.sort[n].col = matrix.col_index[ptr + n]

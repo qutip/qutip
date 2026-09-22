@@ -109,7 +109,7 @@ cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
         )
     return 0
 
-cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
+cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) except -1:
     """
     Produce a sensible upper-bound for the number of non-zero elements that
     will be present in a matrix multiplication between the two matrices.
@@ -119,6 +119,9 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # Setup mask array
     cdef idxint *mask = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
+    if mask == NULL:
+        raise MemoryError
+
     with nogil:
         for ii in range(ncols):
             mask[ii] = -1
