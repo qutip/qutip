@@ -16,6 +16,8 @@ class EulerSODE(_Explicit_Simple_Integrator):
     solver which could take non-commuting ``sc_ops``.
 
     - Order: 0.5
+
+    Set ``options={"method":"euler"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -36,6 +38,8 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
     *Numerical Solution of Stochastic Differential Equations*..
 
     - Order strong 1.0
+
+    Set ``options={"method":"milstein"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -55,6 +59,8 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     Exkhard Platen, *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
+
+    Set ``options={"method":"taylor1.5"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -97,6 +103,8 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
     *Numerical Solution of Stochastic Differential Equations.*
 
     - Order: strong 1.5
+
+    Set ``options={"method":"explicit1.5"}`` to use.
     """
     stepper = _sode.Explicit15
     N_dw = 2
@@ -112,6 +120,8 @@ class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
     *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.0
+
+    Set ``options={"method":"milstein_imp"}`` to use.
     """
     stepper = _sode.Milstein_imp
     N_dw = 1
@@ -126,6 +136,8 @@ class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
     *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
+
+    Set ``options={"method":"taylor1.5_imp"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,

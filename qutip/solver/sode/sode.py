@@ -252,6 +252,8 @@ class PlatenSODE(_Explicit_Simple_Integrator):
     H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems*.
 
     - Order: strong 1, weak 2
+
+    Set ``options={"method":"platen"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -272,12 +274,8 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 0.5, weak 1.0
-    - Codes to only correct the stochastic part (:math:`\\alpha=0`,
-      :math:`\\eta=1/2`): ``'pred-corr'``, ``'predictor-corrector'`` or
-      ``'pc-euler'``
-    - Codes to correct both the stochastic and deterministic parts
-      (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
-      ``'pc-euler-2'`` or ``'pred-corr-2'``
+
+      Set ``options={"method":"pred_corr"}`` to use.
     """
 
     integrator_options = {

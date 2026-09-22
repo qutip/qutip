@@ -15,6 +15,8 @@ class IntegratorKrylov(Integrator):
     small dimensional Krylov subspaces (m <= dim(H)). The construction of this
     subspace is performed by the Lanczos, fully-reorthogonalized Lanczos or
     Arnoldi algorithm.
+
+    Usable with ``method="tsit5"`` and :func:`krylovsolve`
     """
     integrator_options = {
         'atol': 1e-7,

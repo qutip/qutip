@@ -184,6 +184,105 @@ The results are available in ``result.measurement``.
     ax.legend()
 
 
+Solving stochastic differential equations
+=========================================
+- Qutip has multiple ways to integrate the resulting SDEs.
+- they are controled by the method options:
+   smesolve(..., options={"method":"euler"})
+- ssesolve and smesolve have methods in common, but smesolve support some more methods
+  - derivative of smesolve's equations are available for taylor methods.
+  - ssesolve derivatives are not implemented.
+- Terms for non-commuting sc_ops are not implemented in taylor expansion methods and rouchon method, and explicit short cut are taken A @ B + B @ A -> 2 A @ B.
+
+- Methods supported:
+  - euler: basic method: adt + b_i dw_i, need very small steps, but only on valid with non-commuting sc_ops.
+  - milstein, taylor1.5, more term in the expansion (smesolve only)
+  - milstein_imp, Taylor15_imp, implicit version of the previous methods (smesolve only)
+  - explicit1.5, taylor1.5 without using derivative, but using finite difference instead
+  - platen: explicit order 1 method. ((7.47) of chapter 7 of H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems*), (default, usually reasonably good choice, maybe ok with non-commuting (not tested))
+  - rouchon: physics based equation. Keep the state physical (Hermitian, norm 1), which is both good and bad: too large step will result in easily visible error with other method (negative population in the density matrix, divergence to inf, etc), but look fine with rouchon.
+  - pred_corr: Generalization of the trapezoidal method to stochastic differential. (smesolve only) No short cut for non-commuting, maybe ok? Controlled by options:
+
+      alpha : float, default: 0.
+          Implicit factor to the drift.
+          eff_drift ~= drift(t) * (1-alpha) + drift(t+dt) * alpha
+
+      eta : float, default: 0.5
+          Implicit factor to the diffusion.
+          eff_diffusion ~= diffusion(t) * (1-eta) + diffusion(t+dt) * eta
+
+
+Solving Stochastic Differential Equations
+=========================================
+
+QuTiP provides multiple numerical integration methods to solve Stochastic Differential Equations (SDEs).
+
+The integration scheme is controlled using the ``method`` entry in the solver options:
+
+.. code-block:: python
+
+    stoc_solution = smesolve(..., options={"method": "platen"})
+
+
+Available Integration Methods
+-----------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Method Key
+     - Supported Solvers
+     - Description
+   * - ``"platen"``
+     - SSE / SME
+     - **Default.** Explicit order-1 scheme. Good general-purpose choice.
+   * - ``"euler"``
+     - SSE / SME
+     - Basic Euler-Maruyama scheme. Simple and works with non-commuting operators, but requires a very small time step (``dt``) for stability.
+   * - ``"rouchon"``
+     - SSE / SME
+     - Physics-preserving scheme. Keeps state vectors normalized and density matrices positive and Hermitian.
+   * - ``"explicit1.5"``
+     - SSE / SME
+     - Order 1.5 derivative-free explicit Taylor scheme using finite differences instead of analytical derivatives.
+   * - ``"milstein"``
+     - SME
+     - Order 1.0 Taylor expansion method using derivative terms.
+   * - ``"taylor1.5"``
+     - SME
+     - Order 1.5 Taylor expansion scheme utilizing analytical derivatives.
+   * - ``"milstein_imp"``
+     - SME
+     - Implicit version of the Milstein method for stiff SDEs.
+   * - ``"Taylor15_imp"``
+     - SME
+     - Implicit version of the Taylor 1.5 method for stiff SDEs.
+   * - ``"pred_corr"``
+     - SME
+     - Generalization of the trapezoidal predictor-corrector scheme to SDEs.
+
+
+Practical Considerations
+------------------------
+
+Non-Commuting Stochastic Operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Taylor expansion schemes and the ``"rouchon"`` method assume that stochastic collapse operators (``sc_ops``) commute,
+skipping anti-commuting terms abd using symmetric shortcuts such as replacing :math:`A B + B A` with :math:`2 A B`.
+
+If your model features non-commuting stochastic operators, ``"euler"`` with a sufficiently small integration step size ``dt`` is strictly valid.
+
+Step-Size Sensitivity with the Rouchon Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In standard methods (like ``"euler"`` or ``"platen"``), using a time step ``dt`` that is too large typically produces obvious numerical failures,
+such as unphysical negative probabilities or divergence to ``infinity``.
+
+By contrast, the ``"rouchon"`` method explicitly enforces physical normalization at each step.
+While this prevents divergence, **an overly large step size may conceal numerical errors** while still producing a state that looks physically valid.
+Always test step-size convergence when using ``"rouchon"``.
+
+
 Run from known measurements
 ===========================
 
