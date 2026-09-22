@@ -342,7 +342,7 @@ cpdef Dia from_dense(Dense matrix):
     cdef Dia out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     memset(out.data, 0, out._max_diag * out.shape[1] * sizeof(double complex))
     cdef size_t diag_, ptr_in, ptr_out=0, stride
-    cdef row, col
+    cdef size_t row, col, i, strideR, strideC
 
     out.num_diag = matrix.shape[0] + matrix.shape[1] - 1
     for i in range(matrix.shape[0] + matrix.shape[1] - 1):
@@ -388,6 +388,8 @@ cpdef Dia clean_dia(Dia matrix, bint inplace=False):
 
     if out.num_diag == 0:
         return out
+
+    cdef base.idxint smallest_offsets, smallest_diag, comp_diag
 
     # We sort using insertion sort on the offsets, summing data of duplicated.
     # This does not scale well with large number of diagonal

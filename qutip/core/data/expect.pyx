@@ -258,7 +258,7 @@ cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
 
 cpdef double complex expect_dia(Dia op, Dia state):
     cdef double complex expect = 0.
-    cdef idxint diag_bra, diag_op, diag_ket, i, length
+    cdef idxint diag_bra, diag_op, diag_ket, diag_state, i, length
     cdef idxint start_op, start_state, end_op, end_state
     if state.shape[1] == 1:
         _check_shape_ket(op, state)
