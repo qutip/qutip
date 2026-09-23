@@ -75,7 +75,7 @@ cpdef list get_blocks(int N):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef float j_min(N):
+cpdef double j_min(N):
     """
     Calculate the minimum value of j for given N.
 
@@ -419,7 +419,7 @@ cdef class Dicke(object):
         cdef double dephase, collective_dephase, g1
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
 
         yE = self.emission
         yD = self.dephasing
@@ -458,7 +458,7 @@ cdef class Dicke(object):
         cdef double dephase, collective_dephase
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yCE = self.collective_emission
         yE = self.emission
 
@@ -489,7 +489,7 @@ cdef class Dicke(object):
 
         cdef complex g3
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yE = self.emission
 
         if (yE == 0) or (j <= 0):
@@ -510,7 +510,7 @@ cdef class Dicke(object):
         cdef double yE
         cdef double N
 
-        N = float(self.N)
+        N = <double>self.N
         j, m, m1 = jmm1
         yE = self.emission
         if (yE == 0) or ((j+1) <= 0):
@@ -533,7 +533,7 @@ cdef class Dicke(object):
         cdef double yD
         cdef double N
 
-        N = float(self.N)
+        N = <double>self.N
         yD = self.dephasing
 
         if (yD == 0) or (j <= 0):
@@ -556,7 +556,7 @@ cdef class Dicke(object):
         cdef complex g6
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
 
         yD = self.dephasing
         if yD == 0:
@@ -579,7 +579,7 @@ cdef class Dicke(object):
         cdef complex g7
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
 
         if (yP == 0) or (j <= 0):
@@ -601,7 +601,7 @@ cdef class Dicke(object):
         cdef complex g8
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
         yCP = self.collective_pumping
         if (yP == 0) or (j <= 0):
@@ -629,7 +629,7 @@ cdef class Dicke(object):
         cdef complex g9
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
 
         if (yP == 0):
