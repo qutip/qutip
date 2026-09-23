@@ -9,6 +9,12 @@ import numpy as np
 
 cdef double INV_SQRT3 = 1/sqrt(3.)
 
+
+cdef inline void _assign(Dense dst, Dense src):
+    """dst[:] = src, in place."""
+    imul_dense(dst, 0.)
+    iadd_dense(dst, src, 1.)
+
 cdef class Euler:
     cdef BaseStochasticSystem system
     cdef bint measurement_noise
@@ -31,6 +37,7 @@ cdef class Euler:
         # A step may accumulate into it and return it, the previous state then becomes the next scratch.
         cdef Dense out = _data.zeros_like(state)
         state = state.copy()
+        self._allocate(state)
 
         for i in range(num_step):
             new_state = self.step(t + i * dt, state, dt, dW[i, :, :], out)
@@ -38,6 +45,10 @@ cdef class Euler:
                 out = state
             state = new_state
         return state
+
+    cdef void _allocate(self, Dense state):
+        """Allocate the scratch states a step needs, once per run."""
+        pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -70,6 +81,16 @@ cdef class Euler:
 
 
 cdef class Platen(Euler):
+    cdef Dense _d1, _Vt
+    cdef list _Vp, _Vm
+
+    cdef void _allocate(self, Dense state):
+        cdef int n = self.system.num_diffusion
+        self._d1 = _data.zeros_like(state)
+        self._Vt = _data.zeros_like(state)
+        self._Vp = [_data.zeros_like(state) for _ in range(n)]
+        self._Vm = [_data.zeros_like(state) for _ in range(n)]
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -90,35 +111,39 @@ cdef class Platen(Euler):
         cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
         cdef double dw, dw2, dw2p, dw2m
+        cdef Dense d1 = self._d1, Vt = self._Vt, Vp, Vm
+        cdef list d2, d2p, d2m, expect
 
-        cdef Data d1 = _data.add(state, system.drift(t, state), dt)
-        cdef list d2 = system.diffusion(t, state)
-        cdef Data Vt
-        cdef list Vp, Vm
-        cdef list expect
+        # d1 = state + a(state) dt
+        _assign(d1, state)
+        iadd_dense(d1, system.drift(t, state), dt)
+        d2 = system.diffusion(t, state)
 
         if self.measurement_noise:
             expect = system._shift(t, state)
-            for i in range(system.num_diffusion):
+            for i in range(num_ops):
                 dW[0, i] -= expect[i].real * dt
 
-        out = _data.mul(d1, 0.5)
-        Vt = d1.copy()
-        Vp = []
-        Vm = []
+        # Vt = d1 + sum_i b_i dW_i ;  Vp_i, Vm_i = d1 +/- b_i sqrt(dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, d1, 0.5)
+        _assign(Vt, d1)
         for i in range(num_ops):
-            Vp.append(_data.add(d1, d2[i], sqrt_dt))
-            Vm.append(_data.add(d1, d2[i], -sqrt_dt))
-            Vt = _data.add(Vt, d2[i], dW[0, i])
+            Vp = self._Vp[i]
+            Vm = self._Vm[i]
+            _assign(Vp, d1)
+            iadd_dense(Vp, d2[i], sqrt_dt)
+            _assign(Vm, d1)
+            iadd_dense(Vm, d2[i], -sqrt_dt)
+            iadd_dense(Vt, d2[i], dW[0, i])
 
-        d1 = system.drift(t, Vt)
-        out = _data.add(out, d1, 0.5 * dt)
-        out = _data.add(out, state, 0.5)
+        iadd_dense(out, system.drift(t, Vt), 0.5 * dt)
+        iadd_dense(out, state, 0.5)
         for i in range(num_ops):
-            d2p = system.diffusion(t, Vp[i])
-            d2m = system.diffusion(t, Vm[i])
+            d2p = system.diffusion(t, self._Vp[i])
+            d2m = system.diffusion(t, self._Vm[i])
             dw = dW[0, i] * 0.25
-            out = _data.add(out, d2[i], 2 * dw)
+            iadd_dense(out, d2[i], 2 * dw)
 
             for j in range(num_ops):
                 if i == j:
@@ -128,8 +153,8 @@ cdef class Platen(Euler):
                 else:
                     dw2p = sqrt_dt_inv * dW[0, i] * dW[0, j]
                     dw2m = -dw2p
-                out = _data.add(out, d2p[j], dw2p)
-                out = _data.add(out, d2m[j], dw2m)
+                iadd_dense(out, d2p[j], dw2p)
+                iadd_dense(out, d2m[j], dw2m)
 
         return out
 
