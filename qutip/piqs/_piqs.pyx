@@ -262,8 +262,8 @@ cdef class Dicke(object):
         default: 0.0
     """
     cdef int N
-    cdef float emission, dephasing, pumping
-    cdef float collective_emission, collective_dephasing, collective_pumping
+    cdef double emission, dephasing, pumping
+    cdef double collective_emission, collective_dephasing, collective_pumping
 
     def __init__(self, int N, float emission=0., float dephasing=0.,
                  float pumping=0., float collective_emission=0.,
@@ -412,11 +412,11 @@ cdef class Dicke(object):
         """
         Calculate gamma1 for value of j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yCE, yE, yD, yP, yCP, yCD
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase, g1
+        cdef double j, m, m1
+        cdef double yCE, yE, yD, yP, yCP, yCD
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase, g1
 
         j, m, m1 = jmm1
         N = float(self.N)
@@ -451,11 +451,11 @@ cdef class Dicke(object):
         """
         Calculate gamma2 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yCE, yE, yD, yP, yCP, yCD, g2
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase
+        cdef double j, m, m1
+        cdef double yCE, yE, yD, yP, yCP, yCD, g2
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase
 
         j, m, m1 = jmm1
         N = float(self.N)
@@ -481,11 +481,11 @@ cdef class Dicke(object):
         """
         Calculate gamma3 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yE
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase
+        cdef double j, m, m1
+        cdef double yE
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase
 
         cdef complex g3
         j, m, m1 = jmm1
@@ -505,10 +505,10 @@ cdef class Dicke(object):
         """
         Calculate gamma4 for given j, m, m'.
         """
-        cdef float j, m, m1
+        cdef double j, m, m1
         cdef complex g4
-        cdef float yE
-        cdef float N
+        cdef double yE
+        cdef double N
 
         N = float(self.N)
         j, m, m1 = jmm1
@@ -527,11 +527,11 @@ cdef class Dicke(object):
         """
         Calculate gamma5 for given j, m, m'.
         """
-        cdef float j, m, m1
+        cdef double j, m, m1
         cdef complex g5
         j, m, m1 = jmm1
-        cdef float yD
-        cdef float N
+        cdef double yD
+        cdef double N
 
         N = float(self.N)
         yD = self.dephasing
@@ -550,9 +550,9 @@ cdef class Dicke(object):
         """
         Calculate gamma6 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yD
-        cdef float N
+        cdef double j, m, m1
+        cdef double yD
+        cdef double N
         cdef complex g6
 
         j, m, m1 = jmm1
@@ -573,9 +573,9 @@ cdef class Dicke(object):
         """
         Calculate gamma7 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP
+        cdef double N
         cdef complex g7
 
         j, m, m1 = jmm1
@@ -595,9 +595,9 @@ cdef class Dicke(object):
         """
         Calculate gamma8 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP, yCP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP, yCP
+        cdef double N
         cdef complex g8
 
         j, m, m1 = jmm1
@@ -623,9 +623,9 @@ cdef class Dicke(object):
         """
         Calculate gamma9 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP
+        cdef double N
         cdef complex g9
 
         j, m, m1 = jmm1
