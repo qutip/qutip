@@ -277,6 +277,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
 
     The exact order depends on the values configured for the ``alpha`` and
     ``eta`` options:
+
     - ``alpha=0, eta=0``: Equivalent to the Euler-Maruyama method.
     - ``alpha=0, eta=0.5`` (default): Includes diffusion terms up to
       :math:`\mathcal{O}(dt)`.
