@@ -353,23 +353,25 @@ cdef class QobjEvo:
             return QobjEvo(self, args=kwargs)(t)
 
         t = self._prepare(t, None)
+        cdef object t_obj = t
 
         if self.isconstant:
             # For constant QobjEvo's, we sum the contained Qobjs directly in
             # order to retain the cached values of attributes like .isherm when
             # possible, rather than calling _call(t) which may lose this cached
             # information.
-            return sum(element.qobj(t) for element in self.elements)
+            return sum(element.qobj(t_obj) for element in self.elements)
 
         cdef _BaseElement part = self.elements[0]
         cdef double complex coeff = part._coeff_c(t)
-        obj = part.qobj(t)
+        obj = part.qobj(t_obj)
         cdef Data out = _data.mul(obj.data, coeff)
         cdef bint isherm = <bint> obj._isherm and coeff.imag == 0
+        
         for element in self.elements[1:]:
             part = <_BaseElement> element
             coeff = part._coeff_c(t)
-            obj = part.qobj(t)
+            obj = part.qobj(t_obj)
             isherm &= <bint> obj._isherm and coeff.imag == 0
             out = _data.add(out, obj.data, coeff)
 
@@ -377,16 +379,16 @@ cdef class QobjEvo:
 
     cpdef Data _call(QobjEvo self, double t):
         t = self._prepare(t, None)
+        cdef object t_obj = t
+        
         cdef Data out
         cdef _BaseElement part = self.elements[0]
-        out = _data.mul(part.data(t),
-                        part._coeff_c(t))
+        out = _data.mul(part.data(t_obj), part._coeff_c(t))
         for element in self.elements[1:]:
             part = <_BaseElement> element
-
             out = _data.add(
                 out,
-                part.data(t),
+                part.data(t_obj),
                 part._coeff_c(t)
             )
         return out
@@ -1021,12 +1023,14 @@ cdef class QobjEvo:
         superoperator.  If ``state`` is an operator and ``self`` is an
         operator, then expectation is ``trace(self @ matrix)``.
         """
+        
         if type(state) is Dense:
             return self._expect_dense(t, state)
         cdef _BaseElement part
         cdef object out = 0.
         cdef Data part_data
         cdef object expect_func
+
         t = self._prepare(t, state)
         if self.issuper:
             if state.shape[1] != 1:
@@ -1049,6 +1053,8 @@ cdef class QobjEvo:
         cdef double complex out = 0., coeff
         cdef Data part_data
         t = self._prepare(t, state)
+        cdef object t_obj = t
+
         if self.issuper:
             if state.shape[1] != 1:
                 state = column_stack_dense(state, inplace=state.fortran)
@@ -1056,7 +1062,7 @@ cdef class QobjEvo:
                 for element in self.elements:
                     part = (<_BaseElement> element)
                     coeff = part._coeff_c(t)
-                    part_data = part.data(t)
+                    part_data = part.data(t_obj)
                     out += coeff * expect_super_data_dense(part_data, state)
             finally:
                 if state.fortran:
@@ -1066,7 +1072,7 @@ cdef class QobjEvo:
             for element in self.elements:
                 part = (<_BaseElement> element)
                 coeff = part._coeff_c(t)
-                part_data = part.data(t)
+                part_data = part.data(t_obj)
                 out += coeff * expect_data_dense(part_data, state)
         return out
 

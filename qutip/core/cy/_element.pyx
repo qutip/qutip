@@ -702,7 +702,7 @@ cdef class _ProdElement(_BaseElement):
     cpdef object coeff(self, t):
         cdef double complex out
         if PyFloat_Check(t):
-            out = self._left.coeff_c(<double> t) * self._right.coeff_c(<double> t)
+            out = self._left._coeff_c(<double> t) * self._right._coeff_c(<double> t)
         else:
             out = <double complex> (self._left.coeff(t) * self._right.coeff(t))
         return conj(out) if self._conj else out
@@ -713,13 +713,13 @@ cdef class _ProdElement(_BaseElement):
 
     cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None, double complex scale=1):
         cdef Data temp
+        cdef double complex coeff_val
         if not self._transform:
             temp = self._right.matmul_data_t(t, state)
             out = self._left.matmul_data_t(t, temp, out, scale)
             return out
 
         elif type(state) is Dense and type(out) is Dense:
-            cdef double complex coeff_val
             if PyFloat_Check(t):
                 coeff_val = self._coeff_c(<double> t)
             else:
@@ -729,7 +729,6 @@ cdef class _ProdElement(_BaseElement):
             return out
 
         else:
-            cdef double complex coeff_val
             if PyFloat_Check(t):
                 coeff_val = self._coeff_c(<double> t)
             else:
