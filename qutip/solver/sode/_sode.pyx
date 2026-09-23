@@ -160,8 +160,24 @@ cdef class Platen(Euler):
 
 
 cdef class Explicit15(Euler):
+    cdef Dense _V
+    cdef list _v2p, _v2m, _p2p, _p2m
+    cdef double[::1] _dw, _dz, _dwp, _dwm
+
     def __init__(self, BaseStochasticSystem system):
         self.system = system
+
+    cdef void _allocate(self, Dense state):
+        cdef int n = self.system.num_diffusion
+        self._V = _data.zeros_like(state)
+        self._v2p = [_data.zeros_like(state) for _ in range(n)]
+        self._v2m = [_data.zeros_like(state) for _ in range(n)]
+        self._p2p = [[_data.zeros_like(state) for _ in range(n)] for _ in range(n)]
+        self._p2m = [[_data.zeros_like(state) for _ in range(n)] for _ in range(n)]
+        self._dw = np.empty(n)
+        self._dz = np.empty(n)
+        self._dwp = np.empty(n)
+        self._dwm = np.empty(n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -177,50 +193,54 @@ cdef class Explicit15(Euler):
         cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
         cdef double ddz, ddw, ddd
-        cdef double[::1] dz, dw, dwp, dwm
+        cdef double[::1] dw = self._dw, dz = self._dz, dwp = self._dwp, dwm = self._dwm
+        cdef Dense V = self._V, v2p, v2m, p2p, p2m, d1, d1p, d1m
+        cdef list d2, dd2, d2p, d2m, d2pp, d2mm, d2p_all, d2m_all
+        cdef object t_obj = t, t_dt = t + dt, t_n = t + dt / num_ops
 
-        dw = np.empty(num_ops)
-        dz = np.empty(num_ops)
-        dwp = np.zeros(num_ops)
-        dwm = np.zeros(num_ops)
         for i in range(num_ops):
             dw[i] = dW[0, i]
             dz[i] = 0.5 *(dW[0, i] + INV_SQRT3 * dW[1, i])
 
-        d1 = system.drift(t, state)
-        d2 = system.diffusion(t, state)
-        dd2 = system.diffusion(t + dt, state)
+        d1 = system.drift(t_obj, state)
+        d2 = system.diffusion(t_obj, state)
+        dd2 = system.diffusion(t_dt, state)
         # Euler part
-        out = _data.add(state, d1, dt)
+        _assign(out, state)
+        iadd_dense(out, d1, dt)
         for i in range(num_ops):
-            out = _data.add(out, d2[i], dw[i])
+            iadd_dense(out, d2[i], dw[i])
 
-        V = _data.add(state, d1, dt/num_ops)
-
-        v2p = []
-        v2m = []
+        _assign(V, state)
+        iadd_dense(V, d1, dt/num_ops)
         for i in range(num_ops):
-            v2p.append(_data.add(V, d2[i], sqrt_dt))
-            v2m.append(_data.add(V, d2[i], -sqrt_dt))
+            v2p = self._v2p[i]
+            v2m = self._v2m[i]
+            _assign(v2p, V)
+            iadd_dense(v2p, d2[i], sqrt_dt)
+            _assign(v2m, V)
+            iadd_dense(v2m, d2[i], -sqrt_dt)
 
-        p2p = []
-        p2m = []
+        d2p_all = []
+        d2m_all = []
         for i in range(num_ops):
-            d2p = system.diffusion(t, v2p[i])
-            d2m = system.diffusion(t, v2m[i])
+            v2p = self._v2p[i]
+            d2p = system.diffusion(t_obj, v2p)
+            d2m = system.diffusion(t_obj, self._v2m[i])
+            d2p_all.append(d2p)
+            d2m_all.append(d2m)
             ddw = (dw[i] * dw[i] - dt) * 0.25 * sqrt_dt_inv  # 1.0
-            out = _data.add(out, d2p[i], ddw)
-            out = _data.add(out, d2m[i], -ddw)
-            temp_p2p = []
-            temp_p2m = []
+            iadd_dense(out, d2p[i], ddw)
+            iadd_dense(out, d2m[i], -ddw)
             for j in range(num_ops):
-                temp_p2p.append(_data.add(v2p[i], d2p[j], sqrt_dt))
-                temp_p2m.append(_data.add(v2p[i], d2p[j], -sqrt_dt))
-            p2p.append(temp_p2p)
-            p2m.append(temp_p2m)
+                p2p = self._p2p[i][j]
+                p2m = self._p2m[i][j]
+                _assign(p2p, v2p)
+                iadd_dense(p2p, d2p[j], sqrt_dt)
+                _assign(p2m, v2p)
+                iadd_dense(p2m, d2p[j], -sqrt_dt)
 
-        out = _data.add(out, d1, -0.5*(num_ops) * dt)
-
+        iadd_dense(out, d1, -0.5*(num_ops) * dt)
         for i in range(num_ops):
             ddz = dz[i] * 0.5 / sqrt_dt # 1.5
             ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt # 1.5
@@ -228,22 +248,19 @@ cdef class Explicit15(Euler):
                 dwp[j] = 0
                 dwm[j] = 0
 
-            d1p = system.drift(t + dt/num_ops, v2p[i])
-            d1m = system.drift(t + dt/num_ops, v2m[i])
+            d1p = system.drift(t_n, self._v2p[i])
+            d1m = system.drift(t_n, self._v2m[i])
+            d2p = d2p_all[i]
+            d2m = d2m_all[i]
+            d2pp = system.diffusion(t_obj, self._p2p[i][i])
+            d2mm = system.diffusion(t_obj, self._p2m[i][i])
 
-            d2p = system.diffusion(t, v2p[i])
-            d2m = system.diffusion(t, v2m[i])
-            d2pp = system.diffusion(t, p2p[i][i])
-            d2mm = system.diffusion(t, p2m[i][i])
-
-            out = _data.add(out, d1p, (0.25 + ddz) * dt)
-            out = _data.add(out, d1m, (0.25 - ddz) * dt)
-
-            out = _data.add(out, dd2[i], dw[i] - dz[i])
-            out = _data.add(out, d2[i], dz[i] - dw[i])
-
-            out = _data.add(out, d2pp[i], ddd)
-            out = _data.add(out, d2mm[i], -ddd)
+            iadd_dense(out, d1p, (0.25 + ddz) * dt)
+            iadd_dense(out, d1m, (0.25 - ddz) * dt)
+            iadd_dense(out, dd2[i], dw[i] - dz[i])
+            iadd_dense(out, d2[i], dz[i] - dw[i])
+            iadd_dense(out, d2pp[i], ddd)
+            iadd_dense(out, d2mm[i], -ddd)
             dwp[i] += -ddd
             dwm[i] += ddd
 
@@ -251,7 +268,7 @@ cdef class Explicit15(Euler):
                 ddw = 0.5 * (dw[j] - dz[j])  # O(1.5)
                 dwp[j] += ddw
                 dwm[j] += ddw
-                out = _data.add(out, d2[j], -2*ddw)
+                iadd_dense(out, d2[j], -2*ddw)
 
                 if j > i:
                     ddw = 0.5 * (dw[i] * dw[j]) / sqrt_dt  # O(1.0)
@@ -259,33 +276,32 @@ cdef class Explicit15(Euler):
                     dwm[j] += -ddw
 
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-                    d2pp = system.diffusion(t, p2p[j][i])
-                    d2mm = system.diffusion(t, p2m[j][i])
-                    out = _data.add(out, d2pp[j], ddw)
-                    out = _data.add(out, d2mm[j], -ddw)
+                    d2pp = system.diffusion(t_obj, self._p2p[j][i])
+                    d2mm = system.diffusion(t_obj, self._p2m[j][i])
+                    iadd_dense(out, d2pp[j], ddw)
+                    iadd_dense(out, d2mm[j], -ddw)
                     dwp[j] += -ddw
                     dwm[j] += ddw
 
                     for k in range(j+1, num_ops):
                         ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt  # O(1.5)
-                        out = _data.add(out, d2pp[k], ddw)
-                        out = _data.add(out, d2mm[k], -ddw)
+                        iadd_dense(out, d2pp[k], ddw)
+                        iadd_dense(out, d2mm[k], -ddw)
                         dwp[k] += -ddw
                         dwm[k] += ddw
 
                 if j < i:
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-                    d2pp = system.diffusion(t, p2p[j][i])
-                    d2mm = system.diffusion(t, p2m[j][i])
-
-                    out = _data.add(out, d2pp[j], ddw)
-                    out = _data.add(out, d2mm[j], -ddw)
+                    d2pp = system.diffusion(t_obj, self._p2p[j][i])
+                    d2mm = system.diffusion(t_obj, self._p2m[j][i])
+                    iadd_dense(out, d2pp[j], ddw)
+                    iadd_dense(out, d2mm[j], -ddw)
                     dwp[j] += -ddw
                     dwm[j] += ddw
 
             for j in range(num_ops):
-                out = _data.add(out, d2p[j], dwp[j])
-                out = _data.add(out, d2m[j], dwm[j])
+                iadd_dense(out, d2p[j], dwp[j])
+                iadd_dense(out, d2m[j], dwm[j])
 
         return out
 
