@@ -6,6 +6,7 @@ cdef class SpectraCoefficient(Coefficient):
     cdef Coefficient coeff_t
     cdef Coefficient coeff_w
     cdef double w
+    cdef double complex _call_w(self, double t, double w) except *
 
 cpdef Data matmul_var_data(Data left, Data right, int transleft, int transright)
 

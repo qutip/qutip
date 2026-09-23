@@ -5,7 +5,7 @@ from qutip.core.data cimport Dense, CSR, Data, idxint, csr
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.cy._element cimport _BaseElement, _MapElement, _ProdElement
-from qutip.core._brtools cimport _EigenBasisTransform
+from qutip.core._brtools cimport _EigenBasisTransform, SpectraCoefficient
 from qutip.core.qobj import Qobj
 
 import numpy as np
@@ -240,21 +240,30 @@ cdef class _BlochRedfieldElement(_BaseElement):
 
     cpdef double _compute_spectrum(self, double t) except *:
         "Compute the skew, spectrum and dw_min"
-        cdef Coefficient spec
-        cdef double dw_min = np.inf
-        eigvals = self.H.eigenvalues(t)
+        cdef double[:] ev = self.H.eigenvalues(t)
+        cdef double dw, dw_min = np.inf, s0
+        cdef size_t row, col
+        cdef Coefficient spectra = self.spectra
+        cdef SpectraCoefficient spec = (
+            spectra if type(spectra) is SpectraCoefficient else None
+        )
 
-        for col in range(0, self.nrows):
+        s0 = spec._call_w(t, 0.).real if spec is not None else spectra(t, w=0).real
+        for col in range(self.nrows):
             self.skew[col, col] = 0.
-            self.spectrum[col, col] = self.spectra(t, w=0).real
+            self.spectrum[col, col] = s0
             for row in range(col, self.nrows):
-                dw = eigvals[row] - eigvals[col]
+                dw = ev[row] - ev[col]
                 self.skew[row, col] = dw
                 self.skew[col, row] = -dw
                 if dw != 0:
                     dw_min = fmin(fabs(dw), dw_min)
-                self.spectrum[row, col] = self.spectra(t, w=dw).real
-                self.spectrum[col, row] = self.spectra(t, w=-dw).real
+                if spec is not None:
+                    self.spectrum[row, col] = spec._call_w(t, dw).real
+                    self.spectrum[col, row] = spec._call_w(t, -dw).real
+                else:
+                    self.spectrum[row, col] = spectra(t, w=dw).real
+                    self.spectrum[col, row] = spectra(t, w=-dw).real
         return dw_min
 
     cdef Data _br_term(self, Data A_eig, double cutoff):
