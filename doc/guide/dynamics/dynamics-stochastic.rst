@@ -204,19 +204,21 @@ Available Integration Methods
    :widths: 20 15 65
 
    * - Method Key
-     - Supported Solvers
+     - Solvers
      - Description
    * - :class:`platen <.PlatenSODE>`
      - SSE / SME
      - **Default.** Explicit order-1 scheme. Good general-purpose choice.
    * - :class:`euler <.EulerSODE>`
      - SSE / SME
-     - Basic Euler-Maruyama scheme.
-       Each step directly follows the SDE definition: :math:`dY(t) = f(Y, t) dt + \sum_n g_n(Y, t) dW_n`.
-       It works with non-commuting operators, but requires a very small time step (``dt``) for numerical stability.
+     - | Basic Euler-Maruyama scheme.
+       | Each step directly follows the SDE definition:
+       | :math:`dY(t) = f(Y, t) dt + \sum_n g_n(Y, t) dW_n`.
+       | It works with non-commuting operators, but requires a very small time step (``dt``) for numerical stability.
    * - :class:`rouchon <.RouchonSODE>`
      - SSE / SME
-     - Physics-preserving scheme. Keeps state vectors normalized and density matrices positive and Hermitian.
+     - | Physics-preserving scheme.
+       | Keeps state vectors normalized and density matrices positive and Hermitian.
    * - :class:`explicit1.5 <.Explicit1_5_SODE>`
      - SSE / SME
      - Order 1.5 derivative-free explicit Taylor scheme using finite differences instead of analytical derivatives.
@@ -234,8 +236,8 @@ Available Integration Methods
      - Implicit version of the Taylor 1.5 method for stiff SDEs.
    * - :class:`pred_corr <.PredCorr_SODE>`
      - SME
-     - Generalization of the trapezoidal predictor-corrector scheme to SDEs.
-       Tunable via options (``alpha``, ``eta``), which alter its implicit weighting and convergence order.
+     - | Generalization of the trapezoidal predictor-corrector scheme to SDEs.
+       | Tunable via options (``alpha``, ``eta``), which alter its implicit weighting and convergence order.
 
 
 Practical Considerations
