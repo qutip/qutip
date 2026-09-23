@@ -310,21 +310,21 @@ cdef class _BlochRedfieldElement(_BaseElement):
                 self.sec_cutoff
             )
         H = None
-        for old, new in cache:
+        for old, new_ in cache:
             if old is self:
-                return new
+                return new_
             if old is self.H:
-                H = new
+                H = new_
         if H is None:
             H = _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
                                      type(self.H.oper) is CSR)
-        new = _BlochRedfieldElement(
+        new_ = _BlochRedfieldElement(
             H, QobjEvo(self.a_op, args=args),
             self.spectra.replace_arguments(**args), self.sec_cutoff
         )
-        cache.append((self, new))
+        cache.append((self, new_))
         cache.append((self.H, H))
-        return new
+        return new_
 
     def __matmul__(left, right):
         return _ProdElement(left, right, [])

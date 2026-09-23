@@ -326,8 +326,8 @@ cdef class _BaseElement:
     def __call__(self, t, args=None):
         if args:
             cache = []
-            new = self.replace_arguments(args, cache)
-            return new.qobj(t) * new.coeff(t)
+            new_ = self.replace_arguments(args, cache)
+            return new_.qobj(t) * new_.coeff(t)
         return self.qobj(t) * self.coeff(t)
 
     @property
@@ -554,18 +554,19 @@ cdef class _FuncElement(_BaseElement):
         if not args:
             return self
         if cache is not None:
-            for old, new in cache:
+            for old, new_ in cache:
                 if old is self:
-                    return new
-        new = _FuncElement(
+                    return new_
+
+        new_ = _FuncElement(
                 self._func,
                 {**self._args, **args},
                 _f_pythonic=self._f_pythonic,
                 _f_parameters=self._f_parameters,
         )
         if cache is not None:
-            cache.append((self, new))
-        return new
+            cache.append((self, new_))
+        return new_
 
 
 cdef class _MapElement(_BaseElement):
