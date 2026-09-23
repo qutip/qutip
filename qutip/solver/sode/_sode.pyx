@@ -23,13 +23,25 @@ cdef class Euler:
         double[:, :, ::1] dW, int num_step
     ):
         cdef int i
+        cdef Data new_state
+        if type(state) is not Dense:
+            state = _data.to(Dense, state)
+
+        # Scratch buffer handed to every step.
+        # A step may accumulate into it and return it, the previous state then becomes the next scratch.
+        cdef Dense out = _data.zeros_like(state)
+        state = state.copy()
+
         for i in range(num_step):
-            state = self.step(t + i * dt, state, dt, dW[i, :, :])
+            new_state = self.step(t + i * dt, state, dt, dW[i, :, :], out)
+            if new_state is out:
+                out = state
+            state = new_state
         return state
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Integration scheme:
         Basic Euler order 0.5
@@ -41,25 +53,27 @@ cdef class Euler:
         cdef BaseStochasticSystem system = self.system
         cdef list expect
 
-        cdef Data a = system.drift(t, state)
-        b = system.diffusion(t, state)
+        cdef Dense a = system.drift(t, state)
+        cdef list b = system.diffusion(t, state)
 
         if self.measurement_noise:
             expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= expect[i].real * dt
 
-        cdef Data new_state = _data.add(state, a, dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, state, 1)
+        iadd_dense(out, a, dt)
         for i in range(system.num_diffusion):
-            new_state = _data.add(new_state, b[i], dW[0, i])
-        return new_state
+            iadd_dense(out, b[i], dW[0, i])
+        return out
 
 
 cdef class Platen(Euler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Platen rhs function for both master eq and schrodinger eq.
         dV = -iH* (V+Vt)/2 * dt + (d1(V)+d1(Vt))/2 * dt
@@ -79,7 +93,7 @@ cdef class Platen(Euler):
 
         cdef Data d1 = _data.add(state, system.drift(t, state), dt)
         cdef list d2 = system.diffusion(t, state)
-        cdef Data Vt, out
+        cdef Data Vt
         cdef list Vp, Vm
         cdef list expect
 
@@ -127,7 +141,7 @@ cdef class Explicit15(Euler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Chapter 11.2 Eq. (2.13)
         Numerical Solution of Stochastic Differential Equations
