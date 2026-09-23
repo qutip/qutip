@@ -352,7 +352,6 @@ cdef class QobjEvo:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
 
-        t = self._prepare(t, None)
         cdef object t_obj = t
 
         if self.isconstant:
@@ -378,7 +377,6 @@ cdef class QobjEvo:
         return Qobj(out, dims=self._dims, copy=False, isherm=isherm or None)
 
     cpdef Data _call(QobjEvo self, double t):
-        t = self._prepare(t, None)
         cdef object t_obj = t
         
         cdef Data out
@@ -393,10 +391,9 @@ cdef class QobjEvo:
             )
         return out
 
-    cdef object _prepare(QobjEvo self, object t, Data state=None):
-        """ Precomputation before computing getting the element at `t`"""
-        # We keep the function for feedback eventually
-        if self._feedback_functions and state is not None:
+    cdef void _prepare(QobjEvo self, object t, Data state) except *:
+        """Precomputation before computing getting the element at `t`"""
+        if self._feedback_functions:
             new_args = {
                 key: func(t, state)
                 for key, func in self._feedback_functions.items()
@@ -406,8 +403,6 @@ cdef class QobjEvo:
                 element.replace_arguments(new_args, cache=cache)
                 for element in self.elements
             ]
-
-        return t
 
     def copy(QobjEvo self):
         """Return a copy of this :obj:`.QobjEvo`"""
@@ -1031,7 +1026,7 @@ cdef class QobjEvo:
         cdef Data part_data
         cdef object expect_func
 
-        t = self._prepare(t, state)
+        self._prepare(t, state)
         if self.issuper:
             if state.shape[1] != 1:
                 state = _data.column_stack(state)
@@ -1052,8 +1047,8 @@ cdef class QobjEvo:
         cdef _BaseElement part
         cdef double complex out = 0., coeff
         cdef Data part_data
-        t = self._prepare(t, state)
         cdef object t_obj = t
+        self._prepare(t_obj, state)
 
         if self.issuper:
             if state.shape[1] != 1:
@@ -1108,7 +1103,7 @@ cdef class QobjEvo:
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
         """Compute ``out += scale * self(t) @ state``"""
         cdef _BaseElement part
-        t = self._prepare(t, state)
+        self._prepare(t, state)
         if out is None and type(state) is Dense:
             out = dense.zeros(self.shape[0], state.shape[1],
                               (<Dense> state).fortran)
@@ -1123,7 +1118,7 @@ cdef class QobjEvo:
     cpdef Data adjoint_rmatmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
         """Compute ``out += scale * (state @ dag(self(t)))``"""
         cdef _BaseElement part
-        t = self._prepare(t, state)
+        self._prepare(t, state)
         if out is None and type(state) is Dense:
             out = dense.zeros(state.shape[0], self.shape[1],
                               (<Dense> state).fortran)
