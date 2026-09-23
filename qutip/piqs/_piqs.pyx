@@ -8,6 +8,7 @@ from qutip.core import Qobj
 
 cimport numpy as cnp
 cimport cython
+from libc.math cimport sqrt
 
 
 def _num_dicke_states(N):
@@ -464,12 +465,12 @@ cdef class Dicke(object):
         if yCE == 0:
             spontaneous = 0.0
         else:
-            spontaneous = yCE * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1))
+            spontaneous = yCE * sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1))
 
         if (yE == 0) or (j <= 0):
             losses = 0.0
         else:
-            losses = yE/2 * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1)) * \
+            losses = yE/2 * sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1)) * \
                                                       (N/2 + 1)/(j*(j+1))
         g2 = spontaneous + losses
         return g2
@@ -494,7 +495,7 @@ cdef class Dicke(object):
         if (yE == 0) or (j <= 0):
             g3 = 0.0
         else:
-            g3 = yE/2 * np.sqrt((j+m) * (j+m-1) * (j+m1) * (j+m1-1)) * \
+            g3 = yE/2 * sqrt((j+m) * (j+m-1) * (j+m1) * (j+m1-1)) * \
                  (N/2 + j+1)/(j*(2*j + 1))
         return g3
 
@@ -515,7 +516,7 @@ cdef class Dicke(object):
         if (yE == 0) or ((j+1) <= 0):
             g4 = 0.0
         else:
-            g4 = yE/2 * np.sqrt((j-m+1) * (j-m+2) * (j-m1+1) *
+            g4 = yE/2 * sqrt((j-m+1) * (j-m+2) * (j-m1+1) *
                                 (j-m1+2)) * (N/2 - j)/((j+1) *
                                                        (2*j + 1))
         return g4
@@ -538,7 +539,7 @@ cdef class Dicke(object):
         if (yD == 0) or (j <= 0):
             g5 = 0.0
         else:
-            g5 = yD/2 * np.sqrt((j**2 - m**2)*(j**2 - m1**2)) * \
+            g5 = yD/2 * sqrt((j**2 - m**2)*(j**2 - m1**2)) * \
                 (N/2 + j + 1)/(j*(2*j + 1))
 
         return g5
@@ -561,7 +562,7 @@ cdef class Dicke(object):
         if yD == 0:
             g6 = 0.0
         else:
-            g6 = yD/2 * np.sqrt(((j+1)**2 - m**2)*((j+1) **
+            g6 = yD/2 * sqrt(((j+1)**2 - m**2)*((j+1) **
                                                    2-m1**2)) * \
                                                    (N/2 - j)/((j+1) * (2*j+1))
         return g6
@@ -584,7 +585,7 @@ cdef class Dicke(object):
         if (yP == 0) or (j <= 0):
             g7 = 0.0
         else:
-            g7 = yP/2 * np.sqrt((j-m-1)*(j-m)*(j-m1-1) *
+            g7 = yP/2 * sqrt((j-m-1)*(j-m)*(j-m1-1) *
                                 (j-m1)) * (N/2 + j + 1)/(j * (2*j+1))
         return g7
 
@@ -606,13 +607,13 @@ cdef class Dicke(object):
         if (yP == 0) or (j <= 0):
             pump = 0.0
         else:
-            pump = yP/2 * np.sqrt((j+m+1) * (j-m) * (j+m1+1) *
+            pump = yP/2 * sqrt((j+m+1) * (j-m) * (j+m1+1) *
                                   (j-m1)) * (N/2 + 1)/(j*(j+1))
         if yCP == 0:
             collective_pump = 0.0
         else:
             collective_pump = yCP * \
-                np.sqrt((j-m) * (j+m+1) * (j+m1+1) * (j-m1))
+                sqrt((j-m) * (j+m+1) * (j+m1+1) * (j-m1))
         g8 = pump + collective_pump
         return g8
 
@@ -634,6 +635,6 @@ cdef class Dicke(object):
         if (yP == 0):
             g9 = 0.0
         else:
-            g9 = yP/2 * np.sqrt((j+m+1) * (j+m+2) * (j+m1+1) *
+            g9 = yP/2 * sqrt((j+m+1) * (j+m+2) * (j+m1+1) *
                                 (j+m1+2)) * (N/2 - j)/((j+1) * (2*j+1))
         return g9

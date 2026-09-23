@@ -1,3 +1,4 @@
+from libc.math cimport sqrt
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
@@ -5,6 +6,8 @@ cimport cython
 from qutip.solver.sode.ssystem cimport BaseStochasticSystem, TaylorStochasticSystem
 import numpy as np
 
+
+cdef double INV_SQRT3 = 1/sqrt(3.)
 
 cdef class Euler:
     cdef BaseStochasticSystem system
@@ -70,7 +73,7 @@ cdef class Platen(Euler):
         """
         cdef BaseStochasticSystem system = self.system
         cdef int i, j, num_ops = system.num_diffusion
-        cdef double sqrt_dt = np.sqrt(dt)
+        cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
         cdef double dw, dw2, dw2p, dw2m
 
@@ -132,7 +135,7 @@ cdef class Explicit15(Euler):
         """
         cdef BaseStochasticSystem system = self.system
         cdef int i, j, k, num_ops = system.num_diffusion
-        cdef double sqrt_dt = np.sqrt(dt)
+        cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
         cdef double ddz, ddw, ddd
         cdef double[::1] dz, dw, dwp, dwm
@@ -143,7 +146,7 @@ cdef class Explicit15(Euler):
         dwm = np.zeros(num_ops)
         for i in range(num_ops):
             dw[i] = dW[0, i]
-            dz[i] = 0.5 *(dW[0, i] + 1./np.sqrt(3) * dW[1, i])
+            dz[i] = 0.5 *(dW[0, i] + INV_SQRT3 * dW[1, i])
 
         d1 = system.drift(t, state)
         d2 = system.diffusion(t, state)
@@ -251,6 +254,7 @@ cdef class Explicit15(Euler):
 cdef class Milstein:
     cdef TaylorStochasticSystem system
     cdef bint measurement_noise
+    cdef double[::1] _dz
 
     def __init__(self, TaylorStochasticSystem system, measurement_noise=False):
         self.system = system
@@ -384,6 +388,7 @@ cdef class Taylor15(Milstein):
     def __init__(self, TaylorStochasticSystem system):
         self.system = system
         self.measurement_noise = False
+        self._dz = np.empty(max(system.num_diffusion, 1))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -400,7 +405,9 @@ cdef class Taylor15(Milstein):
 
         num_ops = system.num_diffusion
         dw = dW[0, :]
-        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
+        dz = self._dz
+        for i in range(num_ops):
+            dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
         imul_dense(out, 0.)
         iadd_dense(out, state, 1)
@@ -428,6 +435,7 @@ cdef class Taylor15(Milstein):
 cdef class Milstein_imp:
     cdef TaylorStochasticSystem system
     cdef bint use_inv
+    cdef double[::1] _dz
     cdef QobjEvo implicit
     cdef Data inv
     cdef double prev_dt
@@ -436,6 +444,7 @@ cdef class Milstein_imp:
     def __init__(self, TaylorStochasticSystem system, solve_method=None, solve_options={}):
         self.system = system
         self.prev_dt = 0
+        self._dz = np.empty(max(system.num_diffusion, 1))
         if solve_method == "inv":
             if not self.system.L.isconstant:
                 raise TypeError("The 'inv' integration method requires that the system Hamiltonian or Liouvillian be constant.")
@@ -515,7 +524,9 @@ cdef class Taylor15_imp(Milstein_imp):
 
         num_ops = system.num_diffusion
         dw = dW[0, :]
-        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
+        dz = self._dz
+        for i in range(num_ops):
+            dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
         imul_dense(target, 0.)
         iadd_dense(target, state, 1)
