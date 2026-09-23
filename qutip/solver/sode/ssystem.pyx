@@ -262,28 +262,27 @@ cdef class StochasticClosedSystem(BaseStochasticSystem):
     cpdef Data drift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
-        cdef Data temp, out
+        cdef Dense out = self.L.matmul_data(t, state)
 
-        out = self.L.matmul_data(t, state)
         for i in range(self.num_diffusion):
             c_op = self.cpcd_ops[i]
             e = c_op.expect_data(t, state)
             c_op = self.c_ops[i]
-            temp = c_op.matmul_data(t, state)
-            out = _data.add(out, state,  -0.125 * e * e)
-            out = _data.add(out, temp, 0.5 * e)
+            iadd_dense(out, state, -0.125 * e * e)
+            iadd_dense(out, c_op.matmul_data(t, state), 0.5 * e)
         return out
 
     cpdef list diffusion(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
+        cdef Dense vec
         cdef list out = []
         for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
-            _out = c_op.matmul_data(t, state)
+            vec = c_op.matmul_data(t, state)
             c_op = self.cpcd_ops[i]
             expect = c_op.expect_data(t, state)
-            out.append(_data.add(_out, state, -0.5 * expect))
+            out.append(iadd_dense(vec, state, -0.5 * expect))
         return out
 
     cpdef list _shift(self, t, Data state):
@@ -359,22 +358,24 @@ cdef class StochasticOpenSystem(TaylorStochasticSystem):
         cdef int i
         cdef QobjEvo c_op
         cdef complex expect
+        cdef Dense vec
         cdef list out = []
         for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
-            expect = _data.trace_oper_ket(vec)
-            out.append(_data.add(vec, state, -expect))
+            expect = trace_oper_ket_dense(vec)
+            out.append(iadd_dense(vec, state, -expect))
         return out
 
     cpdef list _shift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
+        cdef Dense vec
         cdef list expect = []
         for i in range(self.num_diffusion):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
-            expect.append(_data.trace_oper_ket(vec))
+            expect.append(trace_oper_ket_dense(vec))
         return expect
 
     cpdef void set_state(self, double t, Data state_raw) except *:
