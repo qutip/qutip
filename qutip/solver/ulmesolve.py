@@ -15,9 +15,11 @@ import qutip.core.data as _data
 from .propagator import Propagator
 from ..core.environment import BosonicEnvironment
 from typing import Any
+from .cy._ulme import split_dense, merge_dense
+import qutip as qt
 
 
-__all__ = ["ulmesolve", "ULMESolver", "ul_transform"]
+__all__ = ["ulmesolve", "ULMESolver", "UL_transform"]
 
 
 def ulmesolve(
@@ -257,7 +259,7 @@ class ULMESolver(MESolver):
         Solver.options.fset(self, new_options)
 
 
-def ul_transform(
+def UL_transform(
     H: Qobj | QobjEvo,
     a_ops:
         tuple[Qobj | QobjEvo, BosonicEnvironment]
@@ -331,7 +333,6 @@ def ul_transform(
     return H + sum(lamb_shifts), c_ops
 
 
-
 def _make_l_lambda(H, X, env, options=None):
     options = options or {}
     method = options.get("ULME_creation", None)
@@ -353,6 +354,8 @@ def _make_l_lambda(H, X, env, options=None):
             return _make_L_lambda_eigen(H, X, env)
         elif method == "prop":
             return _make_l_lambda_prop(H, X, env, options)
+        elif method == "prev":
+            return _make_l_lambda_prop_prev(H, X, env, options)
         raise NotImplementedError(...)
 
 
@@ -384,7 +387,7 @@ def _make_L_prop(
         return integrate_1d_flat(op, t, T, Nt)
 
     if H.isconstant and X.isconstant:
-        return L(0)
+        return QobjEvo(L(0))
     else:
         return QobjEvo(L)
 
@@ -430,6 +433,174 @@ def _make_L_lambda_eigen(H: QobjEvo, X: QobjEvo, env: BosonicEnvironment):
         vecs @ Qobj(LL) @ vecs.dag()
     )
 
+
+
+class ULOP():
+    def __init__(self, H, X, env, options={}):
+        self.H = H
+        self.X = X
+        self.size = H.shape[0]
+        self.options = options
+        self.t = None
+        self._L = None
+        self._Lamd = None
+        self.integrator = qt.solver.integrator.IntegratorTsit5(self.derr, {})
+        self.prepare_g(env.jump_correlator)
+
+    def prepare_g(self, jc):
+        """
+        Create a spline for the jump_correlator.
+        The jump_correlator is expected to decrease exponentially:
+           jc(t) = f(t) * exp(-t*alpha)
+        but we don't know the units so have to estimate the cutoff.
+        """
+        ts = np.logspace(-8, 3, 201)
+        jcs = jc(ts)
+        idx = np.where(np.abs(jcs) > self.options.get("tol", 1e-6))[0]
+
+        if len(idx) == 0:
+            t_max = 1000.
+        else:
+            t_max = ts[np.max(idx)]
+
+        ts = np.linspace(0, t_max, 1001)
+        jcs = jc(ts)
+        self.g = qt.coefficient(jcs, tlist=ts)
+        self.t_scale = t_max / 100
+
+    @staticmethod
+    def merge_states(list_state):
+        N = len(list_state)
+        if isinstance(list_state, qt.Qobj):
+            state0 = [op.data for op in list_state]
+        else:
+            state0 = list_state
+        state0 = [qt.core.data.column_stack(state) for state in state0]
+        state = qt.core.data.dense.zeros(state0[0].shape[0], N, fortran=True)
+        for i in range(N):
+            state.as_ndarray()[:, i] = state0[i].to_array()[:, 0]
+        return state
+
+    @staticmethod
+    def split_states(state, ncol):
+        if isinstance(state, qt.Qobj):
+            state = state.data
+        # split = qt.core.data.split_columns(state, copy=False)
+        out = []
+        for op in state.as_ndarray().T:
+            data = qt.data.dense.fast_from_numpy(op)
+            out.append(qt.data.column_unstack_dense(data, ncol, inplace=True))
+        return out
+
+    def initial(self, t):
+        Id = qt.data.dense.identity(self.size)
+        zero = qt.core.data.dense.zeros(self.size, self.size, fortran=True)
+        self._tmp = zero.copy()
+        self._Xp = zero.copy()
+        self._Xm = zero.copy()
+        self._derr = self.merge_states([zero, zero, zero, zero, zero, zero])
+
+        return self.merge_states([Id, Id, zero, zero, zero, zero])
+
+    def derr(self, s, state):
+        states = self.split_states(state, self.size)
+        # derrivative = self.split_states(self._derr, self.size)
+        Xp = states[0].adjoint() @ self.X._call(s + self.t) @ states[0]
+        Xm = states[1].adjoint() @ self.X._call(-s + self.t) @ states[1]
+        g = self.g(s)
+        derr = [
+            -1j * self.H._call(s + self.t) @ states[0],
+            1j * states[1] @ self.H._call(self.t - s),
+            Xp * g.conjugate(),
+            Xm * g,
+            Xp @ states[2] * (2 * g),
+            Xm @ states[3] * (-2 * g.conjugate()),
+        ]
+        return self.merge_states(derr)
+
+    def derr2(self, s, state):
+        #states = self.split_states(state, self.size)
+        states = split_dense(state, self.size)
+        _derr = _data.dense.zeros(self.size**2, 6, fortran=True)
+        #derrivative = self.split_states(_derr, self.size)
+        derrivative = split_dense(_derr, self.size)
+        g = self.g(s)
+
+        # Inplace is needed for this to work
+
+        #Propagator
+
+        self.H.adjoint_rmatmul_data(self.t + s, states[0], out=derrivative[0], scale=1j)
+        self.H.matmul_data(self.t - s, states[1], out=derrivative[1], scale=-1j)
+        """
+        self.H.matmul_data(self.t + s, states[0], out=derrivative[0], scale=-1j)
+        self.H.adjoint_rmatmul_data(self.t - s, states[1], out=derrivative[1], scale=1j)
+        """
+
+        # diffusion correction terms
+
+        self._tmp = _data.imul_dense(self._tmp, 0)
+        self._tmp = self.X.adjoint_rmatmul_data(self.t + s, states[0], out=self._tmp)
+        _data.matmul_dag_dense(self._tmp, states[0], out=derrivative[2], scale=g.conjugate())
+        self._tmp = _data.imul_dense(self._tmp, 0)
+        self._tmp = self.X.adjoint_rmatmul_data(self.t - s, states[1], out=self._tmp)
+        _data.matmul_dag_dense(self._tmp, states[1], out=derrivative[3], scale=g)
+        """
+        self._tmp = _data.imul_dense(self._tmp, 0)
+        self._tmp = self.X.adjoint_rmatmul_data(self.t + s, states[0].adjoint(), out=self._tmp)
+        _data.matmul_dag_dense(self._tmp, states[0].adjoint(), out=derrivative[2], scale=g.conjugate())
+        self._tmp = _data.imul_dense(self._tmp, 0)
+        self._tmp = self.X.adjoint_rmatmul_data(self.t - s, states[1].adjoint(), out=self._tmp)
+        _data.matmul_dag_dense(self._tmp, states[1].adjoint(), out=derrivative[3], scale=g)
+        """
+
+        # second order terms for lamb shift
+        _data.matmul_dense(derrivative[2], states[2], out=derrivative[4], scale=(2 * g / g.conjugate()))
+        _data.matmul_dense(derrivative[3], states[3], out=derrivative[5], scale=(-2 * g.conjugate() / g))
+
+        return _derr
+
+    def L(self, t):
+        if t != self.t:
+            self.compute(t)
+        return qt.Qobj(self._L, dims=self.H._dims)
+
+    def Lamd(self, t):
+        if t != self.t:
+            self.compute(t)
+        return qt.Qobj(self._Lamd, dims=self.H._dims)
+
+    def compute(self, t, tol = 1e-4):
+        prev = self.initial(t)
+        self.t = t
+        self.integrator.set_state(0, prev)
+        t_scale = self.t_scale / 10
+
+        diff = tol + 1
+        s = 0
+        while diff > tol:
+            s += t_scale
+            _, state = self.integrator.integrate(s)
+            diff = np.linalg.norm(
+                state.to_array()[:, 2] - prev.to_array()[:, 2], 2
+            )
+            prev = state
+        state = self.split_states(state, self.size)
+        self._L = (state[2] + state[3])
+        self._Lamd = ((state[2].adjoint() + state[3].adjoint()) @ (-state[2] + state[3]) + (state[-1] + state[-2])) * -0.5j
+
+
+
+def _make_l_lambda_prop(H, X, env, options=None):
+    op = ULOP(H, X, env, options)
+
+    if H.isconstant and X.isconstant:
+        return QobjEvo(op.L(0)), QobjEvo(op.Lamd(0))
+
+    return QobjEvo(op.L), QobjEvo(op.Lamd)
+
+
+# ------------- Development utility functions ------------
 
 class OP:
     def __init__(self, U, X, env, T, Nt):
@@ -489,7 +660,7 @@ class OP:
         return self._Lamd
 
 
-def _make_l_lambda_prop(H, X, env, options=None):
+def _make_l_lambda_prop_prev(H, X, env, options=None):
     options = options or {}
     T = options.get("T", 15)
     Nt = options.get("Nt", 300)
@@ -502,9 +673,6 @@ def _make_l_lambda_prop(H, X, env, options=None):
         return op.L(0), op.Lamd(0)
 
     return QobjEvo(op.L), QobjEvo(op.Lamd)
-
-
-# ------------- Development utility functions ------------
 
 
 def cont_t2w_fft(ft, t_max, Nt):
@@ -570,102 +738,3 @@ def _make_lambda_prop_old(
         return op(0)
 
     return QobjEvo(op)
-
-
-
-###############################################################################
-#             Continuous integration try                                      #
-###############################################################################
-class ULOP():
-    def __init__(self, H, X, env, options={}):
-        self.H = H
-        self.X = X
-        self.size = H.shape[0]
-        self.g = env.jump_correlator
-        self.t_scale = 1
-        self.options = options
-        self.t = None
-        self._L = None
-        self._Lamd = None
-        self.integrator = qt.solver.integrator.IntegratorTsit5(self.derr, {})
-
-    @staticmethod
-    def merge_states(list_state):
-        if isinstance(list_state, qt.Qobj):
-            state0 = [op.data for op in list_state]
-        else:
-            state0 = list_state
-        state0 = [qt.core.data.column_stack(state) for state in state0]
-        state = qt.core.data.dense.zeros(state0[0].shape[0], 8, fortran=True)
-        for i in range(8):
-            state.as_ndarray()[:, i] = state0[i].to_array()[:, 0]
-        return state
-
-    @staticmethod
-    def split_states(state, ncol):
-        if isinstance(state, qt.Qobj):
-            state = state.data
-        return [qt.data.column_unstack(op, ncol) for op in qt.core.data.split_columns(state)]
-
-    def initial(self, t):
-        Xp = self.X(t).data
-        Xm = self.X(t).data
-        Id = qt.data.identity_like(Xp)
-        zero = qt.core.data.zeros_like(Xp)
-        g = self.g(0)
-
-        Lp = zero # Xp * (g.conjugate() * 0.5)
-        Lm = zero # Xm * (g * 0.5)
-        Ip = zero # Xp * (g * 0.5)
-        Im = zero # Xm * (g.conjugate() * 0.5)
-        Yp = zero # Xp @ Lp * g
-        Ym = zero # Xm @ Lm * (-g.conjugate())
-
-        return self.merge_states([Id, Id, Lp, Lm, Ip, Im, Yp, Ym])
-
-    def derr(self, s, state):
-        states = self.split_states(state, self.size)
-        Xp = states[0].adjoint() @ self.X._call(s + self.t) @ states[0]
-        Xm = states[1] @ self.X._call(s + self.t) @ states[1].adjoint()
-        g = self.g(s)
-        derr = [
-            -1j * self.H._call(s + self.t) @ states[0], # prop(t+s, t)
-            -1j * states[1] @ self.H._call(self.t - s), # prop(t, t-s)
-            Xp * g.conjugate(), # int^s+t_t x(T)
-            Xm * g, # int^s+t_t x(T)
-            Xp * g, # int^s+t_t x(T)
-            Xm * g.conjugate(), # int^s+t_t x(T)
-            Xp @ states[2] * (2 * g),
-            Xm @ states[3] * (-2 * g.conjugate()),
-        ]
-        return self.merge_states(derr)
-
-    def L(self, t):
-        if t != self.t:
-            self.compute(t)
-        return self._L
-
-    def Lamd(self, t):
-        if t != self.t:
-            self.compute(t)
-        return self._Lamd
-
-    def compute(self, t):
-        prev = self.initial(t)
-        self.t = t
-        self.integrator.set_state(0, prev)
-        t_scale = self.t_scale
-        tol = 1e-4
-        diff = tol + 1
-        s = 0
-        while diff > tol:
-            print(s, diff)
-            s += t_scale
-            _, state = self.integrator.integrate(s)
-            diff = np.linalg.norm(
-                state.to_array()[:, 2] - prev.to_array()[:, 2], 2
-            )
-            prev = state
-        state = self.split_states(state, self.size)
-        self._L = (state[2] + state[3])
-        self._Lamd = ((state[4] + state[5]) @ (-state[2] + state[3]) + (state[6] + state[7])) * -0.5j
