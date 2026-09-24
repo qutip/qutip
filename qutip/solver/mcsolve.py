@@ -938,7 +938,7 @@ class MCSolver(MultiTrajSolver):
         cls,
         default: Qobj | _data.Data = None,
         raw_data: bool = False,
-        prop: bool = False
+        open: bool = False,
     ):
         """
         State of the evolution to be used in a time-dependent operator.
@@ -955,7 +955,7 @@ class MCSolver(MultiTrajSolver):
         default : Qobj or qutip.core.data.Data, default : None
             Initial value to be used at setup of the system.
 
-        open : bool, default False
+        open : bool, default : False
             Set to ``True`` when using the monte carlo solver for open systems.
 
         raw_data : bool, default : False
