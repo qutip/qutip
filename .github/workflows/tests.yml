@@ -246,8 +246,8 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install --yes --channel conda-forge \
-              "blas=*=mkl" \
+            conda install --yes --override-channels --channel conda-forge \
+              "libblas=*=*mkl" \
               mkl-devel \
               cmake \
               $CORE_DEP
