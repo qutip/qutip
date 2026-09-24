@@ -281,12 +281,17 @@ jobs:
           # Windows conda packages use Library; Unix packages use the prefix.
           mkl_prefix=$(python -c \
             'import os; from pathlib import Path; p = Path(os.environ["CONDA_PREFIX"]); print((p / "Library" if os.name == "nt" else p).as_posix())')
-          test -f "$mkl_prefix/lib/cmake/mkl/MKLConfig.cmake"
+          mkl_config=$(find "$mkl_prefix" -name MKLConfig.cmake -print -quit)
+          if [[ -z "$mkl_config" ]]; then
+            echo "::error::MKLConfig.cmake was not found under $mkl_prefix (check the mkl-devel conda package)"
+            exit 1
+          fi
+          echo "Using MKL CMake config: $mkl_config"
 
           # Use conda's MKL and preserve the matrix's runtime dependencies.
           python -m pip install --verbose \
             --no-build-isolation --no-deps \
-            -Csetup-args="-Dcmake_prefix_path=$mkl_prefix" \
+            -Csetup-args="-Dcmake_prefix_path=$(dirname "$mkl_config")" \
             -Csetup-args="-Dvsenv=true" \
             "pydiso @ git+https://github.com/simpeg/pydiso.git@${PYDISO_REV}"
 
