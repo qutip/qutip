@@ -13,6 +13,7 @@ from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.data cimport Data, Dense, idxint
 import qutip.core.data as _data
 from qutip.core import Qobj
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 
 
@@ -131,7 +132,8 @@ cdef Dense matmul_var_Dense(Dense left, Dense right,
         raise ValueError("Only implemented for square operators")
     cdef Dense out, a, b
     cdef double complex alpha = 1., beta = 0.
-    cdef int tleft, tright, size = left.shape[0]
+    cdef int tleft, tright
+    cdef blas_int size = left.shape[0]
 
     # Since fortran to C equivalent to transpose, fix the codes to fortran
     tleft = transleft ^ (not left.fortran)

@@ -15,6 +15,7 @@ from cpython cimport mem
 
 import numpy as np
 cimport numpy as cnp
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base import idxint_dtype
@@ -293,7 +294,7 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     cdef double complex *a
     cdef double complex *b
     cdef char transa, transb
-    cdef int m, n, k=left.shape[1], lda, ldb
+    cdef blas_int m, n, k=left.shape[1], lda, ldb
     if right.shape[1] == 1:
         # Matrix Vector product
         a, b = left.data, right.data
@@ -361,7 +362,7 @@ cpdef Dia matmul_dia(Dia left, Dia right, double complex scale=1):
     cdef idxint col, row, ii, num_diag_out, offset
     cdef idxint start_left, end_left, start_out, end_out, start, end, off_out
     cdef idxint start_right, end_right
-    cdef int ONE=1, ZERO=0, num_elem
+    cdef blas_int ONE=1, ZERO=0, num_elem
 
     out = dia.empty(
         left.shape[0], right.shape[1],
@@ -689,7 +690,7 @@ cpdef Dense matmul_dag_dense(
         )
     cdef Dense a, b, out_add=None
     cdef double complex alpha = 1., out_scale = 0.
-    cdef int m, n, k = left.shape[1], lda, ldb, ldc
+    cdef blas_int m, n, k = left.shape[1], lda, ldb, ldc
     cdef char left_code, right_code
 
     if not right.fortran:

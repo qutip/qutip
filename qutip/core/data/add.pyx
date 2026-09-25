@@ -4,6 +4,7 @@
 cimport cython
 import numpy as np
 cimport numpy as cnp
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 from qutip.settings import settings
 
@@ -26,7 +27,7 @@ __all__ = [
 ]
 
 
-cdef int _ONE=1
+cdef blas_int _ONE=1
 
 
 cdef int _check_shape(Data left, Data right) except -1 nogil:
@@ -172,14 +173,14 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
 
 
 cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale):
-    cdef int size = left.shape[0] * left.shape[1]
+    cdef blas_int size = left.shape[0] * left.shape[1]
     with nogil:
         blas.zaxpy(&size, &scale, right.data, &_ONE, left.data, &_ONE)
 
 
 cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
     cdef Dense out = left.copy()
-    cdef int size = left.shape[0] * left.shape[1]
+    cdef blas_int size = left.shape[0] * left.shape[1]
     with nogil:
         blas.zaxpy(&size, &scale, right.data, &_ONE, out.data, &_ONE)
     return out
@@ -192,7 +193,7 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
     cdef Dense out = left.copy()
     cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
     # We always iterate through `left` and `out` in memory-layout order.
-    cdef int dim1, dim2
+    cdef blas_int dim1, dim2
     dim1, dim2 = (nrows, ncols) if left.fortran else (ncols, nrows)
     with nogil:
         for idx in range(dim2):
@@ -204,8 +205,8 @@ cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
     if scale == 0:
         return left
-    cdef int size = left.shape[0] * left.shape[1]
-    cdef int dim1, dim2
+    cdef blas_int size = left.shape[0] * left.shape[1]
+    cdef blas_int dim1, dim2
     cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
     dim1, dim2 = (nrows, ncols) if left.fortran else (ncols, nrows)
     with nogil:
@@ -241,7 +242,7 @@ cpdef Dia add_dia(Dia left, Dia right, double complex scale=1):
     cdef double complex *ptr_right
     cdef bint sorted=True
     cdef Dia out = dia.empty(left.shape[0], left.shape[1], left.num_diag + right.num_diag)
-    cdef int length, size=left.shape[1]
+    cdef blas_int length, size=left.shape[1]
 
     ptr_out = out.data
     ptr_left = left.data
