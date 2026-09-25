@@ -8,6 +8,14 @@ from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
 from qutip.core import data as _data
 
 
+@pytest.fixture(autouse=True)
+def fix_ssolver_seed(random_generator):    
+    seed = random_generator.integers(2**63)
+    seedseq = np.random.SeedSequence(seed)
+    SMESolver.seed_sequence = seedseq
+    SSESolver.seed_sequence = seedseq
+
+
 def f(t, w):
     return w * t
 

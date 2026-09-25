@@ -28,7 +28,7 @@ def _func2(x, a, b, c, d=0, e=0, f=0):
 @pytest.mark.parametrize('num_cpus',
                          [1, 2],
                          ids=['1', '2'])
-def test_map(map, num_cpus):
+def test_map(map, num_cpus, with_seeded_random):
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
@@ -57,7 +57,7 @@ def test_map(map, num_cpus):
 @pytest.mark.parametrize('num_cpus',
                          [1, 2],
                          ids=['1', '2'])
-def test_map_accumulator(map, num_cpus):
+def test_map_accumulator(map, num_cpus, with_seeded_random):
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:

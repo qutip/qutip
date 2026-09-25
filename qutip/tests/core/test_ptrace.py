@@ -38,18 +38,18 @@ def dm(request):
 
 
 @pytest.fixture
-def state(dtype, dm):
+def state(dtype, dm, random_generator):
     dims = [2, 3, 4]
-    state = qutip.rand_ket(dims)
+    state = qutip.rand_ket(dims, seed=random_generator)
     if dm:
         state = state.proj()
     return state.to(dtype)
 
 
-def test_ptrace_noncompound_rand(dtype, dm):
+def test_ptrace_noncompound_rand(dtype, dm, random_generator):
     """Test `A.ptrace(0) == A` when `A` is in a non-tensored Hilbert space."""
     for _ in range(5):
-        state = qutip.rand_ket(5)
+        state = qutip.rand_ket(5, seed=random_generator)
         if dm:
             state = state.proj()
         state = state.to(dtype)
@@ -99,8 +99,8 @@ def test_ptrace_fails_on_invalid_input(state, selection, exception):
                              ([2]*6, [0, 2]),
                              ([2]*6, [0, 1]),
                          ])
-def test_ptrace_rand_ket(dtype, dims, sel):
-    A = qutip.rand_ket(dims)
+def test_ptrace_rand_ket(dtype, dims, sel, random_generator):
+    A = qutip.rand_ket(dims, seed=random_generator)
     assert A.ptrace(sel) == expected(A, sel)
 
 
@@ -112,8 +112,8 @@ def test_ptrace_rand_ket(dtype, dims, sel):
                               'trace_multiple',
                               'trace_multiple_not_sorted',
                               ])
-def test_ptrace_rand_dm(dtype, sel):
-    A = qutip.rand_dm([4, 4, 4], density=0.5).to(dtype)
+def test_ptrace_rand_dm(dtype, sel, random_generator):
+    A = qutip.rand_dm([4, 4, 4], density=0.5, seed=random_generator).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
 
 
@@ -125,9 +125,10 @@ def test_ptrace_rand_dm(dtype, sel):
                               'trace_multiple',
                               'trace_multiple_not_sorted',
                               ])
-def test_ptrace_operator(dtype, sel):
+def test_ptrace_operator(dtype, sel, random_generator):
     A = qutip.tensor(
-        qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
+        qutip.rand_dm(2, seed=random_generator), qutip.thermal_dm(10, 1),
+        qutip.rand_unitary(3, seed=random_generator),
     ).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
 
@@ -143,10 +144,12 @@ def test_ptrace_operator(dtype, sel):
                              ([2]*6, [0, 1, 4]),
                              ([2]*6, [0, 1, 2, 3, 4, 5]),
                          ])
-def test_ptrace_ket_specialization_matches_old_implementation(dtype, dims, sel):
-    """Kets have a different implementation for ptrace. 
-       Test that this specialization gives the same result 
+def test_ptrace_ket_specialization_matches_old_implementation(
+    dtype, dims, sel, random_generator
+):
+    """Kets have a different implementation for ptrace.
+       Test that this specialization gives the same result
        as the non-specialized version.
     """
-    A = qutip.rand_ket(dims)
+    A = qutip.rand_ket(dims, seed=random_generator)
     assert A.ptrace(sel) == A.proj().ptrace(sel)

@@ -247,10 +247,10 @@ def test_time_dependent_spline_in_c_ops():
 
 
 @pytest.mark.slow
-def test_nonhermitian_e_ops():
+def test_nonhermitian_e_ops(random_generator):
     N = 5
     a = qutip.destroy(N)
-    coefficient = np.random.random() + 1j*np.random.random()
+    coefficient = random_generator.random() + 1j * random_generator.random()
     H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
     H_brme = [[H, '1']]
     psi0 = qutip.basis(N, 2)
@@ -261,10 +261,10 @@ def test_nonhermitian_e_ops():
 
 
 @pytest.mark.slow
-def test_result_states():
+def test_result_states(random_generator):
     N = 5
     a = qutip.destroy(N)
-    coefficient = np.random.random() + 1j*np.random.random()
+    coefficient = random_generator.random() + 1j * random_generator.random()
     H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
     H_brme = [[H, '1']]
     psi0 = qutip.fock_dm(N, 2)

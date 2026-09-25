@@ -3,19 +3,17 @@ import numpy as np
 from scipy.integrate import trapezoid
 import itertools
 from scipy.special import laguerre
-from numpy.random import rand
 from numpy.testing import assert_equal, assert_almost_equal, assert_allclose
 
 import qutip
 from qutip.core.states import coherent, fock, ket, bell_state
 from qutip.wigner import wigner, wigner_transform, _parity
-from qutip.random_objects import rand_dm, rand_ket
 
 
 class TestHusimiQ:
     @pytest.mark.parametrize('xs', ["", 1, None], ids=['str', 'int', 'none'])
-    def test_failure_if_non_arraylike_coordinates(self, xs):
-        state = qutip.rand_ket(4)
+    def test_failure_if_non_arraylike_coordinates(self, xs, random_generator):
+        state = qutip.rand_ket(4, seed=random_generator)
         valid = np.linspace(-1, 1, 5)
         with pytest.raises(TypeError) as e:
             qutip.qfunc(state, xs, valid)
@@ -31,8 +29,8 @@ class TestHusimiQ:
         assert "must be array-like" in e.value.args[0]
 
     @pytest.mark.parametrize('ndim', [2, 3])
-    def test_failure_if_coordinates_not_1d(self, ndim):
-        state = qutip.rand_ket(4)
+    def test_failure_if_coordinates_not_1d(self, ndim, random_generator):
+        state = qutip.rand_ket(4, seed=random_generator)
         valid = np.linspace(-1, 1, 5)
         bad = valid.reshape((-1,) + (1,)*(ndim - 1))
         with pytest.raises(ValueError) as e:
@@ -49,11 +47,11 @@ class TestHusimiQ:
         assert "must be 1D" in e.value.args[0]
 
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
-    def test_failure_if_tensor_hilbert_space(self, dm):
+    def test_failure_if_tensor_hilbert_space(self, dm, random_generator):
         if dm:
-            state = qutip.rand_dm([2, 2])
+            state = qutip.rand_dm([2, 2], seed=random_generator)
         else:
-            state = qutip.rand_ket([2, 2])
+            state = qutip.rand_ket([2, 2], seed=random_generator)
         xs = np.linspace(-1, 1, 5)
         with pytest.raises(ValueError) as e:
             qutip.qfunc(state, xs, xs)
@@ -62,17 +60,17 @@ class TestHusimiQ:
             qutip.QFunc(xs, xs)(state)
         assert "must not have tensor structure" in e.value.args[0]
 
-    def test_QFunc_raises_if_insufficient_memory(self):
+    def test_QFunc_raises_if_insufficient_memory(self, random_generator):
         xs = np.linspace(-1, 1, 11)
-        state = qutip.rand_ket(4)
+        state = qutip.rand_ket(4, seed=random_generator)
         qfunc = qutip.QFunc(xs, xs, memory=0)
         with pytest.raises(MemoryError) as e:
             qfunc(state)
         assert e.value.args[0].startswith("Refusing to precompute")
 
-    def test_qfunc_warns_if_insufficient_memory(self):
+    def test_qfunc_warns_if_insufficient_memory(self, random_generator):
         xs = np.linspace(-1, 1, 11)
-        state = qutip.rand_dm(4)
+        state = qutip.rand_dm(4, seed=random_generator)
         with pytest.warns(UserWarning) as e:
             qutip.qfunc(state, xs, xs, precompute_memory=0)
         assert (
@@ -98,19 +96,27 @@ class TestHusimiQ:
     # Use indirection so that the tests can still be collected if there's a bug
     # in the generating QuTiP functions.
     @pytest.mark.parametrize('state', [
-        pytest.param(lambda: qutip.rand_super(2), id='super'),
-        pytest.param(lambda: qutip.rand_ket(2).dag(), id='bra'),
-        pytest.param(lambda: 1j*qutip.rand_dm(2), id='non-dm operator'),
-        pytest.param(lambda: qutip.Qobj([[1, 0], [0, 0]], dims=[[2], [2, 1]]),
-                     id='nonsquare dm'),
-        pytest.param(lambda: qutip.operator_to_vector(qutip.qeye(2)),
+        pytest.param(lambda seed: qutip.rand_super(2, seed=seed), id='super'),
+        pytest.param(
+            lambda seed: qutip.rand_ket(2, seed=seed).dag(),
+            id='bra',
+        ),
+        pytest.param(
+            lambda seed: 1j * qutip.rand_dm(2, seed=seed),
+            id='non-dm operator',
+        ),
+        pytest.param(
+            lambda _: qutip.Qobj([[1, 0], [0, 0]], dims=[[2], [2, 1]]),
+            id='nonsquare dm'
+        ),
+        pytest.param(lambda _: qutip.operator_to_vector(qutip.qeye(2)),
                      id='operator-ket'),
-        pytest.param(lambda: qutip.operator_to_vector(qutip.qeye(2)).dag(),
+        pytest.param(lambda _: qutip.operator_to_vector(qutip.qeye(2)).dag(),
                      id='operator-bra'),
     ])
-    def test_failure_if_not_a_state(self, state):
+    def test_failure_if_not_a_state(self, state, random_generator):
         xs = np.linspace(-1, 1, 11)
-        state = state()
+        state = state(random_generator)
         with pytest.raises(ValueError) as e:
             qutip.qfunc(state, xs, xs)
         assert (
@@ -131,10 +137,15 @@ class TestHusimiQ:
     @pytest.mark.parametrize('n_xs', [5, 101])
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
     @pytest.mark.parametrize('size', [5, 32])
-    def test_function_and_class_are_equivalent(self, size, dm, n_xs, n_ys, g):
+    def test_function_and_class_are_equivalent(
+        self, size, dm, n_xs, n_ys, g, random_generator
+    ):
         xs = np.linspace(-1, 1, n_xs)
         ys = np.linspace(0, 2, n_ys)
-        state = qutip.rand_dm(size) if dm else qutip.rand_ket(size)
+        if dm:
+            state = qutip.rand_dm(size, seed=random_generator)
+        else:
+            state = qutip.rand_ket(size, seed=random_generator)
         function = qutip.qfunc(state, xs, ys, g)
         class_ = qutip.QFunc(xs, ys, g)(state)
         np.testing.assert_allclose(function, class_)
@@ -146,30 +157,37 @@ class TestHusimiQ:
     @pytest.mark.parametrize('n_ys', [5, 101])
     @pytest.mark.parametrize('n_xs', [5, 101])
     @pytest.mark.parametrize('size', [5, 32])
-    def test_iterate_and_precompute_are_equivalent(self, size, n_xs, n_ys, g):
+    def test_iterate_and_precompute_are_equivalent(
+        self, size, n_xs, n_ys, g, random_generator
+    ):
         xs = np.linspace(-1, 1, n_xs)
         ys = np.linspace(0, 2, n_ys)
-        state = qutip.rand_dm(size)
+        state = qutip.rand_dm(size, seed=random_generator)
         iterate = qutip.qfunc(state, xs, ys, g, precompute_memory=None)
         precompute = qutip.qfunc(state, xs, ys, g, precompute_memory=np.inf)
         np.testing.assert_allclose(iterate, precompute)
 
     @pytest.mark.parametrize('initial_size', [5, 8])
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
-    def test_same_class_can_take_many_sizes(self, dm, initial_size):
+    def test_same_class_can_take_many_sizes(
+        self, dm, initial_size, random_generator
+    ):
         xs = np.linspace(-1, 1, 11)
         ys = np.linspace(0, 2, 11)
         shape = np.meshgrid(xs, ys)[0].shape
         sizes = initial_size + np.array([0, 1, -1, 4])
         qfunc = qutip.QFunc(xs, ys)
         for size in sizes:
-            state = qutip.rand_dm(size) if dm else qutip.rand_ket(size)
+            if dm:
+                state = qutip.rand_dm(size, seed=random_generator)
+            else:
+                state = qutip.rand_ket(size, seed=random_generator)
             out = qfunc(state)
             assert isinstance(out, np.ndarray)
             assert out.shape == shape
 
     @pytest.mark.parametrize('dm_first', [True, False])
-    def test_same_class_can_mix_ket_and_dm(self, dm_first):
+    def test_same_class_can_mix_ket_and_dm(self, dm_first, random_generator):
         dms = [True, False, True, False]
         if not dm_first:
             dms = dms[::-1]
@@ -178,7 +196,10 @@ class TestHusimiQ:
         shape = np.meshgrid(xs, ys)[0].shape
         qfunc = qutip.QFunc(xs, ys)
         for dm in dms:
-            state = qutip.rand_dm(4) if dm else qutip.rand_ket(4)
+            if dm:
+                state = qutip.rand_dm(4, seed=random_generator)
+            else:
+                state = qutip.rand_ket(4, seed=random_generator)
             out = qfunc(state)
             assert isinstance(out, np.ndarray)
             assert out.shape == shape
@@ -186,11 +207,12 @@ class TestHusimiQ:
     @pytest.mark.parametrize('n_ys', [5, 101])
     @pytest.mark.parametrize('n_xs', [5, 101])
     @pytest.mark.parametrize('mix', [0.1, 0.5])
-    def test_qfunc_is_linear(self, n_xs, n_ys, mix):
+    def test_qfunc_is_linear(self, n_xs, n_ys, mix, random_generator):
         xs = np.linspace(-1, 1, n_xs)
         ys = np.linspace(-1, 1, n_ys)
         qfunc = qutip.QFunc(xs, ys)
-        left, right = qutip.rand_dm(5), qutip.rand_dm(5)
+        left = qutip.rand_dm(5, seed=random_generator)
+        right = qutip.rand_dm(5, seed=random_generator)
         qleft, qright = qfunc(left), qfunc(right)
         qboth = qfunc(mix*left + (1-mix)*right)
         np.testing.assert_allclose(mix*qleft + (1-mix)*qright, qboth)
@@ -198,10 +220,10 @@ class TestHusimiQ:
     @pytest.mark.parametrize('n_ys', [5, 101])
     @pytest.mark.parametrize('n_xs', [5, 101])
     @pytest.mark.parametrize('size', [5, 32])
-    def test_ket_and_dm_give_same_result(self, n_xs, n_ys, size):
+    def test_ket_and_dm_give_same_result(self, n_xs, n_ys, size, random_generator):
         xs = np.linspace(-1, 1, n_xs)
         ys = np.linspace(-1, 1, n_ys)
-        state = qutip.rand_ket(size)
+        state = qutip.rand_ket(size, seed=random_generator)
         qfunc = qutip.QFunc(xs, ys)
         np.testing.assert_allclose(qfunc(state), qfunc(state.proj()))
 
@@ -218,8 +240,8 @@ class TestHusimiQ:
         pytest.param(np.linspace(0, 2, 3), id='(0,2,3)'),
     ])
     @pytest.mark.parametrize('size', [3, 5])
-    def test_against_naive_implementation(self, xs, ys, g, size):
-        state = qutip.rand_dm(size)
+    def test_against_naive_implementation(self, xs, ys, g, size, random_generator):
+        state = qutip.rand_dm(size, seed=random_generator)
         state_np = state.full()
         x, y = np.meshgrid(xs, ys)
         alphas = 0.5*g * (x + 1j*y)
@@ -431,7 +453,7 @@ def test_angle_slicing():
     assert (np.sum(np.abs(wigner4 - wigner1)) < 1e-11)
 
 
-def test_wigner_coherent():
+def test_wigner_coherent(random_generator):
     "wigner: test wigner function calculation for coherent states"
     xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
@@ -444,7 +466,7 @@ def test_wigner_coherent():
     dy = yvec[1] - yvec[0]
 
     N = 20
-    beta = rand() + rand() * 1.0j
+    beta = random_generator.random() + random_generator.random() * 1.0j
     psi = coherent(N, beta)
 
     # calculate the wigner function using qutip and analytic formula
@@ -500,7 +522,7 @@ def test_wigner_fock():
         assert (np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
-def test_wigner_compare_methods_dm():
+def test_wigner_compare_methods_dm(random_generator):
     "wigner: compare wigner methods for random density matrices"
 
     xvec = np.linspace(-5.0, 5.0, 100)
@@ -518,7 +540,11 @@ def test_wigner_compare_methods_dm():
     for n in range(10):
         # try ten different random density matrices
 
-        rho = rand_dm(N, density=0.5 + rand() / 2)
+        rho = qutip.rand_dm(
+            N,
+            density=0.5 + random_generator.random() / 2,
+            seed=random_generator
+        )
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(rho, xvec, yvec, g=2)
@@ -532,7 +558,7 @@ def test_wigner_compare_methods_dm():
         assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
-def test_wigner_compare_methods_ket():
+def test_wigner_compare_methods_ket(random_generator):
     "wigner: compare wigner methods for random state vectors"
 
     xvec = np.linspace(-5.0, 5.0, 100)
@@ -550,7 +576,11 @@ def test_wigner_compare_methods_ket():
     for n in range(10):
         # try ten different random density matrices
 
-        psi = rand_ket(N, density=0.5 + rand() / 2)
+        psi = qutip.rand_ket(
+            N,
+            density=0.5 + random_generator.random() / 2,
+            seed=random_generator,
+        )
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(psi, xvec, yvec, g=2)
@@ -564,12 +594,12 @@ def test_wigner_compare_methods_ket():
         assert (np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
-def test_wigner_fft_comparse_ket():
+def test_wigner_fft_comparse_ket(random_generator):
     "Wigner: Compare Wigner fft and iterative for rand. ket"
     N = 20
     xvec = np.linspace(-10, 10, 128)
     for i in range(3):
-        rho = rand_ket(N)
+        rho = qutip.rand_ket(N, seed=random_generator)
 
         Wfft, yvec = wigner(rho, xvec, xvec, method='fft')
         W = wigner(rho, xvec, yvec, method='iterative')
@@ -578,12 +608,12 @@ def test_wigner_fft_comparse_ket():
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 
-def test_wigner_fft_comparse_dm():
+def test_wigner_fft_comparse_dm(random_generator):
     "Wigner: Compare Wigner fft and iterative for rand. dm"
     N = 20
     xvec = np.linspace(-10, 10, 128)
     for i in range(3):
-        rho = rand_dm(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
 
         Wfft, yvec = wigner(rho, xvec, xvec, method='fft')
         W = wigner(rho, xvec, yvec, method='iterative')
@@ -592,12 +622,13 @@ def test_wigner_fft_comparse_dm():
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 
-def test_wigner_clenshaw_iter_dm():
+def test_wigner_clenshaw_iter_dm(random_generator):
     "Wigner: Compare Wigner clenshaw and iterative for rand. dm"
     N = 20
     xvec = np.linspace(-10, 10, 128)
     for i in range(3):
-        rho = rand_dm(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+
 
         Wclen = wigner(rho, xvec, xvec, method='clenshaw')
         W = wigner(rho, xvec, xvec, method='iterative')
@@ -606,12 +637,12 @@ def test_wigner_clenshaw_iter_dm():
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 
-def test_wigner_clenshaw_sp_iter_dm():
+def test_wigner_clenshaw_sp_iter_dm(random_generator):
     "Wigner: Compare Wigner sparse clenshaw and iterative for rand. dm"
     N = 20
     xvec = np.linspace(-10, 10, 128)
     for i in range(3):
-        rho = rand_dm(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
 
         Wclen = wigner(rho, xvec, xvec, method='clenshaw', sparse=True)
         W = wigner(rho, xvec, xvec, method='iterative')
@@ -630,9 +661,9 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param("pure", id="pure"),
     pytest.param("herm", id="mixed")
 ])
-def test_spin_q_function(spin, pure):
+def test_spin_q_function(spin, pure, random_generator):
     d = int(2*spin + 1)
-    rho = rand_dm(d, distribution=pure)
+    rho = qutip.rand_dm(d, distribution=pure, seed=random_generator)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 16, endpoint=True)
@@ -655,9 +686,9 @@ def test_spin_q_function(spin, pure):
     pytest.param("pure", id="pure"),
     pytest.param("herm", id="mixed")
 ])
-def test_spin_q_function_normalized(spin, pure):
+def test_spin_q_function_normalized(spin, pure, random_generator):
     d = int(2 * spin + 1)
-    rho = rand_dm(d, distribution=pure)
+    rho = qutip.rand_dm(d, distribution=pure, seed=random_generator)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 128, endpoint=True)
@@ -680,9 +711,9 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param("pure", id="pure"),
     pytest.param("herm", id="mixed")
 ])
-def test_spin_wigner_normalized(spin, pure):
+def test_spin_wigner_normalized(spin, pure, random_generator):
     d = int(2*spin + 1)
-    rho = rand_dm(d, distribution=pure)
+    rho = qutip.rand_dm(d, distribution=pure, seed=random_generator)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -705,17 +736,17 @@ def test_spin_wigner_normalized(spin, pure):
     pytest.param("pure", id="pure"),
     pytest.param("herm", id="mixed")
 ])
-def test_spin_wigner_overlap(spin, pure, n=5):
+def test_spin_wigner_overlap(spin, pure, random_generator, n=5):
     d = int(2*spin + 1)
-    rho = rand_dm(d, distribution=pure)
+    rho = qutip.rand_dm(d, distribution=pure, seed=random_generator)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
     phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
     W, THETA, _ = qutip.spin_wigner(rho, theta, phi)
 
-    for k in range(n):
-        test_state = rand_dm(d)
+    for _ in range(n):
+        test_state = qutip.rand_dm(d, seed=random_generator)
         state_overlap = (test_state*rho).tr().real
 
         W_state, _, _ = qutip.spin_wigner(test_state, theta, phi)
@@ -724,10 +755,10 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
 
 
-def test_wigner_offset_parallel_laguerre():
+def test_wigner_offset_parallel_laguerre(random_generator):
     "Winger: Compare parallel and serial laguerre results."
     xvec = np.linspace(-2, 2, 20)
-    state = qutip.rand_dm(15, density=0.5)
+    state = qutip.rand_dm(15, density=0.5, seed=random_generator)
 
     W_serial = qutip.wigner(state, xvec, xvec, method='laguerre',
                             parfor=False, offset=5)
@@ -738,12 +769,12 @@ def test_wigner_offset_parallel_laguerre():
 
 
 @pytest.mark.parametrize('method', ['clenshaw', 'laguerre', 'iterative'])
-def test_wigner_offset_consistency(method):
+def test_wigner_offset_consistency(method, random_generator):
     "Wigner: Compare offset result with standard Wigner function call"
     xvec = np.linspace(-2, 2, 20)
     yvec = np.linspace(-2, 2, 20)
 
-    state_offset = qutip.rand_ket(40)
+    state_offset = qutip.rand_ket(40, seed=random_generator)
     padded_data = np.pad(state_offset.full(), ((30, 0), (0, 0)),
                          mode='constant')
     state_base = qutip.Qobj(padded_data)
@@ -754,10 +785,10 @@ def test_wigner_offset_consistency(method):
     np.testing.assert_allclose(W_base, W_offset, atol=1e-10)
 
 
-def test_wigner_offset_sparse_consistency():
+def test_wigner_offset_sparse_consistency(random_generator):
     "Wigner: Compare sparse and dense clenshaw with offsets."
     xvec = np.linspace(-2, 2, 20)
-    state = qutip.rand_ket(40)
+    state = qutip.rand_ket(40, seed=random_generator)
 
     W_dense = qutip.wigner(state, xvec, xvec, method='clenshaw',
                            sparse=False, offset=20)
@@ -783,4 +814,3 @@ def test_spin_q_function_large_spin(j):
 
     assert np.isfinite(Q).all()
     np.testing.assert_allclose(Q, 1 / dimension, rtol=1e-10)
-
