@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 # from cpython cimport mem
 # from libcpp.algorithm cimport sort
 # from libc.math cimport fabs

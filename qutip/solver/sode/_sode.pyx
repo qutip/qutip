@@ -1,5 +1,4 @@
-#cython: language_level=3
-
+from libc.math cimport sqrt
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
@@ -7,6 +6,14 @@ cimport cython
 from qutip.solver.sode.ssystem cimport BaseStochasticSystem, TaylorStochasticSystem
 import numpy as np
 
+
+cdef double INV_SQRT3 = 1/sqrt(3.)
+
+
+cdef inline void _assign(Dense dst, Dense src):
+    """dst[:] = src, in place."""
+    imul_dense(dst, 0.)
+    iadd_dense(dst, src, 1.)
 
 cdef class Euler:
     cdef BaseStochasticSystem system
@@ -22,13 +29,30 @@ cdef class Euler:
         double[:, :, ::1] dW, int num_step
     ):
         cdef int i
+        cdef Data new_state
+        if type(state) is not Dense:
+            state = _data.to(Dense, state)
+
+        # Scratch buffer handed to every step.
+        # A step may accumulate into it and return it, the previous state then becomes the next scratch.
+        cdef Dense out = _data.zeros_like(state)
+        state = state.copy()
+        self._allocate(state)
+
         for i in range(num_step):
-            state = self.step(t + i * dt, state, dt, dW[i, :, :])
+            new_state = self.step(t + i * dt, state, dt, dW[i, :, :], out)
+            if new_state is out:
+                out = state
+            state = new_state
         return state
+
+    cdef void _allocate(self, Dense state):
+        """Allocate the scratch states a step needs, once per run."""
+        pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Integration scheme:
         Basic Euler order 0.5
@@ -40,25 +64,37 @@ cdef class Euler:
         cdef BaseStochasticSystem system = self.system
         cdef list expect
 
-        cdef Data a = system.drift(t, state)
-        b = system.diffusion(t, state)
+        cdef Dense a = system.drift(t, state)
+        cdef list b = system.diffusion(t, state)
 
         if self.measurement_noise:
             expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= expect[i].real * dt
 
-        cdef Data new_state = _data.add(state, a, dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, state, 1)
+        iadd_dense(out, a, dt)
         for i in range(system.num_diffusion):
-            new_state = _data.add(new_state, b[i], dW[0, i])
-        return new_state
+            iadd_dense(out, b[i], dW[0, i])
+        return out
 
 
 cdef class Platen(Euler):
+    cdef Dense _d1, _Vt
+    cdef list _Vp, _Vm
+
+    cdef void _allocate(self, Dense state):
+        cdef int n = self.system.num_diffusion
+        self._d1 = _data.zeros_like(state)
+        self._Vt = _data.zeros_like(state)
+        self._Vp = [_data.zeros_like(state) for _ in range(n)]
+        self._Vm = [_data.zeros_like(state) for _ in range(n)]
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Platen rhs function for both master eq and schrodinger eq.
         dV = -iH* (V+Vt)/2 * dt + (d1(V)+d1(Vt))/2 * dt
@@ -72,38 +108,42 @@ cdef class Platen(Euler):
         """
         cdef BaseStochasticSystem system = self.system
         cdef int i, j, num_ops = system.num_diffusion
-        cdef double sqrt_dt = np.sqrt(dt)
+        cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
         cdef double dw, dw2, dw2p, dw2m
+        cdef Dense d1 = self._d1, Vt = self._Vt, Vp, Vm
+        cdef list d2, d2p, d2m, expect
 
-        cdef Data d1 = _data.add(state, system.drift(t, state), dt)
-        cdef list d2 = system.diffusion(t, state)
-        cdef Data Vt, out
-        cdef list Vp, Vm
-        cdef list expect
+        # d1 = state + a(state) dt
+        _assign(d1, state)
+        iadd_dense(d1, system.drift(t, state), dt)
+        d2 = system.diffusion(t, state)
 
         if self.measurement_noise:
             expect = system._shift(t, state)
-            for i in range(system.num_diffusion):
+            for i in range(num_ops):
                 dW[0, i] -= expect[i].real * dt
 
-        out = _data.mul(d1, 0.5)
-        Vt = d1.copy()
-        Vp = []
-        Vm = []
+        # Vt = d1 + sum_i b_i dW_i ;  Vp_i, Vm_i = d1 +/- b_i sqrt(dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, d1, 0.5)
+        _assign(Vt, d1)
         for i in range(num_ops):
-            Vp.append(_data.add(d1, d2[i], sqrt_dt))
-            Vm.append(_data.add(d1, d2[i], -sqrt_dt))
-            Vt = _data.add(Vt, d2[i], dW[0, i])
+            Vp = self._Vp[i]
+            Vm = self._Vm[i]
+            _assign(Vp, d1)
+            iadd_dense(Vp, d2[i], sqrt_dt)
+            _assign(Vm, d1)
+            iadd_dense(Vm, d2[i], -sqrt_dt)
+            iadd_dense(Vt, d2[i], dW[0, i])
 
-        d1 = system.drift(t, Vt)
-        out = _data.add(out, d1, 0.5 * dt)
-        out = _data.add(out, state, 0.5)
+        iadd_dense(out, system.drift(t, Vt), 0.5 * dt)
+        iadd_dense(out, state, 0.5)
         for i in range(num_ops):
-            d2p = system.diffusion(t, Vp[i])
-            d2m = system.diffusion(t, Vm[i])
+            d2p = system.diffusion(t, self._Vp[i])
+            d2m = system.diffusion(t, self._Vm[i])
             dw = dW[0, i] * 0.25
-            out = _data.add(out, d2[i], 2 * dw)
+            iadd_dense(out, d2[i], 2 * dw)
 
             for j in range(num_ops):
                 if i == j:
@@ -113,20 +153,36 @@ cdef class Platen(Euler):
                 else:
                     dw2p = sqrt_dt_inv * dW[0, i] * dW[0, j]
                     dw2m = -dw2p
-                out = _data.add(out, d2p[j], dw2p)
-                out = _data.add(out, d2m[j], dw2m)
+                iadd_dense(out, d2p[j], dw2p)
+                iadd_dense(out, d2m[j], dw2m)
 
         return out
 
 
 cdef class Explicit15(Euler):
+    cdef Dense _V
+    cdef list _v2p, _v2m, _p2p, _p2m
+    cdef double[::1] _dw, _dz, _dwp, _dwm
+
     def __init__(self, BaseStochasticSystem system):
         self.system = system
+
+    cdef void _allocate(self, Dense state):
+        cdef int n = self.system.num_diffusion
+        self._V = _data.zeros_like(state)
+        self._v2p = [_data.zeros_like(state) for _ in range(n)]
+        self._v2m = [_data.zeros_like(state) for _ in range(n)]
+        self._p2p = [[_data.zeros_like(state) for _ in range(n)] for _ in range(n)]
+        self._p2m = [[_data.zeros_like(state) for _ in range(n)] for _ in range(n)]
+        self._dw = np.empty(n)
+        self._dz = np.empty(n)
+        self._dwp = np.empty(n)
+        self._dwm = np.empty(n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Data step(self, double t, Data state, double dt, double[:, :] dW):
+    cdef Data step(self, double t, Dense state, double dt, double[:, :] dW, Dense out):
         """
         Chapter 11.2 Eq. (2.13)
         Numerical Solution of Stochastic Differential Equations
@@ -134,53 +190,57 @@ cdef class Explicit15(Euler):
         """
         cdef BaseStochasticSystem system = self.system
         cdef int i, j, k, num_ops = system.num_diffusion
-        cdef double sqrt_dt = np.sqrt(dt)
+        cdef double sqrt_dt = sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
         cdef double ddz, ddw, ddd
-        cdef double[::1] dz, dw, dwp, dwm
+        cdef double[::1] dw = self._dw, dz = self._dz, dwp = self._dwp, dwm = self._dwm
+        cdef Dense V = self._V, v2p, v2m, p2p, p2m, d1, d1p, d1m
+        cdef list d2, dd2, d2p, d2m, d2pp, d2mm, d2p_all, d2m_all
+        cdef object t_obj = t, t_dt = t + dt, t_n = t + dt / num_ops
 
-        dw = np.empty(num_ops)
-        dz = np.empty(num_ops)
-        dwp = np.zeros(num_ops)
-        dwm = np.zeros(num_ops)
         for i in range(num_ops):
             dw[i] = dW[0, i]
-            dz[i] = 0.5 *(dW[0, i] + 1./np.sqrt(3) * dW[1, i])
+            dz[i] = 0.5 *(dW[0, i] + INV_SQRT3 * dW[1, i])
 
-        d1 = system.drift(t, state)
-        d2 = system.diffusion(t, state)
-        dd2 = system.diffusion(t + dt, state)
+        d1 = system.drift(t_obj, state)
+        d2 = system.diffusion(t_obj, state)
+        dd2 = system.diffusion(t_dt, state)
         # Euler part
-        out = _data.add(state, d1, dt)
+        _assign(out, state)
+        iadd_dense(out, d1, dt)
         for i in range(num_ops):
-            out = _data.add(out, d2[i], dw[i])
+            iadd_dense(out, d2[i], dw[i])
 
-        V = _data.add(state, d1, dt/num_ops)
-
-        v2p = []
-        v2m = []
+        _assign(V, state)
+        iadd_dense(V, d1, dt/num_ops)
         for i in range(num_ops):
-            v2p.append(_data.add(V, d2[i], sqrt_dt))
-            v2m.append(_data.add(V, d2[i], -sqrt_dt))
+            v2p = self._v2p[i]
+            v2m = self._v2m[i]
+            _assign(v2p, V)
+            iadd_dense(v2p, d2[i], sqrt_dt)
+            _assign(v2m, V)
+            iadd_dense(v2m, d2[i], -sqrt_dt)
 
-        p2p = []
-        p2m = []
+        d2p_all = []
+        d2m_all = []
         for i in range(num_ops):
-            d2p = system.diffusion(t, v2p[i])
-            d2m = system.diffusion(t, v2m[i])
+            v2p = self._v2p[i]
+            d2p = system.diffusion(t_obj, v2p)
+            d2m = system.diffusion(t_obj, self._v2m[i])
+            d2p_all.append(d2p)
+            d2m_all.append(d2m)
             ddw = (dw[i] * dw[i] - dt) * 0.25 * sqrt_dt_inv  # 1.0
-            out = _data.add(out, d2p[i], ddw)
-            out = _data.add(out, d2m[i], -ddw)
-            temp_p2p = []
-            temp_p2m = []
+            iadd_dense(out, d2p[i], ddw)
+            iadd_dense(out, d2m[i], -ddw)
             for j in range(num_ops):
-                temp_p2p.append(_data.add(v2p[i], d2p[j], sqrt_dt))
-                temp_p2m.append(_data.add(v2p[i], d2p[j], -sqrt_dt))
-            p2p.append(temp_p2p)
-            p2m.append(temp_p2m)
+                p2p = self._p2p[i][j]
+                p2m = self._p2m[i][j]
+                _assign(p2p, v2p)
+                iadd_dense(p2p, d2p[j], sqrt_dt)
+                _assign(p2m, v2p)
+                iadd_dense(p2m, d2p[j], -sqrt_dt)
 
-        out = _data.add(out, d1, -0.5*(num_ops) * dt)
-
+        iadd_dense(out, d1, -0.5*(num_ops) * dt)
         for i in range(num_ops):
             ddz = dz[i] * 0.5 / sqrt_dt # 1.5
             ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt # 1.5
@@ -188,22 +248,19 @@ cdef class Explicit15(Euler):
                 dwp[j] = 0
                 dwm[j] = 0
 
-            d1p = system.drift(t + dt/num_ops, v2p[i])
-            d1m = system.drift(t + dt/num_ops, v2m[i])
+            d1p = system.drift(t_n, self._v2p[i])
+            d1m = system.drift(t_n, self._v2m[i])
+            d2p = d2p_all[i]
+            d2m = d2m_all[i]
+            d2pp = system.diffusion(t_obj, self._p2p[i][i])
+            d2mm = system.diffusion(t_obj, self._p2m[i][i])
 
-            d2p = system.diffusion(t, v2p[i])
-            d2m = system.diffusion(t, v2m[i])
-            d2pp = system.diffusion(t, p2p[i][i])
-            d2mm = system.diffusion(t, p2m[i][i])
-
-            out = _data.add(out, d1p, (0.25 + ddz) * dt)
-            out = _data.add(out, d1m, (0.25 - ddz) * dt)
-
-            out = _data.add(out, dd2[i], dw[i] - dz[i])
-            out = _data.add(out, d2[i], dz[i] - dw[i])
-
-            out = _data.add(out, d2pp[i], ddd)
-            out = _data.add(out, d2mm[i], -ddd)
+            iadd_dense(out, d1p, (0.25 + ddz) * dt)
+            iadd_dense(out, d1m, (0.25 - ddz) * dt)
+            iadd_dense(out, dd2[i], dw[i] - dz[i])
+            iadd_dense(out, d2[i], dz[i] - dw[i])
+            iadd_dense(out, d2pp[i], ddd)
+            iadd_dense(out, d2mm[i], -ddd)
             dwp[i] += -ddd
             dwm[i] += ddd
 
@@ -211,7 +268,7 @@ cdef class Explicit15(Euler):
                 ddw = 0.5 * (dw[j] - dz[j])  # O(1.5)
                 dwp[j] += ddw
                 dwm[j] += ddw
-                out = _data.add(out, d2[j], -2*ddw)
+                iadd_dense(out, d2[j], -2*ddw)
 
                 if j > i:
                     ddw = 0.5 * (dw[i] * dw[j]) / sqrt_dt  # O(1.0)
@@ -219,33 +276,32 @@ cdef class Explicit15(Euler):
                     dwm[j] += -ddw
 
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-                    d2pp = system.diffusion(t, p2p[j][i])
-                    d2mm = system.diffusion(t, p2m[j][i])
-                    out = _data.add(out, d2pp[j], ddw)
-                    out = _data.add(out, d2mm[j], -ddw)
+                    d2pp = system.diffusion(t_obj, self._p2p[j][i])
+                    d2mm = system.diffusion(t_obj, self._p2m[j][i])
+                    iadd_dense(out, d2pp[j], ddw)
+                    iadd_dense(out, d2mm[j], -ddw)
                     dwp[j] += -ddw
                     dwm[j] += ddw
 
                     for k in range(j+1, num_ops):
                         ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt  # O(1.5)
-                        out = _data.add(out, d2pp[k], ddw)
-                        out = _data.add(out, d2mm[k], -ddw)
+                        iadd_dense(out, d2pp[k], ddw)
+                        iadd_dense(out, d2mm[k], -ddw)
                         dwp[k] += -ddw
                         dwm[k] += ddw
 
                 if j < i:
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-                    d2pp = system.diffusion(t, p2p[j][i])
-                    d2mm = system.diffusion(t, p2m[j][i])
-
-                    out = _data.add(out, d2pp[j], ddw)
-                    out = _data.add(out, d2mm[j], -ddw)
+                    d2pp = system.diffusion(t_obj, self._p2p[j][i])
+                    d2mm = system.diffusion(t_obj, self._p2m[j][i])
+                    iadd_dense(out, d2pp[j], ddw)
+                    iadd_dense(out, d2mm[j], -ddw)
                     dwp[j] += -ddw
                     dwm[j] += ddw
 
             for j in range(num_ops):
-                out = _data.add(out, d2p[j], dwp[j])
-                out = _data.add(out, d2m[j], dwm[j])
+                iadd_dense(out, d2p[j], dwp[j])
+                iadd_dense(out, d2m[j], dwm[j])
 
         return out
 
@@ -253,6 +309,7 @@ cdef class Explicit15(Euler):
 cdef class Milstein:
     cdef TaylorStochasticSystem system
     cdef bint measurement_noise
+    cdef double[::1] _dz
 
     def __init__(self, TaylorStochasticSystem system, measurement_noise=False):
         self.system = system
@@ -293,7 +350,6 @@ cdef class Milstein:
         iadd_dense(out, system.a(), dt)
 
         if self.measurement_noise:
-            expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= system._shift_i(i).real * dt
 
@@ -355,7 +411,6 @@ cdef class PredCorr:
         system.set_state(t, state)
 
         if self.measurement_noise:
-            expect = system._shift(t, state)
             for i in range(system.num_diffusion):
                 dW[0, i] -= system._shift_i(i).real * dt
 
@@ -388,6 +443,7 @@ cdef class Taylor15(Milstein):
     def __init__(self, TaylorStochasticSystem system):
         self.system = system
         self.measurement_noise = False
+        self._dz = np.empty(max(system.num_diffusion, 1))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -404,7 +460,9 @@ cdef class Taylor15(Milstein):
 
         num_ops = system.num_diffusion
         dw = dW[0, :]
-        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
+        dz = self._dz
+        for i in range(num_ops):
+            dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
         imul_dense(out, 0.)
         iadd_dense(out, state, 1)
@@ -432,6 +490,7 @@ cdef class Taylor15(Milstein):
 cdef class Milstein_imp:
     cdef TaylorStochasticSystem system
     cdef bint use_inv
+    cdef double[::1] _dz
     cdef QobjEvo implicit
     cdef Data inv
     cdef double prev_dt
@@ -440,6 +499,7 @@ cdef class Milstein_imp:
     def __init__(self, TaylorStochasticSystem system, solve_method=None, solve_options={}):
         self.system = system
         self.prev_dt = 0
+        self._dz = np.empty(max(system.num_diffusion, 1))
         if solve_method == "inv":
             if not self.system.L.isconstant:
                 raise TypeError("The 'inv' integration method requires that the system Hamiltonian or Liouvillian be constant.")
@@ -519,7 +579,9 @@ cdef class Taylor15_imp(Milstein_imp):
 
         num_ops = system.num_diffusion
         dw = dW[0, :]
-        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
+        dz = self._dz
+        for i in range(num_ops):
+            dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
         imul_dense(target, 0.)
         iadd_dense(target, state, 1)

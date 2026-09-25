@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, nonecheck=False
 """
 Provide a cython implimentation for a general Explicit runge-Kutta method.

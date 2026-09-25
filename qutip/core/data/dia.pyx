@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -343,7 +342,7 @@ cpdef Dia from_dense(Dense matrix):
     cdef Dia out = empty(matrix.shape[0], matrix.shape[1], matrix.shape[0] + matrix.shape[1] - 1)
     memset(out.data, 0, out._max_diag * out.shape[1] * sizeof(double complex))
     cdef size_t diag_, ptr_in, ptr_out=0, stride
-    cdef row, col
+    cdef size_t row, col, i, strideR, strideC
 
     out.num_diag = matrix.shape[0] + matrix.shape[1] - 1
     for i in range(matrix.shape[0] + matrix.shape[1] - 1):
@@ -389,6 +388,8 @@ cpdef Dia clean_dia(Dia matrix, bint inplace=False):
 
     if out.num_diag == 0:
         return out
+
+    cdef base.idxint smallest_offsets, smallest_diag, comp_diag
 
     # We sort using insertion sort on the offsets, summing data of duplicated.
     # This does not scale well with large number of diagonal
@@ -436,7 +437,7 @@ cpdef Dia clean_dia(Dia matrix, bint inplace=False):
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
-) nogil:
+) noexcept nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset

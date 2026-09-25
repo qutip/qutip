@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport Data, Dense, dense, Dia, CSR
 from qutip.core.data.matmul cimport (
     imatmul_data_dense, matmul_dense, matmul_dense_dia_dense
@@ -23,7 +21,6 @@ __all__ = [
 
 
 cdef int ONE = 1
-cdef double NaN = np.nan
 
 
 cdef int _mul(list numbers) except -1:
@@ -374,7 +371,7 @@ cpdef void n_mode_kernel(
 
         if val == 0+0j:
             continue
-        if val == NaN:
+        if val != val: # NaN test
             raise RuntimeError(f"Oper out of bound, row={row}, col={col}")
 
         for i in range(meta.n_pass_through):

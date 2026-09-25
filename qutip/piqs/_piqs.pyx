@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 """
 Cythonized code for permutationally invariant Lindbladian generation
 """
@@ -10,6 +8,7 @@ from qutip.core import Qobj
 
 cimport numpy as cnp
 cimport cython
+from libc.math cimport sqrt
 
 
 def _num_dicke_states(N):
@@ -76,7 +75,7 @@ cpdef list get_blocks(int N):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef float j_min(N):
+cpdef double j_min(N):
     """
     Calculate the minimum value of j for given N.
 
@@ -263,8 +262,8 @@ cdef class Dicke(object):
         default: 0.0
     """
     cdef int N
-    cdef float emission, dephasing, pumping
-    cdef float collective_emission, collective_dephasing, collective_pumping
+    cdef double emission, dephasing, pumping
+    cdef double collective_emission, collective_dephasing, collective_pumping
 
     def __init__(self, int N, float emission=0., float dephasing=0.,
                  float pumping=0., float collective_emission=0.,
@@ -413,14 +412,14 @@ cdef class Dicke(object):
         """
         Calculate gamma1 for value of j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yCE, yE, yD, yP, yCP, yCD
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase, g1
+        cdef double j, m, m1
+        cdef double yCE, yE, yD, yP, yCP, yCD
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase, g1
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
 
         yE = self.emission
         yD = self.dephasing
@@ -452,26 +451,26 @@ cdef class Dicke(object):
         """
         Calculate gamma2 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yCE, yE, yD, yP, yCP, yCD, g2
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase
+        cdef double j, m, m1
+        cdef double yCE, yE, yD, yP, yCP, yCD, g2
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yCE = self.collective_emission
         yE = self.emission
 
         if yCE == 0:
             spontaneous = 0.0
         else:
-            spontaneous = yCE * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1))
+            spontaneous = yCE * sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1))
 
         if (yE == 0) or (j <= 0):
             losses = 0.0
         else:
-            losses = yE/2 * np.sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1)) * \
+            losses = yE/2 * sqrt((j+m) * (j-m+1) * (j+m1) * (j-m1+1)) * \
                                                       (N/2 + 1)/(j*(j+1))
         g2 = spontaneous + losses
         return g2
@@ -482,21 +481,21 @@ cdef class Dicke(object):
         """
         Calculate gamma3 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yE
-        cdef float N
-        cdef float spontaneous, losses, pump, collective_pump
-        cdef float dephase, collective_dephase
+        cdef double j, m, m1
+        cdef double yE
+        cdef double N
+        cdef double spontaneous, losses, pump, collective_pump
+        cdef double dephase, collective_dephase
 
         cdef complex g3
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yE = self.emission
 
         if (yE == 0) or (j <= 0):
             g3 = 0.0
         else:
-            g3 = yE/2 * np.sqrt((j+m) * (j+m-1) * (j+m1) * (j+m1-1)) * \
+            g3 = yE/2 * sqrt((j+m) * (j+m-1) * (j+m1) * (j+m1-1)) * \
                  (N/2 + j+1)/(j*(2*j + 1))
         return g3
 
@@ -506,18 +505,18 @@ cdef class Dicke(object):
         """
         Calculate gamma4 for given j, m, m'.
         """
-        cdef float j, m, m1
+        cdef double j, m, m1
         cdef complex g4
-        cdef float yE
-        cdef float N
+        cdef double yE
+        cdef double N
 
-        N = float(self.N)
+        N = <double>self.N
         j, m, m1 = jmm1
         yE = self.emission
         if (yE == 0) or ((j+1) <= 0):
             g4 = 0.0
         else:
-            g4 = yE/2 * np.sqrt((j-m+1) * (j-m+2) * (j-m1+1) *
+            g4 = yE/2 * sqrt((j-m+1) * (j-m+2) * (j-m1+1) *
                                 (j-m1+2)) * (N/2 - j)/((j+1) *
                                                        (2*j + 1))
         return g4
@@ -528,19 +527,19 @@ cdef class Dicke(object):
         """
         Calculate gamma5 for given j, m, m'.
         """
-        cdef float j, m, m1
+        cdef double j, m, m1
         cdef complex g5
         j, m, m1 = jmm1
-        cdef float yD
-        cdef float N
+        cdef double yD
+        cdef double N
 
-        N = float(self.N)
+        N = <double>self.N
         yD = self.dephasing
 
         if (yD == 0) or (j <= 0):
             g5 = 0.0
         else:
-            g5 = yD/2 * np.sqrt((j**2 - m**2)*(j**2 - m1**2)) * \
+            g5 = yD/2 * sqrt((j**2 - m**2)*(j**2 - m1**2)) * \
                 (N/2 + j + 1)/(j*(2*j + 1))
 
         return g5
@@ -551,19 +550,19 @@ cdef class Dicke(object):
         """
         Calculate gamma6 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yD
-        cdef float N
+        cdef double j, m, m1
+        cdef double yD
+        cdef double N
         cdef complex g6
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
 
         yD = self.dephasing
         if yD == 0:
             g6 = 0.0
         else:
-            g6 = yD/2 * np.sqrt(((j+1)**2 - m**2)*((j+1) **
+            g6 = yD/2 * sqrt(((j+1)**2 - m**2)*((j+1) **
                                                    2-m1**2)) * \
                                                    (N/2 - j)/((j+1) * (2*j+1))
         return g6
@@ -574,19 +573,19 @@ cdef class Dicke(object):
         """
         Calculate gamma7 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP
+        cdef double N
         cdef complex g7
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
 
         if (yP == 0) or (j <= 0):
             g7 = 0.0
         else:
-            g7 = yP/2 * np.sqrt((j-m-1)*(j-m)*(j-m1-1) *
+            g7 = yP/2 * sqrt((j-m-1)*(j-m)*(j-m1-1) *
                                 (j-m1)) * (N/2 + j + 1)/(j * (2*j+1))
         return g7
 
@@ -596,25 +595,25 @@ cdef class Dicke(object):
         """
         Calculate gamma8 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP, yCP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP, yCP
+        cdef double N
         cdef complex g8
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
         yCP = self.collective_pumping
         if (yP == 0) or (j <= 0):
             pump = 0.0
         else:
-            pump = yP/2 * np.sqrt((j+m+1) * (j-m) * (j+m1+1) *
+            pump = yP/2 * sqrt((j+m+1) * (j-m) * (j+m1+1) *
                                   (j-m1)) * (N/2 + 1)/(j*(j+1))
         if yCP == 0:
             collective_pump = 0.0
         else:
             collective_pump = yCP * \
-                np.sqrt((j-m) * (j+m+1) * (j+m1+1) * (j-m1))
+                sqrt((j-m) * (j+m+1) * (j+m1+1) * (j-m1))
         g8 = pump + collective_pump
         return g8
 
@@ -624,18 +623,18 @@ cdef class Dicke(object):
         """
         Calculate gamma9 for given j, m, m'.
         """
-        cdef float j, m, m1
-        cdef float yP
-        cdef float N
+        cdef double j, m, m1
+        cdef double yP
+        cdef double N
         cdef complex g9
 
         j, m, m1 = jmm1
-        N = float(self.N)
+        N = <double>self.N
         yP = self.pumping
 
         if (yP == 0):
             g9 = 0.0
         else:
-            g9 = yP/2 * np.sqrt((j+m+1) * (j+m+2) * (j+m1+1) *
+            g9 = yP/2 * sqrt((j+m+1) * (j+m+2) * (j+m1+1) *
                                 (j+m1+2)) * (N/2 - j)/((j+1) * (2*j+1))
         return g9

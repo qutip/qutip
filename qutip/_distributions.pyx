@@ -2,8 +2,10 @@ cimport cython
 from cython cimport double, complex
 cimport numpy as np
 import numpy as np
-from libc.math cimport pi 
-from cmath import exp as cexp, sqrt as csqrt, pi as cpi
+from libc.math cimport pi
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex cexp "exp" (double complex x)
+    double complex csqrt "sqrt" (double complex x)
 
 @cython.nogil
 @cython.cfunc
@@ -44,10 +46,10 @@ cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_co
     
     x_size = x.shape[0]
     cdef np.ndarray[np.complex128_t, ndim=2] result = np.zeros((n + 1, x_size), dtype=np.complex128)
-    pi_025 = pi ** (-0.25)
+    cdef double pi_025 = pi ** (-0.25)
 
     for j in range(x_size):
-        result[0, j] = pi_025 * cexp(-(x[j] ** 2) / 2)
+        result[0, j] = pi_025 * cexp(-(x[j] * x[j]) / 2)
 
     for i in range(n):
         temp1 = csqrt(2 * (i + 1))

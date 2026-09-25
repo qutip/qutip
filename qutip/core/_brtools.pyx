@@ -1,4 +1,3 @@
-#cython: language_level=3
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 
@@ -32,22 +31,26 @@ cdef class SpectraCoefficient(Coefficient):
         self.coeff_w = coeff_w
         self.w = w
 
-    cdef complex _call(self, double t) except *:
+    cdef double complex _call_w(self, double t, double w) except *:
+        """Evaluate at time ``t`` and frequency ``w`` without boxing."""
         if self.coeff_t is None:
-            return self.coeff_w(self.w)
-        return self.coeff_t(t) * self.coeff_w(self.w)
+            return self.coeff_w._call(w)
+        return self.coeff_t._call(t) * self.coeff_w._call(w)
+
+    cdef double complex _call(self, double t) except *:
+        return self._call_w(t, self.w)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
-        return SpectraCoefficient(self.coeff_t, self.coeff_w, self.w)
+        return SpectraCoefficient(self.coeff_w, self.coeff_t, self.w)
 
     def replace_arguments(self, _args=None, *, w=None, **kwargs):
         if _args:
             kwargs.update(_args)
         if kwargs:
             return SpectraCoefficient(
-                self.coeff_w.replace(**kwargs),
-                self.coeff_t.replace(**kwargs) if self.coeff_t else None,
+                self.coeff_w.replace(**kwargs),  # FIXME: replace is undefined
+                self.coeff_t.replace(**kwargs) if self.coeff_t else None, # FIXME: replace is undefined
                 kwargs.get('w', w or self.w)
               )
         if w is not None:
