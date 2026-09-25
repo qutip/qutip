@@ -1,7 +1,7 @@
 import numpy as np
 from qutip import (
     sigmax, sigmay, sigmaz,  sigmap, sigmam,
-    rand_ket, num, destroy,
+    rand_ket, num, destroy, qeye, tensor,
     mesolve, expect, sesolve,
     Qobj, QobjEvo, coefficient
  )
@@ -52,6 +52,21 @@ class TestFloquet:
         for t, state in zip(tlist, states):
             from_floquet = floquet_basis.from_floquet_basis(floquet_psi0, t)
             assert state.overlap(from_floquet) == pytest.approx(1., abs=8e-5)
+
+    def test_degenerate_floquet_modes_are_orthonormal(self):
+        identity = qeye(2)
+        x = tensor(sigmax(), identity)
+        z = tensor(sigmaz(), identity)
+        drive = 0.5 * 2.404825557695773 * 10 * x
+        H = [z, [drive, lambda t: np.cos(10 * t)]]
+
+        modes = FloquetBasis(H, 2 * np.pi / 10).mode(0)
+        gram = np.array([
+            [left.overlap(right) for right in modes]
+            for left in modes
+        ])
+
+        np.testing.assert_allclose(gram, np.eye(4), atol=1e-12)
 
     def testFloquetUnitary(self):
         N = 10

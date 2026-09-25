@@ -12,6 +12,7 @@ __all__ = [
 from typing import Any, overload, TypeVar, Literal, Callable
 import warnings
 import numpy as np
+import scipy.linalg
 from numpy.typing import ArrayLike
 from qutip.core import data as _data
 from qutip.core.data import Data
@@ -109,7 +110,17 @@ class FloquetBasis:
         U_T = self.U(self.T)
         if not sparse and isinstance(U_T.data, _data.CSR):
             U_T = U_T.to("Dense")
-        evals, evecs = _data.eigs(U_T.data)
+        if sparse:
+            evals, evecs = _data.eigs(U_T.data)
+        else:
+            schur_form, evecs = scipy.linalg.schur(
+                U_T.full(), output="complex"
+            )
+            evals = np.diag(schur_form)
+            pivots = np.argmax(np.abs(evecs), axis=0)
+            phases = np.angle(evecs[pivots, np.arange(evecs.shape[1])])
+            evecs *= np.exp(-1j * phases)
+            evecs = _data.Dense(evecs, copy=False)
         e_quasi = -np.angle(evals) / T
         if sort:
             perm = np.argsort(e_quasi)
