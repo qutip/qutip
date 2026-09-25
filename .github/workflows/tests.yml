@@ -83,9 +83,18 @@ jobs:
           - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-run: "==2.1.*"
-            scipy-run: "==1.14.*"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
             qutip-optional: "[graphics]"
+            pydiso-source: 1
+
+          - case-name: pydiso source
+            os: windows-latest
+            python-version: "3.12"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            pydiso-source: 1
 
           - case-name: version-5
             os: ubuntu-latest
@@ -239,7 +248,11 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
+            conda install --yes --override-channels --channel conda-forge \
+              "libblas=*=*mkl" \
+              mkl-devel \
+              cmake \
+              $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi
@@ -257,6 +270,34 @@ jobs:
           if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
+
+      - name: Build and verify pydiso from source
+        if: matrix.pydiso-source
+        working-directory: ${{ runner.temp }}
+        env:
+          # Keep in sync with the mkl extra in pyproject.toml.
+          PYDISO_REV: 25df6402bbde745f495abb5bac0100c787298d58
+        run: |
+          python -m pip install \
+            "meson-python>=0.21.0" meson ninja \
+            "Cython>=3.1.0" "setuptools_scm[toml]>=6.2"
+
+          # Windows conda packages use Library; Unix packages use the prefix.
+          mkl_prefix=$(python -c \
+            'import os; from pathlib import Path; p = Path(os.environ["CONDA_PREFIX"]); print((p / "Library" if os.name == "nt" else p).as_posix())')
+          mkl_config=$(find "$mkl_prefix" -name MKLConfig.cmake -print -quit)
+          if [[ -z "$mkl_config" ]]; then
+            echo "::error::MKLConfig.cmake was not found under $mkl_prefix (check the mkl-devel conda package)"
+            exit 1
+          fi
+          echo "Using MKL CMake config: $mkl_config"
+
+          # Use conda's MKL and preserve the matrix's runtime dependencies.
+          python -m pip install --verbose \
+            --no-build-isolation --no-deps \
+            -Csetup-args="-Dcmake_prefix_path=$(dirname "$mkl_config")" \
+            -Csetup-args="-Dvsenv=true" \
+            "pydiso @ git+https://github.com/simpeg/pydiso.git@${PYDISO_REV}"
 
       - name: Package information
         working-directory: ${{ runner.temp }}
