@@ -26,7 +26,7 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
     -----
     QuTiP overrides the following iparm arguments:
         - ``iparm[7]`` (maximum iterative refinement steps) is user-provided. Set via ``max_iterative_refinement_steps`` argument of MKLPardisoSolver
-        - ``iparm[26]`` (parallel factorization) is set to 1 via ``parallel_factorization`` argument of MKLPardisoSolver
+        - ``iparm[23]`` (parallel factorization) is set to 1 via ``parallel_factorization`` argument of MKLPardisoSolver
         - ``iparm[1]`` (fill-in reducing permutation) is set to 3 via ``fill_reducing_ordering`` argument of MKLPardisoSolver
           - Note: if a user-defined permutation is passed via ``perm``, value for ``iparm[1]`` will be ignored in pydiso.
 
@@ -35,7 +35,7 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
     overrides = {
         "fill_reducing_ordering": perm if perm is not None else 3,
         "max_iterative_refinement_steps": max_iter_refine,
-        "parallel_factorization": True,
+        "parallel_factorization": False,
     }
     return overrides
 
