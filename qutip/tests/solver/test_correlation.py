@@ -474,3 +474,45 @@ class TestCorrelationSpeedup:
             max_t_plus_tau=4.0, map='parallel', map_kw={'num_cpus': 2},
         )
         self._check_truncation(trunc, full, 4.0)
+
+
+def test_spectrum_correlation_fft_missing_zero():
+    tlist = np.array([1.0, 2.0, 3.0, 4.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(ValueError, match="tlist must contain zero"):
+        spectrum_correlation_fft(tlist, g_tau)
+
+
+def test_spectrum_correlation_fft_asymmetric_error():
+    # Asymmetric grid around zero
+    tlist = np.array([-2.0, -1.0, 0.0, 1.0, 3.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(ValueError, match="tlist must be symmetric around zero"):
+        spectrum_correlation_fft(tlist, g_tau)
+
+
+@pytest.mark.parametrize("t_mode", ["symmetric", "single_sided"])
+def test_spectrum_correlation_fft_lorentzian(t_mode):
+    w0 = 1.0 * 2 * np.pi
+    gamma = 0.2
+    N = 2000
+    T = 100.0
+
+    if t_mode == "symmetric":
+        tlist = np.linspace(-T / 2, T / 2, N+1)
+    else: # single_sided
+        tlist = np.linspace(0, T / 2, (N // 2) + 1)
+
+    # Damped oscillator correlation function
+    g_tau = np.exp(-gamma * np.abs(tlist) / 2) * np.exp(1j * w0 * tlist)
+
+    # Compute spectrum via FFT
+    w_fft, s_fft = spectrum_correlation_fft(tlist, g_tau)
+
+    dw = w_fft - w0
+    s_analytical = (gamma / (dw** 2 + (gamma / 2) ** 2)) * (1 - np.exp(-gamma * T / 4) * (np.cos(dw * T / 2) - (2 * dw/ gamma) * np.sin(dw * T / 2)))
+    atol_threshold = 1e-2
+    max_error = np.max(np.abs(s_fft - s_analytical))
+    # Verify numerical match
+    np.testing.assert_allclose(s_fft, s_analytical, atol=atol_threshold)
+

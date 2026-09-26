@@ -4,7 +4,7 @@ import numpy as np
 import scipy.fftpack
 
 from .steadystate import steadystate
-from ..core import liouvillian, spre, expect
+from ..core import liouvillian, lindblad_dissipator, spre, expect
 from ..core import data as _data
 from qutip.settings import settings
 
@@ -67,7 +67,10 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     Parameters
     ----------
     tlist : array_like
-        list/array of times :math:`t` which the correlation function is given.
+        List of times at which the correlation function is evaluated.
+        Can be a single-sided array starting from 0 (e.g., [0, T]) or a
+        symmetric array centered at zero (e.g., [-T, T]). Single-sided 
+        arrays are automatically mirrored to form symmetric array
     y : array_like
         list/array of correlations corresponding to time delays :math:`t`.
     inverse: bool, default: False
@@ -84,16 +87,38 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     tlist = np.asarray(tlist)
     N = tlist.shape[0]
     dt = tlist[1] - tlist[0]
-    if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
+    #check if 0 is present in tlist
+    if not np.any(np.isclose(tlist, 0, atol = dt/2)):
+        raise ValueError ("tlist must contain zero")
+    #constructing negative values to maintain symmetry of the FFT
+    if np.any(tlist<0):
+        #check if lengths match and values are symmetric
+        if not np.allclose(tlist, -tlist[::-1]):
+            raise ValueError("tlist must be symmetric around zero")
+        final_tlist = tlist
+        final_y = y
+        total_N = len(final_tlist)           
+    else:
+        # combining to make it suitable
+        # for evaluation on two sided interval as demanded by FFT    
+        neg_tlist = -tlist[1:][::-1]
+        neg_y = np.conj(y[1:][::-1])
+        final_tlist = np.hstack((neg_tlist, tlist))
+        final_y = np.hstack((neg_y, y))
+        total_N = len(final_tlist)
+     
+    if not np.allclose(np.diff(final_tlist), dt):
         raise ValueError('tlist must be equally spaced for FFT.')
-    F = (N * scipy.fftpack.ifft(y)) if inverse else scipy.fftpack.fft(y)
+   
+    final_y = np.fft.ifftshift(final_y)
+    F = (total_N * scipy.fftpack.ifft(final_y)) if inverse else scipy.fftpack.fft(final_y)
     # calculate the frequencies for the components in F
-    f = scipy.fftpack.fftfreq(N, dt)
+    f = scipy.fftpack.fftfreq(total_N, dt)
     # re-order frequencies from most negative to most positive (centre on 0)
     idx = np.array([], dtype='int')
-    idx = np.append(idx, np.where(f < 0.0))
+    idx = np.append(idx, np.where(f < 0.0)[0])
     idx = np.append(idx, np.where(f >= 0.0))
-    return 2 * np.pi * f[idx], 2 * dt * np.real(F[idx])
+    return 2 * np.pi * f[idx], dt * np.real(F[idx])
 
 
 def _spectrum_es(L, wlist, a_op, b_op):
