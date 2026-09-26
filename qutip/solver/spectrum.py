@@ -93,10 +93,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     #constructing negative values to maintain symmetry of the FFT
     if np.any(tlist<0):
         #check if lengths match and values are symmetric
-        zero_index = np.argmin(np.abs(tlist))        
-        left_side = -tlist[:zero_index][::-1]
-        right_side = tlist[zero_index + 1:]
-        if len (left_side) != len(right_side) or not np.allclose(left_side, right_side):
+        if not np.allclose(tlist, -tlist[::-1]):
             raise ValueError("tlist must be symmetric around zero")
         final_tlist = tlist
         final_y = y
@@ -110,7 +107,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
         final_y = np.hstack((neg_y, y))
         total_N = len(final_tlist)
      
-    if not np.allclose(np.diff(final_tlist), dt * np.ones(total_N - 1, dtype=float)):
+    if not np.allclose(np.diff(final_tlist), dt):
         raise ValueError('tlist must be equally spaced for FFT.')
    
     final_y = np.fft.ifftshift(final_y)

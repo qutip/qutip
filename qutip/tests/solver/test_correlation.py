@@ -476,26 +476,21 @@ class TestCorrelationSpeedup:
         self._check_truncation(trunc, full, 4.0)
 
 
-## Test for issueS related to spectrum correlation function
-#ERROR HANDLING TESTS
- # Test for missing zero error
 def test_spectrum_correlation_fft_missing_zero():
-    # Grid missing the value 0
     tlist = np.array([1.0, 2.0, 3.0, 4.0])
     g_tau = np.ones_like(tlist)
     with pytest.raises(ValueError, match="tlist must contain zero"):
         spectrum_correlation_fft(tlist, g_tau)
 
-# Test for asymmetry error
-def test_spectrum_correlation_fft_asymmetric():
+
+def test_spectrum_correlation_fft_asymmetric_error():
     # Asymmetric grid around zero
     tlist = np.array([-2.0, -1.0, 0.0, 1.0, 3.0])
     g_tau = np.ones_like(tlist)
     with pytest.raises(ValueError, match="tlist must be symmetric around zero"):
         spectrum_correlation_fft(tlist, g_tau)
 
-#Lorentzian TEST
-from qutip.solver.spectrum import spectrum_correlation_fft
+
 @pytest.mark.parametrize("t_mode", ["symmetric", "single_sided"])
 def test_spectrum_correlation_fft_lorentzian(t_mode):
     w0 = 1.0 * 2 * np.pi
@@ -514,9 +509,6 @@ def test_spectrum_correlation_fft_lorentzian(t_mode):
     # Compute spectrum via FFT
     w_fft, s_fft = spectrum_correlation_fft(tlist, g_tau)
 
-    # Comparing FFT against exact finite_window Fourier Transform of the correlation function
-    #Note: Using finite-time analytic function instead of infinite  time limit 
-    # to account for spectral leakage and finite-window truncation effects.
     dw = w_fft - w0
     s_analytical = (gamma / (dw** 2 + (gamma / 2) ** 2)) * (1 - np.exp(-gamma * T / 4) * (np.cos(dw * T / 2) - (2 * dw/ gamma) * np.sin(dw * T / 2)))
     atol_threshold = 1e-2
