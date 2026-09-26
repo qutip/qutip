@@ -85,7 +85,7 @@ Superoperators and Liouvillians
 .. automodule:: qutip.core.superoperator
     :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator,lindblad_dissipator
 
-Superoperators and Liouvillians
+Bloch-Redfield
 -------------------------------
 
 .. automodule:: qutip.core.blochredfield
