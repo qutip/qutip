@@ -339,8 +339,9 @@ represent the composition of two systems.
 QuTiP also allows more general tensor manipulations that are
 useful for converting between superoperator representations [WBC11]_.
 In particular, the :func:`~qutip.core.tensor.tensor_contract` function allows for
-contracting one or more pairs of indices.
-This can be used to find superoperators that represent partial trace maps.
+contracting one or more pairs of indices. As detailed in
+the `channel contraction tutorial`_, this can be used to find
+superoperators that represent partial trace maps.
 Using this functionality, we can construct some quite exotic maps,
 such as a map from :math:`3 \times 3` operators to :math:`2 \times 2`
 operators:
@@ -351,6 +352,5 @@ operators:
   [[[2], [2]], [[3], [3]]]
 
 
-..
-    TODO: remake from notebook to tutorials
-    .. _channel contraction tutorial: github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb
+.. _channel contraction tutorial: https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/visualization/superop-contract.ipynb
+
