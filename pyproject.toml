@@ -71,7 +71,7 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,ipython,extras]",
 ]
 mkl = [
-    "pydiso @ git+https://github.com/simpeg/pydiso.git@25df6402bbde745f495abb5bac0100c787298d58"
+    "pydiso"
 ]
 
 [dependency-groups]
