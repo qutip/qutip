@@ -281,7 +281,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     - ``alpha=0, eta=0``: Equivalent to the Euler-Maruyama method.
     - ``alpha=0, eta=0.5`` (default): Includes diffusion terms up to
       :math:`\mathcal{O}(dt)`.
-    - ``alpha=0.5, eta=0.5``: Adds :math:`\\mathcal{O}(dt^2)` terms to the
+    - ``alpha=0.5, eta=0.5``: Adds :math:`\mathcal{O}(dt^2)` terms to the
       deterministic drift, though diffusion error remains at
       :math:`\mathcal{O}(dt)`.
 
