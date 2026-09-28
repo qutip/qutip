@@ -519,13 +519,9 @@ class ULOP():
 
         # Inplace is needed for this to work
 
-        #Propagator
+        # Propagator adjoint
         self.H.adjoint_rmatmul_data(self.t + s, Up, out=dUp, scale=1j)
-        # FIXME: check the ordering for a time-dependent H. The physical
-        # backward propagator P(s) = U(t-s, t) obeys dP/ds = 1j H(t-s) P
-        # (left multiplication), with Xm = P^dag X P. Both forms agree
-        # when H is constant.
-        self.H.matmul_data(self.t - s, Um, out=dUm, scale=-1j)
+        self.H.adjoint_rmatmul_data(self.t - s, Um, out=dUm, scale=-1j)
 
         # diffusion correction terms
         self._tmp = _data.imul_dense(self._tmp, 0)
