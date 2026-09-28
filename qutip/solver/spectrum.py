@@ -109,9 +109,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
         raise ValueError('tlist must be equally spaced for FFT.')
     final_y = np.fft.ifftshift(final_y)
     if inverse:
-        F = (
-            total_N * scipy.fftpack.ifft(final_y)
-            )
+        F = total_N * scipy.fftpack.ifft(final_y)
     else:
         F = scipy.fftpack.fft(final_y)
     # calculate the frequencies for the components in F
