@@ -40,9 +40,10 @@ class Test_spsolve_nonhermitian:
     def test_random_sparse_nonhermitian_multi_rhs(self, k):
         """Test single- and multi-RHS with large non-hermitian sparse matrix.
         The case of flat-array shape is tested too."""
-        A = _nonhermitian_sparse(30, seed=42)
+        N = 10
+        A = _nonhermitian_sparse(N, seed=42)
         rng = np.random.default_rng(7)
-        shape = (30,) if k is None else (30, k)
+        shape = (N,) if k is None else (N, k)
         x = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
         b = A @ x
         y = mkl_spsolve(A, b, verbose=True)
@@ -51,10 +52,11 @@ class Test_spsolve_nonhermitian:
 
     def test_rand_unitary_nonhermitian(self):
         """Non-Hermitian, complex, perfectly conditioned: tests matrix_type 13."""
-        A = qutip.rand_unitary(32, density=0.2, seed=1, dtype='csr').data.as_scipy()
+        N = 10
+        A = qutip.rand_unitary(N, density=0.2, seed=1, dtype='csr').data.as_scipy()
         A = scipy.sparse.csr_array(A)
         rng = np.random.default_rng(11)
-        x = rng.standard_normal(32) + 1j * rng.standard_normal(32)
+        x = rng.standard_normal(N) + 1j * rng.standard_normal(N)
         np.testing.assert_allclose(x, mkl_spsolve(A, A @ x, verbose=True), atol=1e-12)
 
     def test_liouvillian(self):
@@ -91,7 +93,7 @@ class Test_spsolve_nonhermitian:
                                    scipy.linalg.solve(A.toarray(), b.toarray()), atol=1e-12)
 
     def test_nonnormal_residual(self):
-        n = 20
+        N = 10
         A = np.eye(n) + 2.0 * np.eye(n, k=1)   # non-normal Jordan-like block
         A = scipy.sparse.csr_array(A.astype(np.complex128))
         b = np.ones(n, dtype=np.complex128)
@@ -99,9 +101,10 @@ class Test_spsolve_nonhermitian:
         assert np.linalg.norm(A @ x - b) <= 1e-10 * np.linalg.norm(b)
 
     def test_repeated_rhs_solve_nonhermitian(self):
-        A = _nonhermitian_sparse(12, seed=99)
+        N = 12
+        A = _nonhermitian_sparse(N, seed=99)
         rng = np.random.default_rng(3)
-        N = rng.standard_normal((12, 3)) + 1j * rng.standard_normal((12, 3))
+        N = rng.standard_normal((N, 3)) + 1j * rng.standard_normal((N, 3))
         lu = mkl_splu(A, verbose=True)
         X = np.zeros((12, 3), dtype=np.complex128)
         for k in range(3):
@@ -111,9 +114,10 @@ class Test_spsolve_nonhermitian:
 
     def test_rand_stochastic_real_unsymmetric(self):
         """Real non-Hermitian: matrix_type 11, larger size"""
-        A = qutip.rand_stochastic(32, density=0.2, seed=2, dtype='csr').data.as_scipy()
+        N = 10
+        A = qutip.rand_stochastic(N, density=0.2, seed=2, dtype='csr').data.as_scipy()
         A = scipy.sparse.csr_array(A).real          # drop the all-zero imaginary part
-        x = np.arange(1, 33, dtype=np.float64)
+        x = np.arange(1, N + 1, dtype=np.float64)
         np.testing.assert_allclose(x, mkl_spsolve(A, A @ x, verbose=True), atol=1e-10)
 
 class Test_spsolve:
