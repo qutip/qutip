@@ -85,7 +85,6 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
 
     """
     tlist = np.asarray(tlist)
-    # N = tlist.shape[0]
     dt = tlist[1] - tlist[0]
     # check if 0 is present in tlist
     if not np.any(np.isclose(tlist, 0, atol=dt / 2)):
@@ -109,7 +108,6 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     if not np.allclose(np.diff(final_tlist), dt):
         raise ValueError('tlist must be equally spaced for FFT.')
     final_y = np.fft.ifftshift(final_y)
-    # F = (total_N * scipy.fftpack.ifft(final_y))
     if inverse:
         F = (
             total_N * scipy.fftpack.ifft(final_y)
@@ -119,9 +117,6 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(total_N, dt)
     # re-order frequencies from most negative to most positive (centre on 0)
-    # idx = np.array([], dtype='int')
-    # idx = np.append(idx, np.where(f < 0.0)[0])
-    # idx = np.append(idx, np.where(f >= 0.0))
     idx = np.argsort(f)
     return 2 * np.pi * f[idx], dt * np.real(F[idx])
 
