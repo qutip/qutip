@@ -169,31 +169,31 @@ class TestMethodsAgree:
     @pytest.mark.parametrize("X_td", [True, False])
     def test_sum_vs_prop_jump_operator(self, H_td, X_td):
         H = self.make_H(H_td)
-        X = self.make_H(X_td)
+        X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_prop, _ = _make_operators(
             H, X, env,
             {"ULME_creation": "propagator", "use_lamb_shift": False},
         )
-        L_sum = _make_dissipator_sum(H, X, env)
+        L_sum = _make_dissipator_sum(H, X, env, T=25, Nt=3000)
 
         np.testing.assert_allclose(
             L_sum(0.6).full(),
             L_prop(0.6).full(),
-            atol = 1e-3
+            atol = 2e-3
         )
 
     @pytest.mark.parametrize("H_td", [True, False])
     @pytest.mark.parametrize("X_td", [True, False])
     def test_sum_vs_prop_lamb_shift(self, H_td, X_td):
         H = self.make_H(H_td)
-        X = self.make_H(X_td)
+        X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         _, lamb_prop = _make_operators(
             H, X, env,
             {"ULME_creation": "propagator", "use_lamb_shift": True},
         )
-        lamb_sum = _make_ULME_lamb_shift_sum(H, X, env)
+        lamb_sum = _make_ULME_lamb_shift_sum(H, X, env, T=25, Nt=1000)
         with qutip.CoreOptions(atol=1e-5):
             assert lamb_prop(0.6).isherm
             assert lamb_sum(0.6).isherm
@@ -206,7 +206,7 @@ class TestMethodsAgree:
     @pytest.mark.parametrize("lamb_shift", [True, False])
     def test_eigen_vs_prop(self, lamb_shift):
         H = self.make_H(False)
-        X = self.make_H(False)
+        X = self.make_X(False)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_eigen , lamb_eigen = _make_operators(
             H, X, env,

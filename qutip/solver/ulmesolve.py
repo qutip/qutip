@@ -472,7 +472,7 @@ class ULOP():
             options.get("prop method", "tsit5")
         ]
         integrator_options = options.get("prop ODE options", {})
-        self._integrator = integrator(self._rhs, {})
+        self._integrator = integrator(self._rhs, integrator_options)
         self._prepare_g(env.jump_correlator)
 
     def _prepare_g(self, jump_correlator):
