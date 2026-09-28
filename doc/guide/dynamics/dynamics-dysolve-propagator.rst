@@ -20,7 +20,7 @@ When solving this equation, a time evolution operator :math:`U(t_f, t_i)` (often
 
  \displaystyle U(t_f, t_i) = \tau e^{-i\int_{t_i}^{t_f}H(t)dt}
 
-There are many ways to compute such a propagator with code depending on what the system's Hamiltonian is.
+Here, :math:`\tau` is the time ordering operator. There are many ways to compute such a propagator with code depending on what the system's Hamiltonian is.
 
 .. _DysolvePropagator:
 
@@ -41,7 +41,7 @@ where
 
  \displaystyle U^{(n)}(t + \delta t, t) = \sum_{\left\{\boldsymbol{\omega}_n\right\}}e^{i\sum_{p=1}^{n}\boldsymbol{\omega}_n[p]t}S^{(n)}(\boldsymbol{\omega}_n, \delta t)
 
-Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n` of the form :math:`\boldsymbol{\omega}_n = \left[±\omega, ..., ±\omega\right]`, :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` is a matrix and it is assumed that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. In practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`\tau` being the time ordering operator and :math:`P` the final index of the time increments needed to reach the total evolution time :math:`T`, giving :math:`P+1` increments in total,
+Here, :math:`\{\boldsymbol{\omega}_n\}` is the set of vectors of length :math:`n` of the form :math:`\boldsymbol{\omega}_n = \left[±\omega, ..., ±\omega\right]`, :math:`S^{(n)}(\boldsymbol{\omega}_n, \delta t)` is a matrix and it is assumed that :math:`H_0` and :math:`X` are written in :math:`H_0`'s basis. In practice, the summation over :math:`n` is truncated to the first few terms and the evolution is divided into small time increments. So, with :math:`P` the final index of the time increments needed to reach the total evolution time :math:`T`, giving :math:`P+1` increments in total,
 
 .. math::
  \displaystyle U(T,0) = \tau\prod_{p=0}^{P}U((p+1)\delta t, p\delta t) = \tau\prod_{p=0}^{P}\left(\sum_{n=0}^{\infty}U^{(n)}((p+1)\delta t, p\delta t)\right)
