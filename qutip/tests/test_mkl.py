@@ -12,18 +12,20 @@ pytestmark = [
                        reason='MKL extensions not found.'),
 ]
 
-def _nonhermitian_sparse(n, seed):
+def _nonhermitian_sparse(n, rng):
     """Random complex, non-Hermitian sparse matrix with a stable inverse."""
-    rng = np.random.default_rng(seed)
     A = scipy.sparse.random_array(
         (n, n), density=0.3, rng=rng, dtype=np.complex128,
         data_sampler=lambda size: rng.standard_normal(size)
                                   + 1j * rng.standard_normal(size),
     )
-    return scipy.sparse.csr_array(A + n * scipy.sparse.eye_array(n))
+    diagonal_shift = np.max(np.asarray(abs(A).sum(axis=1))) + 1
+    return scipy.sparse.csr_array(
+        A + diagonal_shift * scipy.sparse.eye_array(n)
+    )
 
 class Test_spsolve_nonhermitian:
-    def test_complex_nonhermitian_single_rhs(self):
+    def test_complex_nonhermitian_single_rhs(self, random_generator):
         A = scipy.sparse.csr_array(np.array([
             [2 + 1j, 0, 1 - 3j],
             [4j, 1, 0],
@@ -31,8 +33,8 @@ class Test_spsolve_nonhermitian:
         ], dtype=np.complex128))
         # Ensure non-hermitian
         assert (A.toarray() != A.toarray().conj().T).any()
-        rng = np.random.default_rng(1234)
-        x = rng.standard_normal(3) + 1j * rng.standard_normal(3)
+        x = (random_generator.standard_normal(3)
+             + 1j * random_generator.standard_normal(3))
         b = A @ x
         np.testing.assert_allclose(x, mkl_spsolve(A, b, verbose=True))
 
@@ -57,16 +59,18 @@ class Test_spsolve_nonhermitian:
         assert y.shape == b.shape
         np.testing.assert_allclose(y, expected, atol=1e-10)
 
-    def test_rand_unitary_nonhermitian(self):
+    def test_rand_unitary_nonhermitian(self, random_generator):
         """Non-Hermitian, complex, perfectly conditioned: tests matrix_type 13."""
         N = 10
-        A = qutip.rand_unitary(N, density=0.2, seed=1, dtype='csr').data.as_scipy()
+        A = qutip.rand_unitary(
+            N, density=0.2, seed=random_generator, dtype='csr'
+        ).data.as_scipy()
         A = scipy.sparse.csr_array(A)
-        rng = np.random.default_rng(11)
-        x = rng.standard_normal(N) + 1j * rng.standard_normal(N)
+        x = (random_generator.standard_normal(N)
+             + 1j * random_generator.standard_normal(N))
         np.testing.assert_allclose(x, mkl_spsolve(A, A @ x, verbose=True), atol=1e-12)
 
-    def test_liouvillian(self):
+    def test_liouvillian(self, random_generator):
         N = 6
         a = qutip.destroy(N)
         H = a.dag() * a + 0.3 * (a + a.dag())
@@ -75,8 +79,8 @@ class Test_spsolve_nonhermitian:
         assert (Ls.toarray() != Ls.toarray().conj().T).any()
         # L is singular by construction; shift so the system has a unique solution
         Ls = Ls + scipy.sparse.eye_array(N**2, format="csr")
-        rng = np.random.default_rng(5)
-        x = rng.standard_normal(N**2) + 1j * rng.standard_normal(N**2)
+        x = (random_generator.standard_normal(N**2)
+             + 1j * random_generator.standard_normal(N**2))
         b = Ls @ x
         np.testing.assert_allclose(x, mkl_spsolve(Ls, b, verbose=True), atol=1e-10)
 
@@ -107,11 +111,11 @@ class Test_spsolve_nonhermitian:
         x = mkl_spsolve(A, b, verbose=True)
         assert np.linalg.norm(A @ x - b) <= 1e-10 * np.linalg.norm(b)
 
-    def test_repeated_rhs_solve_nonhermitian(self):
+    def test_repeated_rhs_solve_nonhermitian(self, random_generator):
         N = 12
-        A = _nonhermitian_sparse(N, seed=99)
-        rng = np.random.default_rng(3)
-        b = rng.standard_normal((N, 3)) + 1j * rng.standard_normal((N, 3))
+        A = _nonhermitian_sparse(N, random_generator)
+        b = (random_generator.standard_normal((N, 3))
+             + 1j * random_generator.standard_normal((N, 3)))
         lu = mkl_splu(A, verbose=True)
         X = np.zeros_like(b)
         for k in range(3):
@@ -119,29 +123,35 @@ class Test_spsolve_nonhermitian:
         lu.delete()
         np.testing.assert_allclose(X, scipy.linalg.solve(A.toarray(), b), atol=1e-10)
 
-    def test_rand_stochastic_real_unsymmetric(self):
+    def test_rand_stochastic_real_unsymmetric(self, random_generator):
         """Real non-Hermitian: matrix_type 11."""
         N = 10
-        A = qutip.rand_stochastic(N, density=0.2, seed=2, dtype='csr').data.as_scipy()
+        A = qutip.rand_stochastic(
+            N, density=0.2, seed=random_generator, dtype='csr'
+        ).data.as_scipy()
         A = scipy.sparse.csr_array(A).real          # drop the all-zero imaginary part
+        # Shift the random stochastic matrix to keep every sampled system invertible.
+        A = A + 2 * scipy.sparse.eye_array(N, format='csr')
         x = np.arange(1, N + 1, dtype=np.float64)
         np.testing.assert_allclose(x, mkl_spsolve(A, A @ x, verbose=True), atol=1e-10)
 
 class Test_spsolve:
-    def test_single_rhs_vector_real(self):
+    def test_single_rhs_vector_real(self, random_generator):
         Adense = np.array([[0, 1, 1],
                            [1, 0, 1],
                            [0, 0, 1]])
         As = scipy.sparse.csr_matrix(Adense)
-        rng = np.random.default_rng(seed=1234)
-        x = rng.standard_normal(3)
+        x = random_generator.standard_normal(3)
         b = As * x
         x2 = mkl_spsolve(As, b, verbose=True)
         np.testing.assert_allclose(x, x2)
 
-    def test_single_rhs_vector_complex(self):
-        A = qutip.rand_herm(10, density=0.8, dtype='csr')
-        x = qutip.rand_ket(10).full()
+    def test_single_rhs_vector_complex(self, random_generator):
+        A = qutip.rand_herm(
+            10, density=0.8, distribution='pos_def',
+            seed=random_generator, dtype='csr'
+        )
+        x = qutip.rand_ket(10, seed=random_generator).full()
         b = A.full() @ x
         y = mkl_spsolve(A.data.as_scipy(), b, verbose=True)
         np.testing.assert_allclose(x, y)
@@ -195,10 +205,10 @@ class Test_spsolve:
         np.testing.assert_allclose(x.toarray(), ans)
 
     @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_symmetric_solver(self, dtype):
+    def test_symmetric_solver(self, dtype, random_generator):
         A = qutip.rand_herm(10, distribution="eigen",
                             eigenvalues=np.arange(1, 11),
-                            dtype='csr').data.as_scipy()
+                            seed=random_generator, dtype='csr').data.as_scipy()
         if dtype == np.float64:
             A = A.real
         x = np.ones(10, dtype=dtype)
