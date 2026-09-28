@@ -22,7 +22,7 @@ __all__ = ["ulmesolve", "ULMESolver", "UL_transform"]
 
 
 _ULME_DEFAULT_OPTIONS = {
-    "ULME_creation": None,
+    "ULME_creation": "propagator",
     "use_lamb_shift": True,
     "tol": 1e-6,
     "eigen pv integral limits": 30,
@@ -74,11 +74,11 @@ def ulmesolve(
         Options for the solver. All options for mesolve are supported.
         ULME-specific are:
 
-        - | ULME_creation : str {"eigen", "prop"}
+        - | ULME_creation : str {"eigen", "propagator"}
           | Method used to construct the Lindblad jump operators.
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
-          | "prop": integration in the interaction picture, general.
+          | "propagator": integration in the interaction picture, general.
         - | use_lamb_shift : bool, True
           | Whether to calculate and include the Lamb shift correction in the
             effective Hamiltonian.
@@ -198,7 +198,7 @@ class ULMESolver(MESolver):
             Which ODE integration method to use. All available ODE method can
             be listed with the ``avail_integrators`` method.
 
-        ULME_creation: str {"eigen", "prop"}, default: None
+        ULME_creation: str {"eigen", "propagator"}, default: None
             Method used to construct the Lindblad jump operators:
 
             - "eigen": Constructs dissipators via the eigen-decomposition
@@ -206,12 +206,12 @@ class ULMESolver(MESolver):
               (Hamiltonian and coupling operators) and utilizes the bath's
               ``power_spectrum``.
 
-            - "prop": Constructs dissipators by convolving the coupling
+            - "propagator": Constructs dissipators by convolving the coupling
               operator with the bath's ``jump_correlator`` in the interaction
               picture. Works for time-dependent systems and is
               generally faster than "eigen" when the Lamb shift is included.
 
-            Per default, "eigen" will be used for constant system, and "prop"
+            Per default, "eigen" will be used for constant system, and "propagator"
             otherwise.
 
         use_lamb_shift: bool, default: True
@@ -261,7 +261,7 @@ def UL_transform(
     options: dict, optional
         Options used to compute the operators. The following options are used:
 
-        - "ULME_creation": {"eigen", "prop"}
+        - "ULME_creation": {"eigen", "propagator"}
           Method used to compute the operators, either eigen decomposition or
           integration of the convolution of the operators with the
           jump_correlator.
@@ -278,7 +278,7 @@ def UL_transform(
         These are formated so they can be used directly in mesolve or mcsolve.
     """
     options = {
-        "ULME_creation": "prop",
+        "ULME_creation": "propagator",
         "use_lamb_shift": True,
         "tol": 1e-6,
         "prop_options": {},
@@ -305,7 +305,7 @@ def _parse_a_ops(a_ops, args=None, tlist=None):
             "At least one (operator, environment) pair is required in a_ops."
         )
     if (
-        isinstance(a_ops, tuple)
+        isinstance(a_ops, (tuple, list))
         and len(a_ops) == 2
         and isinstance(a_ops[1], BosonicEnvironment)
     ):
@@ -354,11 +354,11 @@ def _make_operators(
 
     if method == "eigen":
         return _operators_eigen(H, X, env, use_lamb_shift, options)
-    if method == "prop":
+    if method == "propagator":
         return _operators_prop(H, X, env, use_lamb_shift, options)
     raise ValueError(
         f"Unknown ULME_creation method {method!r}, "
-        "expected 'eigen' or 'prop'."
+        "expected 'eigen' or 'propagator'."
     )
 
 
@@ -394,7 +394,7 @@ def _operators_eigen(
     L_responce = _data.Dense(env._g_w(-np.subtract.outer(vals, vals)))
     L_H = _data.multiply(X_data, L_responce) * (np.pi * 2)
     if not use_lamb_shift:
-        return vecs @ Qobj(L_H) @ vecs.dag(), 0
+        return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
 
     N = len(vals)
     fs = np.zeros((N, N, N), dtype=float)
@@ -404,12 +404,12 @@ def _operators_eigen(
 
     LL = np.einsum("ijk,ij,jk->ik", fs, X_np, X_np)
     return (
-        vecs @ Qobj(L_H) @ vecs.dag(),
-        vecs @ Qobj(LL) @ vecs.dag()
+        QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()),
+        QobjEvo(vecs @ Qobj(LL) @ vecs.dag()),
     )
 
 # ---------------------------------------------------------------------------
-# "prop" method: integration in the interaction picture.
+# "propagator" method: integration in the interaction picture.
 # ---------------------------------------------------------------------------
 
 def _operators_prop(H, X, env, use_lamb_shift, options):

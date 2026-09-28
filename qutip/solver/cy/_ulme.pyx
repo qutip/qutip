@@ -9,10 +9,10 @@ cpdef list split_dense(dense.Dense merged, int ncol):
     cdef int i, block_size = ncol * ncol
     cdef list out = []
     cdef dense.Dense tmp
-    if merged.shape[0] != block_size or merged.shape[1] != 6:
+    if merged.shape[0] != block_size:
         raise ValueError("Wrong shape")
 
-    for i in range(6):
+    for i in range(merged.shape[1]):
         tmp = dense.Dense.__new__(dense.Dense)
         tmp.shape = (ncol, ncol)
         tmp._deallocate = False
@@ -27,14 +27,12 @@ cpdef dense.Dense merge_dense(list datas):
     Reverse of split_dense.
     Called much less, proper sanity checks.
     """
-    if len(datas) != 6:
-        raise ValueError("Need 6 opers")
     if datas[0].shape[0] != datas[0].shape[1]:
         raise ValueError("Opers not square")
 
     cdef int i, block_size = datas[0].shape[0] * datas[0].shape[0]
     cdef dense.Dense tmp
-    out = dense.zeros(block_size, 6, fortran=True)
+    out = dense.zeros(block_size, len(datas), fortran=True)
 
     for i, tmp in enumerate(datas):
         if datas[0].shape[0] != tmp.shape[0] or datas[0].shape[0] != tmp.shape[1]:
