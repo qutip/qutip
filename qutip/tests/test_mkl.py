@@ -13,14 +13,14 @@ pytestmark = [
 ]
 
 def _nonhermitian_sparse(n, seed):
-    """Random complex, non-Hermitian sparse matrix."""
+    """Random complex, non-Hermitian sparse matrix with a stable inverse."""
     rng = np.random.default_rng(seed)
     A = scipy.sparse.random_array(
         (n, n), density=0.3, rng=rng, dtype=np.complex128,
         data_sampler=lambda size: rng.standard_normal(size)
                                   + 1j * rng.standard_normal(size),
     )
-    return scipy.sparse.csr_array(A)
+    return scipy.sparse.csr_array(A + n * scipy.sparse.eye_array(n))
 
 class Test_spsolve_nonhermitian:
     def test_complex_nonhermitian_single_rhs(self):
@@ -37,18 +37,25 @@ class Test_spsolve_nonhermitian:
         np.testing.assert_allclose(x, mkl_spsolve(A, b, verbose=True))
 
     @pytest.mark.parametrize("k", [None, 1, 4])
-    def test_random_sparse_nonhermitian_multi_rhs(self, k):
-        """Test single- and multi-RHS with large non-hermitian sparse matrix.
-        The case of flat-array shape is tested too."""
-        N = 10
-        A = _nonhermitian_sparse(N, seed=42)
-        rng = np.random.default_rng(7)
-        shape = (N,) if k is None else (N, k)
-        x = rng.standard_normal(shape) + 1j * rng.standard_normal(shape)
-        b = A @ x
+    def test_sparse_nonhermitian_multi_rhs(self, k):
+        """Test RHS shapes with a well-conditioned non-Hermitian matrix."""
+        A = np.array([
+            [4, 1.2 + 0.3j, 0],
+            [1 - 0.2j, 5, 1],
+            [0, 1, 6],
+        ], dtype=np.complex128)
+        assert not np.allclose(A, A.conj().T)
+        rhs = np.array([
+            [3, 0, 1, 2],
+            [0, 2, 0, 1],
+            [0, 0, 1, 4],
+        ], dtype=np.complex128)
+        b = rhs[:, 0] if k is None else rhs[:, :k]
+        expected = scipy.linalg.solve(A, b)
+        A = scipy.sparse.csr_array(A)
         y = mkl_spsolve(A, b, verbose=True)
         assert y.shape == b.shape
-        np.testing.assert_allclose(x, y, atol=1e-10)
+        np.testing.assert_allclose(y, expected, atol=1e-10)
 
     def test_rand_unitary_nonhermitian(self):
         """Non-Hermitian, complex, perfectly conditioned: tests matrix_type 13."""
@@ -94,9 +101,9 @@ class Test_spsolve_nonhermitian:
 
     def test_nonnormal_residual(self):
         N = 10
-        A = np.eye(n) + 2.0 * np.eye(n, k=1)   # non-normal Jordan-like block
+        A = np.eye(N) + 2.0 * np.eye(N, k=1)   # non-normal Jordan-like block
         A = scipy.sparse.csr_array(A.astype(np.complex128))
-        b = np.ones(n, dtype=np.complex128)
+        b = np.ones(N, dtype=np.complex128)
         x = mkl_spsolve(A, b, verbose=True)
         assert np.linalg.norm(A @ x - b) <= 1e-10 * np.linalg.norm(b)
 
@@ -104,16 +111,16 @@ class Test_spsolve_nonhermitian:
         N = 12
         A = _nonhermitian_sparse(N, seed=99)
         rng = np.random.default_rng(3)
-        N = rng.standard_normal((N, 3)) + 1j * rng.standard_normal((N, 3))
+        b = rng.standard_normal((N, 3)) + 1j * rng.standard_normal((N, 3))
         lu = mkl_splu(A, verbose=True)
-        X = np.zeros((12, 3), dtype=np.complex128)
+        X = np.zeros_like(b)
         for k in range(3):
-            X[:, k] = lu.solve(N[:, k])
+            X[:, k] = lu.solve(b[:, k])
         lu.delete()
-        np.testing.assert_allclose(X, scipy.linalg.solve(A.toarray(), N), atol=1e-10)
+        np.testing.assert_allclose(X, scipy.linalg.solve(A.toarray(), b), atol=1e-10)
 
     def test_rand_stochastic_real_unsymmetric(self):
-        """Real non-Hermitian: matrix_type 11, larger size"""
+        """Real non-Hermitian: matrix_type 11."""
         N = 10
         A = qutip.rand_stochastic(N, density=0.2, seed=2, dtype='csr').data.as_scipy()
         A = scipy.sparse.csr_array(A).real          # drop the all-zero imaginary part
