@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
-import scipy.sparse as sp
 
 from qutip.solver.heom import bofin_solvers
 from qutip import (
@@ -781,6 +780,9 @@ class TestHEOMSolver:
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
+    @pytest.mark.skipif(
+        bofin_solvers.mkl_spsolve is None, reason="MKL solver unavailable"
+    )
     def test_steady_state_mkl(self):
          """Ensure outputs of MKL-based steady state solver are equivalent
          to SciPy-based one."""
@@ -794,6 +796,9 @@ class TestHEOMSolver:
          rho_scipy, ados_scipy = solver.steady_state(use_mkl=False)
          assert_ado_hierarchies_close(rho_scipy, ados_scipy, rho_mkl, ados_mkl)
 
+    @pytest.mark.skipif(
+        bofin_solvers.mkl_spsolve is None, reason="MKL solver unavailable"
+    )
     def test_steady_state_mkl_with_perm(self):
          """Ensure outputs of MKL-based steady state solver are equivalent
          with respect to a user-defined permutation. """
