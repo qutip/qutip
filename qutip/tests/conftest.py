@@ -79,9 +79,11 @@ def random_generator(request):
     # We avoid using the spawn to create a seed that do not change with test
     # order.
     # The seed is determined from the global seed and test name
-    test_name = request.node.nodeid.split("::")[1].encode("utf-8")
+    test_name = request.node.nodeid.split("::")[-1].encode("utf-8")
     name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
-    seed = (SEEDSEQ.entropy + name_hash) % 2**128
+    # pytest-rerunfailures's flaky rerun count
+    rerun = getattr(request.node, "execution_count", 1)
+    seed = (SEEDSEQ.entropy + name_hash + rerun) % 2**128
     request.node.user_properties.append(("numpy_generator", seed))
     default = np.random.default_rng(seed)
     yield NotReprGenerator(default._bit_generator)
@@ -89,7 +91,7 @@ def random_generator(request):
 
 @pytest.fixture
 def with_seeded_random(request):
-    test_name = request.node.nodeid.split("::")[1].encode("utf-8")
+    test_name = request.node.nodeid.split("::")[-1].encode("utf-8")
     name_hash = int(hashlib.sha256(test_name).hexdigest()[:8], 16)
     seed = (SEEDSEQ.entropy + name_hash) % 2**32
     request.node.user_properties.append(("numpy_global_seed", seed))

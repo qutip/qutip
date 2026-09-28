@@ -134,7 +134,7 @@ def _make_oper(kind, N, random_generator):
         out = [rand_herm(N, seed=random_generator), lambda t: -1 + t/2 + t**2]
     elif kind == "random":
         out = Qobj(
-            random_generator.random((N, N)) 
+            random_generator.random((N, N))
             + 1j * random_generator.random((N, N))
         )
     return QobjEvo(out)
@@ -182,15 +182,19 @@ def get_error_order_integrator(
     ts = np.logspace(-4, -1, 20)
     err = np.zeros(len(ts), dtype=float)
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
+    N_runs = 3
     for i, t in enumerate(ts):
         integrator.options["dt"] = t
         ref_integrator.options["dt"] = t
-        wiener = Wiener(0, t, random_generator, N_sc_ops)
-        integrator.set_state(0., state, wiener)
-        ref_integrator.set_state(0., state, wiener)
-        out = integrator.integrate(t)[1]
-        target = ref_integrator.integrate(t)[1]
-        err[i] = _data.norm.l2(out - target)
+        for j in range(N_runs):
+            wiener = Wiener(0, t, random_generator, N_sc_ops)
+            integrator.set_state(0., state, wiener)
+            ref_integrator.set_state(0., state, wiener)
+            out = integrator.integrate(t)[1]
+            target = ref_integrator.integrate(t)[1]
+            err[i] += _data.norm.l2(out - target)
+
+    err /= N_runs
 
     if plot:
         import matplotlib.pyplot as plt
@@ -203,7 +207,10 @@ def get_error_order_integrator(
 
 @pytest.mark.parametrize(["method", "order"], [
     pytest.param("euler", 0.5, id="Euler"),
-    pytest.param("milstein", 1.0, id="Milstein"),
+    # milstein converge with O(1), but with large std ~0.085 even when
+    # averaging 3 runs... Setting it to 0.95 lower the failure rate to >0.01%
+    # While at 1., it's at about 1/5000.
+    pytest.param("milstein", 0.95, id="Milstein"),
     pytest.param("milstein_imp", 1.0, id="Milstein implicit"),
     pytest.param("platen", 1.0, id="Platen"),
     pytest.param("pred_corr", 1.0, id="PredCorr"),
