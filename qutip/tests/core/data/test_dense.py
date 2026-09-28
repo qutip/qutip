@@ -4,7 +4,7 @@ import pytest
 from qutip.core import data
 from qutip.core.data import dense, csr
 
-from . import conftest
+from qutip.testing import random_data
 
 
 # Set up some fixtures for automatic parametrisation.
@@ -25,17 +25,17 @@ def fortran(request): return request.param
 
 def _valid_numpy():
     # Arbitrary valid numpy array.
-    return conftest.random_numpy_dense((5, 5), False)
+    return random_data.random_numpy_dense((5, 5), False)
 
 
 @pytest.fixture(scope='function')
 def numpy_dense(shape, fortran):
-    return conftest.random_numpy_dense(shape, fortran)
+    return random_data.random_numpy_dense(shape, fortran)
 
 
 @pytest.fixture(scope='function')
 def data_dense(shape, fortran):
-    return conftest.random_dense(shape, fortran)
+    return random_data.random_dense(shape, fortran)
 
 
 class TestClassMethods:

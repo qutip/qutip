@@ -79,7 +79,7 @@ def _latex_real(x):
         return "0"
     if not 0.001 <= abs(x) < 1000:
         base, exp = f"{x:.3e}".split('e')
-        return base + f"\times10^{{ {int(exp):d} }}"
+        return base + rf"\times10^{{ {int(exp):d} }}"
     if abs(x - int(x)) < 0.001:
         return f"{round(x):d}"
     return f"{x:.3f}"

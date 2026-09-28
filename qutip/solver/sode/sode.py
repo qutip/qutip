@@ -252,6 +252,8 @@ class PlatenSODE(_Explicit_Simple_Integrator):
     H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems*.
 
     - Order: strong 1, weak 2
+
+    Set ``options={"method":"platen"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -268,16 +270,22 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     """
     Generalization of the trapezoidal method to stochastic differential
     equations. More stable than explicit methods.  See eq. (5.4) of
-    chapter 15.5 of Peter E. Kloeden and Exkhard Platen,
+    chapter 15.5 of Peter E. Kloeden and Eckhard Platen,
     *Numerical Solution of Stochastic Differential Equations*.
 
-    - Order strong 0.5, weak 1.0
-    - Codes to only correct the stochastic part (:math:`\\alpha=0`,
-      :math:`\\eta=1/2`): ``'pred-corr'``, ``'predictor-corrector'`` or
-      ``'pc-euler'``
-    - Codes to correct both the stochastic and deterministic parts
-      (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
-      ``'pc-euler-2'`` or ``'pred-corr-2'``
+    - Order: strong 0.5, weak 1.0 (default)
+
+    The exact order depends on the values configured for the ``alpha`` and
+    ``eta`` options:
+
+    - ``alpha=0, eta=0``: Equivalent to the Euler-Maruyama method.
+    - ``alpha=0, eta=0.5`` (default): Includes diffusion terms up to
+      :math:`\mathcal{O}(dt)`.
+    - ``alpha=0.5, eta=0.5``: Adds :math:`\mathcal{O}(dt^2)` terms to the
+      deterministic drift, though diffusion error remains at
+      :math:`\mathcal{O}(dt)`.
+
+      Set ``options={"method":"pred_corr"}`` to use.
     """
 
     integrator_options = {

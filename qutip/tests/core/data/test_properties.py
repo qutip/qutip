@@ -4,7 +4,7 @@ import pytest
 import qutip
 from qutip import data as _data
 from qutip import CoreOptions
-from . import conftest
+from qutip.testing import random_data
 from qutip.core.data.dia import clean_dia
 
 @pytest.fixture(params=[_data.CSR, _data.Dense, _data.Dia], ids=["CSR", "Dense", "Dia"])
@@ -187,13 +187,13 @@ class TestIsEqual:
         return np.allclose(left.to_array(), right.to_array(), rtol, atol)
 
     def rand_dense(shape):
-        return conftest.random_dense(shape, False)
+        return random_data.random_dense(shape, False)
 
     def rand_diag(shape):
-        return conftest.random_diag(shape, 0.5, True)
+        return random_data.random_diag(shape, 0.5, True)
 
     def rand_csr(shape):
-        return conftest.random_csr(shape, 0.5, True)
+        return random_data.random_csr(shape, 0.5, True)
 
     @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
@@ -235,13 +235,13 @@ class TestIsEqual:
 
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_csr_mismatch_sort(self, shape):
-        A = conftest.random_csr(shape, 0.5, False)
+        A = random_data.random_csr(shape, 0.5, False)
         B = A.copy().sort_indices()
         assert _data.isequal(A, B)
 
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_dia_mismatch_sort(self, shape):
-        A = conftest.random_diag(shape, 0.5, False)
+        A = random_data.random_diag(shape, 0.5, False)
         B = clean_dia(A)
         assert _data.isequal(A, B)
 
