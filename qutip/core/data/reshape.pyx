@@ -2,6 +2,7 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
 from libc.string cimport memcpy, memset
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 cimport cython
 
@@ -102,11 +103,13 @@ cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
         warnings.warn("cannot stack columns inplace for C-ordered matrix")
     out = dense.zeros(matrix.shape[0] * matrix.shape[1], 1)
     cdef idxint col
-    cdef int ONE=1
+    cdef blas_int ONE=1
+    cdef blas_int nrows = <blas_int> matrix.shape[0]
+    cdef blas_int ncols = <blas_int> matrix.shape[1]
     for col in range(matrix.shape[1]):
         blas.zcopy(
-            &matrix.shape[0],
-            &matrix.data[col], &matrix.shape[1],
+            &nrows,
+            &matrix.data[col], &ncols,
             &out.data[col * matrix.shape[0]], &ONE
         )
     return out

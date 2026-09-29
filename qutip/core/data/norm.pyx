@@ -5,6 +5,7 @@ from libc cimport math
 
 from cpython cimport mem
 
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 import scipy
 import numpy as np
@@ -34,7 +35,7 @@ cdef double abssq(double complex x) nogil:
 __all__ = []
 
 cpdef double one_csr(CSR matrix) except -1:
-    cdef int n=matrix.shape[1], inc=1
+    cdef blas_int n=matrix.shape[1], inc=1
     cdef size_t ptr
     cdef double *col = <double *> PyMem_Calloc(matrix.shape[1], sizeof(double))
     try:
@@ -90,7 +91,7 @@ cpdef double max_csr(CSR matrix) nogil:
 cpdef double frobenius_csr(CSR matrix) nogil:
     # The Frobenius norm is effectively the same as the L2 norm when
     # considering the non-zero elements as a vector.
-    cdef int n=csr.nnz(matrix), inc=1
+    cdef blas_int n=csr.nnz(matrix), inc=1
     return blas.dznrm2(&n, &matrix.data[0], &inc)
 
 cpdef double l2_csr(CSR matrix) except -1 nogil:
@@ -125,8 +126,8 @@ cpdef double max_dense(Dense matrix) nogil:
     return math.sqrt(total)
 
 cpdef double frobenius_dense(Dense matrix) nogil:
-    cdef int n = matrix.shape[0] * matrix.shape[1]
-    cdef int inc = 1
+    cdef blas_int n = matrix.shape[0] * matrix.shape[1]
+    cdef blas_int inc = 1
     return blas.dznrm2(&n, matrix.data, &inc)
 
 cpdef double l2_dense(Dense matrix) except -1 nogil:

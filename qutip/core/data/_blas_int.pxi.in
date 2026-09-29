@@ -1,0 +1,11 @@
+# Generated from _blas_int.pxi.in by meson. Do not edit the generated file.
+#
+# Defines `blas_int`: the integer type SciPy's cython_blas / cython_lapack
+# expect. It is `int` for a normal (LP64) SciPy, and `int64_t` for a SciPy
+# built against an ILP64 BLAS. SciPy < 1.18 does not export the name, so we
+# fall back to plain `int`, which is what those versions always used.
+#
+# See qutip/meson.build for the compile-time probe that picks a branch, and
+# https://github.com/scipy/scipy/pull/25025 for the upstream reference
+# implementation of this pattern.
+@BLAS_INT_DEF@
