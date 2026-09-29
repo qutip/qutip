@@ -72,7 +72,7 @@ cdef Data _apply_trans(Data original, int trans):
     return out
 
 
-cdef char _fetch_trans_code(int trans):
+cdef char _fetch_trans_code(int trans) except 0:
     """helper function for matmul_var_Dense, fetch the blas flag byte"""
     if trans == 0:
         return b'N'
@@ -80,6 +80,7 @@ cdef char _fetch_trans_code(int trans):
         return b'T'
     elif trans == 3:
         return b'C'
+    raise ValueError(f"No BLAS transpose code for trans={trans}")
 
 
 cpdef Data matmul_var_data(Data left, Data right,
