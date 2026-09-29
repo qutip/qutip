@@ -237,27 +237,27 @@ cdef class Dicke(object):
     N: int
         The number of two-level systems.
 
-    emission: float
+    emission: double
         Incoherent emission coefficient (also nonradiative emission).
         default: 0.0
 
-    dephasing: float
+    dephasing: double
         Local dephasing coefficient.
         default: 0.0
 
-    pumping: float
+    pumping: double
         Incoherent pumping coefficient.
         default: 0.0
 
-    collective_emission: float
+    collective_emission: double
         Collective (superradiant) emmission coefficient.
         default: 0.0
 
-    collective_pumping: float
+    collective_pumping: double
         Collective pumping coefficient.
         default: 0.0
 
-    collective_dephasing: float
+    collective_dephasing: double
         Collective dephasing coefficient.
         default: 0.0
     """
@@ -265,9 +265,9 @@ cdef class Dicke(object):
     cdef double emission, dephasing, pumping
     cdef double collective_emission, collective_dephasing, collective_pumping
 
-    def __init__(self, int N, float emission=0., float dephasing=0.,
-                 float pumping=0., float collective_emission=0.,
-                 collective_dephasing=0., collective_pumping=0.):
+    def __init__(self, int N, double emission=0., double dephasing=0.,
+                 double pumping=0., double collective_emission=0.,
+                 double collective_dephasing=0., double collective_pumping=0.):
         self.N = N
         self.emission = emission
         self.dephasing = dephasing
