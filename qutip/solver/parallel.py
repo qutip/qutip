@@ -13,17 +13,15 @@ import threading
 import concurrent.futures
 import warnings
 from qutip.ui.progressbar import progress_bars
-from qutip.settings import available_cpu_count
+from qutip.settings import available_cpu_count, settings
 
-if sys.platform == 'darwin':
-    mp_context = multiprocessing.get_context('fork')
-elif sys.platform == 'linux':
-    # forkserver would handle threads better, but is much slower at starting
-    # the executor and spawning tasks
-    mp_context = multiprocessing.get_context('fork')
-else:
-    mp_context = multiprocessing.get_context()
+# if sys.platform == 'linux':
+#     mp_context = multiprocessing.get_context('forkserver')
+# else:
 
+# mp_context = multiprocessing.get_context()
+
+mp_context = settings.mp_context
 
 default_map_kw = {
     'timeout': threading.TIMEOUT_MAX,
