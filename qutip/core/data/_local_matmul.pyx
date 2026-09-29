@@ -67,7 +67,7 @@ cdef Dense _null_dense(int rows, int cols, bint fortran=True):
     return out
 
 
-cdef void _view_sliced_dense(Dense base, Dense out, int loc):
+cdef void _view_sliced_dense(Dense base, Dense out, int loc) noexcept:
     out.data = &base.data[loc]
 
 

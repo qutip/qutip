@@ -123,7 +123,7 @@ cdef inline void acc_reset(Accumulator *acc) noexcept nogil:
     acc._sorted = True
     acc._cur_row += 1
 
-cdef inline void acc_free(Accumulator *acc):
+cdef inline void acc_free(Accumulator *acc) noexcept:
     mem.PyMem_Free(acc.values)
     mem.PyMem_Free(acc.modified)
     mem.PyMem_Free(acc.nonzero)

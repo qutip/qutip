@@ -70,8 +70,8 @@ cdef idxint _populate_tensor_table(dims, sel, idxint[:, ::1] tensor_table) excep
     return factor_keep
 
 
-cdef bint _in(idxint val, idxint[::1] vec):
-    cdef int ii
+cdef bint _in(idxint val, idxint[::1] vec) noexcept nogil:
+    cdef size_t ii
     for ii in range(vec.shape[0]):
         if val == vec[ii]:
             return True

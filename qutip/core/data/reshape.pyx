@@ -51,7 +51,7 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     return out
 
 
-cdef inline size_t _reshape_dense_reindex(size_t idx, size_t size):
+cdef inline size_t _reshape_dense_reindex(size_t idx, size_t size) noexcept nogil:
     return (idx // size) + (idx % size)
 
 

@@ -9,7 +9,7 @@ cdef class Dense(base.Data):
     cdef readonly bint fortran
     cdef object _np
     cdef bint _deallocate
-    cdef void _fix_flags(Dense self, object array, bint make_owner=*)
+    cdef void _fix_flags(Dense self, cnp.ndarray array, bint make_owner=*) noexcept
     cpdef Dense reorder(Dense self, int fortran=*)
     cpdef Dense copy(Dense self)
     cpdef object as_ndarray(Dense self)

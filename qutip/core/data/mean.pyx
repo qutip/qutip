@@ -7,10 +7,10 @@ from qutip.core.data cimport base, CSR, Dia, Dense
 # This module is meant to be accessed by dot-access (e.g. mean.mean_csr).
 __all__ = []
 
-cdef extern from "<complex>" namespace "std":
+cdef extern from "<complex>" namespace "std" nogil:
     double abs(double complex z)
 
-cdef inline bint is_small(double complex z, double atol):
+cdef inline bint is_small(double complex z, double atol) noexcept nogil:
     """
     Check if a complex number is small within a given absolute tolerance.
 

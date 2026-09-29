@@ -149,7 +149,7 @@ cdef class Dense(base.Data):
         out._deallocate = True
         return out
 
-    cdef void _fix_flags(self, object array, bint make_owner=False):
+    cdef void _fix_flags(self, cnp.ndarray array, bint make_owner=False) noexcept:
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
         cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
