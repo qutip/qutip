@@ -489,10 +489,11 @@ cdef class InterCoefficient(Coefficient):
         else:
             self.dt = 0
 
+    @cython.initializedcheck(False)
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef size_t _binary_search(self, double x):
+    cdef size_t _binary_search(self, double x) noexcept nogil:
         # Binary search for the interval
         # return the indice of the of the biggest element where t <= x
         cdef size_t low = 0

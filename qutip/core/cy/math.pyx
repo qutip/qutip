@@ -7,7 +7,7 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef double erf(double x):
+cdef double erf(double x) noexcept nogil:
     """
     A Cython version of the erf function from the cdflib in SciPy.
     """
@@ -79,7 +79,7 @@ cdef double erf(double x):
     
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cdef double complex zerf(double complex Z):
+cdef double complex zerf(double complex Z) noexcept:
     """
     Parameters
     ----------
@@ -131,8 +131,13 @@ cdef double complex zerf(double complex Z):
     else:
         CS = cos(2.0*X*Y)
         SS = sin(2.0*X*Y)
-        ER1 = exp(-X2)*(1.0-CS)/(2.0*pi*X)
-        EI1 = exp(-X2)*SS/(2.0*pi*X)
+
+        if X == 0.0:
+            ER1 = 0.0 # Limits of the else branch as X -> 0
+            EI1 = Y/pi
+        else:
+            ER1 = exp(-X2)*sin(X*Y)**2/(pi*X)
+            EI1 = exp(-X2)*SS/(2.0*pi*X)
         ER2 = 0.0
         W1 = 0.0
         
