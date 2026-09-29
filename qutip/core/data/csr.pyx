@@ -367,8 +367,6 @@ cdef class Sorter:
     def __init__(self, size_t size):
         self.size = size
 
-    # TODO: Come back to this as there is a bug - the realloc result is never checked
-    # Same for copy function
     cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) except * nogil:
         cdef size_t n
         cdef base.idxint col0, col1, col2
@@ -404,17 +402,23 @@ cdef class Sorter:
                 _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+2)
                 _sorter_swap(matrix.data + ptr, matrix.data + ptr+2)
             return
+
+
         # Now we actually have to do the sort properly.  It's easiest just to
         # copy the data into a temporary structure.
+        cdef size_t realloc_size
         if size > self.size or self.sort == NULL:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
-            self.size = size if size > self.size else self.size
+            realloc_size = size if size > self.size else self.size
             with gil:
-                self.sort = <_data_col *> mem.PyMem_Realloc(self.sort,
+                realloc_sort = <_data_col *> mem.PyMem_Realloc(self.sort,
                                                             self.size * sizeof(_data_col))
-                if self.sort == NULL:
+                if realloc_sort == NULL:
                     raise MemoryError
+
+                self.sort = realloc_sort
+                self.size = realloc_size
 
         for n in range(size):
             self.sort[n].data = matrix.data[ptr + n]
@@ -492,18 +496,24 @@ cdef class Sorter:
                     dest_cols[0] = src_cols[2]
                     dest_data[0] = src_data[2]
             return
+
         # Now we're left with the full case, and we have to sort properly.
+        cdef size_t realloc_size
         if size > self.size or self.argsort == NULL:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
-            self.size = size if size > self.size else self.size
+            realloc_size = size if size > self.size else self.size
             with gil:
-                self.argsort = (
+                realloc_argsort = (
                     <base.idxint **>
                     mem.PyMem_Realloc(self.argsort, self.size * sizeof(base.idxint *))
                 )
-                if self.argsort == NULL:
+                if realloc_argsort == NULL:
                     raise MemoryError
+
+                self.argsort = realloc_argsort
+                self.size = realloc_size
+
         # We do the argsort with two levels of indirection to minimise memory
         # allocation and copying requirements when this function is being used
         # to assemble a CSR matrix under an operation which may change the
