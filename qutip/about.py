@@ -57,7 +57,8 @@ def about():
     print(f"Number of CPUs:     {settings.num_cpus}")
     print(f"BLAS Info:          {_blas_info()}")
     # print(f"OPENMP Installed:   {str(qutip.settings.has_openmp)}")
-    print(f"INTEL MKL Ext:      {settings.mkl_lib_location}")
+    print(f"INTEL MKL Ext:      {settings.mkl_version or 'None'}")
+    print(f"pydiso:      {settings.pydiso_version or 'None'}")
     print(f"Platform Info:      {platform.system()} ({platform.machine()})")
     qutip_install_path = Path(inspect.getsourcefile(qutip)).parent
     print(f"Installation path:  {qutip_install_path}")
