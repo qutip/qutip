@@ -69,18 +69,18 @@ def _cplx(t, w2, **kw):
 
 
 real_qevo = Pseudo_qevo(
-    rand_stochastic(N).to(_data.CSR),
-    rand_stochastic(N).to(_data.CSR),
+    rand_stochastic(N, seed=101).to(_data.CSR),
+    rand_stochastic(N, seed=102).to(_data.CSR),
     _real, "sin(t*w1)", args)
 
 herm_qevo = Pseudo_qevo(
-    rand_herm(N).to(_data.Dense),
-    rand_herm(N).to(_data.Dense),
+    rand_herm(N, seed=103).to(_data.Dense),
+    rand_herm(N, seed=104).to(_data.Dense),
     _real, "sin(t*w1)", args)
 
 cplx_qevo = Pseudo_qevo(
-    rand_stochastic(N).to(_data.Dense),
-    rand_stochastic(N).to(_data.CSR) + rand_stochastic(N).to(_data.CSR) * 1j,
+    rand_stochastic(N, seed=105).to(_data.Dense),
+    rand_stochastic(N, seed=106).to(_data.CSR) + rand_stochastic(N, seed=107).to(_data.CSR) * 1j,
     _cplx, "exp(1j*t*w2)", args)
 
 
@@ -126,8 +126,9 @@ def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
     assert _data.iszero((obj1 - obj2).data, tol)
 
 
-def _assert_qobjevo_different(obj1, obj2):
-    assert any(obj1(t) != obj2(t) for t in np.random.rand(10) * .9 + 0.05)
+def _assert_qobjevo_different(obj1, obj2, random_generator):
+    assert any(obj1(t) != obj2(t)
+               for t in random_generator.random(10) * .9 + 0.05)
 
 
 def _div(a, b):
@@ -245,10 +246,10 @@ def test_binopt_inplace(all_qevo, other_qevo, bin_op):
     pytest.param(lambda a, b: a @ b, id="matmul"),
     pytest.param(lambda a, b: a & b, id="tensor"),
 ])
-def test_binopt_qobj(all_qevo, bin_op):
+def test_binopt_qobj(all_qevo, bin_op, random_generator):
     "QobjEvo arithmetic"
     obj = all_qevo
-    qobj = rand_herm(N)
+    qobj = rand_herm(N, seed=random_generator)
     for t in TESTTIMES:
         as_qevo = bin_op(obj, qobj)(t)
         as_qobj = bin_op(obj(t), qobj)
@@ -311,8 +312,8 @@ def test_unary(all_qevo, unary_op):
     pytest.param(lambda a: a.trans(), id="trans"),
     pytest.param(lambda a: -a, id="neg"),
 ])
-def test_unary_ket(unary_op):
-    obj = QobjEvo(rand_ket(5))
+def test_unary_ket(unary_op, random_generator):
+    obj = QobjEvo(rand_ket(5, seed=random_generator))
     for t in TESTTIMES:
         transformed = unary_op(obj)
         as_qevo = transformed(t)
@@ -326,7 +327,7 @@ def test_unary_ket(unary_op):
 
 @pytest.mark.parametrize('args_coeff_type',
                          ['func_coeff', 'string', 'func_call'])
-def test_args(pseudo_qevo, args_coeff_type):
+def test_args(pseudo_qevo, args_coeff_type, random_generator):
     obj = QobjEvo(*pseudo_qevo[args_coeff_type])
     args = {'w1': 3, "w2": 3}
 
@@ -338,26 +339,26 @@ def test_args(pseudo_qevo, args_coeff_type):
     _assert_qobjevo_equivalent(obj, pseudo_qevo)
 
     obj.arguments(args)
-    _assert_qobjevo_different(obj, pseudo_qevo)
+    _assert_qobjevo_different(obj, pseudo_qevo, random_generator)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, **args))
 
     args = {'w1': 4, "w2": 4}
     obj.arguments(**args)
-    _assert_qobjevo_different(obj, pseudo_qevo)
+    _assert_qobjevo_different(obj, pseudo_qevo, random_generator)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, **args))
 
 
-def test_copy_side_effects(all_qevo):
+def test_copy_side_effects(all_qevo, random_generator):
     t = 0.2
     qevo = all_qevo
     copy = qevo.copy()
     before = qevo(t)
     # Ensure inplace modification of the copy do not affect the original
     copy *= 2
-    copy += rand_herm(N)
-    copy *= rand_herm(N)
+    copy += rand_herm(N, seed=random_generator)
+    copy *= rand_herm(N, seed=random_generator)
     copy.arguments({'w1': 3, "w2": 3})
     after = qevo(t)
     _assert_qobj_almost_eq(before, after)
@@ -404,9 +405,10 @@ def test_mul_vec(all_qevo):
                         op.matmul(t, vec).full(), atol=1e-14)
 
 
-def test_matmul(all_qevo):
+def test_matmul(all_qevo, random_generator):
     "QobjEvo matmul oper"
-    mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    mat = (random_generator.random((N, N)) + 1
+           + 1j * random_generator.random((N, N)))
     matQobj = Qobj(mat)
     matDense = Qobj(mat).to(_data.Dense)
     matF = Qobj(np.asfortranarray(mat)).to(_data.Dense)
@@ -422,12 +424,13 @@ def test_matmul(all_qevo):
                         op.matmul(t, matCSR).full(), atol=1e-14)
 
 
-def test_adjoint_rmatmul_data(all_qevo):
+def test_adjoint_rmatmul_data(all_qevo, random_generator):
     """
     Test that QobjEvo.adjoint_rmatmul_data(t, state, out) correctly computes
     state @ QobjEvo(t).dag() and accumulates into the output buffer.
     """
-    mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    mat = (random_generator.random((N, N)) + 1
+           + 1j * random_generator.random((N, N)))
     matDense = Qobj(mat).to(_data.Dense)
     matF = Qobj(np.asfortranarray(mat)).to(_data.Dense)
     op = all_qevo
@@ -444,7 +447,8 @@ def test_adjoint_rmatmul_data(all_qevo):
         assert_allclose(expected, result_f, atol=1e-14)
 
         # Test accumulation into output buffer
-        initial_out = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+        initial_out = (random_generator.random((N, N))
+                   + 1j * random_generator.random((N, N)))
         out_buffer = Qobj(initial_out).to(_data.Dense)
         expected_accum = Qobj(initial_out).full() + expected
 
@@ -454,7 +458,7 @@ def test_adjoint_rmatmul_data(all_qevo):
         assert_allclose(expected_accum, result, atol=1e-14)
 
 
-def test_adjoint_rmatmul_data_mixed_representations():
+def test_adjoint_rmatmul_data_mixed_representations(random_generator):
     """
     Test adjoint_rmatmul_data with mixed data representations (Dia, CSR, Dense)
     and time-dependent coefficients using non-hermitian operators.
@@ -472,7 +476,8 @@ def test_adjoint_rmatmul_data_mixed_representations():
         [H_dense, '0.05 * sin(2*t)'],
     ])
 
-    mat = np.random.rand(N, N) + 1 + 1j * np.random.rand(N, N)
+    mat = (random_generator.random((N, N)) + 1
+           + 1j * random_generator.random((N, N)))
     matDense = Qobj(mat).to(_data.Dense)
 
     for t in TESTTIMES:
@@ -494,10 +499,12 @@ def test_expect_psi(all_qevo):
                         atol=1e-14)
 
 
-def test_expect_rho(all_qevo):
+def test_expect_rho(all_qevo, random_generator):
     "QobjEvo expect rho"
-    vec = _data.dense.fast_from_numpy(np.random.rand(N*N) + 1
-                                      + 1j * np.random.rand(N*N))
+    vec = _data.dense.fast_from_numpy(
+        random_generator.random(N*N) + 1
+        + 1j * random_generator.random(N*N)
+    )
     mat = _data.column_unstack_dense(vec, N)
     qobj = Qobj(mat)
     op = liouvillian(all_qevo)
@@ -547,10 +554,10 @@ def test_compress(as_list):
 @pytest.mark.parametrize(['statedtype'],
     [pytest.param(dtype, id=dtype.__name__)
      for dtype in _data.to.dtypes])
-def test_layer_support(qobjdtype, statedtype):
+def test_layer_support(qobjdtype, statedtype, random_generator):
     N = 10
-    qevo = QobjEvo(rand_herm(N).to(qobjdtype))
-    state_dense = rand_ket(N).to(_data.Dense)
+    qevo = QobjEvo(rand_herm(N, seed=random_generator, dtype=qobjdtype))
+    state_dense = rand_ket(N, seed=random_generator, dtype=_data.Dense)
     state = state_dense.to(statedtype).data
     state_dense = state_dense.data
     exp_any = qevo.expect_data(0, state)
@@ -561,10 +568,10 @@ def test_layer_support(qobjdtype, statedtype):
     assert_allclose(mul_any, mul_dense)
 
 
-def test_QobjEvo_step_coeff():
+def test_QobjEvo_step_coeff(random_generator):
     "QobjEvo step interpolation"
-    coeff1 = np.random.rand(6)
-    coeff2 = np.random.rand(6) + np.random.rand(6) * 1.j
+    coeff1 = random_generator.random(6)
+    coeff2 = random_generator.random(6) + random_generator.random(6) * 1.j
     # uniform t_dims =
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
@@ -641,7 +648,7 @@ class Feedback_Checker_Coefficient:
         return 1.
 
 
-def test_feedback_oper():
+def test_feedback_oper(random_generator):
     checker = Feedback_Checker_Coefficient(stacked=False)
     checker.state = basis(2, 1)
     qevo = QobjEvo(
@@ -654,18 +661,18 @@ def test_feedback_oper():
         },
     )
 
-    checker.state = rand_ket(2)
+    checker.state = rand_ket(2, seed=random_generator)
     qevo.expect(0, checker.state)
-    checker.state = rand_ket(2)
+    checker.state = rand_ket(2, seed=random_generator)
     qevo.expect(0, checker.state)
 
-    checker.state = rand_ket(2)
+    checker.state = rand_ket(2, seed=random_generator)
     qevo.matmul_data(0, checker.state.data)
-    checker.state = rand_ket(2)
+    checker.state = rand_ket(2, seed=random_generator)
     qevo.matmul_data(0, checker.state.data)
 
 
-def test_feedback_super():
+def test_feedback_super(random_generator):
     checker = Feedback_Checker_Coefficient()
     qevo = QobjEvo(
         [spre(qeye(2)), checker],
@@ -676,13 +683,13 @@ def test_feedback_super():
         },
     )
 
-    checker.state = rand_dm(2)
+    checker.state = rand_dm(2, seed=random_generator)
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
     qevo.arguments(e_val=MESolver.ExpectFeedback(spre(qeye(2))))
 
-    checker.state = rand_dm(2)
+    checker.state = rand_dm(2, seed=random_generator)
     qevo.expect(0, operator_to_vector(checker.state))
     qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
@@ -695,7 +702,7 @@ def test_feedback_super():
         },
     )
 
-    checker.state = rand_dm(4)
+    checker.state = rand_dm(4, seed=random_generator)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
     qevo.matmul_data(0, checker.state.data)
 

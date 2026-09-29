@@ -24,9 +24,11 @@ def _remove_global_phase(qobj):
     return qutip.Qobj(flat.reshape(qobj.shape), dims=qobj.dims)
 
 
-def _make_random_three_qubit_gate():
+def _make_random_three_qubit_gate(random_generator):
     """Create a random three-qubit gate."""
-    operation = qutip.rand_unitary(8, dims=[[2]*3]*2)
+    operation = qutip.rand_unitary(
+        8, dims=[[2]*3]*2, seed=random_generator
+    )
 
     def gate(N=None, controls=None, target=None):
         if N is None:
@@ -42,8 +44,11 @@ def _make_controled(op):
 
 
 class TestExplicitForm:
-    def test_swap(self):
-        states = [qutip.rand_ket(2) for _ in [None]*2]
+    def test_swap(self, random_generator):
+        states = [
+            qutip.rand_ket(2, seed=random_generator)
+            for _ in range(2)
+        ]
         start = qutip.tensor(states)
         swapped = qutip.tensor(states[::-1])
         swap = gates.swap()

@@ -137,7 +137,7 @@ def _run_derr_check(solver, state):
                 )
 
 
-def _make_oper(kind, N):
+def _make_oper(kind, N, random_generator=None):
     if kind == "qeye":
         out = qeye(N)
     elif kind == "destroy":
@@ -149,7 +149,7 @@ def _make_oper(kind, N):
     elif kind == "td":
         out = [num(N), [destroy(N) + create(N), lambda t: 1 + t]]
     elif kind == "rand":
-        out = rand_herm(N)
+        out = rand_herm(N, seed=random_generator)
     return QobjEvo(out)
 
 
@@ -162,10 +162,10 @@ def _make_oper(kind, N):
     pytest.param("rand", ["rand"], id='random'),
 ])
 @pytest.mark.parametrize('heterodyne', [False, True])
-def test_open_system_derr(H, sc_ops, heterodyne):
+def test_open_system_derr(H, sc_ops, heterodyne, random_generator):
     N = 5
-    H = _make_oper(H, N)
-    sc_ops = [_make_oper(op, N) for op in sc_ops]
+    H = _make_oper(H, N, random_generator)
+    sc_ops = [_make_oper(op, N, random_generator) for op in sc_ops]
     if heterodyne:
         new_sc_ops = []
         for c_op in sc_ops:

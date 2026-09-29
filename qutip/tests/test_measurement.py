@@ -201,7 +201,7 @@ def test_measurement_statistics_observable_input_errors():
                     pytest.param(sigmay(), basis(2, 1), id="sigmax_ket2"),
                     pytest.param(sigmay(), ket2dm(basis(2, 1)),
                                  id="sigmay_dm")])
-def test_measure_observable(op, state):
+def test_measure_observable(op, state, with_seeded_random):
     """ measure_observable: basis states using different observables """
     evs, ess_or_projs, prob = measurement_statistics_observable(state, op)
 
@@ -235,7 +235,7 @@ def test_measure_observable(op, state):
                         tuple(PZ), ket2dm(basis(2, 0)), id="PZ_dm1_tuple"),
                     pytest.param(
                         tuple(PZ), ket2dm(basis(2, 1)), id="PZ_dm2_tuple")])
-def test_measure(ops, state):
+def test_measure(ops, state, with_seeded_random):
     """measure_povm: test on basis states using different projectors """
 
     collapsed_states, _ = measurement_statistics_povm(state, ops)

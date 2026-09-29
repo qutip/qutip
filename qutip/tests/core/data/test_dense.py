@@ -29,13 +29,13 @@ def _valid_numpy():
 
 
 @pytest.fixture(scope='function')
-def numpy_dense(shape, fortran):
-    return random_data.random_numpy_dense(shape, fortran)
+def numpy_dense(shape, fortran, random_generator):
+    return random_data.random_numpy_dense(shape, fortran, random_generator)
 
 
 @pytest.fixture(scope='function')
-def data_dense(shape, fortran):
-    return random_data.random_dense(shape, fortran)
+def data_dense(shape, fortran, random_generator):
+    return random_data.random_dense(shape, fortran, random_generator)
 
 
 class TestClassMethods:
@@ -48,8 +48,8 @@ class TestClassMethods:
                                        'float64',
                                        'int32', 'int64',
                                        'uint32'])
-    def test_init_from_ndarray_other_dtype(self, shape, dtype):
-        numpy_dense = np.random.rand(*shape).astype(dtype, casting='unsafe')
+    def test_init_from_ndarray_other_dtype(self, shape, dtype, random_generator):
+        numpy_dense = random_generator.random(shape).astype(dtype, casting='unsafe')
         test = data.Dense(numpy_dense)
         assert test.shape == shape
         assert test.as_ndarray().dtype == np.complex128
