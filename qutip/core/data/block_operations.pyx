@@ -233,7 +233,7 @@ cdef void _memcpy_idxs(base.idxint* target, base.idxint target_start,
 
 cdef void _memcpy_data(double complex* target, base.idxint target_start,
                        double complex* source, base.idxint source_start,
-                       base.idxint length)  noexcept nogil:
+                       base.idxint length) noexcept nogil:
     memcpy(&target[target_start], &source[source_start],
            length * sizeof(double complex))
 

@@ -55,13 +55,12 @@ cdef int _check_shape_super(Data op, Data state) except -1 nogil:
     return 0
 
 
-cdef double complex _expect_csr_ket(CSR op, CSR state) except * nogil:
+cdef double complex _expect_csr_ket(CSR op, CSR state) noexcept nogil:
     """
     Perform the operation
         state.adjoint() @ op @ state
     for a ket `state` and a square operator `op`.
     """
-    _check_shape_ket(op, state)
     cdef double complex out=0, sum=0, mul
     cdef size_t row, col, ptr_op, ptr_ket
     for row in range(state.shape[0]):
@@ -78,13 +77,12 @@ cdef double complex _expect_csr_ket(CSR op, CSR state) except * nogil:
         out += mul * sum
     return out
 
-cdef double complex _expect_csr_dm(CSR op, CSR state) except * nogil:
+cdef double complex _expect_csr_dm(CSR op, CSR state) noexcept nogil:
     """
     Perform the operation
         tr(op @ state)
     for an operator `op` and a density matrix `state`.
     """
-    _check_shape_dm(op, state)
     cdef double complex out=0
     cdef size_t row, col, ptr_op, ptr_state
     for row in range(op.shape[0]):
@@ -126,11 +124,12 @@ cpdef double complex expect_csr(CSR op, CSR state):
         tr(op @ state)
     """
     if state.shape[1] == 1:
+        _check_shape_ket(op, state)
         return _expect_csr_ket(op, state)
+    _check_shape_dm(op, state)
     return _expect_csr_dm(op, state)
 
-cdef double complex _expect_csr_dense_ket(CSR op, Dense state) except * nogil:
-    _check_shape_ket(op, state)
+cdef double complex _expect_csr_dense_ket(CSR op, Dense state) noexcept nogil:
     cdef double complex out=0, sum
     cdef size_t row, ptr
     for row in range(op.shape[0]):
@@ -142,8 +141,7 @@ cdef double complex _expect_csr_dense_ket(CSR op, Dense state) except * nogil:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_csr_dense_dm(CSR op, Dense state) except * nogil:
-    _check_shape_dm(op, state)
+cdef double complex _expect_csr_dense_dm(CSR op, Dense state) noexcept nogil:
     cdef double complex out=0
     cdef size_t row, ptr_op, ptr_state=0, row_stride, col_stride
     row_stride = 1 if state.fortran else state.shape[1]
@@ -157,8 +155,7 @@ cdef double complex _expect_csr_dense_dm(CSR op, Dense state) except * nogil:
     return out
 
 
-cdef double complex _expect_dense_ket(Dense op, Dense state) except * nogil:
-    _check_shape_ket(op, state)
+cdef double complex _expect_dense_ket(Dense op, Dense state) noexcept nogil:
     cdef double complex out=0, sum
     cdef size_t row, col, op_row_stride, op_col_stride
     op_row_stride = 1 if op.fortran else op.shape[1]
@@ -172,8 +169,7 @@ cdef double complex _expect_dense_ket(Dense op, Dense state) except * nogil:
         out += sum * conj(state.data[row])
     return out
 
-cdef double complex _expect_dense_dense_dm(Dense op, Dense state) except * nogil:
-    _check_shape_dm(op, state)
+cdef double complex _expect_dense_dense_dm(Dense op, Dense state) noexcept nogil:
     cdef double complex out=0
     cdef size_t row, col, op_row_stride, op_col_stride
     cdef size_t state_row_stride, state_col_stride
@@ -200,7 +196,9 @@ cpdef double complex expect_csr_dense(CSR op, Dense state):
         tr(op @ state)
     """
     if state.shape[1] == 1:
+        _check_shape_ket(op, state)
         return _expect_csr_dense_ket(op, state)
+    _check_shape_dm(op, state)
     return _expect_csr_dense_dm(op, state)
 
 
@@ -215,11 +213,13 @@ cpdef double complex expect_dense(Dense op, Dense state):
         tr(op @ state)
     """
     if state.shape[1] == 1:
+        _check_shape_ket(op, state)
         return _expect_dense_ket(op, state)
+    _check_shape_dm(op, state)
     return _expect_dense_dense_dm(op, state)
 
 
-cpdef double complex expect_super_csr_dense(CSR op, Dense state) except * nogil:
+cpdef double complex expect_super_csr_dense(CSR op, Dense state) except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -235,7 +235,7 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) except * nogil:
     return out
 
 
-cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
+cpdef double complex expect_super_dense(Dense op, Dense state) except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
