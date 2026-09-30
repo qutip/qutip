@@ -516,7 +516,8 @@ cdef class InterCoefficient(Coefficient):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double complex _call(self, double t) except *:
-        cdef size_t idx, i, last = self.tlist.shape[0] - 1
+        cdef size_t idx, last = self.tlist.shape[0] - 1
+        cdef int i
         cdef double factor
         cdef double complex out
         if t <= self.tlist[0]:

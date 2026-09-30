@@ -1,6 +1,5 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 import numpy as np
-cimport cython
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex exp(double complex x)
@@ -8,6 +7,8 @@ cdef extern from "<complex>" namespace "std" nogil:
 np_fact = np.zeros(21, dtype=float)
 cdef double[:] inv_factorial = np_fact
 inv_factorial[0] = 1
+
+cdef int i
 for i in range(1, 21):
     inv_factorial[i] = inv_factorial[i-1] / i
 

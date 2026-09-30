@@ -380,7 +380,7 @@ cdef class QobjEvo:
 
     cpdef Data _call(QobjEvo self, double t):
         cdef object t_obj = t
-        cdef size_t i
+        cdef Py_ssize_t i
         cdef _BaseElement part = self.elements[0]
         cdef Data part_data = part.data(t_obj)
         cdef Data out
