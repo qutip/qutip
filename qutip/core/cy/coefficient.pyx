@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 import inspect
 import pickle
 import typing
@@ -491,10 +489,11 @@ cdef class InterCoefficient(Coefficient):
         else:
             self.dt = 0
 
+    @cython.initializedcheck(False)
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef size_t _binary_search(self, double x):
+    cdef size_t _binary_search(self, double x) noexcept nogil:
         # Binary search for the interval
         # return the indice of the of the biggest element where t <= x
         cdef size_t low = 0
@@ -513,16 +512,18 @@ cdef class InterCoefficient(Coefficient):
         return low
 
     @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double complex _call(self, double t) except *:
-        cdef size_t idx, i
+        cdef size_t idx, last = self.tlist.shape[0] - 1
+        cdef int i
         cdef double factor
         cdef double complex out
-        cdef double complex[:] slice
         if t <= self.tlist[0]:
-            return self.poly[-1, 0]
-        elif t >= self.tlist[-1]:
-            return self.poly[-1, -1]
+            return self.poly[self.order, 0]
+        elif t >= self.tlist[last]:
+            return self.poly[self.order, last]
         if self.dt:
             idx = <size_t>((t - self.tlist[0]) / self.dt)
         else:
@@ -531,11 +532,10 @@ cdef class InterCoefficient(Coefficient):
             out = self.poly[0, idx]
         else:
             factor = t - self.tlist[idx]
-            slice = self.poly[:, idx]
             out = 0.
             for i in range(self.order+1):
                 out *= factor
-                out += slice[i]
+                out += self.poly[i, idx]
         return out
 
     def __reduce__(self):

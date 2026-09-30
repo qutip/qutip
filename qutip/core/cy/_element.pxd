@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport CSR, Dense, Data
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.data.base cimport idxint
@@ -10,6 +8,7 @@ cdef class _BaseElement:
     cpdef Data data(self, t)
     cpdef object qobj(self, t)
     cpdef object coeff(self, t)
+    cdef double complex _coeff_c(self, double t) except *
     cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=?, double complex scale=?)
     cdef Data adjoint_rmatmul_data_t(_BaseElement self, t, Data state, Data out=?, double complex scale=?)
 
