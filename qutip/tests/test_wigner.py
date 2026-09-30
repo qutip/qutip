@@ -724,6 +724,7 @@ def test_spin_wigner_overlap(spin, pure, n=5):
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
 
 
+@pytest.mark.requires_multiprocessing
 def test_wigner_offset_parallel_laguerre():
     "Winger: Compare parallel and serial laguerre results."
     xvec = np.linspace(-2, 2, 20)

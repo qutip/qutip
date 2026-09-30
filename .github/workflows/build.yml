@@ -147,9 +147,30 @@ jobs:
           path: ./wheelhouse/*.whl
 
 
+  build_pyodide:
+    name: Build Pyodide wheels
+    needs: deploy_test
+    runs-on: ubuntu-latest
+    env:
+      OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
+    steps:
+      - uses: actions/checkout@v7
+      - if: env.OVERRIDE_VERSION != ''
+        run: echo "$OVERRIDE_VERSION" > VERSION
+      - uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_PLATFORM: pyodide
+          # Python 3.13 (Pyodide 0.29) and 3.14 (Pyodide 314)
+          CIBW_BUILD: "cp3{13,14}-*"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-pyodide
+          path: wheelhouse/*.whl
+
+
   deploy:
     name: "Deploy to PyPI if desired"
-    needs: [deploy_test, build_sdist, build_wheels]
+    needs: [deploy_test, build_sdist, build_wheels, build_pyodide]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: __token__
@@ -167,7 +188,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 24 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 26 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 

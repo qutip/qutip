@@ -309,6 +309,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         list will be returned.
 
     """
+    if sys.platform == "emscripten":
+        raise NotImplementedError(
+            "parallel_map needs multiprocessing, which WebAssembly (Pyodide) "
+            "does not have. Use serial_map instead."
+        )
 
     map_kw = _read_map_kw(map_kw)
     ctx_kw = {"mp_context": mp_context}
