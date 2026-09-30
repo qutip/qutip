@@ -162,15 +162,17 @@ cpdef double max_dia(Dia matrix) noexcept nogil:
     return math.sqrt(total)
 
 cpdef double one_dia(Dia matrix) except -1:
-    cdef int offset, diag, start, end, col=1
-    cols_one = np.zeros(matrix.shape[1], dtype=float)
+    cdef int offset, diag, start, end, col, n=matrix.shape[1], inc=1
+    cdef double[::1] cols_one = np.zeros(matrix.shape[1], dtype=float)
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
         start = int_max(0, offset)
         end = min(matrix.shape[1], matrix.shape[0] + offset)
         for col in range(start, end):
             cols_one[col] += abs(matrix.data[diag * matrix.shape[1] + col])
-    return np.max(cols_one)
+
+    # BLAS is a Fortran library, so it's one-indexed of course..
+    return cols_one[blas.idamax(&n, &cols_one[0], &inc) - 1]
 
 
 from .dispatch import Dispatcher as _Dispatcher
