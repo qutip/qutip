@@ -380,7 +380,10 @@ cdef class StochasticOpenSystem(TaylorStochasticSystem):
 
     cpdef void set_state(self, double t, Data state_raw) except *:
         cdef int n, l
-        cdef Dense state = _data.to(Dense, state_raw)
+        cdef Dense state = (
+            <Dense> state_raw if type(state_raw) is Dense
+            else _data.to(Dense, state_raw)
+        )
         self.t = t
         if not state.fortran:
             state = state.reorder(fortran=1)
