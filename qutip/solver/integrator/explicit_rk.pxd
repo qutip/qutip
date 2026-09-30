@@ -62,6 +62,6 @@ cdef class Explicit_RungeKutta:
 
     cdef double _estimate_first_step(self, double t, Data y0) except -1
 
-    cdef double _get_timestep(self, double t)
+    cdef double _get_timestep(self, double t) noexcept
 
-    cdef void _recompute_safe_step(self, double err, double dt)
+    cdef void _recompute_safe_step(self, double err, double dt) noexcept
