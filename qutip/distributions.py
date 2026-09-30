@@ -425,6 +425,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
             A quantum state from which the distribution is generated.
 
         """
+        psi = psi.full() if isinstance(psi, Qobj) else np.asarray(psi)
         rows = psi_fock_multiple_position_complex(
             psi.shape[0] - 1, self.xvecs[0].astype(complex)
         )
