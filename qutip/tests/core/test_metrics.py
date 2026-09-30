@@ -195,6 +195,20 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
+def test_bures_dist_identical_random_states_is_finite(state):
+    dist = bures_dist(state, state)
+    assert np.isfinite(dist)
+    assert dist >= 0
+
+
+def test_bures_dist_trace_imperfect_density_matrix(dimension):
+    state = rand_dm(dimension)
+    trace_not_one = state * (1 + 1e-8)
+    dist = bures_dist(state, trace_not_one)
+    assert np.isfinite(dist)
+    assert dist >= 0
+
+
 class Test_average_gate_fidelity:
     def test_identity(self, dimension):
         id = qeye(dimension)

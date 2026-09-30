@@ -419,6 +419,7 @@ def smesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+            Use ``SMESolver.avail_integrators()`` to list all methods.
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
@@ -555,7 +556,8 @@ def ssesolve(
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | method : str
           | Which stochastic differential equation integration method to use.
-            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+            Main ones are {"euler", "rouchon", "platen", "explicit1.5"}
+            Use ``SSESolver.avail_integrators()`` to list all methods.
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
@@ -1014,6 +1016,8 @@ class StochasticSolver(MultiTrajSolver):
 
         method: str, default: "platen"
             Which differential equation integration method to use.
+            Common methods are "euler", "platen", "rouchon".
+            To see all supported method, use: ``SMESolver.avail_integrators()``
 
         map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
             How to run the trajectories. "parallel" uses the multiprocessing

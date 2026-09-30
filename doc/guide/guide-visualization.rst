@@ -355,7 +355,7 @@ where :math:`N` is the number of states of the system (that is, :math:`\rho` is 
 
 where :math:`\chi_{mn} = \sum_{ij} b_{im}b_{jn}^*` and :math:`A_i = \sum_{m} b_{im}B_{m}`. Here, matrix :math:`\chi` is the transformation matrix we are after, since it describes how much :math:`B_m \rho_{\rm in} B_n^\dagger` contributes to :math:`\rho_{\rm out}`.
 
-In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.propagator.propagator`. We can then write
+In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.solver.propagator.propagator`. We can then write
 
 .. math::
 

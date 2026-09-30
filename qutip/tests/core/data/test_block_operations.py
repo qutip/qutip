@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from qutip.core import data as _data
 from qutip.core.data import csr, Dense
-from . import conftest
+from qutip.testing import random_data
 
 
 @pytest.mark.parametrize('outtype', _data.to.dtypes)
@@ -43,10 +43,10 @@ def test_block_build(intype, shuffle_csr, outtype):
     data4 = _data.to(intype, _data.Dense(block4))
 
     if shuffle_csr:
-        data1 = _data.CSR(conftest.shuffle_indices_scipy_csr(data1.as_scipy()))
-        data2 = _data.CSR(conftest.shuffle_indices_scipy_csr(data2.as_scipy()))
-        data3 = _data.CSR(conftest.shuffle_indices_scipy_csr(data3.as_scipy()))
-        data4 = _data.CSR(conftest.shuffle_indices_scipy_csr(data4.as_scipy()))
+        data1 = _data.CSR(random_data.shuffle_indices_scipy_csr(data1.as_scipy()))
+        data2 = _data.CSR(random_data.shuffle_indices_scipy_csr(data2.as_scipy()))
+        data3 = _data.CSR(random_data.shuffle_indices_scipy_csr(data3.as_scipy()))
+        data4 = _data.CSR(random_data.shuffle_indices_scipy_csr(data4.as_scipy()))
 
     block_rows = np.array([0, 0, 1, 1], dtype=_data.base.idxint_dtype)
     block_cols = np.array([0, 3, 2, 3], dtype=_data.base.idxint_dtype)
@@ -166,7 +166,7 @@ def test_block_extract(intype, shuffle_csr, outtype):
     ], dtype=complex)
     data = _data.to(intype, _data.Dense(original))
     if shuffle_csr:
-        data = _data.CSR(conftest.shuffle_indices_scipy_csr(data.as_scipy()))
+        data = _data.CSR(random_data.shuffle_indices_scipy_csr(data.as_scipy()))
 
     result = _data.block_extract(data, 1, 3, 0, 2, dtype=outtype)
     expected = np.array([
@@ -216,8 +216,8 @@ def test_block_overwrite(
     block = _data.to(intype, _data.Dense(block_array))
 
     if shuffle_csr:
-        data = _data.CSR(conftest.shuffle_indices_scipy_csr(data.as_scipy()))
-        block = _data.CSR(conftest.shuffle_indices_scipy_csr(block.as_scipy()))
+        data = _data.CSR(random_data.shuffle_indices_scipy_csr(data.as_scipy()))
+        block = _data.CSR(random_data.shuffle_indices_scipy_csr(block.as_scipy()))
 
     result = _data.block_overwrite(data, block, 1, 1, dtype=outtype)
     expected = np.copy(data_array)
