@@ -450,6 +450,8 @@ cdef double complex expect_data_dense(Data op, Dense state):
         out = expect_csr_dense(op, state)
     elif type(op) is Dense:
         out = expect_dense(op, state)
+    elif type(op) is Dia:
+        out = expect_dia_dense(op, state)
     else:
         out = expect(op, state)
     return out
@@ -461,6 +463,8 @@ cdef double complex expect_super_data_dense(Data op, Dense state):
         out = expect_super_csr_dense(op, state)
     elif type(op) is Dense:
         out = expect_super_dense(op, state)
+    elif type(op) is Dia:
+        out = expect_super_dia_dense(op, state)
     else:
         out = expect_super(op, state)
     return out
