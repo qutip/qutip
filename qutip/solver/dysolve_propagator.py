@@ -237,7 +237,8 @@ class DysolvePropagator:
                     for j, ws in enumerate(ls_ws):
                         if current_matrix_elements[j] != 0:
                             x = cy_compute_integrals(
-                                ws, dt) * current_matrix_elements[j]
+                                ws, dt, self.a_tol
+                            ) * current_matrix_elements[j]
                             Sn[i, ket_bra_idx[j, 0], ket_bra_idx[j, 1]] += x
 
                     Sn[i] *= (-1j / 2) ** n
