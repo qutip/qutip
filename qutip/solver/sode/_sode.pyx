@@ -30,13 +30,15 @@ cdef class Euler:
     ):
         cdef int i
         cdef Data new_state
-        if type(state) is not Dense:
+        # Work on a private copy: the state buffer is overwritten by the steps.
+        if type(state) is Dense:
+            state = state.copy()
+        else:
             state = _data.to(Dense, state)
 
         # Scratch buffer handed to every step.
         # A step may accumulate into it and return it, the previous state then becomes the next scratch.
         cdef Dense out = _data.zeros_like(state)
-        state = state.copy()
         self._allocate(state)
 
         for i in range(num_step):
@@ -72,8 +74,7 @@ cdef class Euler:
             for i in range(system.num_diffusion):
                 dW[0, i] -= expect[i].real * dt
 
-        imul_dense(out, 0.)
-        iadd_dense(out, state, 1)
+        _assign(out, state)
         iadd_dense(out, a, dt)
         for i in range(system.num_diffusion):
             iadd_dense(out, b[i], dW[0, i])
@@ -318,10 +319,11 @@ cdef class Milstein:
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
         cdef int i
-        if type(state) != _data.Dense:
-            state = _data.to(_data.Dense, state)
+        if type(state) is Dense:
+            state = state.copy()
+        else:
+            state = _data.to(Dense, state)
         cdef Dense out = _data.zeros_like(state)
-        state = state.copy()
 
         for i in range(ntraj):
             self.step(t + i * dt, state, dt, dW[i, :, :], out)
@@ -345,8 +347,7 @@ cdef class Milstein:
 
         system.set_state(t, state)
 
-        imul_dense(out, 0.)
-        iadd_dense(out, state, 1)
+        _assign(out, state)
         iadd_dense(out, system.a(), dt)
 
         if self.measurement_noise:
@@ -384,11 +385,12 @@ cdef class PredCorr:
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
         cdef int i
-        if type(state) != _data.Dense:
-            state = _data.to(_data.Dense, state)
+        if type(state) is Dense:
+            state = state.copy()
+        else:
+            state = _data.to(Dense, state)
         cdef Dense out = _data.zeros_like(state)
         self.euler = _data.zeros_like(state)
-        state = state.copy()
 
         for i in range(ntraj):
             self.step(t + i * dt, state, dt, dW[i, :, :], out)
@@ -414,12 +416,10 @@ cdef class PredCorr:
             for i in range(system.num_diffusion):
                 dW[0, i] -= system._shift_i(i).real * dt
 
-        imul_dense(out, 0.)
-        iadd_dense(out, state, 1)
+        _assign(out, state)
         iadd_dense(out, system.a(), dt * (1-alpha))
 
-        imul_dense(euler, 0.)
-        iadd_dense(euler, state, 1)
+        _assign(euler, state)
         iadd_dense(euler, system.a(), dt)
 
         for i in range(num_ops):
@@ -464,8 +464,7 @@ cdef class Taylor15(Milstein):
         for i in range(num_ops):
             dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
-        imul_dense(out, 0.)
-        iadd_dense(out, state, 1)
+        _assign(out, state)
         iadd_dense(out, system.a(), dt)
         iadd_dense(out, system.L0a(), 0.5 * dt * dt)
 
@@ -540,8 +539,7 @@ cdef class Milstein_imp:
 
         system.set_state(t, state)
 
-        imul_dense(target, 0.)
-        iadd_dense(target, state, 1)
+        _assign(target, state)
         iadd_dense(target, system.a(), dt * 0.5)
 
         for i in range(num_ops):
@@ -583,8 +581,7 @@ cdef class Taylor15_imp(Milstein_imp):
         for i in range(num_ops):
             dz[i] = 0.5 * (dW[0, i] + dW[1, i] * INV_SQRT3) * dt
 
-        imul_dense(target, 0.)
-        iadd_dense(target, state, 1)
+        _assign(target, state)
         iadd_dense(target, system.a(), dt * 0.5)
 
         for i in range(num_ops):
