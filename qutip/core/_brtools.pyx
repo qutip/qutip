@@ -51,7 +51,7 @@ cdef class SpectraCoefficient(Coefficient):
             return SpectraCoefficient(
                 self.coeff_w.replace_arguments(**kwargs),
                 self.coeff_t.replace_arguments(**kwargs) if self.coeff_t is not None else None,
-                kwargs.get('w', w or self.w)
+                kwargs.get('w', w if w is not None else self.w)
               )
         if w is not None:
             return SpectraCoefficient(self.coeff_w, self.coeff_t, w)

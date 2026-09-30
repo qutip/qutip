@@ -163,7 +163,9 @@ cpdef double max_dia(Dia matrix) noexcept nogil:
 
 cpdef double one_dia(Dia matrix) except -1:
     cdef int offset, diag, start, end, col, n=matrix.shape[1], inc=1
-    cdef double[::1] cols_one = np.zeros(matrix.shape[1], dtype=float)
+    if n == 0:
+        return 0
+    cdef double[::1] cols_one = np.zeros(n, dtype=float)
     for diag in range(matrix.num_diag):
         offset = matrix.offsets[diag]
         start = int_max(0, offset)

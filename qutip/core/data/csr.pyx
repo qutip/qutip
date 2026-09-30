@@ -413,7 +413,7 @@ cdef class Sorter:
             realloc_size = size if size > self.size else self.size
             with gil:
                 realloc_sort = <_data_col *> mem.PyMem_Realloc(self.sort,
-                                                            self.size * sizeof(_data_col))
+                                                            realloc_size * sizeof(_data_col))
                 if realloc_sort == NULL:
                     raise MemoryError
 
@@ -506,7 +506,7 @@ cdef class Sorter:
             with gil:
                 realloc_argsort = (
                     <base.idxint **>
-                    mem.PyMem_Realloc(self.argsort, self.size * sizeof(base.idxint *))
+                    mem.PyMem_Realloc(self.argsort, realloc_size * sizeof(base.idxint *))
                 )
                 if realloc_argsort == NULL:
                     raise MemoryError
