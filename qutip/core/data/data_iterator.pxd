@@ -5,7 +5,7 @@ cdef class Data_iterator:
     cdef readonly int nnz
     cdef bint transpose, conj
 
-    cdef (int, int, double complex) next(self)
+    cdef (int, int, double complex) next(self) noexcept nogil
 
 
 cdef class Dense_iterator(Data_iterator):

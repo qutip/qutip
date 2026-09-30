@@ -37,7 +37,7 @@ cdef class Data_iterator:
         self.transpose = transpose
         self.conj = conj
 
-    cdef (int, int, double complex) next(self):
+    cdef (int, int, double complex) next(self) noexcept nogil:
         return 0, 0, NaN
 
 
@@ -49,7 +49,7 @@ cdef class Dense_iterator(Data_iterator):
         self.transpose = transpose
         self.conj = conj
 
-    cdef (int, int, double complex) next(self):
+    cdef (int, int, double complex) next(self) noexcept nogil:
         self.position += 1
 
         if self.position >= self.nnz:
@@ -80,7 +80,7 @@ cdef class CSR_iterator(Data_iterator):
         self.transpose = transpose
         self.conj = conj
 
-    cdef (int, int, double complex) next(self):
+    cdef (int, int, double complex) next(self) noexcept nogil:
         self.idx += 1
 
         if self.idx >= self.nnz:
@@ -119,7 +119,7 @@ cdef class Dia_iterator(Data_iterator):
         self.col = 0
         self.offset = 0
 
-    cdef (int, int, double complex) next(self):
+    cdef (int, int, double complex) next(self) noexcept nogil:
         self.col += 1
 
         while self.col >= self.diag_end:
