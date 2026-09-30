@@ -7,11 +7,10 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex cexp "exp" (double complex x)
     double complex csqrt "sqrt" (double complex x)
 
-@cython.nogil
-@cython.cfunc
 @cython.locals(x_size=np.npy_intp, j=int, i=int, k=int, temp1=complex, temp2=complex)
 @cython.boundscheck(False)
-cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_complex(int n, np.ndarray[np.complex128_t, ndim=1] x):
+@cython.wraparound(False)
+cpdef np.ndarray psi_n_single_fock_multiple_position_complex(int n, double complex[::1] x):
 
     """
     Compute the wavefunction to a complex vector x using adapted recurrence relation.
@@ -45,7 +44,7 @@ cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_co
     """
     
     x_size = x.shape[0]
-    cdef np.ndarray[np.complex128_t, ndim=2] result = np.zeros((n + 1, x_size), dtype=np.complex128)
+    cdef double complex[:, ::1] result = np.zeros((n + 1, x_size), dtype=np.complex128)
     cdef double pi_025 = pi ** (-0.25)
 
     for j in range(x_size):
@@ -61,6 +60,6 @@ cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_co
             for k in range(x_size):
                 result[i + 1, k] = 2 * x[k] * (result[i, k] / temp1) - temp2 * result[i - 1, k]
 
-    return result[-1, :]
+    return np.asarray(result)
 
 

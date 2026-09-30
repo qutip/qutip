@@ -459,18 +459,10 @@ class HarmonicOscillatorWaveFunction(Distribution):
             A quantum state from which the distribution is generated.
 
         """
-
-        self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
-        N = psi.shape[0]
-
-        for n in range(N):
-            self.data += (
-                psi_n_single_fock_multiple_position_complex(
-                    n, self.xvecs[0].astype(complex)
-                ) * psi[n, 0]
-            )
-
-        self.data *= pow(self.omega, 0.25)
+        rows = psi_n_single_fock_multiple_position_complex(
+            psi.shape[0] - 1, self.xvecs[0].astype(complex)
+        )
+        self.data = psi[:, 0] @ rows * pow(self.omega, 0.25)
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
