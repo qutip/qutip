@@ -16,6 +16,8 @@ from qutip.settings import settings
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
+from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.mul cimport mul_dense
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 from libc.math cimport fabs
@@ -378,17 +380,21 @@ cdef class QobjEvo:
 
     cpdef Data _call(QobjEvo self, double t):
         cdef object t_obj = t
-        
-        cdef Data out
+        cdef size_t i
         cdef _BaseElement part = self.elements[0]
-        out = _data.mul(part.data(t_obj), part._coeff_c(t))
-        for element in self.elements[1:]:
-            part = <_BaseElement> element
-            out = _data.add(
-                out,
-                part.data(t_obj),
-                part._coeff_c(t)
-            )
+        cdef Data part_data = part.data(t_obj)
+        cdef Data out
+        if type(part_data) is Dense:
+            out = mul_dense(<Dense> part_data, part._coeff_c(t))
+        else:
+            out = _data.mul(part_data, part._coeff_c(t))
+        for i in range(1, len(self.elements)):
+            part = <_BaseElement> self.elements[i]
+            part_data = part.data(t_obj)
+            if type(out) is Dense and type(part_data) is Dense:
+                iadd_dense(<Dense> out, <Dense> part_data, part._coeff_c(t))
+            else:
+                out = _data.add(out, part_data, part._coeff_c(t))
         return out
 
     cdef void _prepare(QobjEvo self, object t, Data state) except *:
