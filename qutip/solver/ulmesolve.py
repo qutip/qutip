@@ -461,7 +461,7 @@ class ULOP():
         self._with_lamb = options.get("use_lamb_shift", True)
         self._ncols = 6 if self._with_lamb else 4
 
-        self._g_tol = options.get("g tol", 1e-6)
+        self._g_tol = options.get("g tol", 1e-4)
         self._conv_tol = options.get("conv tol", 1e-4)
 
         self.t = None
