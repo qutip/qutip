@@ -181,7 +181,7 @@ class BosonicEnvironment(abc.ABC):
         return (self.power_spectrum(w, eps=eps))**0.5 / (2 * np.pi)
 
     def jump_correlator(
-        self, t: float | ArrayLike, *, eps: float = 1e-10
+        self, t: float | ArrayLike, *, _raw=False,
     ) -> (complex | ArrayLike):
         r"""
         Compute the jump correlator g(t) for the Universal Lindblad Equation.
@@ -204,7 +204,7 @@ class BosonicEnvironment(abc.ABC):
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
         """
-        return self._jc_from_ps(t)
+        return self._jc_from_ps(t, _raw=_raw)
 
     # --- user-defined environment creation
 
@@ -476,7 +476,7 @@ class BosonicEnvironment(abc.ABC):
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
 
-    def _jc_from_ps(self, t, wMax=None, **ps_kwargs):
+    def _jc_from_ps(self, t, wMax=None, _raw=False, **ps_kwargs):
         t = np.asarray(t, dtype=float)
         if t.ndim == 0:
             tMax = np.abs(t)
@@ -487,11 +487,12 @@ class BosonicEnvironment(abc.ABC):
 
         if getattr(self, "_jc_tMax", -1) < tMax:
             if wMax is None:
+                # TODO: We could find the proper wMax, the analytical formula.
                 ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
                 ps_target = ps_max * 1e-6
                 wMax = 1.
                 n_iter = 0
-                while self.power_spectrum(wMax) > ps_target and n_iter < 10:
+                while self.power_spectrum(wMax) > ps_target and n_iter < 25:
                     wMax *= 2
                     n_iter += 1
             self._jc_tMax = tMax
@@ -500,6 +501,8 @@ class BosonicEnvironment(abc.ABC):
                 lambda w: self.power_spectrum(w, **ps_kwargs)**0.5,
                 self._jc_tMax, tMax=wMax, scale=1/(2 * np.pi)
             )
+
+        if _raw: return self._jc
 
         result = self._jc(t)
         return result.item() if t.ndim == 0 else result
@@ -1206,6 +1209,72 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         sd_derivative = 2 * self.lam / self.gamma
         return self._ps_from_sd(w, None, sd_derivative)
+
+    def jump_correlator(
+        self, t: float | ArrayLike, *, wMax=None, _raw=False, ps_kwargs={},
+    ) -> (complex | ArrayLike):
+        t = np.asarray(t, dtype=float)
+        if t.ndim == 0:
+            tMax = np.abs(t)
+        elif len(t) == 0:
+            return np.array([])
+        else:
+            tMax = np.max(np.abs(t))
+
+        ps = lambda w_: self.power_spectrum(w_, **ps_kwargs)**0.5
+
+        if getattr(self, "_jc_tMax", -1) < tMax:
+            self._jc_tMax = tMax
+            if wMax is None:
+                # First guess
+                wMin = 2 * self.T + 1
+                wMax = max(self.T * self.gamma + 1, self.gamma * 50 + 1)
+                w = np.linspace(0, 2 * self.gamma, 101)
+                ps_max = np.max(ps(w))
+
+                while ps(-wMin) > ps_max * 1e-6:
+                    # Exponencial decrease, will converge
+                    wMin *= 1.5
+                n_iter = 0
+                while ps(wMax) > ps_max * 1e-4 and n_iter < 10:
+                    # Decrease as w**-.5, probably never reach...
+                    n_iter += 1
+                    wMax *= 2
+            print(wMin, wMax)
+            self._jc = self._fft_asym(
+                ps, tMax, tMin=wMin, tMax=wMax, scale=1/(2 * np.pi),
+            )
+            self._jc_tMax = tMax
+
+        if _raw:
+            return self._jc
+
+        result = self._jc(t)
+        return result.item() if t.ndim == 0 else result
+
+    def _fft_asym(self, f, wMax, tMin, tMax, scale=1.):
+        """
+        _fft with split tMin and tMax
+        Goes from -tMin to tMax
+        """
+        numSamples = int(
+            max(500, np.ceil((tMax + tMin) * 4 * wMax / np.pi + 1))
+        )
+
+        t, dt = np.linspace(-tMin, tMax, numSamples, retstep=True)
+        f_values = f(t)
+
+        # Compute Fourier transform by numpy's FFT function
+        g = np.fft.fft(f_values)
+        # frequency normalization factor is 2 * np.pi / dt
+        w = np.fft.fftfreq(numSamples) * 2 * np.pi / dt
+        # In order to get a discretisation of the continuous Fourier transform
+        # we need to multiply g by a phase factor
+        g *= dt * np.exp(1j * w * tMin)
+
+        return _complex_interpolation(
+            np.fft.fftshift(g) * scale, np.fft.fftshift(w), 'FFT'
+        )
 
     # --- approximation methods
 
