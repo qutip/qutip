@@ -108,9 +108,9 @@ class FloquetBasis:
             # Do the evolution by steps to save the intermediate results.
             self.U(t)
         U_T = self.U(self.T)
-        if not sparse and isinstance(U_T.data, _data.CSR):
+        if not sparse and isinstance(U_T.data, (_data.CSR, _data.Dia)):
             U_T = U_T.to("Dense")
-        if sparse:
+        if not isinstance(U_T.data, _data.Dense):
             evals, evecs = _data.eigs(U_T.data)
         else:
             schur_form, evecs = scipy.linalg.schur(
