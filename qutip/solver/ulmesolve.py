@@ -496,8 +496,6 @@ class ULOP():
         self.g = coefficient(jump_correlator(ts), tlist=ts)
         self._t_max = t_max
         self._t_scale = t_max / 100
-        import matplotlib.pyplot as plt
-        plt.plot(ts, jump_correlator(ts))
 
     def _initial_state(self):
         eye = _data.dense.identity(self.size)

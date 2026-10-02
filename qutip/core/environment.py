@@ -1240,7 +1240,6 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
                     # Decrease as w**-.5, probably never reach...
                     n_iter += 1
                     wMax *= 2
-            print(wMin, wMax)
             self._jc = self._fft_asym(
                 ps, tMax, tMin=wMin, tMax=wMax, scale=1/(2 * np.pi),
             )
