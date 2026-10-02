@@ -373,7 +373,8 @@ def bures_angle(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    return np.arccos(fidelity(A, B))
+    fid = np.real(fidelity(A, B))
+    return np.arccos(np.clip(fid, -1.0, 1.0))
 
 
 def hellinger_dist(A, B, sparse=False, tol=0):
