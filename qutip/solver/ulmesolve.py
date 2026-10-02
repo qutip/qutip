@@ -482,16 +482,17 @@ class ULOP():
            jc(t) = f(t) * exp(-t*alpha)
         but we don't know the units so have to estimate the cutoff.
         """
-        ts = np.logspace(-8, 3, 201)
+        ts = np.logspace(-8, 3, 501)
         correlator = jump_correlator(ts)
-        above = np.where(np.abs(correlator) > self._g_tol)[0]
+        jcmax = np.abs(correlator).max()
+        above = np.where(np.abs(correlator) > jcmax * self._g_tol)[0]
         # TODO: is 1000 enough?
         # Look farter if not converged yet?
         # Add time scale options?
         # TODO: at least document this as a hard limit somewhere.
         t_max = ts[above[-1]] if above.size else 1000.
 
-        ts = np.linspace(0, t_max, 1001)
+        ts = np.linspace(0, t_max, 10001)
         self.g = coefficient(jump_correlator(ts), tlist=ts)
         self._t_max = t_max
         self._t_scale = t_max / 100
