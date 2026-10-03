@@ -166,6 +166,38 @@ def test_driven_cavity(method, kwargs):
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
 
 
+def test_eigen_composite_3026():
+    """
+    Regression test for gh-3026: method="eigen" returned a completely
+    wrong, non-physical state for a composite (Jaynes-Cummings) system.
+    """
+    N = 4
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
+    sm = qutip.tensor(qutip.qeye(N), qutip.sigmam())
+    H = (
+        a.dag() * a
+        + 0.5 * qutip.tensor(qutip.qeye(N), qutip.sigmaz())
+        + 0.1 * (a.dag() * sm + a * sm.dag())
+    )
+    c_ops = [np.sqrt(0.05) * a, np.sqrt(0.02) * sm]
+
+    expected = qutip.steadystate(H, c_ops, method="direct")
+    for kwargs in [{}, {"sparse": False}]:
+        rho = qutip.steadystate(H, c_ops, method="eigen", **kwargs)
+        np.testing.assert_allclose(rho.full(), expected.full(), atol=1e-11)
+        assert rho.tr() == pytest.approx(1, abs=1e-14)
+        assert rho.isherm
+
+    # The sparse eigensolver may fail to find the zero eigenvalue. It must
+    # never silently return a wrong state.
+    try:
+        rho = qutip.steadystate(H, c_ops, method="eigen", sparse=True)
+    except RuntimeError:
+        pass
+    else:
+        np.testing.assert_allclose(rho.full(), expected.full(), atol=1e-11)
+
+
 def test_prop_ss_degen():
     N = 5
     H = qutip.qeye(2) & qutip.num(N)
