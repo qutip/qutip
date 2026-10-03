@@ -103,10 +103,13 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     power_eps: double, default: 1e-15
         Small weight used in the "power" method.
 
-    sparse: bool, default: True
-        Whether to use the sparse eigen solver with the "eigen" method
-        (default sparse).  With "direct" and "power" method, when the solver is
-        not specified, it is used to set whether "solve" or "spsolve" is
+    sparse : bool, default: None
+        Whether to use sparse algorithms.
+        With the "eigen" method, None (default) uses the dense eigensolver
+        for small Liouvillians and the sparse one for large Liouvillians;
+        the dense solver is more reliable for the smallest eigenvalue.
+        With the "direct" and "power" methods, when the solver is not
+        specified, it is used to set whether "solve" or "spsolve" is
         used as default solver.
 
     rho: Qobj, default: None
@@ -275,13 +278,36 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
 
 
 def _steadystate_eigen(L, **kw):
-    val, vec = (L.dag() @ L).eigenstates(
+    sparse = kw.pop("sparse", None)
+    if sparse is None:
+        # The dense eigensolver is more reliable at finding the smallest
+        # eigenvalue of L^dag L, which the steady state corresponds to.
+        # The sparse solver (ARPACK) can converge to a larger eigenvalue
+        # and return a vector that is not a steady state. Use the sparse
+        # solver only for Liouvillians too large for the dense one.
+        sparse = L.shape[0] > 2000
+    LL = L.dag() @ L
+    val, vec = LL.eigenstates(
         eigvals=1,
         sort="low",
-        # v4's implementation only uses sparse eigen solver
-        sparse=kw.pop("sparse", True)
+        sparse=sparse,
+        tol=kw.pop("tol", 0),
+        maxiter=kw.pop("maxiter", 100000),
     )
+    # The eigenvalue of L^dag L must be zero for the returned state to be
+    # a steady state of L. The eigensolver can fail to converge to it, so
+    # check and raise rather than silently returning a wrong state.
+    scale = LL.norm("one")
+    if not np.isfinite(val[0]) or abs(val[0]) > 1e-10 * max(scale, 0):
+        raise RuntimeError(
+            "Failed to find the zero eigenvalue of L^dag L; the state "
+            "returned by the eigensolver is not a steady state. Try the "
+            "'eigen' method with sparse=False, or another method such as "
+            "'direct' or 'power'."
+        )
     rho = vector_to_operator(vec[0])
+    # Remove the tiny asymmetry left by the numerical eigensolver.
+    rho = (rho + rho.dag()) * 0.5
     return rho / rho.tr()
 
 
