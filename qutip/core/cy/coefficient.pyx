@@ -62,9 +62,23 @@ def coefficient_function_parameters(func, style=None):
     if style is None:
         style = qutip.settings.core["function_coefficient_style"]
     if style == "auto":
-        if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
-            # if the signature is exactly f(t, args), then assume parameters
-            # are supplied in an argument dictionary
+        parameters = tuple(sig.parameters.values())
+        if (
+            len(parameters) == 2
+            and parameters[0].kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            and parameters[1].name == "args"
+            and parameters[1].kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            and not f_has_kw
+        ):
+            # If the signature is f(time, args), then assume parameters are
+            # supplied in an argument dictionary.  The name of the time
+            # parameter is not significant.
             style = "dict"
         else:
             style = "pythonic"
