@@ -54,8 +54,8 @@ def f_pythonic_args(time, args):
     return time * args
 
 
-def f_pythonic_kwonly_args(time, *, args):
-    return time * args
+def f_pythonic_kwonly_args(t, *, args):
+    return t * args
 
 
 def g_qtv4(t, args):
