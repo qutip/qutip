@@ -1,0 +1,2 @@
+Detect legacy dict-style coefficient functions from the shape
+``f(time, args)`` rather than requiring the time parameter to be named ``t``.
