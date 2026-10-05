@@ -51,13 +51,13 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | Package                  | Version      | Details                                             |
 +==========================+==============+=====================================================+
-| ``matplotlib``           | 3.6+         | Needed for all visualisation tasks.                 |
+| ``matplotlib``           | 3.9+         | Needed for all visualisation tasks.                 |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cython``               | 0.29.34+     | Needed for compiling some time-dependent            |
 | ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``cvxpy``                | 1.0+         | Needed to calculate diamond norms.                  |
+| ``cvxpy``                | 1.3+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``pytest``,              | 7.2+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
