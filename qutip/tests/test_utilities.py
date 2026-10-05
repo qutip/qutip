@@ -269,6 +269,37 @@ class TestFitting:
                 self.eval_prony(len(x), params), y, rtol=1e-4
             )
 
+    def test_esprit_delayed_peak(self):
+        # Non-Markovian bath correlation with an echo peak at the delay
+        # time (see issue #2950). Truncating the Hankel matrices instead of
+        # the SVD factors missed the delayed peak at any number of modes.
+        tau = 12.0
+        t = np.linspace(0, 30.0, 300)
+        y = np.exp(-0.6 * t)
+        late = t >= tau
+        y[late] += 0.7 * np.exp(-0.6 * (t[late] - tau))
+        rmse, params = utils.prony_methods("esprit", y, 8)
+        assert len(params) == 8
+        assert rmse < 8e-2
+        fit = np.real(self.eval_prony(len(t), params))
+        window = np.abs(t - tau) <= 1.5
+        peak = fit[window]
+        j = int(np.argmax(peak))
+        assert 0 < j < len(peak) - 1
+        assert peak[j] >= peak[j - 1] and peak[j] >= peak[j + 1]
+        assert peak[j] >= 0.15 * np.max(fit)
+
+    @pytest.mark.parametrize("method", ["prony", "esprit"])
+    def test_prony_methods_max_modes_capped(self, method):
+        # Requesting more modes than the shift-invariance solve supports
+        # caps to the available rank instead of failing (see issue #2950).
+        k = np.arange(20)
+        y = (2.0 * 0.9**k * np.exp(1j * 0.3 * k)
+             + 0.5 * 0.95**k * np.exp(-1j * 1.1 * k))
+        rmse, params = utils.prony_methods(method, y, len(y) // 2)
+        assert len(params) == len(y) // 2 - 1
+        assert abs(rmse) < 1e-8
+
 
 @pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
 def test_clebsch_large_j(j):
