@@ -2,6 +2,7 @@ from qutip.core.data cimport dense
 from scipy.linalg cimport cython_blas as blas
 cdef int _ONE=1
 
+
 cpdef list split_dense(dense.Dense merged, int ncol):
     """
     Fast, little sanity checked matrix split for ULME internal loop
@@ -21,6 +22,7 @@ cpdef list split_dense(dense.Dense merged, int ncol):
         tmp.fortran = True
         out.append(tmp)
     return out
+
 
 cpdef dense.Dense merge_dense(list datas):
     """

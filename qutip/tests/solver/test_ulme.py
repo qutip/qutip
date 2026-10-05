@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.core.environment import DrudeLorentzEnvironment, OhmicEnvironment
+from qutip.core.environment import DrudeLorentzEnvironment, OhmicEnvironment, UnderDampedEnvironment
 from qutip.solver.ulmesolve import ULMESolver, ulmesolve, UL_transform
 from qutip.solver.ulmesolve import _make_operators, ULOP
 from qutip import sigmax, sigmay, sigmaz, basis, qeye
@@ -103,7 +103,7 @@ class TestAOpsParsing:
     ])
     def test_good_a_ops(self, a_ops_formater):
         tlist = np.linspace(0, 0.1, 5)
-        env = DrudeLorentzEnvironment(T=1.0, lam=0.005, gamma=5.0)
+        env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
         a_ops = a_ops_formater((sigmax(), env))
         ulmesolve(sigmaz(), basis(2, 1), tlist, a_ops)
 
@@ -122,13 +122,13 @@ class TestAOpsParsing:
 
     def test_dimension_mismatch_raises(self):
         op_3level = qeye(3)
-        env = DrudeLorentzEnvironment(T=1.0, lam=0.005, gamma=5.0)
+        env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
         with pytest.raises(ValueError) as err:
             ULMESolver(sigmax(), [(op_3level, env)])
         assert "Dimension mismatch" in str(err.value)
 
     def test_superoperator_H_raises(self):
-        env = DrudeLorentzEnvironment(T=1.0, lam=0.005, gamma=5.0)
+        env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
         with pytest.raises(TypeError) as err:
             ULMESolver(qutip.liouvillian(sigmaz()), [(sigmax(), env)])
         assert "ULME cannot be used with superoperator" in str(err.value)

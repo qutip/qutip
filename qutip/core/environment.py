@@ -1221,25 +1221,23 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
         else:
             tMax = np.max(np.abs(t))
 
-        ps = lambda w_: self.power_spectrum(w_, **ps_kwargs)**0.5
+        ps = lambda w_: self.power_spectrum(w_)**0.5
+        # TODO: Document how to get better jc.
+        warnings.warn(
+            "DrudeLorentzEnvironment jump_correlator is unreliable.\n"
+            "Verify it's validity before use."
+        )
 
         if getattr(self, "_jc_tMax", -1) < tMax:
             self._jc_tMax = tMax
             if wMax is None:
                 # First guess
-                wMin = 2 * self.T + 1
-                wMax = max(self.T * self.gamma + 1, self.gamma * 50 + 1)
-                w = np.linspace(0, 2 * self.gamma, 101)
-                ps_max = np.max(ps(w))
+                wMin = 12 * self.T  # 1e-4 cutoff
+                # 1e-2x smaller at 10000 gamma, 1 / w**0.5
+                # should go even farther,
+                # but too large cause memory issues...
+                wMax = min(self.gamma * 10000, 2**16)
 
-                while ps(-wMin) > ps_max * 1e-6:
-                    # Exponencial decrease, will converge
-                    wMin *= 1.5
-                n_iter = 0
-                while ps(wMax) > ps_max * 1e-4 and n_iter < 10:
-                    # Decrease as w**-.5, probably never reach...
-                    n_iter += 1
-                    wMax *= 2
             self._jc = self._fft_asym(
                 ps, tMax, tMin=wMin, tMax=wMax, scale=1/(2 * np.pi),
             )
