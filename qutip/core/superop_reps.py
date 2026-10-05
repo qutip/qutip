@@ -58,7 +58,7 @@ def _superpauli_basis(nq=1):
         sci.indptr[i] = ptr
         ptr += ptr_inc
     sci.indptr[-1] = nnz
-    return Qobj(data.adjoint(),
+    return Qobj(data.transpose(),
                 dims=dims,
                 superrep='super',
                 isherm=False,
@@ -289,7 +289,8 @@ def _choi_to_chi(q_oper):
     """
     nq = _nq(q_oper.dims)
     B = _superpauli_basis(nq).data
-    return Qobj(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
+    return Qobj(_data.mul(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
+                          1 / q_oper.shape[0]),
                 dims=q_oper.dims,
                 superrep='chi',
                 copy=False)
@@ -304,12 +305,7 @@ def _chi_to_choi(q_oper):
     """
     nq = _nq(q_oper.dims)
     B = _superpauli_basis(nq).data
-    # The Chi matrix has tr(chi) == d², so we need to divide out
-    # by that to get back to the Choi form.
-    return Qobj(_data.mul(
-                    _data.matmul(_data.matmul(B, q_oper.data), B.adjoint()),
-                    1 / q_oper.shape[0]
-                ),
+    return Qobj(_data.matmul(_data.matmul(B, q_oper.data), B.adjoint()),
                 dims=q_oper.dims,
                 superrep='choi',
                 copy=False)
