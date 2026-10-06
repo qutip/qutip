@@ -745,3 +745,19 @@ def test_repr_svg():
     assert isinstance(svg, str)
     assert svg.startswith("<?xml")
     assert svg.endswith("</svg>\n")
+
+
+def test_bloch_webagg_canvas_without_manager():
+    pytest.importorskip("matplotlib")
+    try:
+        from matplotlib.backends.backend_webagg_core import (
+            FigureCanvasWebAggCore,
+        )
+    except ImportError:
+        pytest.skip("backend_webagg_core not available")
+    from matplotlib.figure import Figure
+
+    fig = Figure()
+    FigureCanvasWebAggCore(fig)
+    b = Bloch(fig=fig)
+    b.render()
