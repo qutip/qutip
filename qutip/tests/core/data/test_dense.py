@@ -3,7 +3,7 @@ import pytest
 
 from qutip.core import data
 from qutip.core.data import dense, csr
-
+from qutip import basis
 from qutip.testing import random_data
 
 
@@ -324,3 +324,15 @@ def test_nnz(shape):
         op[row, (row+1) % shape[1]] = 0.1 * tol
         op[row, row % shape[1]] = 0.8 * tol * (1. + 1j)
     assert dense.nnz(dense.Dense(op), tol) == shape[0]
+
+
+def test_tidyup():
+    original = (basis(2, 0) * 1e-2 + basis(2, 1)).to(dense.Dense).data
+    copy = original.copy()
+    cleaned = data.tidyup_dense(copy, 1e-1, inplace=False)
+    assert data.norm.l2(cleaned) == 1.
+    assert data.norm.l2(copy) >= 1.000049
+    assert data.norm.l2(original - copy) == 0.
+    data.tidyup_dense(copy, 1e-1, inplace=True)
+    assert data.norm.l2(copy) == 1.
+    assert data.norm.l2(cleaned - copy) == 0.
