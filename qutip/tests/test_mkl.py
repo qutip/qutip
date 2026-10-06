@@ -12,6 +12,28 @@ pytestmark = [
                        reason='MKL extensions not found.'),
 ]
 
+@pytest.fixture(params=[
+    pytest.param(True, id="real-positive"),
+    pytest.param(False, id="real-indefinite"),
+])
+def real_symmetric_matrix(request):
+    """Return a real symmetric CSR matrix and its solver flag."""
+    posdef = request.param
+    diagonal = [4., 3., 2.] if posdef else [2., -2., 3.]
+    upper = [1., 1.]
+    A = (
+        np.diag(np.array(diagonal, dtype=np.float64))
+        + np.diag(upper, k=1)
+        + np.diag(upper, k=-1)
+    )
+
+    eigenvalues = np.linalg.eigvalsh(A)
+    if posdef:
+        assert eigenvalues.min() > 0
+    else:
+        assert eigenvalues.min() < 0 < eigenvalues.max()
+
+    return scipy.sparse.csr_array(A), posdef
 
 class Test_spsolve:
     # Already tests hermitian=False path. Adense has assymetric sparsity pattern; tests general real solve
