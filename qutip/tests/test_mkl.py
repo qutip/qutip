@@ -35,6 +35,30 @@ def real_symmetric_matrix(request):
 
     return scipy.sparse.csr_array(A), posdef
 
+@pytest.fixture(params=[
+    pytest.param(True, id="complex-positive"),
+    pytest.param(False, id="complex-indefinite"),
+])
+def complex_hermitian_matrix(request):
+    """Return a complex Hermitian CSR matrix and its solver flag."""
+    posdef = request.param
+    diagonal = [4., 4., 3.] if posdef else [2., -2., 3.]
+    upper = [1. + 1.j, 1.j]
+    A = (
+        np.diag(np.array(diagonal, dtype=np.complex128))
+        + np.diag(upper, k=1)
+        + np.diag(np.conjugate(upper), k=-1)
+    )
+
+    eigenvalues = np.linalg.eigvalsh(A)
+    if posdef:
+        assert eigenvalues.min() > 0
+    else:
+        assert eigenvalues.min() < 0 < eigenvalues.max()
+
+    return scipy.sparse.csr_array(A), posdef
+
+
 class Test_spsolve:
     # Already tests hermitian=False path. Adense has assymetric sparsity pattern; tests general real solve
     # TODO: document which Pardiso type is tested. Do we have a way to verify which matrix type was selected by the solver?
