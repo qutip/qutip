@@ -57,7 +57,7 @@ Maintainers reserve the right to close any Pull Request that violates this Polic
 
 ## Minimum quality enforcement
 
-Pull requests missing the AI disclosure, towncrier entry and no effort for tests and formatting (as per pull requests template), will be immediately closed without review. Using the following template when doing so is encouraged:
+Pull requests that are missing the AI disclosure, the towncrier entry, or show no effort for tests and formatting (as per pull requests template), will be immediately closed without review. Using the following template when doing so is encouraged:
 
 ```
 Thanks for the PR. We're closing it because it doesn't meet our contribution requirements: [template not completed / AI use not disclosed / no towncrier entry / no tests]. See CONTRIBUTING.md. You're welcome to resubmit once these are addressed. We prioritize PRs where the author can discuss and defend the change.
