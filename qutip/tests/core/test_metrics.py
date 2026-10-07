@@ -22,7 +22,7 @@ except ImportError:
 # These ones are the metrics functions that we actually want to test.
 from qutip import (
     fidelity, tracedist, hellinger_dist, dnorm, average_gate_fidelity,
-    unitarity, hilbert_dist, bures_dist, process_fidelity,
+    unitarity, hilbert_dist, bures_dist, bures_angle, process_fidelity,
 )
 from qutip.core.metrics import _hilbert_space_dims
 
@@ -195,6 +195,21 @@ class Test_hellinger_dist:
         dist = hellinger_dist(rhoA, sigmaA)
         assert hellinger_dist(rho, sigma) + tol > dist
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
+
+
+def test_bures_angle_clamps_fidelity_above_one(monkeypatch):
+    # Roundoff can make fidelity(A, A) slightly greater than one, which is
+    # outside arccos's domain.
+    monkeypatch.setattr(
+        "qutip.core.metrics.fidelity",
+        lambda A, B: 1 + np.finfo(float).eps,
+    )
+
+    state = basis(2, 0)
+    angle = bures_angle(state, state)
+
+    assert np.isfinite(angle)
+    assert angle == 0
 
 
 def test_bures_dist_identical_random_states_is_finite(state):
