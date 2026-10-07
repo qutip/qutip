@@ -339,7 +339,7 @@ jobs:
           CIBW_PLATFORM: pyodide
           CIBW_BUILD: ${{ matrix.build }}-*
           CIBW_TEST_GROUPS: tests
-          CIBW_TEST_COMMAND: python -m pytest --pyargs qutip
+          CIBW_TEST_COMMAND: python -m pytest --color=yes --pyargs qutip
 
   towncrier-check:
     name: Verify Towncrier entry added
