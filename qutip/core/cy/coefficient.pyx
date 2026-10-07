@@ -1,6 +1,7 @@
 #cython: language_level=3
 
 import inspect
+import numbers
 import pickle
 import typing
 import scipy
@@ -151,6 +152,8 @@ cdef class Coefficient:
             return MulCoefficient(self.copy(), other.copy())
         if isinstance(other, qutip.Qobj):
             return qutip.QobjEvo([other.copy(), self.copy()])
+        if isinstance(other, numbers.Number):
+            return self * ConstantCoefficient(other)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -158,6 +161,8 @@ cdef class Coefficient:
             return MulCoefficient(self.copy(), other.copy())
         if isinstance(other, qutip.Qobj):
             return qutip.QobjEvo([other.copy(), self.copy()])
+        if isinstance(other, numbers.Number):
+            return self * ConstantCoefficient(other)
         return NotImplemented
 
     cpdef Coefficient copy(self):
