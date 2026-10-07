@@ -185,16 +185,65 @@ Changelog Generation
 --------------------
 
 We use ``towncrier`` for tracking changes and generating a changelog.
-When making a pull request, we require that you add a towncrier entry along with the code changes.
-You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory, where the PR number should be substituted for ``<PR number>``, and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
-depending on the type of change included in the PR.
+Every pull request must add at least one towncrier entry along with the code changes.
+You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory,
+where the PR number should be substituted for ``<PR number>``,
+and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
+depending on the type of change.
 
-You can also create this file by installing ``towncrier`` and running
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``feature``
+     - New functionality available to QuTiP users.
+   * - ``bugfix``
+     - Fix for incorrect or unintended behavior of existing functionality.
+   * - ``doc``
+     - Documentation-only changes.
+   * - ``deprecation``
+     - A feature is deprecated: it now emits a warning and will be removed in a future release.
+   * - ``removal``
+     - A previously deprecated feature is removed.
+   * - ``misc``
+     - Other user-visible changes that fit none of the types above
+       (for example ...).
+
+
+You can also create this file by installing ``towncrier`` and running::
 
    towncrier create <PR number>.<change type>
 
 Running this will create a file in the ``doc/changes`` directory with a filename corresponding to the argument you passed to ``towncrier create``.
 In this file, you should add a short description of the changes that the PR introduces.
+
+A pull request can add multiple towncrier entries.
+
+Internal change types
+^^^^^^^^^^^^^^^^^^^^^
+
+The following change types are for internal changes.
+Entries of these types are not included in the changelog,
+and they should only be used by maintainers.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``meta``
+     - Changes to project metadata and tooling, such as packaging, CI configuration, or GitHub templates.
+   * - ``test``
+     - Changes to the test suite only, such as new operating systems in automated tests or adjusted tolerances.
+   * - ``patch``
+     - Small follow-up fix to a PR that is already merged but not yet released,
+       and which already has its own entry (for example, removing a forgotten debug print).
+   * - ``chore``
+     - Other internal changes with no user-visible effect, such as refactoring, cleanup, or dependency bumps.
+
 
 .. _contributing-docs:
 

@@ -114,6 +114,23 @@ directory = "misc"
 name = "Miscellaneous"
 showcontent = true
 
+[[tool.towncrier.type]]
+directory = "meta"
+name = "Project Meta"
+showcontent = false
+[[tool.towncrier.type]]
+directory = "test"
+name = "Tests"
+showcontent = false
+[[tool.towncrier.type]]
+directory = "patch"
+name = "Patch"
+showcontent = false
+[[tool.towncrier.type]]
+directory = "chore"
+name = "Other Tasks"
+showcontent = false
+
 [tool.coverage.run]
 source = ["qutip"]
 parallel = true
