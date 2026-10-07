@@ -41,7 +41,7 @@ def pytest_runtest_setup(item):
     _skip_cython_tests_if_unavailable(item)
     if (sys.platform == "emscripten"
             and item.get_closest_marker("requires_multiprocessing")):
-        pytest.skip("multiprocessing is not available in WebAssembly")
+        pytest.skip("multiprocessing is not available on emscripten")
 
 
 @pytest.fixture

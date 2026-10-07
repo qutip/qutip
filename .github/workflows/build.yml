@@ -160,7 +160,6 @@ jobs:
       - uses: pypa/cibuildwheel@v4.2.1
         env:
           CIBW_PLATFORM: pyodide
-          # Python 3.13 (Pyodide 0.29) and 3.14 (Pyodide 314)
           CIBW_BUILD: "cp3{13,14}-*"
       - uses: actions/upload-artifact@v7
         with:
