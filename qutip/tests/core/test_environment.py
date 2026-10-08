@@ -630,7 +630,10 @@ class TestBosonicEnvironment:
     @pytest.mark.parametrize(["reference", "tMax", "N", "tol"], [
         pytest.param(OhmicReference(3, .75, 10, 1),
                      15, 8, 1e-2, id="Ohmic Example"),
-        pytest.param(UDReference(1, .5, .1, 1), 2, 4, 1e-2, id='UD Example'),
+        # The underdamped correlation is a two-mode signal per real and
+        # imaginary part; requesting more exponents only adds zero poles
+        # that carry no dynamics (see issue #2950).
+        pytest.param(UDReference(1, .5, .1, 1), 2, 2, 1e-2, id='UD Example'),
     ])
     @pytest.mark.parametrize("separate", [True, False])
     def test_fixed_prony_fit(self, reference, tMax, N, tol, separate):
