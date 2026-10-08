@@ -754,6 +754,7 @@ def test_spin_wigner_overlap(spin, pure, random_generator, n=5):
             trapezoid(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
 
+
 @pytest.mark.requires_multiprocessing
 def test_wigner_offset_parallel_laguerre(random_generator):
     "Winger: Compare parallel and serial laguerre results."
