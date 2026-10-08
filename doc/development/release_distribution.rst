@@ -187,7 +187,7 @@ It is automatically triggered when publishing a release under github release.
 .. _github:
 
 Making a Release on GitHub
-++++++++++++++++++++++++++
+--------------------------
 
 This is all done through `the "Releases" section <https://github.com/qutip/qutip/releases>`_ of the ``qutip/qutip`` repository on GitHub.
 
@@ -209,7 +209,7 @@ You should see the new version appear on `QuTiP's PyPI page <https://pypi.org/pr
 Manual Build
 ------------
 
-When the previous step failed or when testing the wheel build, it possible to run the build manually.
+When the previous step failed or when testing the wheel build, it is possible to run the build manually.
 Go to the `"Actions" tab at the top of the QuTiP code repository <https://github.com/qutip/qutip/actions>`_.
 Click on the "Build wheels, optionally deploy to PyPI" action in the left-hand sidebar.
 Click the "Run workflow" dropdown in the header notification; it should look like the image below.
@@ -221,7 +221,7 @@ Click the "Run workflow" dropdown in the header notification; it should look lik
   This must *never* be ``master``.
 - To make the release to PyPI, type the branch name (e.g. ``qutip-4.5.X``) into the "Confirm chosen branch name [...]" field.
   You *may* leave this field blank to skip the deployment and only build the package.
-- To have the action upload the artifact to a github release, use the tag instead of the branch: ``v5.4.0`` and write it the confirmation field.
+- To have the action upload the artifact to a github release, use the tag instead of the branch: ``v5.4.0`` and write it in the confirmation field.
 - (Special circumstances) If for some reason you need to override the version number (for example if the previous deployment to PyPI only partially succeeded), you can type a valid Python version identifier into the "Override version number" field.
   You probably do not need to do this.
   The mechanism is designed to make alpha-testing major upgrades with nightly releases easier.
