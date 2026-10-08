@@ -83,9 +83,18 @@ jobs:
           - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-run: "==2.1.*"
-            scipy-run: "==1.14.*"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
             qutip-optional: "[graphics]"
+            conda-extra-pkgs: pydiso
+
+          - case-name: pydiso conda
+            os: windows-latest
+            python-version: "3.12"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            conda-extra-pkgs: pydiso
 
           - case-name: version-5
             os: ubuntu-latest
@@ -239,7 +248,9 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
+            conda install --yes --override-channels --channel conda-forge \
+              "libblas=*=*mkl" \
+              $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi

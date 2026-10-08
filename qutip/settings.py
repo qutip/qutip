@@ -4,15 +4,16 @@ tidyup functionality, etc.
 """
 import os
 import sys
+import functools
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
 from pathlib import Path
+import warnings
 import numpy as np
 import scipy
 
 __all__ = ['settings']
-
 
 def _blas_info_pre_1_26():
     config = scipy.__config__
@@ -95,79 +96,32 @@ def available_cpu_count() -> int:
     return num_cpu or 1
 
 
-def _find_mkl():
-    """
-    Finds the MKL library.
-    Look into scipy's libraries, numpy's libraries, Anaconda default location
-    and Intel Python distributions's. (In that order)
-    """
-    plat = sys.platform
+@functools.cache
+def _has_pydiso() -> bool:
+    try:
+        import pydiso.mkl_solver
+    except ImportError:
+        return False
+    return True
 
-    if plat.startswith("win"):
-        # TODO: fix the mkl handling on windows or use modules like pydiso to
-        # do it for us.
-        return ""
-    if plat == "emscripten":
-        # mkl is not supported on emscripten
-        return ""
+def _mkl_versions() -> tuple[str | None, str | None]:
+    if not _has_pydiso():
+        return None, None
 
-    python_dir = Path(sys.executable).parent
-    if plat in ['darwin', 'linux2', 'linux']:
-        python_dir = python_dir.parent
-
-    # Try in default Anaconda location first
-    if plat in ['darwin', 'linux2', 'linux']:
-        lib_dir_anaconda = '/lib/*'
-        lib_dir_intel_python = '/ext/lib'
-    else:
-        lib_dir_anaconda = r'\Library\bin\*'
-        lib_dir_intel_python = r'\ext\lib'
+    from importlib.metadata import PackageNotFoundError, version
+    try:
+        pydiso_version = version("pydiso")
+    except PackageNotFoundError:
+        pydiso_version = "unknown"
 
     try:
-        scipy_cfg = scipy.show_config("dicts")["Build Dependencies"]
-        scipy_blas = scipy_cfg["blas"]["lib directory"]
-        scipy_lapack = scipy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        scipy_blas = "unknown"
-        scipy_lapack = "unknown"
+        from pydiso.mkl_solver import get_mkl_version
+        v = get_mkl_version()
+        mkl_version = (f"{v['MajorVersion']}.{v['MinorVersion']}.{v['UpdateVersion']}")
+    except Exception:
+        mkl_version = "unknown"
 
-    try:
-        numpy_cfg = np.show_config("dicts")["Build Dependencies"]
-        numpy_blas = numpy_cfg["blas"]["lib directory"]
-        numpy_lapack = numpy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        numpy_blas = "unknown"
-        numpy_lapack = "unknown"
-
-    paths = [
-        scipy_blas,
-        scipy_lapack,
-        numpy_blas,
-        numpy_lapack,
-        str(python_dir) + lib_dir_anaconda,
-        str(python_dir) + lib_dir_intel_python,
-    ]
-
-    if plat == 'darwin':
-        ext = ".dylib"
-    elif plat == 'win32':
-        ext = ".dll"
-    elif plat in ['linux2', 'linux']:
-        ext = ".so"
-    else:
-        raise Exception('Unknown platfrom.')
-
-    mkl_libs = []
-    for path in paths:
-        libraries = glob(path)
-        mkl_libs += [
-            lib for lib in libraries
-            if "mkl_rt." in lib and ext in lib
-        ]
-    if mkl_libs:
-        return mkl_libs[0]
-    return ""
-
+    return pydiso_version, mkl_version
 
 class Settings:
     """
@@ -188,8 +142,19 @@ class Settings:
 
     @property
     def has_mkl(self) -> bool:
-        """ Whether qutip found an mkl installation. """
-        return self.mkl_lib is not None
+        """ Checks whether the MKL Pardiso sparse solver is available.
+            Requires the optional ``pydiso`` package. """
+        return _has_pydiso()
+
+    @property
+    def mkl_version(self) -> str | None:
+        """ Version of the Intel MKL library used by ``pydiso`` """
+        return _mkl_versions()[1]
+    
+    @property
+    def pydiso_version(self) -> str | None:
+        """Version of ``pydiso```, which provides the MKL Pardiso solver """
+        return _mkl_versions()[0]
 
     @property
     def mkl_lib_location(self) -> str | None:
@@ -202,42 +167,18 @@ class Settings:
         It search for the library in the python lib path per default.
         If the library is in other location, update this variable as needed.
         """
-        if self._mkl_lib_loc == "":
-            _mkl_lib_loc = _find_mkl()
-            try:
-                _mkl_lib = cdll.LoadLibrary(_mkl_lib_loc)
-            except OSError:
-                _mkl_lib = None
-            if not (
-                hasattr(_mkl_lib, "pardiso")
-                and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-            ):
-                self._mkl_lib_loc = None
-                self._mkl_lib = None
-            else:
-                self._mkl_lib = _mkl_lib
-                self._mkl_lib_loc = _mkl_lib_loc
-        return self._mkl_lib_loc
+        warnings.warn("The 'mkl_lib_location' property is deprecated; use 'has_mkl' instead.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return ""
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        _mkl_lib = cdll.LoadLibrary(new)
-        if not (
-            hasattr(_mkl_lib, "pardiso")
-            and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-        ):
-            raise ValueError(
-                "mkl sparse functions not available in the provided library"
-            )
-        self._mkl_lib_loc = new
-        self._mkl_lib = _mkl_lib
-
-    @property
-    def mkl_lib(self) -> CDLL | None:
-        """ Mkl library """
-        if self._mkl_lib == "":
-            self.mkl_lib_location
-        return self._mkl_lib
+        warnings.warn("The 'mkl_lib_location' setter is deprecated; it is not possible to point qutip at a libmkl_rt in a non-standard location since pydiso links it at a build time.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
 
     @property
     def ipython(self) -> bool:

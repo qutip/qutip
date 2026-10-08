@@ -29,12 +29,13 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | Setting           | Read Only | Description                                              |
 +===================+===========+==========================================================+
-| `has_mkl`         | True      | Whether qutip can find mkl libraries.                    |
-|                   |           | mkl sparse linear equation solver can be used when True. |
+| ``has_mkl``       | True      | Whether the optional pydiso MKL PARDISO backend is       |
+|                   |           | available.                                               |
 +-------------------+-----------+----------------------------------------------------------+
-| `mkl_lib_location`| False     | Path of the mkl library.                                 |
+| ``mkl_version``   | True      | Version of Intel oneMKL used by pydiso, or ``None``      |
+|                   |           | when pydiso is unavailable.                              |
 +-------------------+-----------+----------------------------------------------------------+
-| `mkl_lib`         | True      | Mkl libraries loaded with ctypes.                        |
+| ``pydiso_version``| True      | Installed pydiso version, or ``None`` when unavailable.  |
 +-------------------+-----------+----------------------------------------------------------+
 | `ipython`         | True      | Whether running in IPython.                              |
 +-------------------+-----------+----------------------------------------------------------+
@@ -57,6 +58,25 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | `colorblind_safe` | False     | Control the default cmap in visualization functions.     |
 +-------------------+-----------+----------------------------------------------------------+
+
+
+MKL PARDISO availability
+------------------------
+
+QuTiP provides MKL PARDISO support through the optional ``pydiso`` package.
+Detection is automatic; users do not need to configure an MKL library path.
+
+The current status can be inspected with:
+
+.. code-block:: python
+
+   import qutip
+
+   print(qutip.settings.has_mkl)
+   print(qutip.settings.pydiso_version)
+   print(qutip.settings.mkl_version)
+
+See :ref:`steady-mkl` for installation and steady-state solver usage.
 
 
 It may be needed to update ``coeffroot`` if the default HOME is not writable. It can be done with:
