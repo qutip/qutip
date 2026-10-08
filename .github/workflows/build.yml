@@ -247,8 +247,7 @@ jobs:
 
   github-release:
     name: >-
-      Sign the qutip with Sigstore
-      and upload them to GitHub Release
+      Sign the qutip with Sigstore and upload them to GitHub Release
     needs:
     - deploy_pypi
     runs-on: ubuntu-latest
@@ -268,9 +267,8 @@ jobs:
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v3.4.0
         with:
-          inputs: >-
-            ./wheels/*.tar.gz
-            ./wheels/*.whl
+          inputs: ./wheels/*.tar.gz ./wheels/*.whl
+          release-signing-artifacts: false
       - name: Upload artifact signatures to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
