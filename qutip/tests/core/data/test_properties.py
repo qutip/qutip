@@ -18,54 +18,69 @@ class Test_isherm:
     @pytest.mark.repeat(20)
     @pytest.mark.parametrize("density", (0.1, 0.8))
     @pytest.mark.parametrize("size", (10, 100))
-    def test_random_equal_structure(self, datatype, size, density):
+    def test_random_equal_structure(
+        self, datatype, size, density, random_generator
+    ):
         # This is only going to be approximate, as entries generated onto the
         # diagonal will fill only one slot, not two, after addition with the
         # transpose.  The densities are arbitrary, though, so this doesn't
         # matter much.
         nnz = int(0.5 * size*size * density) or 1
         indices = np.triu_indices(size)
-        choice = np.random.choice(indices[0].size, nnz, replace=False)
+        choice = random_generator.choice(indices[0].size, nnz, replace=False)
         indices = (indices[0][choice], indices[1][choice])
 
         # Real-symmetric matrices.
         base = np.zeros((size, size), dtype=np.complex128)
-        base[indices] = np.random.rand(nnz)
+        base[indices] = random_generator.random(nnz)
         base += base.T.conj()
         base = _data.to(datatype, _data.create(base))
         assert _data.isherm(base)
 
         # Complex Hermitian matrices
         base = np.zeros((size, size), dtype=np.complex128)
-        base[indices] = np.random.rand(nnz) + 1j*np.random.rand(nnz)
+        base[indices] = (
+            random_generator.random(nnz)
+            + 1j * random_generator.random(nnz)
+        )
         base += base.T.conj()
         base = _data.to(datatype, _data.create(base))
         assert _data.isherm(base)
 
         # Complex skew-Hermitian matrices
         base = np.zeros((size, size), dtype=np.complex128)
-        base[indices] = np.random.rand(nnz) + 1j*np.random.rand(nnz)
+        base[indices] = (
+            random_generator.random(nnz)
+            + 1j * random_generator.random(nnz)
+        )
         base += base.T
         base = _data.to(datatype, _data.create(base))
         assert not _data.isherm(base)
 
     @pytest.mark.parametrize("cols", (2, 4))
     @pytest.mark.parametrize("rows", (1, 5))
-    def test_nonsquare_shapes(self, datatype, rows, cols):
-        real = _data.to(datatype, _data.create(np.random.rand(rows, cols)))
+    def test_nonsquare_shapes(self, datatype, rows, cols, random_generator):
+        real = _data.to(
+            datatype, _data.create(random_generator.random((rows, cols)))
+        )
         assert not _data.isherm(real, self.tol)
         assert not _data.isherm(real.transpose(), self.tol)
 
         imag = _data.to(
-            datatype,
-            _data.create(np.random.rand(rows, cols) + 1j * np.random.rand(rows, cols)),
+            datatype, _data.create((
+                random_generator.random((rows, cols))
+                + 1j * random_generator.random((rows, cols))
+            )),
         )
         assert not _data.isherm(imag, self.tol)
         assert not _data.isherm(imag.transpose(), self.tol)
 
-    def test_diagonal_elements(self, datatype):
+    def test_diagonal_elements(self, datatype, random_generator):
         n = 10
-        base = _data.to(datatype, _data.create(np.diag(np.random.rand(n))))
+        base = _data.to(
+            datatype,
+            _data.create(np.diag(random_generator.random(n)))
+        )
         assert _data.isherm(base, tol=self.tol)
         assert not _data.isherm(_data.mul(base, 1j), tol=self.tol)
 
@@ -115,7 +130,9 @@ class Test_isherm:
         assert not _data.isherm(base.transpose(), tol=self.tol)
 
     @pytest.mark.parametrize("density", np.linspace(0.2, 1, 17))
-    def test_compare_implicit_zero_random(self, datatype, density):
+    def test_compare_implicit_zero_random(
+        self, datatype, density, random_generator
+    ):
         """
         Regression test of gh-1350.
 
@@ -127,9 +144,12 @@ class Test_isherm:
         tolerance to ensure isherm can't just compare everything to zero.
         """
         n = 10
-        base = self.tol * 1e-2 * (np.random.rand(n, n) + 1j * np.random.rand(n, n))
+        base = self.tol * 1e-2 * (
+            random_generator.random((n, n))
+            + 1j * random_generator.random((n, n))
+        )
         # Mask some values out to zero.
-        base[np.random.rand(n, n) > density] = 0
+        base[random_generator.random((n, n)) > density] = 0
         np.fill_diagonal(base, self.tol * 1000)
         nnz = np.count_nonzero(base)
         with CoreOptions(auto_tidyup=False):
@@ -144,9 +164,9 @@ class Test_isherm:
         nnz = 0
         while nnz <= n:
             # Ensure that we don't just have the real diagonal.
-            base = self.tol * 1000j * np.random.rand(n, n)
+            base = self.tol * 1000j * random_generator.random((n, n))
             # Mask some values out to zero.
-            base[np.random.rand(n, n) > density] = 0
+            base[random_generator.random((n, n)) > density] = 0
             np.fill_diagonal(base, self.tol * 1000)
             nnz = np.count_nonzero(base)
         with CoreOptions(auto_tidyup=False):
@@ -183,25 +203,29 @@ class Test_isdiag:
 
 
 class TestIsEqual:
+    @pytest.fixture(autouse=True)
+    def _set_random_generator(self, random_generator):
+        self.random_generator = random_generator
+
     def op_numpy(self, left, right, atol, rtol):
         return np.allclose(left.to_array(), right.to_array(), rtol, atol)
 
-    def rand_dense(shape):
-        return random_data.random_dense(shape, False)
+    def rand_dense(shape, random_generator):
+        return random_data.random_dense(shape, False, random_generator)
 
-    def rand_diag(shape):
-        return random_data.random_diag(shape, 0.5, True)
+    def rand_diag(shape, random_generator):
+        return random_data.random_diag(shape, 0.5, True, random_generator)
 
-    def rand_csr(shape):
-        return random_data.random_csr(shape, 0.5, True)
+    def rand_csr(shape, random_generator):
+        return random_data.random_csr(shape, 0.5, True, random_generator)
 
     @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_same_shape(self, factory, shape):
         atol = 1e-8
         rtol = 1e-6
-        A = factory(shape)
-        B = factory(shape)
+        A = factory(shape, self.random_generator)
+        B = factory(shape, self.random_generator)
         assert _data.isequal(A, A, atol, rtol)
         assert _data.isequal(B, B, atol, rtol)
         assert (
@@ -212,15 +236,15 @@ class TestIsEqual:
     @pytest.mark.parametrize("shapeA", [(1, 10), (9, 9), (10, 2)])
     @pytest.mark.parametrize("shapeB", [(1, 9), (10, 10), (10, 1)])
     def test_different_shape(self, factory, shapeA, shapeB):
-        A = factory(shapeA)
-        B = factory(shapeB)
+        A = factory(shapeA, self.random_generator)
+        B = factory(shapeB, self.random_generator)
         assert not _data.isequal(A, B, np.inf, np.inf)
 
     @pytest.mark.parametrize("rtol", [1e-6, 100])
     @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_rtol(self, factory, shape, rtol):
-        mat = factory(shape)
+        mat = factory(shape, self.random_generator)
         assert _data.isequal(mat + mat * (rtol / 10), mat, 1e-14, rtol)
         assert not _data.isequal(mat * (1 + rtol * 10), mat, 1e-14, rtol)
 
@@ -228,20 +252,20 @@ class TestIsEqual:
     @pytest.mark.parametrize("factory", [rand_dense, rand_diag, rand_csr])
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_atol(self, factory, shape, atol):
-        A = factory(shape)
-        B = factory(shape)
+        A = factory(shape, self.random_generator)
+        B = factory(shape, self.random_generator)
         assert _data.isequal(A, A + B * (atol / 10), atol, 0)
         assert not _data.isequal(A, A + B * (atol * 10), atol, 0)
 
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_csr_mismatch_sort(self, shape):
-        A = random_data.random_csr(shape, 0.5, False)
+        A = random_data.random_csr(shape, 0.5, False, self.random_generator)
         B = A.copy().sort_indices()
         assert _data.isequal(A, B)
 
     @pytest.mark.parametrize("shape", [(1, 20), (20, 20), (20, 2)])
     def test_dia_mismatch_sort(self, shape):
-        A = random_data.random_diag(shape, 0.5, False)
+        A = random_data.random_diag(shape, 0.5, False, self.random_generator)
         B = clean_dia(A)
         assert _data.isequal(A, B)
 

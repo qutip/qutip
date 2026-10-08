@@ -1,0 +1,3 @@
+Fix ``bures_angle`` NaN when comparing a state with itself:
+ clamp fidelity to [-1, 1] before passing to arccos to prevent
+ numerical precision issues causing fidelity to slightly exceed 1.0.

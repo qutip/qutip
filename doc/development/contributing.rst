@@ -40,7 +40,7 @@ Building
 --------
 
 Building the core library from source is typically a bit more difficult than simply installing the package for regular use.
-You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from ::
+You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from:
 
 .. code-block:: bash
 
@@ -48,7 +48,7 @@ You will most likely want to do this in a clean Python environment so that you d
 
 :ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source <build-meson>`, not the general installation.
 You will need all the *build* and *tests* dependencies for the project.
-The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``project.group-dependency`` section of |pyproject.toml|_.
+The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``dependency-groups`` section of |pyproject.toml|_.
 You will also need the requirements for any optional features you want to test as well.
 
 .. |pyproject.toml| replace:: ``pyproject.toml`` file
@@ -67,7 +67,7 @@ Note that ``qutip`` should *not* be listed in ``conda install`` or ``pip install
 You will need to make sure you have a functioning C++ compiler to build QuTiP.
 If you are on Linux or Mac, this is likely already done for you, however if you are on Windows, refer to the :ref:`Windows installation <install-on-windows>` section of the installation guide.
 
-The command to build QuTiP in editable mode is ::
+The command to build QuTiP in editable mode is:
 
 .. code-block:: bash
 
@@ -101,7 +101,7 @@ Generally the low-level linear algebra routines that QuTiP uses are written in t
 Build options
 ~~~~~~~~~~~~~
 
-You can pass build options are passed through ``pip`` using ``--config-settings`` (``-C`` for short) ::
+You can pass build options through ``pip`` using ``--config-settings`` (``-C`` for short):
 
 .. code-block:: bash
 
@@ -110,7 +110,7 @@ You can pass build options are passed through ``pip`` using ``--config-settings`
 Here ``idxint_64`` selects 64-bit integers for the internal sparse-matrix memory indices.
 All the available build options are declared in the ``meson.options`` file in the repository root.
 
-Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile ::
+Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile:
 
 .. code-block:: bash
 
@@ -163,7 +163,7 @@ Testing
 -------
 
 We use ``pytest`` as our test runner.
-The base way to run every test is ::
+The base way to run every test is:
 
 .. code-block:: bash
 
@@ -212,14 +212,14 @@ You can see the rendered version of this file simply by going to the `documentat
 
 Building the documentation can be a little finnicky on occasion.
 You likely will want to keep a separate Python environment to build the documentation in, because some of the dependencies can have tight requirements that may conflict with your favourite tools for Python development.
-We recommend creating an empty ``conda`` environment containing only Python with ::
+We recommend creating an empty ``conda`` environment containing only Python with:
 
 .. code-block:: bash
 
    conda create -n qutip-doc python=3.13
 
 and install all further dependencies with ``pip``.
-There is a ``doc/requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using ::
+There is a ``doc/requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using:
 
 .. code-block:: bash
 
@@ -235,17 +235,17 @@ The documentation build includes running many components of the main QuTiP libra
 You therefore need to have a version of QuTiP available in the same Python environment.
 If you are only interested in updating the users' guide, you can use a release version of QuTiP, for example by running ``pip install qutip``.
 If you are also modifying the main library, you need to make your development version accessible in this environment.
-See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``doc/requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run ::
+See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``doc/requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run:
 
 .. code-block:: bash
 
-   python install .
+   pip install .
 
 in the main library repository.
 
 The documentation is built by running the ``make`` command.
 There are several targets to build, but the most useful will be ``html`` to build the webpage documentation, ``latexpdf`` to build the PDF documentation (you will also need a full ``pdflatex`` installation), and ``clean`` to remove all built files.
-The most important command you will want to run is ::
+The most important command you will want to run is:
 
 .. code-block:: bash
 

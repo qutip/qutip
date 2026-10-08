@@ -1,7 +1,7 @@
 import numpy as np
 from qutip import (
     sigmax, sigmay, sigmaz,  sigmap, sigmam,
-    rand_ket, num, destroy,
+    rand_ket, num, destroy, qeye, tensor,
     mesolve, expect, sesolve,
     Qobj, QobjEvo, coefficient
  )
@@ -39,13 +39,13 @@ class TestFloquet:
     A test class for the QuTiP functions for Floquet formalism.
     """
 
-    def testFloquetBasis(self):
+    def testFloquetBasis(self, random_generator):
         N = 10
         a = destroy(N)
         H = num(N) + (a+a.dag()) * coefficient(lambda t: np.cos(t))
         T = 2 * np.pi
         floquet_basis = FloquetBasis(H, T)
-        psi0 = rand_ket(N)
+        psi0 = rand_ket(N, seed=random_generator)
         tlist = np.linspace(0, 10, 11)
         floquet_psi0 = floquet_basis.to_floquet_basis(psi0)
         states = sesolve(H, psi0, tlist).states
@@ -53,12 +53,27 @@ class TestFloquet:
             from_floquet = floquet_basis.from_floquet_basis(floquet_psi0, t)
             assert state.overlap(from_floquet) == pytest.approx(1., abs=8e-5)
 
-    def testFloquetUnitary(self):
+    def test_degenerate_floquet_modes_are_orthonormal(self):
+        identity = qeye(2)
+        x = tensor(sigmax(), identity)
+        z = tensor(sigmaz(), identity)
+        drive = 0.5 * 2.404825557695773 * 10 * x
+        H = [z, [drive, lambda t: np.cos(10 * t)]]
+
+        modes = FloquetBasis(H, 2 * np.pi / 10).mode(0)
+        gram = np.array([
+            [left.overlap(right) for right in modes]
+            for left in modes
+        ])
+
+        np.testing.assert_allclose(gram, np.eye(4), atol=1e-12)
+
+    def testFloquetUnitary(self, random_generator):
         N = 10
         a = destroy(N)
         H = num(N) + (a+a.dag()) * coefficient(lambda t: np.cos(t))
         T = 2 * np.pi
-        psi0 = rand_ket(N)
+        psi0 = rand_ket(N, seed=random_generator)
         tlist = np.linspace(0, 10, 11)
         states_se = sesolve(H, psi0, tlist).states
         states_fse = fsesolve(H, psi0, tlist, T=T).states
@@ -66,7 +81,7 @@ class TestFloquet:
             assert state_se.overlap(state_fse) == pytest.approx(1., abs=5e-5)
 
 
-    def testFloquetMasterEquation1(self):
+    def testFloquetMasterEquation1(self, random_generator):
         """
         Test Floquet-Markov Master Equation for a driven two-level system
         without dissipation.
@@ -77,7 +92,7 @@ class TestFloquet:
         omega = np.sqrt(delta ** 2 + eps0 ** 2)
         T = (2 * np.pi) / omega
         tlist = np.linspace(0.0, 2 * T, 101)
-        psi0 = rand_ket(2)
+        psi0 = rand_ket(2, seed=random_generator)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
@@ -109,7 +124,7 @@ class TestFloquet:
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
-    def testFloquetMasterEquation2(self):
+    def testFloquetMasterEquation2(self, random_generator):
         """
         Test Floquet-Markov Master Equation for a two-level system
         subject to dissipation.
@@ -120,7 +135,7 @@ class TestFloquet:
         omega = np.sqrt(delta ** 2 + eps0 ** 2)
         T = (2 * np.pi) / omega
         tlist = np.linspace(0.0, 2 * T, 101)
-        psi0 = rand_ket(2)
+        psi0 = rand_ket(2, seed=random_generator)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
@@ -156,7 +171,7 @@ class TestFloquet:
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
     @pytest.mark.parametrize("kmax", [5, 25, 100])
-    def testFloquetMasterEquation3(self, kmax):
+    def testFloquetMasterEquation3(self, kmax, random_generator):
         """
         Test Floquet-Markov Master Equation for a two-level system
         subject to dissipation with internal transform of fmmesolve
@@ -167,7 +182,7 @@ class TestFloquet:
         omega = np.sqrt(delta ** 2 + eps0 ** 2)
         T = (2 * np.pi) / omega
         tlist = np.linspace(0.0, 2 * T, 101)
-        psi0 = rand_ket(2)
+        psi0 = rand_ket(2, seed=random_generator)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
@@ -206,7 +221,7 @@ class TestFloquet:
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref),
                                    atol=5 * 1e-4)
 
-    def testFloquetMasterEquation_multiple_coupling(self):
+    def testFloquetMasterEquation_multiple_coupling(self, random_generator):
         """
         Test Floquet-Markov Master Equation for a two-level system
         subject to dissipation with multiple coupling operators
@@ -217,7 +232,7 @@ class TestFloquet:
         omega = np.sqrt(delta ** 2 + eps0 ** 2)
         T = (2 * np.pi) / omega
         tlist = np.linspace(0.0, 2 * T, 101)
-        psi0 = rand_ket(2)
+        psi0 = rand_ket(2, seed=random_generator)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
@@ -334,9 +349,9 @@ class TestFloquet:
             assert (min(abs(Xs - Xpm_m1)) < 1e-4)
             idx += 1
 
-def test_fsesolve_fallback():
+def test_fsesolve_fallback(random_generator):
     H = [sigmaz(), lambda t: np.sin(t * 2 * np.pi)]
-    psi0 = rand_ket(2)
+    psi0 = rand_ket(2, seed=random_generator)
     ffstate = fmmesolve(H, psi0, [0, 1], T=1.).final_state
     fstate = sesolve(H, psi0, [0, 1], options={"atol": 1e-9}).final_state
     assert (ffstate - fstate).norm() < 1e-5

@@ -3,7 +3,7 @@ import pytest
 
 from qutip.core import data
 from qutip.core.data import dense, csr
-
+from qutip import basis
 from qutip.testing import random_data
 
 
@@ -29,13 +29,13 @@ def _valid_numpy():
 
 
 @pytest.fixture(scope='function')
-def numpy_dense(shape, fortran):
-    return random_data.random_numpy_dense(shape, fortran)
+def numpy_dense(shape, fortran, random_generator):
+    return random_data.random_numpy_dense(shape, fortran, random_generator)
 
 
 @pytest.fixture(scope='function')
-def data_dense(shape, fortran):
-    return random_data.random_dense(shape, fortran)
+def data_dense(shape, fortran, random_generator):
+    return random_data.random_dense(shape, fortran, random_generator)
 
 
 class TestClassMethods:
@@ -48,8 +48,8 @@ class TestClassMethods:
                                        'float64',
                                        'int32', 'int64',
                                        'uint32'])
-    def test_init_from_ndarray_other_dtype(self, shape, dtype):
-        numpy_dense = np.random.rand(*shape).astype(dtype, casting='unsafe')
+    def test_init_from_ndarray_other_dtype(self, shape, dtype, random_generator):
+        numpy_dense = random_generator.random(shape).astype(dtype, casting='unsafe')
         test = data.Dense(numpy_dense)
         assert test.shape == shape
         assert test.as_ndarray().dtype == np.complex128
@@ -324,3 +324,15 @@ def test_nnz(shape):
         op[row, (row+1) % shape[1]] = 0.1 * tol
         op[row, row % shape[1]] = 0.8 * tol * (1. + 1j)
     assert dense.nnz(dense.Dense(op), tol) == shape[0]
+
+
+def test_tidyup():
+    original = (basis(2, 0) * 1e-2 + basis(2, 1)).to(dense.Dense).data
+    copy = original.copy()
+    cleaned = data.tidyup_dense(copy, 1e-1, inplace=False)
+    assert data.norm.l2(cleaned) == 1.
+    assert data.norm.l2(copy) >= 1.000049
+    assert data.norm.l2(original - copy) == 0.
+    data.tidyup_dense(copy, 1e-1, inplace=True)
+    assert data.norm.l2(copy) == 1.
+    assert data.norm.l2(cleaned - copy) == 0.

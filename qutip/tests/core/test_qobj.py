@@ -16,14 +16,14 @@ def datatype(request):
     return request.param
 
 
-def _random_not_singular(N):
+def _random_not_singular(N, random_generator):
     """
     return a N*N complex array with determinant not 0.
     """
     data = np.zeros((1, 1))
-    while np.linalg.det(data) == 0:
-        data = np.random.random((N, N)) + \
-               1j * np.random.random((N, N)) - (0.5 + 0.5j)
+    while np.linalg.det(data) <= 1e-6:
+        data = random_generator.random((N, N)) + \
+               1j * random_generator.random((N, N)) - (0.5 + 0.5j)
     return data
 
 
@@ -36,37 +36,34 @@ def assert_hermicity(oper, hermicity):
     assert oper.isherm == hermicity
 
 
-def test_QobjData():
+def test_QobjData(random_generator):
     "qutip.Qobj data"
     N = 10
-    data1 = _random_not_singular(N)
+    data1 = _random_not_singular(N, random_generator)
     q1 = qutip.Qobj(data1)
     assert isinstance(q1.data, qutip.core.data.Data)
     assert np.all(q1.data.to_array() == data1)
 
-    data2 = _random_not_singular(N)
+    data2 = _random_not_singular(N, random_generator)
     data2 = scipy.sparse.csr_matrix(data2)
     q2 = qutip.Qobj(data2)
     assert isinstance(q2.data, qutip.core.data.Data)
 
 
 @pytest.mark.parametrize("original_data",
-                         [
-                            qutip.data.Dense(_random_not_singular(2)),
-                            qutip.data.csr.identity(2),
-                            qutip.Qobj(_random_not_singular(2)),
-                            _random_not_singular(2),
-                         ],
-                         ids=[
-                             "Dense",
-                             "CSR",
-                             "Qobj",
-                             "ndarray",
-                         ])
+    [
+        lambda data: qutip.data.Dense(data),
+        lambda data: qutip.data.csr.identity(2),
+        lambda data: qutip.Qobj(data),
+        lambda data: data,
+    ],
+    ids=["Dense", "CSR", "Qobj", "ndarray"]
+)
 @pytest.mark.parametrize("copy", [True, False],
                          ids=["copy=True", "copy=False"])
-def test_QobjCopyArgument(original_data, copy):
+def test_QobjCopyArgument(original_data, copy, random_generator):
     """Tests that Qobj copy argument works properly when instantiating Qobj."""
+    original_data = original_data(_random_not_singular(2, random_generator))
     with qutip.CoreOptions(default_dtype_scope="creation"):
         # default_dtype_scope="full" would break the copy logic
         qobj_data = qutip.Qobj(original_data, copy=copy).data
@@ -89,39 +86,39 @@ def test_QobjCopyArgument(original_data, copy):
             assert (original_data is qobj_data) != copy
 
 
-def test_QobjType():
+def test_QobjType(random_generator):
     "qutip.Qobj type"
-    N = int(np.ceil(10.0 * np.random.random())) + 5
+    N = int(np.ceil(10.0 * random_generator.random())) + 5
 
-    ket_data = np.random.random((N, 1))
+    ket_data = random_generator.random((N, 1))
     ket_qobj = qutip.Qobj(ket_data)
     assert ket_qobj.type == 'ket'
     assert ket_qobj.isket
 
-    bra_data = np.random.random((1, N))
+    bra_data = random_generator.random((1, N))
     bra_qobj = qutip.Qobj(bra_data)
     assert bra_qobj.type == 'bra'
     assert bra_qobj.isbra
 
-    oper_data = np.random.random((N, N))
+    oper_data = random_generator.random((N, N))
     oper_qobj = qutip.Qobj(oper_data)
     assert oper_qobj.type == 'oper'
     assert oper_qobj.isoper
 
     N = 9
-    super_data = np.random.random((N, N))
+    super_data = random_generator.random((N, N))
     super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[3], [3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
     assert super_qobj.superrep == 'super'
 
-    super_data = np.random.random(N)
+    super_data = random_generator.random(N)
     super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[1]]])
     assert super_qobj.type == 'operator-ket'
     assert super_qobj.isoperket
     assert super_qobj.superrep == 'super'
 
-    super_data = np.random.random((1, N))
+    super_data = random_generator.random((1, N))
     super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
     assert super_qobj.type == 'operator-bra'
     assert super_qobj.isoperbra
@@ -133,8 +130,8 @@ def test_QobjType():
 
 
 class TestQobjHermicity:
-    def test_standard(self):
-        base = _random_not_singular(10)
+    def test_standard(self, random_generator):
+        base = _random_not_singular(10, random_generator)
         assert_hermicity(qutip.Qobj(base), False)
         assert_hermicity(qutip.Qobj(base + base.conj().T), True)
         assert_hermicity(qutip.destroy(5), False)
@@ -305,22 +302,23 @@ class TestQobjCPTPCaching:
         assert copied._iscptp == channel._iscptp
 
 
-def test_QobjDimsShape():
+def test_QobjDimsShape(random_generator):
     "qutip.Qobj shape"
     N = 10
-    data = _random_not_singular(N)
+    data = _random_not_singular(N, random_generator)
 
     q1 = qutip.Qobj(data)
     assert q1.dims == [[10], [10]]
     assert q1.shape == (10, 10)
 
-    data = np.random.random((N, 1)) + 1j*np.random.random((N, 1)) - (0.5+0.5j)
+    data = (random_generator.random((N, 1))
+            + 1j*random_generator.random((N, 1)) - (0.5+0.5j))
 
     q1 = qutip.Qobj(data)
     assert q1.dims == [[10], [1]]
     assert q1.shape == (10, 1)
 
-    data = _random_not_singular(4)
+    data = _random_not_singular(4, random_generator)
 
     q1 = qutip.Qobj(data, dims=[[2, 2], [2, 2]])
     assert q1.dims == [[2, 2], [2, 2]]
@@ -356,7 +354,7 @@ def test_QobjMulNonsquareDims():
     assert (q1 * q2 * q1.dag()).dims == [[4, 2], [4, 2]]
 
 
-def test_QobjAddition():
+def test_QobjAddition(random_generator):
     "qutip.Qobj addition"
     data1 = np.array([[1, 2], [3, 4]])
     data2 = np.array([[5, 6], [7, 8]])
@@ -377,7 +375,7 @@ def test_QobjAddition():
     # check that addition is commutative
     assert q1 + q2 == q2 + q1
 
-    data = np.random.random((5, 5))
+    data = random_generator.random((5, 5))
     q = qutip.Qobj(data)
     x1 = q + 5
     x2 = 5 + q
@@ -386,12 +384,12 @@ def test_QobjAddition():
     assert np.all(x2.full() == data)
 
 
-def test_QobjSubtraction():
+def test_QobjSubtraction(random_generator):
     "qutip.Qobj subtraction"
-    data1 = _random_not_singular(5)
+    data1 = _random_not_singular(5, random_generator)
     q1 = qutip.Qobj(data1)
 
-    data2 = _random_not_singular(5)
+    data2 = _random_not_singular(5, random_generator)
     q2 = qutip.Qobj(data2)
 
     q3 = q1 - q2
@@ -511,26 +509,27 @@ def test_QobjNotImplemented():
     assert (scalar*qobj) == "object not accepted by _data.mul, mul"
     assert (qobj/scalar) == "object not accepted by _data.mul, rtruediv"
 
-def test_QobjDivision():
+
+def test_QobjDivision(random_generator):
     "qutip.Qobj division"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     q = qutip.Qobj(data)
-    randN = 10 * np.random.random()
+    randN = 10 * random_generator.random()
     q = q / randN
     assert np.allclose(q.full(), data/randN)
 
 
-def test_QobjPower():
+def test_QobjPower(random_generator):
     "qutip.Qobj power"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     q = qutip.Qobj(data)
     np.testing.assert_allclose((q**2).full(), data @ data, atol=1e-12)
     np.testing.assert_allclose((q**3).full(), data @ data @ data, atol=1e-12)
 
 
-def test_QobjNeg():
+def test_QobjNeg(random_generator):
     "qutip.Qobj negation"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     q = qutip.Qobj(data)
     x = -q
     assert np.all(x.full() == -data)
@@ -538,9 +537,9 @@ def test_QobjNeg():
     assert q.type == x.type
 
 
-def test_QobjEquals():
+def test_QobjEquals(random_generator):
     "qutip.Qobj equals"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     q1 = qutip.Qobj(data)
     q2 = qutip.Qobj(data)
     assert q1 == q2
@@ -559,15 +558,15 @@ def test_QobjEquals():
         assert q1 == q2 * 100
 
 
-def test_QobjGetItem():
+def test_QobjGetItem(random_generator):
     "qutip.Qobj getitem"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     q = qutip.Qobj(data)
     assert q[0, 0] == data[0, 0]
     assert q[-1, 2] == data[-1, 2]
 
 
-def test_CheckMulType():
+def test_CheckMulType(random_generator):
     "qutip.Qobj multiplication type"
     # ket-bra and bra-ket multiplication
     psi = qutip.basis(5, 0)
@@ -580,8 +579,8 @@ def test_CheckMulType():
     assert abs(nrm) == 1
 
     # operator-operator multiplication
-    H1 = qutip.rand_herm(3)
-    H2 = qutip.rand_herm(3)
+    H1 = qutip.rand_herm(3, seed=random_generator)
+    H2 = qutip.rand_herm(3, seed=random_generator)
     out = H1 * H2
     assert out.isoper
     out = H1 * H1
@@ -591,7 +590,7 @@ def test_CheckMulType():
     assert out.isoper
     assert out.isherm
 
-    U = qutip.rand_unitary(5)
+    U = qutip.rand_unitary(5, seed=random_generator)
     out = U.dag() * U
     assert out.isoper
     assert out.isherm
@@ -638,9 +637,9 @@ def test_operator_ket_superrep():
     assert opbra1.superrep == opbra2.superrep
 
 
-def test_QobjConjugate():
+def test_QobjConjugate(random_generator):
     "qutip.Qobj conjugate"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     A = qutip.Qobj(data)
     B = A.conj()
     assert np.all(B.full() == data.conj())
@@ -649,9 +648,9 @@ def test_QobjConjugate():
     assert A.superrep == B.superrep
 
 
-def test_QobjDagger():
+def test_QobjDagger(random_generator):
     "qutip.Qobj adjoint (dagger)"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     A = qutip.Qobj(data)
     B = A.dag()
     assert np.all(B.full() == data.conj().T)
@@ -660,9 +659,9 @@ def test_QobjDagger():
     assert A.superrep == B.superrep
 
 
-def test_QobjDiagonals():
+def test_QobjDiagonals(random_generator):
     "qutip.Qobj diagonals"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     A = qutip.Qobj(data)
     b = A.diag()
     assert np.all(b == np.diag(data))
@@ -673,6 +672,7 @@ def test_diag_type():
     assert (1j * qutip.sigmaz()).diag().dtype == np.complex128
     with qutip.CoreOptions(auto_real_casting=False):
         assert qutip.sigmaz().diag().dtype == np.complex128
+
 
 def test_QobjEigenEnergies():
     "qutip.Qobj eigenenergies"
@@ -710,8 +710,8 @@ def test_QobjEigenStates(space):
         assert c[k] == kets[k]
 
 
-def test_QobjEigenStatesOutputType():
-    op = qutip.rand_herm(5)
+def test_QobjEigenStatesOutputType(random_generator):
+    op = qutip.rand_herm(5, seed=random_generator)
 
     _, kets = op.eigenstates(output_type='kets', phase_fix=0)
     _, oper = op.eigenstates(output_type='oper', phase_fix=0)
@@ -720,17 +720,17 @@ def test_QobjEigenStatesOutputType():
            np.hstack([vec.full() for vec in kets]), dims=[5, 5]) == oper
 
 
-def test_QobjExpm():
+def test_QobjExpm(random_generator):
     "qutip.Qobj expm (dense)"
-    data = _random_not_singular(15)
+    data = _random_not_singular(15, random_generator)
     A = qutip.Qobj(data)
     B = A.expm()
     np.testing.assert_allclose(B.full(), scipy.linalg.expm(data), atol=1e-10)
 
 
-def test_QobjExpmExplicitlySparse():
+def test_QobjExpmExplicitlySparse(random_generator):
     "qutip.Qobj expm (sparse)"
-    data = _random_not_singular(15)
+    data = _random_not_singular(15, random_generator)
     A = qutip.Qobj(data)
     B = A.expm(dtype=qutip.data.CSR)
     np.testing.assert_allclose(B.full(), scipy.linalg.expm(data), atol=1e-10)
@@ -743,17 +743,17 @@ def test_QobjExpmZeroOper():
     assert B == qutip.qeye(5)
 
 
-def test_QobjLogm():
+def test_QobjLogm(random_generator):
     "qutip.Qobj expm (dense)"
-    data = _random_not_singular(15)
+    data = _random_not_singular(15, random_generator)
     A = qutip.Qobj(data)
     B = A.logm()
     np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
 
 
-def test_QobjLogmExplicitlySparse():
+def test_QobjLogmExplicitlySparse(random_generator):
     "qutip.Qobj logm (sparse)"
-    data = _random_not_singular(15)
+    data = _random_not_singular(15, random_generator)
     A = qutip.Qobj(data).to("csr")
     B = A.logm()
     np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
@@ -773,17 +773,17 @@ def test_QobjLogmNonSquareError():
         A.logm()
 
 
-def test_Qobj_sqrtm():
+def test_Qobj_sqrtm(random_generator):
     "qutip.Qobj sqrtm"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     A = qutip.Qobj(data)
     B = A.sqrtm()
     assert A == B * B
 
 
-def test_Qobj_inv():
+def test_Qobj_inv(random_generator):
     "qutip.Qobj inv"
-    data = _random_not_singular(5)
+    data = _random_not_singular(5, random_generator)
     A = qutip.Qobj(data)
     B = A.inv()
     assert qutip.qeye(5) == A * B
@@ -793,33 +793,37 @@ def test_Qobj_inv():
     assert qutip.qeye(5) == B * A
 
 
-def test_QobjFull():
+def test_QobjFull(random_generator):
     "qutip.Qobj full"
-    data = _random_not_singular(15)
+    data = _random_not_singular(15, random_generator)
     A = qutip.Qobj(data)
     b = A.full()
     assert np.all(b == data)
 
 
-def test_QobjNorm():
+def test_QobjNorm(random_generator):
     "qutip.Qobj norm"
     # vector L2-norm test
     N = 20
-    x = np.random.random(N) + 1j*np.random.random(N)
+    x = random_generator.random(N) + 1j*random_generator.random(N)
     A = qutip.Qobj(x)
     np.testing.assert_allclose(A.norm(), scipy.linalg.norm(x, 2), atol=1e-12)
     # vector max (inf) norm test
     np.testing.assert_allclose(A.norm('max'), scipy.linalg.norm(x, np.inf),
                                atol=1e-12)
     # operator frobius norm
-    x = np.random.random((N, N)) + 1j * np.random.random((N, N))
+    x = (random_generator.random((N, N))
+         + 1j * random_generator.random((N, N)))
     A = qutip.Qobj(x)
     np.testing.assert_allclose(A.norm('fro'), scipy.linalg.norm(x, 'fro'),
                                atol=1e-12)
     # operator trace norm
-    a = qutip.rand_herm(10, density=0.25)
+    a = qutip.rand_herm(10, density=0.25, seed=random_generator)
     np.testing.assert_allclose(a.norm(), (a*a.dag()).sqrtm().tr().real)
-    b = qutip.rand_herm(10, density=0.25) - 1j*qutip.rand_herm(10, density=0.25)
+    b = (
+        qutip.rand_herm(10, density=0.25, seed=random_generator)
+        - 1j * qutip.rand_herm(10, density=0.25, seed=random_generator)
+    )
     np.testing.assert_allclose(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
 
@@ -839,7 +843,7 @@ def test_QobjPurity():
     np.testing.assert_allclose(rho_mixed.purity(), 0.5)
 
 
-def test_QobjPermute(datatype):
+def test_QobjPermute(datatype, random_generator):
     "qutip.Qobj permute"
     A = qutip.basis(3, 0, dtype=datatype)
     B = qutip.basis(5, 4, dtype=datatype)
@@ -860,9 +864,9 @@ def test_QobjPermute(datatype):
     assert rho2 == qutip.tensor(C, A, B)
 
     for _ in range(3):
-        A = qutip.rand_ket(3, dtype=datatype)
-        B = qutip.rand_ket(4, dtype=datatype)
-        C = qutip.rand_ket(5, dtype=datatype)
+        A = qutip.rand_ket(3, dtype=datatype, seed=random_generator)
+        B = qutip.rand_ket(4, dtype=datatype, seed=random_generator)
+        C = qutip.rand_ket(5, dtype=datatype, seed=random_generator)
         psi = qutip.tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert psi2 == qutip.tensor(B, A, C)
@@ -872,9 +876,9 @@ def test_QobjPermute(datatype):
         assert psi2_bra == qutip.tensor(B, A, C).dag()
 
     for _ in range(3):
-        A = qutip.rand_dm(3, dtype=datatype)
-        B = qutip.rand_dm(4, dtype=datatype)
-        C = qutip.rand_dm(5, dtype=datatype)
+        A = qutip.rand_dm(3, dtype=datatype, seed=random_generator)
+        B = qutip.rand_dm(4, dtype=datatype, seed=random_generator)
+        C = qutip.rand_dm(5, dtype=datatype, seed=random_generator)
         rho = qutip.tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert rho2 == qutip.tensor(B, A, C)
@@ -890,7 +894,7 @@ def test_QobjPermute(datatype):
 
     for _ in range(3):
         super_dims = [3, 5, 4]
-        U = qutip.rand_unitary(super_dims, dtype=datatype)
+        U = qutip.rand_unitary(super_dims, dtype=datatype, seed=random_generator)
         Unew = U.permute([2, 1, 0])
         S_tens = qutip.to_super(U)
         S_tens_new = qutip.to_super(Unew)
@@ -970,11 +974,11 @@ def test_SuperType():
     pytest.param(qutip.to_choi, id='to_choi'),
     pytest.param(qutip.to_chi, id='to_chi'),
 ])
-def test_dag_preserves_superrep(dimension, conversion):
+def test_dag_preserves_superrep(dimension, conversion, random_generator):
     """
     Checks that dag() preserves superrep.
     """
-    qobj = conversion(qutip.rand_super_bcsz(dimension))
+    qobj = conversion(qutip.rand_super_bcsz(dimension, seed=random_generator))
     assert qobj.superrep == qobj.dag().superrep
 
 
@@ -987,7 +991,8 @@ def test_dag_preserves_superrep(dimension, conversion):
     pytest.param(qutip.tensor, True, False, id='tensor'),
 ])
 def test_arithmetic_preserves_superrep(superrep,
-                                       operation, check_op, check_scalar):
+                                       operation, check_op, check_scalar,
+                                       random_generator):
     """
     Checks that binary ops preserve 'superrep'.
 
@@ -998,9 +1003,13 @@ def test_arithmetic_preserves_superrep(superrep,
     """
     dims = [[[2], [2]], [[2], [2]]]
     shape = (4, 4)
-    S1 = qutip.Qobj(np.random.random(shape), superrep=superrep, dims=dims)
-    S2 = qutip.Qobj(np.random.random(shape), superrep=superrep, dims=dims)
-    x = np.random.random()
+    S1 = qutip.Qobj(
+        random_generator.random(shape), superrep=superrep, dims=dims
+    )
+    S2 = qutip.Qobj(
+        random_generator.random(shape), superrep=superrep, dims=dims
+    )
+    x = random_generator.random()
 
     check_list = []
     if check_op:
@@ -1016,31 +1025,32 @@ def test_arithmetic_preserves_superrep(superrep,
         assert S.superrep == superrep
 
 
-def test_isherm_skew():
+def test_isherm_skew(random_generator):
     """
     mul and tensor of skew-Hermitian operators report ``isherm = True``.
     """
-    iH = 1j * qutip.rand_herm(5)
+    iH = 1j * qutip.rand_herm(5, seed=random_generator)
     assert_hermicity(iH, False)
     assert_hermicity(iH * iH, True)
     assert_hermicity(qutip.tensor(iH, iH), True)
 
 
-def test_super_tensor_operket():
+def test_super_tensor_operket(random_generator):
     """
     Tensor: Checks that super_tensor respects states.
     """
-    rho1, rho2 = qutip.rand_dm(5), qutip.rand_dm(7)
+    rho1 = qutip.rand_dm(5, seed=random_generator)
+    rho2 = qutip.rand_dm(7, seed=random_generator)
     qutip.operator_to_vector(rho1)
     qutip.operator_to_vector(rho2)
 
 
-def test_super_tensor_property():
+def test_super_tensor_property(random_generator):
     """
     Tensor: Super_tensor correctly tensors on underlying spaces.
     """
-    U1 = qutip.rand_unitary(3)
-    U2 = qutip.rand_unitary(5)
+    U1 = qutip.rand_unitary(3, seed=random_generator)
+    U2 = qutip.rand_unitary(5, seed=random_generator)
     U = qutip.tensor(U1, U2)
     S_tens = qutip.to_super(U)
     S_supertens = qutip.super_tensor(qutip.to_super(U1), qutip.to_super(U2))
@@ -1048,16 +1058,16 @@ def test_super_tensor_property():
     assert S_supertens.superrep == 'super'
 
 
-def test_composite_oper():
+def test_composite_oper(random_generator):
     """
     Composite: Tests compositing unitaries and superoperators.
     """
-    U1 = qutip.rand_unitary(3)
-    U2 = qutip.rand_unitary(5)
+    U1 = qutip.rand_unitary(3, seed=random_generator)
+    U2 = qutip.rand_unitary(5, seed=random_generator)
     S1 = qutip.to_super(U1)
     S2 = qutip.to_super(U2)
-    S3 = qutip.rand_super(4)
-    S4 = qutip.rand_super(7)
+    S3 = qutip.rand_super(4, seed=random_generator)
+    S4 = qutip.rand_super(7, seed=random_generator)
 
     assert qutip.composite(U1, U2) == qutip.tensor(U1, U2)
     assert qutip.composite(S3, S4) == qutip.super_tensor(S3, S4)
@@ -1065,17 +1075,17 @@ def test_composite_oper():
     assert qutip.composite(S3, U2) == qutip.super_tensor(S3, S2)
 
 
-def test_composite_vec():
+def test_composite_vec(random_generator):
     """
     Composite: Tests compositing states and density operators.
     """
-    k1 = qutip.rand_ket(5)
-    k2 = qutip.rand_ket(7)
+    k1 = qutip.rand_ket(5, seed=random_generator)
+    k2 = qutip.rand_ket(7, seed=random_generator)
     r1 = qutip.operator_to_vector(qutip.ket2dm(k1))
     r2 = qutip.operator_to_vector(qutip.ket2dm(k2))
 
-    r3 = qutip.operator_to_vector(qutip.rand_dm(3))
-    r4 = qutip.operator_to_vector(qutip.rand_dm(4))
+    r3 = qutip.operator_to_vector(qutip.rand_dm(3, seed=random_generator))
+    r4 = qutip.operator_to_vector(qutip.rand_dm(4, seed=random_generator))
 
     assert qutip.composite(k1, k2) == qutip.tensor(k1, k2)
     assert qutip.composite(r3, r4) == qutip.super_tensor(r3, r4)
@@ -1097,9 +1107,9 @@ def trunc_neg_case(qobj, method, expected=None):
 
 class TestTruncNeg:
     """Test qutip.Qobj.trunc_neg for several different cases."""
-    def test_positive_operator(self):
-        trunc_neg_case(qutip.rand_dm(5), 'clip')
-        trunc_neg_case(qutip.rand_dm(5), 'sgs')
+    def test_positive_operator(self, random_generator):
+        trunc_neg_case(qutip.rand_dm(5, seed=random_generator), 'clip')
+        trunc_neg_case(qutip.rand_dm(5, seed=random_generator), 'sgs')
 
     def test_diagonal_operator(self):
         to_test = qutip.Qobj(np.diag([1.1, 0, -0.1]))
@@ -1107,8 +1117,8 @@ class TestTruncNeg:
         trunc_neg_case(to_test, 'clip', expected)
         trunc_neg_case(to_test, 'sgs', expected)
 
-    def test_nondiagonal_operator(self):
-        U = qutip.rand_unitary(3)
+    def test_nondiagonal_operator(self, random_generator):
+        U = qutip.rand_unitary(3, seed=random_generator)
         to_test = U * qutip.Qobj(np.diag([1.1, 0, -0.1])) * U.dag()
         expected = U * qutip.Qobj(np.diag([1.0, 0.0, 0.0])) * U.dag()
         trunc_neg_case(to_test, 'clip', expected)
@@ -1120,32 +1130,32 @@ class TestTruncNeg:
                        qutip.Qobj(np.diag([9./20, 7./20, 1./5, 0, 0])))
 
 
-def test_cosm():
+def test_cosm(random_generator):
     """
     Test qutip.Qobj: cosm
     """
-    A = qutip.rand_herm(5)
+    A = qutip.rand_herm(5, seed=random_generator)
     B = A.cosm().full()
     C = scipy.linalg.cosm(A.full())
     np.testing.assert_allclose(B, C, atol=1e-14)
 
 
-def test_sinm():
+def test_sinm(random_generator):
     """
     Test qutip.Qobj: sinm
     """
-    A = qutip.rand_herm(5)
+    A = qutip.rand_herm(5, seed=random_generator)
     B = A.sinm().full()
     C = scipy.linalg.sinm(A.full())
     np.testing.assert_allclose(B, C, atol=1e-14)
 
 
 @pytest.mark.parametrize("sub_dimensions", ([2], [2, 2], [2, 3], [3, 5, 2]))
-def test_dual_channel(sub_dimensions, n_trials=50):
+def test_dual_channel(sub_dimensions, random_generator, n_trials=50):
     """
     qutip.Qobj: dual_chan() preserves inner products with arbitrary density ops.
     """
-    S = qutip.rand_super_bcsz(np.prod(sub_dimensions))
+    S = qutip.rand_super_bcsz(np.prod(sub_dimensions), seed=random_generator)
     S.dims = [[sub_dimensions, sub_dimensions],
               [sub_dimensions, sub_dimensions]]
     S = qutip.to_super(S)
@@ -1161,11 +1171,11 @@ def test_dual_channel(sub_dimensions, n_trials=50):
     primals = []
     duals = []
 
-    for _ in [None]*n_trials:
-        X = qutip.rand_dm(out_dim)
+    for _ in range(n_trials):
+        X = qutip.rand_dm(out_dim, seed=random_generator)
         X.dims = left_dims
         X = qutip.operator_to_vector(X)
-        Y = qutip.rand_dm(in_dim)
+        Y = qutip.rand_dm(in_dim, seed=random_generator)
         Y.dims = right_dims
         Y = qutip.operator_to_vector(Y)
 
@@ -1175,15 +1185,15 @@ def test_dual_channel(sub_dimensions, n_trials=50):
     np.testing.assert_allclose(primals, duals)
 
 
-def test_call():
+def test_call(random_generator):
     """
     Test qutip.Qobj: Call
     """
     # Make test objects.
-    psi = qutip.rand_ket(3)
-    rho = qutip.rand_dm(3)
-    U = qutip.rand_unitary(3)
-    S = qutip.rand_super_bcsz(3)
+    psi = qutip.rand_ket(3, seed=random_generator)
+    rho = qutip.rand_dm(3, seed=random_generator)
+    U = qutip.rand_unitary(3, seed=random_generator)
+    S = qutip.rand_super_bcsz(3, seed=random_generator)
 
     # Case 0: oper(ket).
     assert U(psi) == U * psi
@@ -1201,16 +1211,16 @@ def test_call():
         S(S)
 
 
-def test_mat_elem():
+def test_mat_elem(random_generator):
     """
     Test qutip.Qobj: Compute matrix elements
     """
-    for _ in range(10):
+    for _ in range(30):
         N = 20
-        H = qutip.rand_herm(N, density=0.2)
-        L = qutip.rand_ket(N, density=0.3)
+        H = qutip.rand_herm(N, density=0.2, seed=random_generator)
+        L = qutip.rand_ket(N, density=0.3, seed=random_generator)
         Ld = L.dag()
-        R = qutip.rand_ket(N, density=0.3)
+        R = qutip.rand_ket(N, density=0.3, seed=random_generator)
         ans = Ld * H * R
         # bra-ket
         out1 = H.matrix_element(Ld, R)
@@ -1220,13 +1230,13 @@ def test_mat_elem():
         assert abs(ans - out2) < 1e-14
 
 
-def test_projection():
+def test_projection(random_generator):
     """
     Test qutip.Qobj: Projection operator
     """
     for _ in range(10):
         N = 5
-        K = qutip.rand_ket([N, N], density=0.75)
+        K = qutip.rand_ket([N, N], density=0.75, seed=random_generator)
         B = K.dag()
         ans = K * K.dag()
         out1 = K.proj()
@@ -1235,15 +1245,15 @@ def test_projection():
         assert out2 == ans
 
 
-def test_overlap():
+def test_overlap(random_generator):
     """
     Test qutip.Qobj: Overlap (inner product)
     """
     for _ in range(10):
         N = 10
-        A = qutip.rand_ket(N, density=0.75)
+        A = qutip.rand_ket(N, density=0.75, seed=random_generator)
         Ad = A.dag()
-        B = qutip.rand_ket(N, density=0.75)
+        B = qutip.rand_ket(N, density=0.75, seed=random_generator)
         Bd = B.dag()
         ans = A.dag() * B
         np.testing.assert_allclose(A.overlap(B), ans)
@@ -1252,12 +1262,14 @@ def test_overlap():
         np.testing.assert_allclose(A.overlap(Bd), np.conj(ans))
 
 
-def test_unit():
+def test_unit(random_generator):
     """
     Test qutip.Qobj: unit
     """
-    psi = (10*np.random.randn()*qutip.basis(2, 0)
-           - 10j*np.random.randn()*qutip.basis(2, 1))
+    psi = (
+        10 * random_generator.standard_normal() * qutip.basis(2, 0)
+        - 10j * random_generator.standard_normal() * qutip.basis(2, 1)
+    )
     psi2 = psi.unit()
     psi.unit(inplace=True)
     assert psi == psi2
@@ -1301,9 +1313,9 @@ def test_no_real_casting():
     pytest.param([[1], [[2, 1, 1], [2, 1, 1]]], [[1], [[2], [2]]],
                  id='operbra'),
 ])
-def test_contract(expanded, contracted, inplace):
+def test_contract(expanded, contracted, inplace, random_generator):
     shape = (np.prod(contracted[0]), np.prod(contracted[1]))
-    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    data = random_generator.random(shape) + 1j*random_generator.random(shape)
     qobj = qutip.Qobj(data, dims=expanded)
     assert qobj.dims == expanded
     out = qobj.contract(inplace=inplace)
@@ -1344,9 +1356,9 @@ def test_contract(expanded, contracted, inplace):
     pytest.param([[[2, 1, 1], [1, 2, 1]], [[3, 4], [1]]],
                  [[[2], [2]], [[3, 4], [1]]], id='super')
 ])
-def test_drop_scalar_dims(indims, outdims, inplace):
+def test_drop_scalar_dims(indims, outdims, inplace, random_generator):
     shape = (np.prod(flatten(indims[0])), np.prod(flatten(indims[1])))
-    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    data = random_generator.random(shape) + 1j*random_generator.random(shape)
     qobj = qutip.Qobj(data, dims=indims)
     assert qobj.dims == indims
     out = qobj.drop_scalar_dims(inplace=inplace)
@@ -1366,8 +1378,8 @@ def test_drop_scalar_dims(indims, outdims, inplace):
     pytest.param((2, 5), id='wide'),
     pytest.param((3, 3), id='oper'),
 ])
-def test_sum_zero(shape):
-    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+def test_sum_zero(shape, random_generator):
+    data = random_generator.random(shape) + 1j*random_generator.random(shape)
     qobj = qutip.Qobj(data)
     assert qobj + 0 == qobj
     assert qobj - 0 == qobj
@@ -1382,16 +1394,20 @@ def test_sum_zero(shape):
     pytest.param((2, 5), id='wide'),
     pytest.param((3, 3), id='oper'),
 ])
-def test_sum_buildin(shape):
-    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+def test_sum_buildin(shape, random_generator):
+    data = random_generator.random(shape) + 1j*random_generator.random(shape)
     qobj = qutip.Qobj(data)
     assert sum([qobj, 2 * qobj, -qobj]) == 2 * qobj
 
 
-def test_groundstate():
-    eigenvals = np.sort(np.random.rand(10))
+def test_groundstate(random_generator):
+    eigenvals = np.sort(random_generator.random(10))
     eigenvals[1:] += 0.1  # Ensure no degenerate groundstate
-    qobj = qutip.rand_herm(10, distribution="eigen", eigenvalues=eigenvals)
+    qobj = qutip.rand_herm(
+        10, distribution="eigen",
+        eigenvalues=eigenvals,
+        seed=random_generator,
+    )
     groundenergy, groundstate = qobj.groundstate()
     assert groundenergy == pytest.approx(eigenvals[0])
     assert qutip.expect(qobj, groundstate) == pytest.approx(eigenvals[0])
