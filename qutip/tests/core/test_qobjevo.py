@@ -622,6 +622,17 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
     _assert_qobjevo_equivalent(qevo, restored)
 
 
+def test_QobjEvo_to_list_constant_first():
+    """Ensure constant elements are placed first in to_list() output (Fixes #2921)."""
+    H0 = qzero_like(qeye(2))
+    H1 = qeye(2)
+    qevo = QobjEvo([[H1, "cos(t)"], H0])
+    as_list = qevo.to_list()
+    # Constant element must appear first in to_list()
+    assert isinstance(as_list[0], Qobj)
+    assert not isinstance(as_list[0], list)
+
+
 class Feedback_Checker_Coefficient:
     def __init__(self, stacked=True):
         self.state = None

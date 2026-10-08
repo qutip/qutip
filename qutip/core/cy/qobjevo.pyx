@@ -860,7 +860,7 @@ cdef class QobjEvo:
             (constant_part and not _data.iszero(constant_part.data))
             or not cleaned_elements
         ):
-            cleaned_elements.append(_ConstantElement(
+            cleaned_elements.insert(0, _ConstantElement(
                 constant_part or qutip.qzero_like(self)
             ))
 
