@@ -163,6 +163,7 @@ class MKLFactorization:
 
 
 def _mkl_matrix_type(dtype, hermitian, posdef):
+    """Select PARDISO's matrix type from the dtype and caller-supplied flags."""
     is_complex = np.issubdtype(dtype, np.complexfloating)
     if not hermitian:
         return 13 if is_complex else 11
@@ -191,9 +192,14 @@ def mkl_splu(
     verbose : bool, default: False
         Report factorization details.
     hermitian : bool, default: False
-        Treat ``A`` as Hermitian when selecting the PARDISO matrix type.
+        Assume ``A`` is Hermitian (symmetric for real data) when selecting
+        PARDISO's ``mtype``. Otherwise, select the nonsymmetric type
+        (``11`` for real data, ``13`` for complex data).
     posdef : bool, default: False
-        Treat a Hermitian matrix as positive-definite.
+        With ``hermitian=True``, assume ``A`` is positive definite
+        (``mtype=2`` for real data, ``mtype=4`` for complex data). Otherwise,
+        select the indefinite type (``-2`` or ``-4``, respectively).
+        Ignored when ``hermitian=False``.
     max_iter_refine : int, default: 10
         Maximum iterative-refinement steps. Use ``0`` for PARDISO's
         automatic behavior.
@@ -257,9 +263,14 @@ def mkl_spsolve(
     return_info : bool, default: False
         Return solver statistics together with the solution.
     hermitian : bool, default: False
-        Treat ``A`` as Hermitian when selecting the PARDISO matrix type.
+        Assume ``A`` is Hermitian (symmetric for real data) when selecting
+        PARDISO's ``mtype``. Otherwise, select the nonsymmetric type
+        (``11`` for real data, ``13`` for complex data).
     posdef : bool, default: False
-        Treat a Hermitian matrix as positive-definite.
+        With ``hermitian=True``, assume ``A`` is positive definite
+        (``mtype=2`` for real data, ``mtype=4`` for complex data). Otherwise,
+        select the indefinite type (``-2`` or ``-4``, respectively).
+        Ignored when ``hermitian=False``.
     max_iter_refine : int, default: 10
         Maximum iterative-refinement steps. Use ``0`` for PARDISO's
         automatic behavior.
