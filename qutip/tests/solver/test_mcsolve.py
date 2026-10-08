@@ -5,6 +5,12 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
+@pytest.fixture(autouse=True)
+def fix_mtsolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    MCSolver.seed_sequence = np.random.SeedSequence(seed)
+
+
 def _return_constant(t, constant):
     return constant
 

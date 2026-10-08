@@ -166,12 +166,12 @@ def test_driven_cavity(method, kwargs):
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
 
 
-def test_prop_ss_degen():
+def test_prop_ss_degen(random_generator):
     N = 5
     H = qutip.qeye(2) & qutip.num(N)
     a = qutip.qeye(2) & qutip.destroy(N)
-    rho_l = qutip.rand_dm(2)
-    rho_r = qutip.rand_dm(N)
+    rho_l = qutip.rand_dm(2, seed=random_generator)
+    rho_r = qutip.rand_dm(N, seed=random_generator)
     rho_ss = qutip.steadystate(H, [a], method="propagator", rho=rho_l & rho_r)
     with qutip.CoreOptions(atol=1e-5):
         assert rho_ss.ptrace([0]) == rho_l
@@ -257,7 +257,7 @@ def test_rcm():
     assert bandwidth(L) > bandwidth(_permute_rcm(L, b)[0])
 
 
-def test_wbm():
+def test_wbm(random_generator):
     N = 5
     a = qutip.destroy(N)
     I = qutip.qeye(N)
@@ -268,7 +268,7 @@ def test_wbm():
 
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
-    np.random.shuffle(perm)
+    random_generator.shuffle(perm)
     L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):

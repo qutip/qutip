@@ -6,8 +6,8 @@ from qutip.wigner import sph_harm_y
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 
-def test_result_state():
-    H = qutip.rand_dm(2)
+def test_result_state(random_generator):
+    H = qutip.rand_dm(2, seed=random_generator)
     tlist = np.linspace(0, 3*np.pi, 2)
     results = qutip.mesolve(H, H, tlist)
 
@@ -18,8 +18,8 @@ def test_result_state():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_result_state_ValueError():
-    H = qutip.rand_dm(2)
+def test_result_state_ValueError(random_generator):
+    H = qutip.rand_dm(2, seed=random_generator)
     tlist = np.linspace(0, 3*np.pi, 2)
     results = qutip.mesolve(H, H, tlist, options={"store_states": False})
 
@@ -30,8 +30,8 @@ def test_result_state_ValueError():
     assert str(exc_info.value) == text
 
 
-def test_anim_wigner_sphere():
-    psi = qutip.rand_ket(5)
+def test_anim_wigner_sphere(random_generator):
+    psi = qutip.rand_ket(5, seed=random_generator)
     wigner = qutip.wigner_transform(psi, 2, False, 50, ["x"])
 
     fig, ani = qutip.anim_wigner_sphere([wigner]*2)
@@ -41,8 +41,8 @@ def test_anim_wigner_sphere():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_anim_hinton():
-    rho = qutip.rand_dm(5)
+def test_anim_hinton(random_generator):
+    rho = qutip.rand_dm(5, seed=random_generator)
     rhos = [rho]*2
 
     fig, ani = qutip.anim_hinton(rhos)
@@ -64,8 +64,8 @@ def test_anim_sphereplot():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_anim_matrix_histogram():
-    rho = qutip.rand_dm(5)
+def test_anim_matrix_histogram(random_generator):
+    rho = qutip.rand_dm(5, seed=random_generator)
     rhos = [rho]*2
 
     fig, ani = qutip.anim_matrix_histogram(rhos)
@@ -75,8 +75,8 @@ def test_anim_matrix_histogram():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_anim_fock_distribution():
-    rho = qutip.rand_dm(5)
+def test_anim_fock_distribution(random_generator):
+    rho = qutip.rand_dm(5, seed=random_generator)
     rhos = [rho]*2
 
     fig, ani = qutip.anim_fock_distribution(rhos)
@@ -86,8 +86,8 @@ def test_anim_fock_distribution():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_anim_wigner():
-    rho = qutip.rand_dm(5)
+def test_anim_wigner(random_generator):
+    rho = qutip.rand_dm(5, seed=random_generator)
     rhos = [rho]*2
 
     fig, ani = qutip.anim_wigner(rhos)
@@ -97,8 +97,8 @@ def test_anim_wigner():
     assert isinstance(ani, mpl.animation.ArtistAnimation)
 
 
-def test_anim_qfunc():
-    rho = qutip.rand_dm(5)
+def test_anim_qfunc(random_generator):
+    rho = qutip.rand_dm(5, seed=random_generator)
     rhos = [rho]*2
 
     fig, ani = qutip.anim_qfunc(rhos)
@@ -111,11 +111,14 @@ def test_anim_qfunc():
 @pytest.mark.filterwarnings(
     "ignore:The input coordinates to pcolor:UserWarning"
 )
-def test_anim_spin_distribution():
+def test_anim_spin_distribution(random_generator):
     j = 5
     psi = qutip.spin_state(j, -j)
-    psi = qutip.spin_coherent(j, np.random.rand() * np.pi,
-                              np.random.rand() * 2 * np.pi)
+    psi = qutip.spin_coherent(
+        j,
+        random_generator.random() * np.pi,
+        random_generator.random() * 2 * np.pi
+    )
     theta = np.linspace(0, np.pi, 50)
     phi = np.linspace(0, 2 * np.pi, 50)
     Q, THETA, PHI = qutip.spin_q_function(psi, theta, phi)

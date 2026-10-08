@@ -7,7 +7,7 @@ import scipy.sparse
 
 from qutip.core.dimensions import flatten
 from qutip.core.energy_restricted import EnrSpace, Space
-
+from qutip.testing.random_data import random_scipy_csr
 
 def _n_enr_states(dimensions, n_excitations):
     """
@@ -132,13 +132,13 @@ def _reference_dm(dimensions, n_excitations, nbars):
 
 
 @pytest.mark.parametrize("nbar_type", ["scalar", "vector"])
-def test_thermal_dm(dimensions, n_excitations, nbar_type):
+def test_thermal_dm(dimensions, n_excitations, nbar_type, random_generator):
     # Ensure that the average number of excitations over all the states is
     # much less than the total number of allowed excitations.
     if nbar_type == "scalar":
         nbars = 0.1 * n_excitations / len(dimensions)
     else:
-        nbars = np.random.rand(len(dimensions))
+        nbars = random_generator.random(len(dimensions))
         nbars *= (0.1 * n_excitations) / np.sum(nbars)
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
@@ -282,7 +282,7 @@ def dtype(request):
                              ([4, 4, 4], []),
                              ([4, 4, 4], [0, 1, 2]),
                          ])
-@pytest.mark.filterwarnings("ignore:enr_ptrace")  
+@pytest.mark.filterwarnings("ignore:enr_ptrace")
 def test_enr_ptrace(dims, sel, n_excitations, dtype):
     nstates_enr = _n_enr_states(dims, n_excitations)
     # use qutip to make a random sparse Hermitian matrix w/ trace 1
@@ -314,7 +314,7 @@ def isoper(request):
                              ([[3, 2], [2, 2]], [2, 1]),
                              ([[3, 2], [4], [2, 2]], [2, 3, 2]),
                          ])
-def test_enr_tensor(dims_list, n_ex_list, isoper, dtype):
+def test_enr_tensor(dims_list, n_ex_list, isoper, dtype, random_generator):
     # isoper = 1 to test for operators, 0 to test for kets
     # figure out how big the matrices/vectors will be
     nstates_list = [_n_enr_states(dims, n_ex)
@@ -325,9 +325,13 @@ def test_enr_tensor(dims_list, n_ex_list, isoper, dtype):
     ncol_arr = nstates_list if isoper else [1]*len(nstates_list)
 
     # generate the random matrices
-    rand_mat_list = [scipy.sparse.random(
-        nstates, ncol,
-        density=dens, dtype="complex128")
+    rand_mat_list = [
+        random_scipy_csr(
+            (nstates, ncol),
+            density=dens,
+            gen=random_generator,
+            sorted_=True,
+        )
         for (nstates, ncol, dens)
         in zip(nstates_list, ncol_arr, dens_list)]
 

@@ -21,29 +21,29 @@ def _random_file_name():
 class Test_file_data_store_file_data_read:
     # Tests parametrised seprately to give nicer descriptions in verbose mode.
 
-    def case(self, filename, kwargs):
-        data = 1 - 2*np.random.rand(_dimension, _dimension)
+    def case(self, filename, kwargs, random_generator):
+        data = 1 - 2 * random_generator.random((_dimension, _dimension))
         if kwargs.get('numtype', 'complex') == 'complex':
             data = data * (0.5*0.5j)
         qutip.file_data_store(filename, data, **kwargs)
         out = qutip.file_data_read(filename)
         np.testing.assert_allclose(data, out, atol=1e-8)
 
-    def test_defaults(self):
-        return self.case(_random_file_name(), {})
+    def test_defaults(self, random_generator):
+        return self.case(_random_file_name(), {}, random_generator)
 
     @pytest.mark.parametrize("type_", ["real", "complex"])
     @pytest.mark.parametrize("format_", ["decimal", "exp"])
-    def test_type_format(self, type_, format_):
+    def test_type_format(self, type_, format_, random_generator):
 
         kwargs = {'numtype': type_, 'numformat': format_}
-        return self.case(_random_file_name(), kwargs)
+        return self.case(_random_file_name(), kwargs, random_generator)
 
     @pytest.mark.parametrize("separator", [",", ";", "\t", " ", " \t "],
                              ids=lambda x: "'" + x + "'")
-    def test_separator_detection(self, separator):
+    def test_separator_detection(self, separator, random_generator):
         kwargs = {'numtype': 'complex', 'numformat': 'exp', 'sep': separator}
-        return self.case(_random_file_name(), kwargs)
+        return self.case(_random_file_name(), kwargs, random_generator)
 
 
 @pytest.mark.parametrize('use_path', [True, False], ids=['Path', 'str'])

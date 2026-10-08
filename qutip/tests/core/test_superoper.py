@@ -26,18 +26,18 @@ class TestMatVec:
     """
     A test class for the QuTiP function for matrix/vector conversion.
     """
-    def testOperatorVector(self):
+    def testOperatorVector(self, random_generator):
         """
         Superoperator: Operator - vector - operator conversion.
         """
         N = 3
-        rho1 = qutip.rand_dm(N)
+        rho1 = qutip.rand_dm(N, seed=random_generator)
         rho2 = qutip.vector_to_operator(qutip.operator_to_vector(rho1))
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testsuperrep(self):
+    def testsuperrep(self, random_generator):
         N = 3
-        rho1 = qutip.rand_dm(N)
+        rho1 = qutip.rand_dm(N, seed=random_generator)
         as_vec = qutip.operator_to_vector(rho1)
         assert as_vec.superrep == 'super'
 
@@ -53,102 +53,102 @@ class TestMatVec:
         assert err.value.args[0] == ("Cannot convert object already "
                                      "in super representation")
 
-    def testOperatorVectorTensor(self):
+    def testOperatorVectorTensor(self, random_generator):
         """
         Superoperator: Operator - vector - operator conversion with a tensor
         product state.
         """
         Na = 3
         Nb = 2
-        rhoa = qutip.rand_dm(Na)
-        rhob = qutip.rand_dm(Nb)
+        rhoa = qutip.rand_dm(Na, seed=random_generator)
+        rhob = qutip.rand_dm(Nb, seed=random_generator)
         rho1 = qutip.tensor(rhoa, rhob)
         rho2 = qutip.vector_to_operator(qutip.operator_to_vector(rho1))
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testOperatorVectorNotSquare(self):
+    def testOperatorVectorNotSquare(self, random_generator):
         """
         Superoperator: Operator - vector - operator conversion for non-square
         matrix.
         """
-        op1 = qutip.Qobj(np.random.rand(6).reshape((3, 2)))
+        op1 = qutip.Qobj(random_generator.random(6).reshape((3, 2)))
         op2 = qutip.vector_to_operator(qutip.operator_to_vector(op1))
         np.testing.assert_allclose(op1.full(), op2.full(), 1e-8)
 
-    def testOperatorSpreAppl(self):
+    def testOperatorSpreAppl(self, random_generator):
         """
         Superoperator: apply operator and superoperator from left (spre)
         """
         N = 3
-        rho = qutip.rand_dm(N)
-        U = qutip.rand_unitary(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+        U = qutip.rand_unitary(N, seed=random_generator)
         rho1 = U * rho
         rho2_vec = qutip.spre(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testOperatorSpostAppl(self):
+    def testOperatorSpostAppl(self, random_generator):
         """
         Superoperator: apply operator and superoperator from right (spost)
         """
         N = 3
-        rho = qutip.rand_dm(N)
-        U = qutip.rand_unitary(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+        U = qutip.rand_unitary(N, seed=random_generator)
         rho1 = rho * U
         rho2_vec = qutip.spost(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testScommutatorAppl(self):
+    def testScommutatorAppl(self, random_generator):
         """
         Superoperator: apply commutator superoperator
         """
         N = 3
-        rho = qutip.rand_dm(N)
-        U = qutip.rand_unitary(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+        U = qutip.rand_unitary(N, seed=random_generator)
         rho1 = U * rho - rho * U
         rho2_vec = qutip.scommutator(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testSanticommutatorAppl(self):
+    def testSanticommutatorAppl(self, random_generator):
         """
         Superoperator: apply anticommutator superoperator
         """
         N = 3
-        rho = qutip.rand_dm(N)
-        U = qutip.rand_unitary(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+        U = qutip.rand_unitary(N, seed=random_generator)
         rho1 = U * rho + rho * U
         rho2_vec = qutip.santicommutator(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testOperatorUnitaryTransform(self):
+    def testOperatorUnitaryTransform(self, random_generator):
         """
         Superoperator: Unitary transformation with operators and superoperators
         """
         N = 3
-        rho = qutip.rand_dm(N)
-        U = qutip.rand_unitary(N)
+        rho = qutip.rand_dm(N, seed=random_generator)
+        U = qutip.rand_unitary(N, seed=random_generator)
         rho1 = U * rho * U.dag()
         rho2_vec = qutip.sprepost(U, U.dag()) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
-    def testMatrixVecMat(self):
+    def testMatrixVecMat(self, random_generator):
         """
         Superoperator: Conversion matrix to vector to matrix
         """
-        M = _data.create(np.random.rand(10, 10))
+        M = _data.create(random_generator.random((10, 10)))
         V = qutip.stack_columns(M)
         M2 = qutip.unstack_columns(V)
         np.testing.assert_allclose(M.to_array(), M2.to_array(), 1e-8)
 
-    def testVecMatVec(self):
+    def testVecMatVec(self, random_generator):
         """
         Superoperator: Conversion vector to matrix to vector
         """
-        V = _data.create(np.random.rand(100, 1))
+        V = _data.create(random_generator.random((100, 1)))
         M = qutip.unstack_columns(V)
         V2 = qutip.stack_columns(M)
         np.testing.assert_allclose(V.to_array(), V2.to_array(), 1e-8)
@@ -161,31 +161,33 @@ class TestMatVec:
         for i in range(N * N):
             assert i == qutip.stacked_index(N, *qutip.unstacked_index(N, i))
 
-    def testVecMatIndexCompability(self):
+    def testVecMatIndexCompability(self, random_generator):
         """
         Superoperator: Compatibility between matrix/vector and
         corresponding index conversions.
         """
         N = 10
-        M = _data.create(np.random.rand(N, N))
+        M = _data.create(random_generator.random((N, N)))
         V = qutip.stack_columns(M)
         for idx in range(N * N):
             i, j = qutip.unstacked_index(N, idx)
             assert V.to_array()[idx, 0] == M.to_array()[i, j]
 
-    def test_reshuffle(self):
-        U1 = qutip.rand_unitary(2)
-        U2 = qutip.rand_unitary(3)
-        U3 = qutip.rand_unitary(4)
+    def test_reshuffle(self, random_generator):
+        U1, U2, U3 = [
+            qutip.rand_unitary(dim, seed=random_generator)
+            for dim in (2, 3, 4)
+        ]
         U = qutip.tensor(U1, U2, U3)
         S = qutip.to_super(U)
         S_col = qutip.reshuffle(S)
         assert S_col.dims[0] == [[2], [2], [3], [3], [4], [4]]
         assert qutip.reshuffle(S_col) == S
 
-    def test_sprepost(self):
-        U1 = qutip.rand_unitary(3)
-        U2 = qutip.rand_unitary(3)
+    def test_sprepost(self, random_generator):
+        U1, U2 = [
+            qutip.rand_unitary(3, seed=random_generator) for _ in range(2)
+        ]
         S1 = qutip.spre(U1) * qutip.spost(U2)
         S2 = qutip.sprepost(U1, U2)
         assert S1 == S2

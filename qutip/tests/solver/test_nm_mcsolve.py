@@ -7,6 +7,12 @@ import qutip
 from qutip.solver.nm_mcsolve import nm_mcsolve, NonMarkovianMCSolver
 
 
+@pytest.fixture(autouse=True)
+def fix_mtsolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    NonMarkovianMCSolver.seed_sequence = np.random.SeedSequence(seed)
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize("improved_sampling", [True, False])
 @pytest.mark.parametrize("mixed_initial_state", [True, False])

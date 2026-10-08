@@ -13,31 +13,35 @@ class TestVonNeumannEntropy:
 
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
-    def test_pure_state(self, dim):
-        assert abs(qutip.entropy_vn(qutip.rand_ket(dim))) < 1e-12
+    def test_pure_state(self, dim, random_generator):
+        assert abs(
+            qutip.entropy_vn(qutip.rand_ket(dim, seed=random_generator))
+        ) < 1e-12
 
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
-    def test_mixed_state(self, dim):
-        assert qutip.entropy_vn(qutip.rand_dm(dim)) > 0
+    def test_mixed_state(self, dim, random_generator):
+        assert qutip.entropy_vn(qutip.rand_dm(dim, seed=random_generator)) > 0
 
 
 class TestLinearEntropy:
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
-    def test_less_than_von_neumann(self, dim):
-        dm = qutip.rand_dm(dim)
+    def test_less_than_von_neumann(self, dim, random_generator):
+        dm = qutip.rand_dm(dim, seed=random_generator)
         assert qutip.entropy_linear(dm) <= qutip.entropy_vn(dm)
 
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
-    def test_pure_state(self, dim):
-        assert abs(qutip.entropy_linear(qutip.rand_ket(dim))) < 1e-12
+    def test_pure_state(self, dim, random_generator):
+        assert abs(
+            qutip.entropy_linear(qutip.rand_ket(dim, seed=random_generator))
+        ) < 1e-12
 
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize("dim", [10, EnrSpace([3, 3], 2)])
-    def test_mixed_state(self, dim):
-        assert qutip.entropy_linear(qutip.rand_dm(dim)) > 0
+    def test_mixed_state(self, dim, random_generator):
+        assert qutip.entropy_linear(qutip.rand_dm(dim, seed=random_generator)) > 0
 
 
 class TestConcurrence:
@@ -49,22 +53,24 @@ class TestConcurrence:
         assert abs(qutip.concurrence(dm) - 1) < 1e-12
 
     @pytest.mark.repeat(10)
-    def test_nonzero(self):
-        dm = qutip.rand_dm([2, 2])
+    def test_nonzero(self, random_generator):
+        dm = qutip.rand_dm([2, 2], seed=random_generator)
         assert qutip.concurrence(dm) >= 0
 
 
 @pytest.mark.repeat(10)
 class TestMutualInformation:
-    def test_pure_state_additive(self):
+    def test_pure_state_additive(self, random_generator):
         # Verify mutual information = S(A) + S(B) for pure states.
-        dm = qutip.rand_dm([5, 5], distribution="pure")
+        dm = qutip.rand_dm([5, 5], distribution="pure", seed=random_generator)
         expect = (qutip.entropy_vn(dm.ptrace(0))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0], [1]) - expect) < 1e-13
 
-    def test_component_selection(self):
-        dm = qutip.rand_dm([2, 2, 2], distribution="pure")
+    def test_component_selection(self, random_generator):
+        dm = qutip.rand_dm(
+            [2, 2, 2], distribution="pure", seed=random_generator
+        )
         expect = (qutip.entropy_vn(dm.ptrace([0, 2]))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
@@ -176,15 +182,15 @@ class TestRelativeEntropy:
         assert str(exc.value) == "Input sigma has non-real eigenvalues."
 
     @pytest.mark.repeat(20)
-    def test_random_dm_with_self(self):
-        rho = qutip.rand_dm(8)
+    def test_random_dm_with_self(self, random_generator):
+        rho = qutip.rand_dm(8, seed=random_generator)
         rel = qutip.entropy_relative(rho, rho)
         assert abs(rel) < 1e-13
 
     @pytest.mark.repeat(20)
-    def test_random_rho_sigma(self):
-        rho = qutip.rand_dm(8)
-        sigma = qutip.rand_dm(8)
+    def test_random_rho_sigma(self, random_generator):
+        rho = qutip.rand_dm(8, seed=random_generator)
+        sigma = qutip.rand_dm(8, seed=random_generator)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(
@@ -192,10 +198,10 @@ class TestRelativeEntropy:
         )
 
     @pytest.mark.repeat(20)
-    def test_with_enr(self):
+    def test_with_enr(self, random_generator):
         dims = EnrSpace([3, 3], 2)
-        rho = qutip.rand_dm(dims)
-        sigma = qutip.rand_dm(dims)
+        rho = qutip.rand_dm(dims, seed=random_generator)
+        sigma = qutip.rand_dm(dims, seed=random_generator)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(
@@ -205,23 +211,27 @@ class TestRelativeEntropy:
 
 @pytest.mark.repeat(20)
 class TestConditionalEntropy:
-    def test_inequality_3_qubits(self):
+    def test_inequality_3_qubits(self, random_generator):
         # S(A | B,C) <= S(A|B)
-        full = qutip.rand_dm([2]*3, distribution="pure")
+        full = qutip.rand_dm(
+            [2]*3, distribution="pure", seed=random_generator
+        )
         ab = full.ptrace([0, 1])
         assert (qutip.entropy_conditional(full, [1, 2])
                 <= qutip.entropy_conditional(ab, 1))
 
-    def test_triangle_inequality_4_qubits(self):
+    def test_triangle_inequality_4_qubits(self, random_generator):
         # S(A,B | C,D) <= S(A|C) + S(B|D)
-        full = qutip.rand_dm([2]*4, distribution="pure")
+        full = qutip.rand_dm(
+            [2]*4, distribution="pure", seed=random_generator
+        )
         ac, bd = full.ptrace([0, 2]), full.ptrace([1, 3])
         assert (qutip.entropy_conditional(full, [2, 3])
                 <= (qutip.entropy_conditional(ac, 1)
                     + qutip.entropy_conditional(bd, 1)))
 
 
-_alpha = 2*np.pi * np.random.rand()
+alpha = 2*np.pi * np.random.rand()
 
 
 @pytest.mark.parametrize(["gate", "expected"], [
@@ -230,8 +240,8 @@ _alpha = 2*np.pi * np.random.rand()
     pytest.param(qutip.gates.berkeley(), 2/9, id="Berkeley"),
     pytest.param(qutip.gates.swap(), 0, id="SWAP"),
     pytest.param(qutip.gates.sqrtswap(), 1/6, id="sqrt(SWAP)"),
-    pytest.param(qutip.gates.swapalpha(_alpha),
-                 np.sin(np.pi*_alpha)**2 / 6, id="SWAP(alpha)"),
+    pytest.param(qutip.gates.swapalpha(alpha),
+                 np.sin(np.pi*alpha)**2 / 6, id=f"SWAP({alpha=})"),
 ])
 def test_entangling_power(gate, expected):
     assert abs(qutip.entangling_power(gate) - expected) < 1e-12

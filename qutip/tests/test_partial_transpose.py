@@ -38,11 +38,14 @@ def test_partial_transpose_bipartite():
     assert (np.abs(np.max(rho_pt.full() - rho.trans().full())) < 1e-12)
 
 
-def test_partial_transpose_comparison():
+def test_partial_transpose_comparison(random_generator):
     """partial transpose: comparing sparse and dense implementations"""
 
     N = 10
-    rho = tensor(rand_dm(N, density=0.5), rand_dm(N, density=0.5))
+    rho = tensor(
+        rand_dm(N, density=0.5, seed=random_generator),
+        rand_dm(N, density=0.5, seed=random_generator),
+    )
 
     # partial transpose of system 1
     rho_pt1 = partial_transpose(rho, [1, 0], method="dense")
@@ -55,14 +58,14 @@ def test_partial_transpose_comparison():
     np.abs(np.max(rho_pt1.full() - rho_pt2.full())) < 1e-12
 
 
-def test_partial_transpose_randomized():
+def test_partial_transpose_randomized(random_generator):
     """partial transpose: randomized tests on tripartite system"""
 
-    rho = tensor(rand_dm(2, density=1),
-                 rand_dm(2, density=1),
-                 rand_dm(2, density=1))
+    rho = tensor(rand_dm(2, density=1, seed=random_generator),
+                 rand_dm(2, density=1, seed=random_generator),
+                 rand_dm(2, density=1, seed=random_generator))
 
-    mask = np.random.randint(2, size=3)
+    mask = random_generator.integers(2, size=3)
 
     rho_pt_ref = _partial_transpose_reference(rho, mask)
 
