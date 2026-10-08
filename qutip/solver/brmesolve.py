@@ -42,6 +42,9 @@ def brmesolve(
     their associated spectral functions, as well as possible Lindblad collapse
     operators.
 
+    See the Users Guide on :ref:`bloch-redfield-qutip` for an introduction and
+    worked examples.
+
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`
@@ -200,6 +203,9 @@ class BRSolver(Solver):
     """
     Bloch Redfield equation evolution of a density matrix for a given
     Hamiltonian and set of bath coupling operators.
+
+    See the Users Guide on :ref:`bloch-redfield-qutip` for an introduction and
+    worked examples.
 
     Parameters
     ----------

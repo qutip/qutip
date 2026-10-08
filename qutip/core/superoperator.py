@@ -57,6 +57,9 @@ def liouvillian(
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
+    See the Users Guide on :ref:`master-master` and :ref:`super` for
+    background on Liouvillian and superoperator formalisms.
+
     Parameters
     ----------
     H : Qobj or QobjEvo, optional
@@ -168,6 +171,9 @@ def lindblad_dissipator(
     Lindblad dissipator (generalized) for a single pair of collapse operators
     (a, b), or for a single collapse operator (a) when b is not specified:
 
+    See the Users Guide on :ref:`master-master` and :ref:`super` for
+    background on Lindblad and superoperator notation.
+
     .. math::
 
         \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
@@ -236,6 +242,9 @@ def operator_to_vector(op: Qobj) -> Qobj:
     The passed object should have a ``Qobj.type`` of 'oper' or 'super'; this
     function is not designed for general-purpose matrix reshaping.
 
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
+
     Parameters
     ----------
     op : Qobj or QobjEvo
@@ -262,6 +271,9 @@ def vector_to_operator(op: Qobj) -> Qobj:
     Create a matrix representation given a quantum operator in vector form.
     The passed object should have a ``Qobj.type`` of 'operator-ket'; this
     function is not designed for general-purpose matrix reshaping.
+
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
 
     Parameters
     ----------
@@ -358,6 +370,9 @@ def spost(A: AnyQobj) -> AnyQobj:
     """
     Superoperator formed from post-multiplication by operator A
 
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
+
     Parameters
     ----------
     A : Qobj or QobjEvo
@@ -387,6 +402,9 @@ def spost(A: AnyQobj) -> AnyQobj:
 @_map_over_compound_operators
 def spre(A: AnyQobj) -> AnyQobj:
     """Superoperator formed from pre-multiplication by operator A.
+
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
 
     Parameters
     ----------
@@ -424,6 +442,9 @@ def sprepost(A, B):
     """
     Superoperator formed from pre-multiplication by A and post-multiplication
     by B.
+
+    See the Users Guide on :ref:`super` for an introduction and worked
+    examples.
 
     Parameters
     ----------
