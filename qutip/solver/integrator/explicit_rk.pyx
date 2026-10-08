@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, nonecheck=False
 """
 Provide a cython implimentation for a general Explicit runge-Kutta method.
@@ -12,6 +11,7 @@ from qutip.core.data.norm import frobenius_data
 from qutip.core.data.ode cimport cy_wrmn_error
 from qutip.solver.integrator._rhs cimport RHS
 from cpython.exc cimport PyErr_CheckSignals
+from libc.math cimport floor, pow
 cimport cython
 import numpy as np
 
@@ -437,7 +437,7 @@ cdef class Explicit_RungeKutta:
         return target
 
     @cython.cdivision(True)
-    cdef double _get_timestep(self, double t):
+    cdef double _get_timestep(self, double t) noexcept:
         """ Get the dt for the step. """
         cdef double dt_needed = t - self._t_prev
         if not self.adaptative_step:
@@ -446,9 +446,10 @@ cdef class Explicit_RungeKutta:
             return self._dt_safe
         if dt_needed <= self._dt_safe:
             return dt_needed
-        return dt_needed / (int(dt_needed / self._dt_safe) + 1)
+        return dt_needed / (floor(dt_needed / self._dt_safe) + 1)
 
-    cdef void _recompute_safe_step(self, double err, double dt):
+    @cython.cdivision(True)
+    cdef void _recompute_safe_step(self, double err, double dt) noexcept:
         """ Get maximum safe step in function of the error."""
         cdef double factor
         if not self.adaptative_step:
@@ -456,7 +457,7 @@ cdef class Explicit_RungeKutta:
         elif err == 0:
             factor = 10
         else:
-            factor = 0.9*err**(-1/(self.order+1))
+            factor = 0.9 * pow(err, -1. / (self.order + 1))
             factor = min(10, factor)
             factor = max(0.2, factor)
 
