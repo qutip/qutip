@@ -188,8 +188,7 @@ We use ``towncrier`` for tracking changes and generating a changelog.
 Every pull request must add at least one towncrier entry along with the code changes.
 You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory,
 where the PR number should be substituted for ``<PR number>``,
-and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
-depending on the type of change.
+and ``<change type>`` should be one of the following depending on the type of change.
 
 .. list-table::
    :header-rows: 1
