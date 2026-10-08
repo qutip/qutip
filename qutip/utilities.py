@@ -44,7 +44,6 @@ def n_thermal(w, w_th):
         Return the number of average photons in thermal equilibrium for a
         an oscillator with the given frequency and temperature.
 
-
     """
 
     w = np.array(w, dtype=float)

@@ -120,7 +120,7 @@ class BosonicEnvironment(abc.ABC):
         t : array_like or float
             The times at which to evaluate the correlation function.
 
-        eps : optional, float
+        eps : optional, float            # TODO: power_spectrum? Not correlation function?
             Used in case the power spectrum is derived from the spectral
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
@@ -158,6 +158,120 @@ class BosonicEnvironment(abc.ABC):
         """
 
         ...
+
+    def _g_w(
+        self, w: float | ArrayLike, *, eps: float = 1e-10
+    ) -> (float | ArrayLike):
+        """
+        Square root of the power_spectrum.
+
+        Used for the Universal Lindblad equation.
+
+        Parameters
+        ----------
+        w : array_like or float
+            The frequencies at which to evaluate the power spectrum.
+
+        eps : optional, float
+            To derive the zero-frequency power spectrum from the spectral
+            density, the spectral density must be differentiated numerically.
+            In that case, this parameter is used as the finite difference in
+            the numerical differentiation.
+        """
+        return (self.power_spectrum(w, eps=eps))**0.5 / (2 * np.pi)
+
+    def jump_correlator_function(
+        self, *,
+        atol: float = 1e-4,
+        rtol: float = 1e-3,
+        wMax: float = None,
+        wMin: float = None,
+        tMax: float = None,
+    ) -> Callable[[float | ArrayLike], float | ArrayLike]:
+        """
+        Create a function that represent the jump correlator.
+        It is based on a spline approximation for this environment's
+        jump_correlator method. It is the version of jump_correlator used in
+        :func:`ulmesolve` with the ``propagator`` ULME_creation option.
+
+        This function is always Hermitian symmetric and has an hard cutoff
+        stored in the `tmax` attribute.
+
+        Parameters
+        ----------
+        atol, rtol: float, default: 1e-4, 1e-3
+            Absolute and Relative tolerance to locate the cutoff.
+            The cutoff will be placed when all further values would be smaller
+            than ``atol + rtol * abs(max(jump_correlator))``.
+        wMin, wMax: float, optional
+            Limits of the FFT, if only wMax is provided, ``wMin = -wMax``.
+        tMax: float, optional
+            Cutoff location, if not provided, it is chosen from the tolerances.
+        """
+        if wMax is None:
+            # TODO: We could find the proper wMax, the analytical formula.
+            ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
+            ps_target = ps_max * 1e-6
+            wMax = 1.
+            n_iter = 0
+            while self.power_spectrum(wMax) > ps_target and n_iter < 25:
+                wMax *= 2
+                n_iter += 1
+
+        if wMin is None:
+            if self.T == 0:
+                wMin = -wMax
+            else:
+                wMin = - min(20 * self.T, wMax)
+
+        if tMax is None:
+            ts = np.logspace(-8, 3, 501)
+            correlator_f = _fft(
+                lambda w: self.power_spectrum(w)**0.5,
+                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+            )
+            correlator = correlator_f(ts)
+            jcmax = np.abs(correlator).max()
+            limit = jcmax * rtol + atol
+            above = np.where(np.abs(correlator) > limit)[0]
+            # TODO: is 1000 enough?
+            # Look farther if not converged yet?
+            tMax = ts[above[-1]] if above.size else 1000.
+
+        jcs, ts = _fft(
+            lambda w: self.power_spectrum(w)**0.5,
+            self._jc_tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
+        )
+        return _SymmetricSpline(jcs, ts, tMax, "FFT")
+
+    def jump_correlator(self, t: float | ArrayLike) -> (complex | ArrayLike):
+        r"""
+        Compute the jump correlator g(t) for the Universal Lindblad Equation.
+
+        The jump correlator is the time-domain representation of the square
+        root of the bath transition rates. It serves as the convolution kernel
+        for constructing time-dependent ULE jump operators.
+
+        It is defined as
+
+            J(t) = \int_{-inf}^{inf} ds g(t-s) g(s)
+
+        where J(t) is the correlation function and g(t) is the jump correlator.
+
+        Parameters
+        ----------
+        t : array_like or float
+            The times at which to evaluate the correlation function.
+
+        eps : optional, float
+            Used in case the power spectrum is derived from the spectral
+            density; see the documentation of
+            :meth:`BosonicEnvironment.power_spectrum`.
+        """
+        tMax = np.max(np.abs(t))
+        if not hasattr(self, "_jc") or self.jc.tMax < tMax:
+            self._jc = self.jump_correlator_function(tMax=tMax)
+        return self._jc(t)
 
     # --- user-defined environment creation
 
@@ -246,7 +360,7 @@ class BosonicEnvironment(abc.ABC):
 
         T : optional, float
             Environment temperature. (The spectral density of this environment
-            can only be calculated from the powr spectrum if a temperature is
+            can only be calculated from the power spectrum if a temperature is
             provided.)
 
         tag : optional, str, tuple or any other object
@@ -256,6 +370,56 @@ class BosonicEnvironment(abc.ABC):
             Extra arguments for the power spectrum ``S``.
         """
         return _BosonicEnvironment_fromPS(S, wlist, wMax, T, tag, args)
+
+    @classmethod
+    def from_jump_correlator(
+        cls,
+        g: Callable[[float], complex] | ArrayLike,
+        tlist: ArrayLike = None,
+        tMax: float = None,
+        *,
+        T: float = None,
+        tag: Any = None,
+        args: dict[str, Any] = None,
+    ) -> BosonicEnvironment:
+        r"""
+        Constructs a bosonic environment with the provided jump correlator
+        function. The provided function will only be used for times
+        :math:`t \geq 0`. At times :math:`t < 0`, the symmetry relation
+        :math:`g(-t) = g(t)^\ast` is enforced.
+
+        Parameters
+        ----------
+        g : callable or array_like
+            The spectral density. Can be provided as a Python function or
+            as an array. When using a function, the signature should be
+
+            ``g(t: array_like, **args) -> array_like``
+
+            where ``t`` is time and ``args`` is a dict containing the
+            other parameters of the function.
+
+        tlist : optional, array_like
+            The times where the correlation function is sampled (if it is
+            provided as an array).
+
+        tMax : optional, float
+            Specifies that the correlation function is essentially zero outside
+            the interval [-tMax, tMax]. Used for numerical integration
+            purposes.
+
+        T : optional, float
+            Environment temperature. (The correlation function and the power
+            spectrum of this environment can only be calculated from the
+            spectral density if a temperature is provided.)
+
+        tag : optional, str, tuple or any other object
+            An identifier (name) for this environment.
+
+        args : optional, dict
+            Extra arguments for the spectral density ``g``.
+        """
+        return _BosonicEnvironment_fromJC(g, tlist, tMax, T, tag, args)
 
     @classmethod
     def from_spectral_density(
@@ -372,12 +536,32 @@ class BosonicEnvironment(abc.ABC):
         elif len(t) == 0:
             return np.array([])
         else:
-            tMax = max(np.abs(t[0]), np.abs(t[-1]))
+            tMax = np.max(np.abs(t))
 
         result_fct = _fft(lambda w: self.power_spectrum(w, **ps_kwargs),
                           tMax, tMax=wMax)
         result = result_fct(t) / (2 * np.pi)
         return result.item() if t.ndim == 0 else result
+
+    def _ps_from_jc(self, w, tMax):
+        w = np.asarray(w, dtype=float)
+        if w.ndim == 0:
+            wMax = np.abs(w)
+        elif len(w) == 0:
+            return np.array([])
+        else:
+            wMax = max(np.abs(w[0]), np.abs(w[-1]))
+
+        if getattr(self, "_ps_wMax", wMax) <= wMax:
+            self._ps_wMax = wMax
+            fft_out = _fft(
+                self.correlation_function,
+                self._ps_wMax, tMax=tMax,
+            )
+            self._ps = lambda w: np.real(fft_out(-w))**2 * (2 * np.pi)
+
+        result = self._ps(w)
+        return result.item() if w.ndim == 0 else result
 
     # --- fitting
 
@@ -919,6 +1103,54 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
         return self._ps_from_sd(w, eps)
 
 
+class _BosonicEnvironment_fromJC(BosonicEnvironment):
+    def __init__(self, g, tlist, tMax, T, tag, args):
+        super().__init__(T, tag)
+        if tlist is not None:
+            tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
+
+        if callable(g):
+            self._jc = g
+            if not hasattr(self._jc, "tMax"):
+                self._jc.tMax = tMax
+        else:
+            self._jc = _SymmetricSpline(
+                g, tlist, tMax, 'jump correlator function',
+            )
+        self.tMax = tMax
+
+    def jump_correlator_function(
+        self, *,
+        atol: float = None,
+        rtol: float = None,
+        wMax: float = None,
+        wMin: float = None,
+        tMax: float = None,
+    ) -> Callable[[float | ArrayLike], float | ArrayLike]:
+        return self._jc
+
+    def jump_correlator(self, t):
+        t = np.asarray(t, dtype=float)
+        result = np.zeros_like(t, dtype=complex)
+        positive_mask = (t >= 0)
+        non_positive_mask = np.invert(positive_mask)
+
+        result[positive_mask] = self._jc(t[positive_mask])
+        result[non_positive_mask] = np.conj(
+            self._jc(-t[non_positive_mask])
+        )
+        return result.item() if t.ndim == 0 else result
+
+    def spectral_density(self, w):
+        return self._sd_from_ps(w)
+
+    def power_spectrum(self, w, **kwargs):
+        if self.tMax is None:
+            raise ValueError('The support of the correlation function (tMax) '
+                             'must be specified for this operation.')
+        return self._ps_from_jc(w, self.tMax)
+
+
 class DrudeLorentzEnvironment(BosonicEnvironment):
     r"""
     Describes a Drude-Lorentz bosonic environment with the spectral density
@@ -1028,6 +1260,47 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         sd_derivative = 2 * self.lam / self.gamma
         return self._ps_from_sd(w, None, sd_derivative)
+
+    def jump_correlator_function(
+        self, *,
+        atol: float = 1e-4,
+        rtol: float = 1e-3,
+        wMax: float = None,
+        wMin: float = None,
+        tMax: float = None,
+    ) -> Callable[[float | ArrayLike], float | ArrayLike]:
+        warnings.warn(
+            "DrudeLorentzEnvironment jump_correlator is unreliable.\n"
+            "Verify it's validity before use."
+        )
+        if wMax is None:
+            # ~w**-0.5: 1e-2x smaller at 10000 gamma
+            # We should go even farther, but too large cause other issues...
+            wMax = min(self.gamma * 10000, 2**16)
+
+        if wMin is None:
+            # 1e-4 cutoff
+            wMin = -12 * self.T
+
+        if tMax is None:
+            ts = np.logspace(-8, 3, 501)
+            correlator_f = _fft(
+                lambda w: self.power_spectrum(w)**0.5,
+                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+            )
+            correlator = correlator_f(ts)
+            jcmax = np.abs(correlator).max()
+            limit = jcmax * rtol + atol
+            above = np.where(np.abs(correlator) > limit)[0]
+            # TODO: is 1000 enough?
+            # Look farther if not converged yet?
+            tMax = ts[above[-1]] if above.size else 1000.
+
+        jcs, ts = _fft(
+            lambda w: self.power_spectrum(w)**0.5,
+            self._jc_tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
+        )
+        return _SymmetricSpline(jcs, ts, tMax, "FFT")
 
     # --- approximation methods
 
@@ -1653,7 +1926,7 @@ class OhmicEnvironment(BosonicEnvironment):
 
     def correlation_function(
         self, t: float | ArrayLike, **kwargs
-    ) -> (float | ArrayLike):
+    ) -> (complex | ArrayLike):
         r"""
         Calculates the correlation function of an Ohmic environment using the
         formula
@@ -2111,6 +2384,30 @@ def system_terminator(Q: Qobj, delta: float) -> Qobj:
 
 # --- utility functions ---
 
+class _SymmetricSpline:
+    """
+    Complex spline that enforce, Hermitian symmetry and finite cutoff.
+    """
+    def __init__(self, ylist, xlist, tMax, name):
+        if len(xlist) != len(fun):
+            raise ValueError("A list of x-values with the same length must be "
+                             f"provided for the discretized function ({name})")
+        self.tMax = tMax
+        self._real = CubicSpline(xlist, np.real(ylist))
+        self._imag = CubicSpline(xlist, np.imag(ylist))
+
+    def __call__(self, t):
+        t = np.asarray(t)
+        out = np.zeros_like(t)
+        pos_mask = (0 <= t <= self.tMax)
+        t_ins = t[pos_mask]
+        out[pos_mask] = self._real(t_ins) + 1j * self._imag(t_ins)
+        neg_mask = (-self.tMax <= t < 0)
+        t_ins = -t[neg_mask]
+        out[neg_mask] = (self._real(t_ins) + 1j * self._imag(t_ins)).conj()
+        return out.item() if t.ndim == 0 else out
+
+
 def _real_interpolation(fun, xlist, name, args=None):
     args = args or {}
     if callable(fun):
@@ -2132,7 +2429,7 @@ def _complex_interpolation(fun, xlist, name, args=None):
         return lambda x: real_interp(x) + 1j * imag_interp(x)
 
 
-def _fft(f, wMax, tMax):
+def _fft(f, wMax, tMax, tMin=None, scale=1., _raw=False):
     r"""
     Calculates the Fast Fourier transform of the given function. We calculate
     Fourier transformations via FFT because numerical integration is often
@@ -2157,17 +2454,24 @@ def _fft(f, wMax, tMax):
     tMax: float
         Support of the function f (i.e., f(t) is essentially zero for
         `|t| > tMax`).
+    tMin: float, default: -tMax
+        If the function is not symmetric, lower bound limit.
+    scale: complex, default: 1.
+        scale of the output.
+    _raw: bool, default False
+        When True, return the array instead of the spline.
 
     Returns
     -------
     The fourier transform of the provided function as an interpolated function.
     """
     # Code adapted from https://stackoverflow.com/a/24077914
-
+    if tMin is None:
+        tMin = -tMax
     numSamples = int(
-        max(500, np.ceil(2 * tMax * 4 * wMax / np.pi + 1))
+        max(500, np.ceil((tMax - tMin) * 4 * wMax / np.pi + 1))
     )
-    t, dt = np.linspace(-tMax, tMax, numSamples, retstep=True)
+    t, dt = np.linspace(tMin, tMax, numSamples, retstep=True)
     f_values = f(t)
 
     # Compute Fourier transform by numpy's FFT function
@@ -2176,10 +2480,13 @@ def _fft(f, wMax, tMax):
     w = np.fft.fftfreq(numSamples) * 2 * np.pi / dt
     # In order to get a discretisation of the continuous Fourier transform
     # we need to multiply g by a phase factor
-    g *= dt * np.exp(1j * w * tMax)
+    g *= dt * np.exp(-1j * w * tMin)
+
+    if _raw:
+        return np.fft.fftshift(g) * scale, np.fft.fftshift(w)
 
     return _complex_interpolation(
-        np.fft.fftshift(g), np.fft.fftshift(w), 'FFT'
+        np.fft.fftshift(g) * scale, np.fft.fftshift(w), 'FFT'
     )
 
 
