@@ -9,7 +9,6 @@ from numpy.typing import ArrayLike
 
 from .. import Qobj, QobjEvo
 from ..core import data as _data
-from ..core.coefficient import coefficient
 from ..core.environment import BosonicEnvironment
 from ..typing import EopsLike, QobjEvoLike
 from .mesolve import MESolver
@@ -24,11 +23,11 @@ __all__ = ["ulmesolve", "ULMESolver", "UL_transform"]
 _ULME_DEFAULT_OPTIONS = {
     "ULME_creation": "propagator",
     "use_lamb_shift": True,
-    "eigen pv integral limits": 30,
-    "propagator method": "tsit5",
-    "propagator ODE options": {},
-    "JC options": {"atol": 1e-4, "rtol":1e-3},
-    "conv tol": 1e-4,
+    "eigen_pv_integral_limits": 30,
+    "propagator_method": "tsit5",
+    "propagator_ODE_options": {},
+    "JC_options": {"atol": 1e-4, "rtol":1e-3},
+    "conv_tol": 1e-4,
 }
 
 
@@ -85,16 +84,16 @@ def ulmesolve(
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
           | "propagator": Integration in the interaction picture, general.
-        - | "eigen pv integral limits" : float, default: 30
+        - | eigen_pv_integral_limits : float, default: 30
             Limit of the power_spectrum integral for the lambda shift operator
             with the eigen method.
-        - | "propagator method": str, default: "tsit5"
+        - | propagator_method: str, default: "tsit5"
           | ODE method used for the propagator ULME_creation method.
-        - | "propagator ODE options": dict, default: {},
+        - | propagator_ODE_options: dict, default: {},
           | Options for the ODE integrator used for the propagator method.
-        - | "JC options": dict, default: {"atol": 1e-4, "rtol":1e-3},
+        - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
           | Options used to build the jump correlator for the propagator method.
-        - | "conv tol": float, default: 1e-4,
+        - | conv_tol: float, default: 1e-4,
           | Convergence tolerance of the operator for the propagator method.
 
         All options are listed in ``ULMESolver.options``'s docstring.
@@ -143,6 +142,7 @@ class ULMESolver(MESolver):
 
         - "ULME_creation": Method for creating jump operators.
         - "use_lamb_shift": Whether to include the Lamb shift.
+        - ...
 
         See :obj:`ULMESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
@@ -154,16 +154,22 @@ class ULMESolver(MESolver):
     """
     name = "Universal Lindblad equation"
     solver_options = {**MESolver.solver_options, **_ULME_DEFAULT_OPTIONS}
-    def __init__(self, H, a_ops, *, options=None):
-        self.H = QobjEvo(H)
+    def __init__(
+        self,
+        H: Qobj | QobjEvo,
+        a_ops: list[tuple[Qobj | QobjEvo, BosonicEnvironment]],
+        *,
+        options: dict = None
+    ):
+        self.H = QobjEvo(H, copy=False)
         if self.H.issuper:
             raise TypeError("ULME cannot be used with superoperator H")
-        self.a_ops = _parse_a_ops(a_ops)
+        self.a_ops = _parse_a_ops(a_ops, strict=True)
         for i, (op, _) in enumerate(self.a_ops):
-            if op.dims != H.dims:
+            if op.dims != self.H.dims:
                 raise ValueError(
                     f"Dimension mismatch in a_ops[{i}]: "
-                    f"Hamiltonian dims {H.dims} "
+                    f"Hamiltonian dims {self.H.dims} "
                     f"do not match coupling operator dims {op.dims}."
                 )
 
@@ -172,9 +178,13 @@ class ULMESolver(MESolver):
 
         self.c_ops = []
         self.lamb_shifts = []
+        use_lamb_shift = self.options["use_lamb_shift"]
 
         for op, env in self.a_ops:
-            L, lamb_shift = _make_operators(self.H, op, env, self.options)
+
+            L, lamb_shift = _make_operators(
+                self.H, op, env, use_lamb_shift, self.options
+            )
             self.c_ops.append(L)
             self.lamb_shifts.append(lamb_shift)
 
@@ -229,11 +239,11 @@ class ULMESolver(MESolver):
             Whether to calculate and include the Lamb shift correction in the
             effective Hamiltonian.
 
-        "eigen pv integral limits" : float, default: 30
+        eigen_pv_integral_limits : float, default: 30
             Limit of the power_spectrum integral for the lambda shift operator
             with the eigen method.
 
-        "propagator method": str, default: "tsit5"
+        propagator_method: str, default: "tsit5"
             The propagator ULME_creation method require solving a set of
             coupled differential equations for each dissipators until
             convergence. ODE method used for that step.
@@ -243,14 +253,14 @@ class ULMESolver(MESolver):
             them both for the ulmesolve evolution and the propagator evolution
             should be avoided.
 
-        "propagator ODE options": dict, default: {},
+        propagator_ODE_options: dict, default: {},
             Options for the ODE integrator used for the propagator ODE.
 
-        "JC options": dict, default: {"atol": 1e-4, "rtol":1e-3},
+        JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
             Options used to build the jump correlator used in the propagator
             ODE.
 
-        "conv tol": float, default: 1e-4,
+        conv_tol: float, default: 1e-4,
             Convergence tolerance of the operators for the propagator method.
         """
         return self._options
@@ -301,16 +311,16 @@ def UL_transform(
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
           | "propagator": Integration in the interaction picture, general.
-        - | "eigen pv integral limits" : float, default: 30
+        - | eigen_pv_integral_limits : float, default: 30
             Limit of the power_spectrum integral for the lambda shift operator
             with the eigen method.
-        - | "propagator method": str, default: "tsit5"
+        - | propagator_method: str, default: "tsit5"
           | ODE method used for the propagator ULME_creation method.
-        - | "propagator ODE options": dict, default: {},
+        - | propagator_ODE_options: dict, default: {},
           | Options for the ODE integrator used for the propagator method.
-        - | "JC options": dict, default: {"atol": 1e-4, "rtol":1e-3},
+        - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
           | Options used to build the jump correlator for the propagator method.
-        - | "conv tol": float, default: 1e-4,
+        - | conv_tol: float, default: 1e-4,
           | Convergence tolerance of the operator for the propagator method.
 
     Returns
@@ -326,15 +336,16 @@ def UL_transform(
     H_evo = QobjEvo(H, copy=False)
     c_ops = []
     lamb_shifts = []
+    use_lamb_shift = options["use_lamb_shift"]
     for op, env in _parse_a_ops(a_ops):
-        L, Lamb = _make_operators(H_evo, op, env, options)
+        L, Lamb = _make_operators(H_evo, op, env, use_lamb_shift, options)
         c_ops.append(L)
         lamb_shifts.append(Lamb)
 
     return H + sum(lamb_shifts), c_ops
 
 
-def _parse_a_ops(a_ops, args=None, tlist=None):
+def _parse_a_ops(a_ops, args=None, tlist=None, strict=False):
     """
     Normalize ``a_ops`` to a list of ``(QobjEvo, BosonicEnvironment)``.
     Accepts a single pair, a list of pairs or a tuple of pairs.
@@ -368,7 +379,12 @@ def _parse_a_ops(a_ops, args=None, tlist=None):
                 f"The environment for a_ops[{i}] must be a "
                 f"BosonicEnvironment instance, but got {type(env)}."
             )
-        parsed.append((QobjEvo(op, args=args, tlist=tlist), env))
+        if strict and not isinstance(op, (Qobj, QobjEvo)):
+            raise TypeError(
+                f"The operator for a_ops[{i}] must be a "
+                f"Qobj or QobjEvo instance, but got {type(op)}."
+            )
+        parsed.append((QobjEvo(op, args=args, tlist=tlist, copy=False), env))
     return parsed
 
 
@@ -376,6 +392,7 @@ def _make_operators(
     H: QobjEvo,
     X: QobjEvo,
     env: BosonicEnvironment,
+    use_lamb_shift: bool=True,
     options: dict=None
 ):
     """
@@ -388,8 +405,8 @@ def _make_operators(
     lamb_shift : QobjEvo or {0}
         Lamb shift Hamiltonian, 0 when ``use_lamb_shift`` is False.
     """
+    options = options or {}
     method = options.get("ULME_creation")
-    use_lamb_shift = options.get("use_lamb_shift", True)
 
     if method == "eigen":
         return _operators_eigen(H, X, env, use_lamb_shift, options)
@@ -427,7 +444,7 @@ def _operators_eigen(
     if not use_lamb_shift:
         return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
 
-    limits = options.get("eigen pv integral limits", 50)
+    limits = options.get("eigen_pv_integral_limits", 30)
 
     @functools.lru_cache(maxsize=None)
     def _integral(e1, e2):
@@ -453,7 +470,7 @@ def _operators_eigen(
 # ---------------------------------------------------------------------------
 
 def _operators_prop(H, X, env, use_lamb_shift, options):
-    op = ULOP(H, X, env, options)
+    op = ULOP(H, X, env, use_lamb_shift, options)
     if H.isconstant and X.isconstant:
         return (
             QobjEvo(op.L(0)),
@@ -493,28 +510,33 @@ class ULOP():
     options : dict, optional
         ``tol`` is used to find the time window over which ``g`` is not zero.
     """
-    def __init__(self, H, X, env, options=None):
+    def __init__(self, H, X, env, use_lamb_shift, options=None):
+        options = options or {}
         self.H = H
         self.X = X
         self.size = H.shape[0]
-        self._with_lamb = options.get("use_lamb_shift", True)
+        self._with_lamb = use_lamb_shift
         self._ncols = 6 if self._with_lamb else 4
-        self._conv_tol = options.get("conv tol", 1e-4)
+        self._conv_tol = options.get("conv_tol", 1e-4)
 
         self.t = None
         self._L = None
         self._lamb = None
 
         integrator = Solver.avail_integrators()[
-            options.get("propagator method", "tsit5")
+            options.get("propagator_method", "tsit5")
         ]
-        integrator_options = options.get("propagator ODE options", {})
+        integrator_options = options.get("propagator_ODE_options", {})
         self._integrator = integrator(self._rhs, integrator_options)
 
-        self.g = env.jump_correlator_function(**options.get("JC options", {}))
+        self.g = env.jump_correlator_function(**options.get("JC_options", {}))
         self._t_max = getattr(self.g, "tMax", None)
         if self._t_max is None:
-            warnings.warns("env does not have a tMax suplied, set too 1000.")
+            warnings.warn(
+                "env's jump_correlator_function did not report a tMax; "
+                "using 1000 as a fallback.",
+                RuntimeWarning,
+            )
             self._t_max = 1000.
             self._t_scale = 1.
         else:
@@ -524,8 +546,8 @@ class ULOP():
         eye = _data.dense.identity(self.size)
         zero = _data.dense.zeros(self.size, self.size, fortran=True)
         self._tmp = zero.copy()
-        self._Xp = zero.copy()
-        self._Xm = zero.copy()
+        self._Xp = zero.copy()  # TODO: use or remove
+        self._Xm = zero.copy()  # TODO: use or remove
         if self._with_lamb:
             self._derr = merge_dense([zero, zero, zero, zero, zero, zero])
             initial = merge_dense([eye, eye, zero, zero, zero, zero])
@@ -536,6 +558,7 @@ class ULOP():
 
     def _rhs(self, s, state):
         Up, Um, Lp, Lm, *_ = split_dense(state, self.size)
+        # TODO: check to reuse buffer: self._derr
         _derr = _data.dense.zeros(self.size**2, self._ncols, fortran=True)
         dUp, dUm, dLp, dLm, *dY = split_dense(_derr, self.size)
 
@@ -557,7 +580,7 @@ class ULOP():
         # second order terms for lamb shift
         if self._with_lamb:
             dYp, dYm = dY
-            phase = g / g.conjugate()
+            phase = np.exp(2j*np.angle(g))
             _data.matmul_dense(dLp, Lp, out=dYp, scale=(2 * phase))
             _data.matmul_dense(dLm, Lm, out=dYm, scale=(-2 / phase))
 
