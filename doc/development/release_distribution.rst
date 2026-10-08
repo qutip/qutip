@@ -15,11 +15,9 @@ Within this document, the git remote ``upstream`` refers to the main QuTiP organ
 In short, the steps you need to take are:
 
 1. Prepare the release branch (see git_).
-2. Run the "Build wheels, optionally deploy to PyPI" GitHub action to build binary and source packages and upload them to PyPI (see deploy_).
-3. Create a GitHub release and uploaded the built files to it (see github_).
-4. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
-5. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
-
+2. Create a GitHub release, it will build binary and source packages and upload them (see deploy_).
+3. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
+4. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
 
 
 .. _git:

@@ -28,7 +28,6 @@ jobs:
   deploy_test:
     name: Verify PyPI deployment confirmation
     runs-on: ubuntu-latest
-    if: github.repository == 'qutip/qutip'
     outputs:
       mode: ${{ steps.mode.outputs.mode }}
     env:
