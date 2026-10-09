@@ -197,6 +197,20 @@ def test_rand_dm(dimensions, kw, dtype, distribution, random_generator):
         _assert_density(random_qobj, kw["density"])
 
 
+@pytest.mark.parametrize('spread', [0, 1e-15])
+@pytest.mark.parametrize('N', [1, 2, 3])
+def test_rand_eigen_equal_eigenvalues(N, spread):
+    """
+    Random Qobjs: equal (or nearly equal) eigenvalues give a multiple of the
+    identity, which no rotation can make denser.
+    """
+    shift = spread * (np.arange(N) - (N - 1) / 2)
+    rho = rand_dm(N, distribution="eigen", eigenvalues=1 / N + shift)
+    assert rho == qeye(N) / N
+    H = rand_herm(N, density=1, distribution="eigen", eigenvalues=0.5 + shift)
+    assert H == 0.5 * qeye(N)
+
+
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize('kind', ["left", "right"])
 def test_rand_stochastic(dimensions, kind, dtype, random_generator):
