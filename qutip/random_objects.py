@@ -19,7 +19,9 @@ import scipy.linalg
 import scipy.sparse as sp
 from typing import Literal, Sequence
 
-from . import Qobj, create, destroy, jmat, basis, to_super, to_choi, to_chi
+from . import (
+    Qobj, create, destroy, jmat, basis, to_super, to_choi, to_chi, settings
+)
 from .core import data as _data
 from .core.dimensions import Dimensions, Space, SuperSpace
 from .typing import SpaceLike, LayerType
@@ -142,6 +144,23 @@ def _rand_jacobi_rotation(A, generator):
     return _data.to(_data.CSR, _data.matmul(_data.matmul(R, A), R.adjoint()))
 
 
+def _rand_rotated_diag(eigenvalues, nvals, generator):
+    """
+    Diagonal matrix of ``eigenvalues`` shuffled with random Jacobi rotations
+    until it has about ``nvals`` non-zero entries.
+    """
+    out = _data.diag[_data.CSR](eigenvalues, 0)
+    if np.ptp(eigenvalues) < settings.core["atol"]:
+        # A multiple of the identity is left unchanged by every rotation.
+        # Rotations only create off-diagonal terms of the size of the
+        # eigenvalue differences, which the matmul tidyup drops when tiny.
+        return out
+    out = _rand_jacobi_rotation(out, generator)
+    while _data.csr.nnz(out) < 0.95 * nvals:
+        out = _rand_jacobi_rotation(out, generator)
+    return out
+
+
 def _get_block_sizes(N, density, generator):
     """
     Obtain a list of matrix block sizes in such a way that an NxN matrix
@@ -261,11 +280,8 @@ def rand_herm(
         if N != len(eigenvalues):
             raise ValueError("The number of eigenvalues does not match the "
                              "desired shape.")
-        out = _data.diag[_data.CSR](eigenvalues, 0)
         nvals = max([N**2 * density, 1])
-        out = _rand_jacobi_rotation(out, generator)
-        while _data.csr.nnz(out) < 0.95 * nvals:
-            out = _rand_jacobi_rotation(out, generator)
+        out = _rand_rotated_diag(eigenvalues, nvals, generator)
         out = Qobj(out, dims=dims, isherm=True, copy=False)
         dtype = _data._parse_default_dtype(dtype, "sparse")
 
@@ -576,11 +592,7 @@ default: "ginibre"
         if np.abs(np.sum(eigenvalues)-1.0) > 1e-15 * N:
             raise ValueError('Eigenvalues of a density matrix '
                              f'must sum to one, not {np.sum(eigenvalues)}')
-        H = _data.diag(eigenvalues, 0)
-        nvals = N**2 * density
-        H = _rand_jacobi_rotation(H, generator)
-        while _data.csr.nnz(H) < 0.95*nvals:
-            H = _rand_jacobi_rotation(H, generator)
+        H = _rand_rotated_diag(eigenvalues, N**2 * density, generator)
     elif distribution == "ginibre":
         H = _rand_dm_ginibre(N, rank, generator)
     elif distribution == "hs":
