@@ -35,6 +35,8 @@ def mesolve(
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
 
+    See: :ref:`master`.
+
     Evolve the state vector or density matrix (``rho0``) using a given
     Hamiltonian or Liouvillian (``H``) and an optional set of collapse
     operators (``c_ops``), by integrating the set of ordinary differential
