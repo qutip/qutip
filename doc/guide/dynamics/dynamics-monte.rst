@@ -460,6 +460,19 @@ respectively the `multiprocessing <https://docs.python.org/3/library/multiproces
 and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
 The ``"mpi"`` option is for computing trajectories in a computing cluster, see the :ref:`MPI section<monte-mpi>` below.
 
+.. note::
+
+    When using ``"map": "parallel"``, worker processes use Python's ``multiprocessing``
+    module and ``pickle`` for serialization. Anonymous ``lambda`` functions (e.g. used as
+    time-dependent coefficients in Hamiltonians or collapse operators) cannot be pickled
+    and will raise a ``PicklingError``.
+
+    To avoid this issue:
+    * Define time-dependent functions using standard ``def func_name(t, args):`` at the
+      top level of your script or module.
+    * Alternatively, use ``"map": "loky"``, which utilizes ``cloudpickle`` and can serialize
+      ``lambda`` functions (requires the ``loky`` package to be installed).
+
 .. code-block::
 
     >>> res_par = mcsolve(H, psi0, tlist, c_ops, e_ops=e_ops, options={"map": "parallel"}, seeds=1)
