@@ -52,7 +52,10 @@ def mesolve(
     This allows the solution of master equations that are not in standard
     Lindblad form.
 
+    See :ref:`master` for the user guide on the Lindblad master equation solver.
+
     **Time-dependent operators**
+
 
     For time-dependent problems, ``H`` and ``c_ops`` can be a :obj:`.QobjEvo`
     or object that can be interpreted as :obj:`.QobjEvo` such as a list of

@@ -42,7 +42,10 @@ def brmesolve(
     their associated spectral functions, as well as possible Lindblad collapse
     operators.
 
+    See :ref:`bloch_redfield` for the user guide on the Bloch-Redfield solver.
+
     Parameters
+
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`
         Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or

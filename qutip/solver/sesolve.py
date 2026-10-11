@@ -43,7 +43,10 @@ def sesolve(
     does not use any return values. e_ops cannot be used in conjunction
     with solving the Schrodinger operator equation
 
+    See :ref:`master-unitary` for the user guide on the Schrödinger equation solver.
+
     **Time-dependent operators**
+
 
     For time-dependent problems, ``H`` and ``c_ops`` can be a :obj:`.QobjEvo`
     or object that can be interpreted as :obj:`.QobjEvo` such as a list of
