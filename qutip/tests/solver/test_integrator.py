@@ -8,6 +8,9 @@ import qutip
 import qutip.core.data as _data
 
 import functools
+import gc
+import weakref
+
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -260,6 +263,33 @@ def test_concurent_usage(integrator):
         assert inter1.integrate(t)[1].to_array()[0, 0] == expected1
         expected2 = pytest.approx(np.exp(-t/2), abs=1e-5)
         assert inter2.integrate(t)[1].to_array()[0, 0] == expected2
+
+
+@pytest.mark.parametrize(
+    "integrator",
+    [
+        IntegratorScipyAdams,
+        IntegratorScipyBDF,
+        IntegratorScipyDop853,
+        IntegratorScipylsoda,
+    ],
+    ids=["adams", "bdf", "dop853", "lsoda"],
+)
+def test_scipy_integrator_does_not_form_reference_cycle(integrator):
+    system = qutip.QobjEvo(0.5 * qutip.qeye(1))
+    instance = integrator(system.matmul_data, {})
+    reference = weakref.ref(instance)
+
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        del instance
+        assert reference() is None
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+        gc.collect()
+
 
 @pytest.mark.parametrize('integrator',
     [IntegratorVern7, IntegratorVern9, IntegratorTsit5],

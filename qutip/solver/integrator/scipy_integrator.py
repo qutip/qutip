@@ -1,5 +1,8 @@
 """ODE integrator from scipy."""
 
+import warnings
+import weakref
+
 __all__ = [
     'IntegratorScipyAdams',
     'IntegratorScipyBDF',
@@ -14,7 +17,19 @@ from qutip.core import data as _data
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
-import warnings
+
+
+class _IntegratorRef:
+    """Pickle-safe weak reference used by SciPy callback parameters."""
+
+    def __init__(self, integrator):
+        self._ref = weakref.ref(integrator)
+
+    def __getattr__(self, name):
+        return getattr(self._ref(), name)
+
+    def __reduce__(self):
+        return (type(self), (self._ref(),))
 
 
 class IntegratorScipyAdams(Integrator):
@@ -52,7 +67,7 @@ class IntegratorScipyAdams(Integrator):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver.set_f_params(self)
+        self._ode_solver.set_f_params(_IntegratorRef(self))
         self._ode_solver._integrator = self._zvode(
             method=self.method,
             **self.options,
@@ -244,7 +259,7 @@ class IntegratorScipyDop853(Integrator):
         # scipy 1.17 does not convert automatically anymore
         self.options["nsteps"] = int(self.options["nsteps"])
         self._ode_solver.set_integrator('dop853', **self.options)
-        self._ode_solver.set_f_params(self)
+        self._ode_solver.set_f_params(_IntegratorRef(self))
         self.name = "scipy ode dop853"
 
     @staticmethod
@@ -385,7 +400,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('lsoda', **self.options)
-        self._ode_solver.set_f_params(self)
+        self._ode_solver.set_f_params(_IntegratorRef(self))
         self.name = "scipy lsoda"
 
     def _check_handle(self):
