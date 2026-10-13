@@ -1,0 +1,1 @@
+Fix the Monte Carlo guide trajectory-count example by defining the collapse and expectation operator lists and correcting the solver call syntax.
