@@ -468,6 +468,7 @@ The ``"mpi"`` option is for computing trajectories in a computing cluster, see t
     and will raise a ``PicklingError``.
 
     To avoid this issue:
+
     * Define time-dependent functions using standard ``def func_name(t, args):`` at the
       top level of your script or module.
     * Alternatively, use ``"map": "loky"``, which utilizes ``cloudpickle`` and can serialize
