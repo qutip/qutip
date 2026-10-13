@@ -207,8 +207,7 @@ and ``<change type>`` should be one of the following depending on the type of ch
    * - ``removal``
      - A previously deprecated feature is removed.
    * - ``misc``
-     - Other user-visible changes that fit none of the types above
-       (for example ...).
+     - Other user-visible changes that fit none of the types above.
 
 
 You can also create this file by installing ``towncrier`` and running::
@@ -221,7 +220,7 @@ In this file, you should add a short description of the changes that the PR intr
 A pull request can add multiple towncrier entries.
 
 Internal change types
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 
 The following change types are for internal changes.
 Entries of these types are not included in the changelog,
