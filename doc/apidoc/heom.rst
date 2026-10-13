@@ -3,7 +3,7 @@ Hierarchical Equations of Motion
 ********************************
 
 HEOM Solvers
-------------
+============
 
 .. automodule:: qutip.solver.heom
     :members: heomsolve
@@ -24,7 +24,7 @@ HEOM Solvers
     :members:
 
 Baths
------
+=====
 
 .. autoclass:: qutip.solver.heom.BathExponent
     :members:

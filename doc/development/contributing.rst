@@ -99,7 +99,7 @@ Generally the low-level linear algebra routines that QuTiP uses are written in t
 
 
 Build options
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 You can pass build options through ``pip`` using ``--config-settings`` (``-C`` for short):
 

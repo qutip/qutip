@@ -14,7 +14,7 @@ It is common knowledge that the time evolution of a closed quantum system is giv
 
  \displaystyle i \frac{d}{dt}\left|\psi(t)\right> = H(t)\left|\psi(t)\right>
 
-When solving this equation, a time evolution operator :math:`U(t_f, t_i)` (often called a propagator) is introduced and allows a quantum state to evolve from time :math:`t_i` to time :math:`t_f` when applied. When the Hamiltonian is time dependent, the propagator has the following form [2]_ : 
+When solving this equation, a time evolution operator :math:`U(t_f, t_i)` (often called a propagator) is introduced and allows a quantum state to evolve from time :math:`t_i` to time :math:`t_f` when applied. When the Hamiltonian is time dependent, the propagator has the following form [2]_ :
 
 .. math::
 
@@ -35,7 +35,7 @@ After substituting :math:`H(t) = H_0 + \cos(\omega t)X` into the equation for th
 
  \displaystyle U(t+\delta t,t) = \sum_{n=0}^{\infty} U^{(n)}(t + \delta t, t)
 
-where 
+where
 
 .. math::
 
@@ -59,7 +59,7 @@ Code example
 The following code shows a simple example on how to use QuTiP's implementation of Dysolve. Here, :math:`H(t) = \sigma_z + \cos(t)\sigma_x`.
 
 .. code-block:: Python
-    
+
     from qutip.solver.dysolve_propagator import DysolvePropagator, dysolve_propagator
     from qutip import sigmax, sigmaz
 
@@ -73,7 +73,7 @@ The following code shows a simple example on how to use QuTiP's implementation o
     t_f = 1
     dy = DysolvePropagator(H_0, X, omega, options)
     U = dy(t_f)
-    
+
     # Another option is to use the dysolve_propagator function.
     # A final time or a list of times can be given.
     # For the latter, [U(t[i], t[0])] is returned.
