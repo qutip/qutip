@@ -392,8 +392,8 @@ def _make_operators(
     H: QobjEvo,
     X: QobjEvo,
     env: BosonicEnvironment,
-    use_lamb_shift: bool=True,
-    options: dict=None
+    use_lamb_shift: bool,
+    options: dict,
 ):
     """
     Build the jump operator and Lamb shift for one system-bath coupling.
@@ -439,8 +439,8 @@ def _operators_eigen(
     X_diag = (vecs.dag() @ X(0) @ vecs)
     X_np = X_diag.full()
     X_data = X_diag.data
-    L_responce = _data.Dense(env._g_w(-np.subtract.outer(vals, vals)))
-    L_H = _data.multiply(X_data, L_responce) * (np.pi * 2)
+    L_res = _data.Dense(env._g_w(-np.subtract.outer(vals, vals)))
+    L_H = _data.multiply(X_data, L_res) * (np.pi * 2)
     if not use_lamb_shift:
         return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
 

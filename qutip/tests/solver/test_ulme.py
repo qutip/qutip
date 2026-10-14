@@ -172,8 +172,7 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_prop, _ = _make_operators(
-            H, X, env,
-            {"ULME_creation": "propagator", "use_lamb_shift": False},
+            H, X, env, False, {"ULME_creation": "propagator"}
         )
         L_sum = _make_dissipator_sum(H, X, env, T=25, Nt=3000)
 
@@ -190,8 +189,7 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         _, lamb_prop = _make_operators(
-            H, X, env,
-            {"ULME_creation": "propagator", "use_lamb_shift": True},
+            H, X, env, True, {"ULME_creation": "propagator"}
         )
         lamb_sum = _make_ULME_lamb_shift_sum(H, X, env, T=25, Nt=1000)
         with qutip.CoreOptions(atol=1e-5):
@@ -209,12 +207,13 @@ class TestMethodsAgree:
         X = self.make_X(False)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_eigen , lamb_eigen = _make_operators(
-            H, X, env,
-            {"ULME_creation": "eigen", "use_lamb_shift": lamb_shift},
+            H, X, env, lamb_shift, {
+                "ULME_creation": "eigen",
+                "eigen_pv_integral_limits": 50,
+            },
         )
         L_prop, lamb_prop = _make_operators(
-            H, X, env,
-            {"ULME_creation": "propagator", "use_lamb_shift": lamb_shift},
+            H, X, env, lamb_shift, {"ULME_creation": "propagator"},
         )
         np.testing.assert_allclose(
             L_eigen(0.6).full(),

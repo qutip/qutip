@@ -240,7 +240,7 @@ class BosonicEnvironment(abc.ABC):
 
         jcs, ts = _fft(
             lambda w: self.power_spectrum(w)**0.5,
-            self._jc_tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
+            tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
         )
         return _SymmetricSpline(jcs, ts, tMax, "FFT")
 
@@ -269,7 +269,7 @@ class BosonicEnvironment(abc.ABC):
             :meth:`BosonicEnvironment.power_spectrum`.
         """
         tMax = np.max(np.abs(t))
-        if not hasattr(self, "_jc") or self.jc.tMax < tMax:
+        if not hasattr(self, "_jc") or self._jc.tMax < tMax:
             self._jc = self.jump_correlator_function(tMax=tMax)
         return self._jc(t)
 
@@ -1150,6 +1150,19 @@ class _BosonicEnvironment_fromJC(BosonicEnvironment):
                              'must be specified for this operation.')
         return self._ps_from_jc(w, self.tMax)
 
+    def correlation_function(self, t, num_t=10000):
+        if self.tMax is None:
+            raise ValueError('The support of the correlation function (tMax) '
+                             'must be specified for this operation.')
+        if self._cf is None:
+            ts = np.linspace(-self.tMax, self.tMax, num_t+1)
+            jc = self._jc(ts)
+            cf = np.convolve(jc, jc, "same") * self.tMax * 2 / num_t
+            self._cf = _SymmetricSpline(
+                cf, ts, self.tMax, "correlator function"
+            )
+        return self._cf(t)
+
 
 class DrudeLorentzEnvironment(BosonicEnvironment):
     r"""
@@ -1298,7 +1311,7 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         jcs, ts = _fft(
             lambda w: self.power_spectrum(w)**0.5,
-            self._jc_tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
+            tMax, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi), _raw=True
         )
         return _SymmetricSpline(jcs, ts, tMax, "FFT")
 
@@ -2389,7 +2402,7 @@ class _SymmetricSpline:
     Complex spline that enforce, Hermitian symmetry and finite cutoff.
     """
     def __init__(self, ylist, xlist, tMax, name):
-        if len(xlist) != len(fun):
+        if len(xlist) != len(ylist):
             raise ValueError("A list of x-values with the same length must be "
                              f"provided for the discretized function ({name})")
         self.tMax = tMax
@@ -2398,13 +2411,13 @@ class _SymmetricSpline:
 
     def __call__(self, t):
         t = np.asarray(t)
-        out = np.zeros_like(t)
-        pos_mask = (0 <= t <= self.tMax)
+        out = np.zeros_like(t, dtype=complex)
+        pos_mask = np.logical_and(0 <= t, t <= self.tMax)
         t_ins = t[pos_mask]
         out[pos_mask] = self._real(t_ins) + 1j * self._imag(t_ins)
-        neg_mask = (-self.tMax <= t < 0)
+        neg_mask = np.logical_and(-self.tMax <= t, t < 0)
         t_ins = -t[neg_mask]
-        out[neg_mask] = (self._real(t_ins) + 1j * self._imag(t_ins)).conj()
+        out[neg_mask] = (self._real(t_ins) - 1j * self._imag(t_ins))
         return out.item() if t.ndim == 0 else out
 
 
