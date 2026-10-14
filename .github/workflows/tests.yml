@@ -217,6 +217,10 @@ jobs:
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
+            PYTHON_INCLUDE=$(python -c "import pathlib, sys; print(pathlib.Path(sys.base_prefix) / 'include' / 'python')")
+            if [ -f "$PYTHON_INCLUDE/Python.h" ]; then
+              export INCLUDE="$PYTHON_INCLUDE${INCLUDE:+;$INCLUDE}"
+            fi
           else
             source ./build_env/bin/activate
           fi
