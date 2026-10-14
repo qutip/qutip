@@ -115,6 +115,7 @@ jobs:
             "mpmath>=1.2.1" \
             "pytest>=7.1.2" \
             "nbmake>=1.3.4" \
+            "nbclient>=0.10.1" \
             "jupytext>=1.13.8" \
             "jupyter>=1.0.0" \
             "ipykernel>=6.17.1" \
@@ -131,6 +132,7 @@ jobs:
             "mpmath>=1.2.1" \
             "pytest>=7.1.2" \
             "nbmake>=1.3.4" \
+            "nbclient>=0.10.1" \
             "jupytext>=1.13.8" \
             "jupyter>=1.0.0" \
             "ipykernel>=6.17.1" \
