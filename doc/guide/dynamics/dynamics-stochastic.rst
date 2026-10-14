@@ -184,6 +184,82 @@ The results are available in ``result.measurement``.
     ax.legend()
 
 
+Solving Stochastic Differential Equations
+=========================================
+
+QuTiP provides multiple numerical integration methods to solve Stochastic Differential Equations (SDEs).
+
+The integration scheme is controlled using the ``method`` entry in the solver options:
+
+.. code-block:: python
+
+    stoc_solution = smesolve(..., options={"method": "platen"})
+
+
+Available Integration Methods
+-----------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Method Key
+     - Solvers
+     - Description
+   * - :class:`platen <.PlatenSODE>`
+     - SSE / SME
+     - **Default.** Explicit order-1 scheme. Good general-purpose choice.
+   * - :class:`euler <.EulerSODE>`
+     - SSE / SME
+     - | Basic Euler-Maruyama scheme.
+       | Each step directly follows the SDE definition:
+       | :math:`dY(t) = f(Y, t) dt + \sum_n g_n(Y, t) dW_n`.
+       | It works with non-commuting operators, but requires a very small time step (``dt``) for numerical stability.
+   * - :class:`rouchon <.RouchonSODE>`
+     - SSE / SME
+     - | Physics-preserving scheme.
+       | Keeps state vectors normalized and density matrices positive and Hermitian.
+   * - :class:`explicit1.5 <.Explicit1_5_SODE>`
+     - SSE / SME
+     - Order 1.5 derivative-free explicit Taylor scheme using finite differences instead of analytical derivatives.
+   * - :class:`milstein <.Milstein_SODE>`
+     - SME
+     - Order 1.0 Taylor expansion method using derivative terms.
+   * - :class:`taylor1.5 <.Taylor1_5_SODE>`
+     - SME
+     - Order 1.5 Taylor expansion scheme utilizing analytical derivatives.
+   * - :class:`milstein_imp <.Implicit_Milstein_SODE>`
+     - SME
+     - Implicit version of the Milstein method for stiff SDEs.
+   * - :class:`Taylor15_imp <.Implicit_Taylor1_5_SODE>`
+     - SME
+     - Implicit version of the Taylor 1.5 method for stiff SDEs.
+   * - :class:`pred_corr <.PredCorr_SODE>`
+     - SME
+     - | Generalization of the trapezoidal predictor-corrector scheme to SDEs.
+       | Tunable via options (``alpha``, ``eta``), which alter its implicit weighting and convergence order.
+
+
+Practical Considerations
+------------------------
+
+Non-Commuting Stochastic Operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Taylor expansion schemes and the ``"rouchon"`` method assume that stochastic collapse operators (``sc_ops``) commute,
+skipping anti-commuting terms and using symmetric shortcuts such as replacing :math:`A B + B A` with :math:`2 A B`.
+
+If your model features non-commuting stochastic operators, ``"euler"`` with a sufficiently small integration step size ``dt`` is strictly valid.
+
+Step-Size Sensitivity with the Rouchon Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In standard methods (like ``"euler"`` or ``"platen"``), using a time step ``dt`` that is too large typically produces obvious numerical failures,
+such as unphysical negative probabilities or divergence to ``infinity``.
+
+By contrast, the ``"rouchon"`` method explicitly enforces physical normalization at each step.
+While this prevents divergence, **an overly large step size may conceal numerical errors** while still producing a state that looks physically valid.
+Always test step-size convergence when using ``"rouchon"``.
+
+
 Run from known measurements
 ===========================
 

@@ -91,6 +91,7 @@ def mcsolve(
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
           | Which differential equation integration method to use.
+            Use ``MCSolver.avail_integrators()`` to list all methods.
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
@@ -847,8 +848,10 @@ class MCSolver(MultiTrajSolver):
             Whether to store results from all trajectories or just store the
             averages.
 
-        method: str, default: "adams"
+        method: str, default: "vern7"
             Which differential equation integration method to use.
+            Common methods are: "adams", "bdf", "diag", "tsit5".
+            To see all supported method, use: ``MCSolver.avail_integrators()``
 
         map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
             How to run the trajectories. "parallel" uses the multiprocessing

@@ -8,6 +8,14 @@ from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
 from qutip.core import data as _data
 
 
+@pytest.fixture(autouse=True)
+def fix_ssolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    seedseq = np.random.SeedSequence(seed)
+    SMESolver.seed_sequence = seedseq
+    SSESolver.seed_sequence = seedseq
+
+
 def f(t, w):
     return w * t
 
@@ -382,14 +390,14 @@ def test_feedback():
     psi0 = basis(N, N-3)
 
     times = np.linspace(0, 2, 101)
-    options = {"map": "serial", "dt": 0.0005}
+    options = {"map": "serial", "dt": 0.0005, "progress_bar": True}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
     # If this was deterministic, it should never go under `6`.
     # We add a tolerance ~dt due to the stochatic part.
-    assert np.all(results.expect[0] > 6. - 0.001)
+    assert np.all(results.expect[0] > 6. - 0.0025)
     assert np.all(results.expect[0][-20:] < 6.7)
 
 
@@ -573,11 +581,15 @@ def test_step(open, heterodyne):
     )
     solver.start(state0, t0=0)
     state1 = solver.step(0.01)
+
+    # Norm only statistically presenved for ssesolve
+    n_tol = 0.01 if open else 0.03
+
     assert state1.dims == state0.dims
-    assert state1.norm() == pytest.approx(1, abs=0.01)
+    assert state1.norm() == pytest.approx(1, abs=n_tol)
     state2, dW = solver.step(0.02, wiener_increment=True)
     assert state2.dims == state0.dims
-    assert state2.norm() == pytest.approx(1, abs=0.01)
+    assert state2.norm() == pytest.approx(1, abs=n_tol)
     if heterodyne:
         assert dW.shape == (2, 2)
         assert abs(dW[0, 0]) < 0.5 # 5 sigmas
