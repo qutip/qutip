@@ -309,13 +309,6 @@ The stochastic solvers share many features with :func:`.mcsolve`, such as
 end conditions, seed control and running in parallel. See the sections
 :ref:`monte-ntraj`, :ref:`monte-seeds` and :ref:`monte-parallel` for details.
 
-.. note::
-
-    When running stochastic solvers in parallel with time-dependent coefficients
-    or Hamiltonians (using ``options={"map": "parallel"}``), Python's ``multiprocessing``
-    cannot pickle anonymous ``lambda`` functions and will raise a ``PicklingError``.
-    Use top-level named functions (``def func(t, args):``) or use ``options={"map": "loky"}`` instead.
-
 .. plot::
     :context: reset
     :include-source: false

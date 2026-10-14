@@ -464,15 +464,9 @@ The ``"mpi"`` option is for computing trajectories in a computing cluster, see t
 
     When using ``"map": "parallel"``, worker processes use Python's ``multiprocessing``
     module and ``pickle`` for serialization. Anonymous ``lambda`` functions (e.g. used as
-    time-dependent coefficients in Hamiltonians or collapse operators) cannot be pickled
-    and will raise a ``PicklingError``.
-
-    To avoid this issue:
-
-    * Define time-dependent functions using standard ``def func_name(t, args):`` at the
-      top level of your script or module.
-    * Alternatively, use ``"map": "loky"``, which utilizes ``cloudpickle`` and can serialize
-      ``lambda`` functions (requires the ``loky`` package to be installed).
+    time-dependent coefficients) cannot be pickled and will raise a ``PicklingError``.
+    See :ref:`pickling restrictions for function coefficients <time-coefficients-parallel>`
+    for details and recommended alternatives.
 
 .. code-block::
 
