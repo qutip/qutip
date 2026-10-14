@@ -151,7 +151,7 @@ def test_runs_and_normalizes(method, lamb_shift):
 # ---------------------------------------------------------------------------
 # Cross-checks between construction methods.
 # ---------------------------------------------------------------------------
-
+@pytest.mark.filterwarnings("ignore:ULME operators:RuntimeWarning")
 class TestMethodsAgree:
     def make_H(self, td):
         H = [0.5 * qutip.sigmaz()]
