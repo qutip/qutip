@@ -362,8 +362,7 @@ def _steadystate_power(A, **kw):
     rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A._dims[0].oper)
     # Remove the arbitrary complex phase before taking the Hermitian part.
     rho_ss = rho_ss / rho_ss.tr()
-    rho_ss = rho_ss + rho_ss.dag()
-    rho_ss = rho_ss / rho_ss.tr()
+    rho_ss = (rho_ss + rho_ss.dag()) / 2
     rho_ss.isherm = True
     return rho_ss
 
