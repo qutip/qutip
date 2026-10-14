@@ -79,10 +79,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.13"
-            no-conda: false
-          - python-version: "3.14"
-            no-conda: false
           - python-version: "3.15"
             no-conda: false
 
@@ -168,10 +164,9 @@ jobs:
           cd notebooks
           find . -name '*.md' -exec jupytext --to notebook {} +
           find . -name '*.md' -delete
-          # This notebook requires a CUDA-capable runner.
+          # This notebook requires a CUDA-capable runner
           rm miscellaneous/cuQuantum_backend.ipynb
-          # Temporarily skip this notebook due to an unrelated error.
-          rm time-evolution/024_v5_paper-mesolve.ipynb
+          rm time-evolution/024_v5_paper-mesolve.ipynb # temporarily exclude this notebook
 
       - name: Run tutorial notebooks
         run: |
