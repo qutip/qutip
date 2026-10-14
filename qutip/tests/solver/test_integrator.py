@@ -275,9 +275,13 @@ def test_concurent_usage(integrator):
     ],
     ids=["adams", "bdf", "dop853", "lsoda"],
 )
-def test_scipy_integrator_does_not_form_reference_cycle(integrator):
+@pytest.mark.parametrize("initialized", [False, True])
+def test_scipy_integrator_does_not_form_reference_cycle(integrator, initialized):
     system = qutip.QobjEvo(0.5 * qutip.qeye(1))
     instance = integrator(system.matmul_data, {})
+    if initialized:
+        instance.set_state(0, qutip.basis(1, 0).data)
+        instance.integrate(0.1)
     reference = weakref.ref(instance)
 
     gc_was_enabled = gc.isenabled()
