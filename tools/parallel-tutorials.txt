@@ -1,0 +1,8 @@
+time-evolution/010_brmesolve_phonon_interaction.ipynb
+time-evolution/013_nonmarkovian_monte_carlo.ipynb
+time-evolution/015_smesolve-heterodyne.ipynb
+time-evolution/016_smesolve-inefficient-detection.ipynb
+time-evolution/017_smesolve-jc-photocurrent.ipynb
+time-evolution/018_measures-trajectories-cats-kerr.ipynb
+time-evolution/022_v5_paper-smesolve.ipynb
+time-evolution/026_v5_paper-nm_mcsolve.ipynb
