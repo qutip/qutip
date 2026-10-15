@@ -108,6 +108,7 @@ jobs:
         run: |
           conda install -y \
             "pip>=22.1.2" \
+            "setuptools<82" \
             "numpy>=2.0.0" \
             "scipy>=1.9" \
             "matplotlib>=3.9" \
@@ -126,6 +127,7 @@ jobs:
         run: |
           python -m pip install --upgrade \
             "pip>=22.1.2" \
+            "setuptools<82" \
             "numpy>=2.0.0" \
             "scipy>=1.9" \
             "matplotlib>=3.9" \
