@@ -115,7 +115,6 @@ jobs:
             "imagemagick>=7.1.0_36" \
             "mpmath>=1.2.1" \
             "pytest>=7.1.2" \
-            "nbmake>=1.5.5" \
             "nbclient>=0.10.1" \
             "jupytext>=1.13.8" \
             "jupyter>=1.0.0" \
@@ -133,12 +132,16 @@ jobs:
             "matplotlib>=3.9" \
             "mpmath>=1.2.1" \
             "pytest>=7.1.2" \
-            "nbmake>=1.5.5" \
             "nbclient>=0.10.1" \
             "jupytext>=1.13.8" \
             "jupyter>=1.0.0" \
             "ipykernel>=6.17.1" \
             "cython>=0.29.20"
+
+      - name: Install notebook test plugin from PyPI
+        # Conda's nbmake 1.5.5 requires nbclient<0.7; PyPI permits modern nbclient.
+        run: |
+          python -m pip install "nbmake>=1.5.5" "nbclient>=0.10.1"
 
       - name: Install QuTiP from this checkout
         run: |
