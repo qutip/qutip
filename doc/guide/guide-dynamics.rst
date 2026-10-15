@@ -19,5 +19,6 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-floquet.rst
    dynamics/dynamics-nmmonte.rst
    dynamics/dynamics-options.rst
+   dynamics/dynamics-visualization.rst
    dynamics/dynamics-propagator.rst
    dynamics/dynamics-dysolve-propagator.rst

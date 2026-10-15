@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
@@ -13,12 +11,13 @@ from .numpy_backend import np
 from scipy import linalg as la
 import scipy.sparse as sp
 from .dimensions import Dimensions
-from .superop_reps import to_choi, _to_superpauli, to_super, kraus_to_choi
+from .superop_reps import to_choi, to_superpauli, to_super, kraus_to_choi
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye, qeye_like
 from .states import ket2dm
 from .semidefinite import dnorm_problem, dnorm_sparse_problem
 from . import data as _data
+from ..settings import settings
 
 try:
     import cvxpy
@@ -62,7 +61,7 @@ def fidelity(A, B):
             return np.abs(A.overlap(B))
         # Take advantage of the fact that the density operator for A
         # is a projector to avoid a sqrtm call.
-        sqrtmA = ket2dm(A)
+        sqrtmA = A.proj()
     else:
         if B.isket or B.isbra:
             # Swap the order so that we can take a more numerically
@@ -81,7 +80,7 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
+    eig_vals_non_neg = np.where(eig_vals > settings.core["atol"], eig_vals, 0)
     return np.real(np.sqrt(eig_vals_non_neg).sum())
 
 
@@ -347,7 +346,7 @@ def bures_dist(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    dist = np.sqrt(2 * (1 - fidelity(A, B)))
+    dist = np.sqrt(2 * np.maximum(0, 1 - np.real(fidelity(A, B))))
     return dist
 
 
@@ -375,7 +374,8 @@ def bures_angle(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    return np.arccos(fidelity(A, B))
+    fid = np.real(fidelity(A, B))
+    return np.arccos(np.clip(fid, -1.0, 1.0))
 
 
 def hellinger_dist(A, B, sparse=False, tol=0):
@@ -543,11 +543,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
-        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+        Jr.value = sp.csr_array((J_dat.data.real, J_dat.indices,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
 
-        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+        Ji.value = sp.csr_array((J_dat.data.imag, J_dat.indices,
                                   J_dat.indptr),
                                  shape=J_dat.shape).toarray()
     else:
@@ -573,7 +573,7 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
-    Eu = _to_superpauli(oper).full()[1:, 1:]
+    Eu = to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
 
 

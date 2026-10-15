@@ -10,12 +10,11 @@ from time import time
 from typing import Any
 import warnings
 
+from .. import settings
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, qzero_like
 from ..typing import QobjEvoLike, EopsLike
 from .multitraj import MultiTrajSolver, _MultiTrajRHS, _InitialConditions
-from .solver_base import (
-    Solver, Integrator, _solver_deprecation, _kwargs_migration
-)
+from .solver_base import Solver, Integrator
 from .multitrajresult import McResult
 from .mesolve import mesolve, MESolver
 from ._feedback import _QobjFeedback, _DataFeedback, _CollapseFeedback
@@ -27,8 +26,6 @@ def mcsolve(
     state: Qobj,
     tlist: ArrayLike,
     c_ops: QobjEvoLike | list[QobjEvoLike] = (),
-    _e_ops = None,
-    _ntraj = None,
     *,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     ntraj: int = 500,
@@ -36,8 +33,7 @@ def mcsolve(
     options: dict[str, Any] = None,
     seeds: int | SeedSequence | list[int | SeedSequence] = None,
     target_tol: float | tuple[float, float] | list[tuple[float, float]] = None,
-    timeout: float = None,
-    **kwargs,
+    timeout: float = None
 ) -> McResult:
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
@@ -95,6 +91,7 @@ def mcsolve(
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
           | Which differential equation integration method to use.
+            Use ``MCSolver.avail_integrators()`` to list all methods.
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
@@ -168,10 +165,6 @@ def mcsolve(
     and the end condition is not ``ntraj``, the results returned by this
     function should be considered invalid.
     """
-    options = _solver_deprecation(kwargs, options, "mc")
-    e_ops = _kwargs_migration(_e_ops, e_ops, "e_ops")
-    ntraj = _kwargs_migration(_ntraj, ntraj, "ntraj")
-
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
@@ -676,9 +669,23 @@ class MCSolver(MultiTrajSolver):
                 # Mixed state given as density matrix. Decompose into list
                 # format, i.e., into eigenstates and eigenvalues
                 eigenvalues, eigenstates = state.eigenstates()
+
                 state = [(psi, p) for psi, p
                          in zip(eigenstates, eigenvalues) if p > 0]
 
+                # We allow the initial density matrix to be unnormalized.
+                # Since super()._run_mixed expects `state` to be normalized
+                # we must generate the "numbers of trajectories per state"
+                # list here manually, based on the normalized state
+                total_weight = sum(p for _, p in state)
+                if abs(total_weight - 1) > settings.core["atol"]:
+                    normalized_state = [
+                        (psi, p / total_weight)
+                        for psi, p in state
+                    ]
+                    ntraj = _InitialConditions._minimum_roundoff_ensemble(
+                        normalized_state, ntraj or len(state)
+                    )
         if is_mixed and target_tol is not None:
             warnings.warn('Monte Carlo simulations with mixed initial '
                           'state do not support target tolerance')
@@ -794,7 +801,20 @@ class MCSolver(MultiTrajSolver):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        integrator_instance = integrator(self.rhs(), self.options)
+        rhs = self.rhs()
+        if integrator.rhs_format == "callable":
+            integrator_instance = integrator(rhs.matmul_data, self.options)
+        elif integrator.rhs_format == "matrix":
+            if not rhs.isconstant:
+                raise TypeError(
+                    f"The integration method {method} "
+                    "only support constant systems."
+                )
+            integrator_instance = integrator(rhs(0).data, self.options)
+        elif integrator.rhs_format == "solver":
+            integrator_instance = integrator(self, self.options)
+        else:
+            raise ValueError("Integrator entry point not supported.")
         mc_integrator = self._mc_integrator_class(
             integrator_instance, self.rhs, self.options
         )
@@ -828,8 +848,10 @@ class MCSolver(MultiTrajSolver):
             Whether to store results from all trajectories or just store the
             averages.
 
-        method: str, default: "adams"
+        method: str, default: "vern7"
             Which differential equation integration method to use.
+            Common methods are: "adams", "bdf", "diag", "tsit5".
+            To see all supported method, use: ``MCSolver.avail_integrators()``
 
         map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
             How to run the trajectories. "parallel" uses the multiprocessing

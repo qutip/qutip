@@ -884,6 +884,62 @@ as well as the composite objects discussed in the next section :ref:`tensor`:
     np.testing.assert_almost_equal(expect(sz2, two_spins), -1)
 
 
+Block Matrices (Direct Sums)
+============================
+
+QuTiP supports building vectors and matrices out of blocks that contain smaller matrices, vectors or numbers.
+Mathematically, this operation is called a "direct sum" or "direct product".
+For example, given a vector :math:`|\psi\rangle` in the 2-dimensional Hilbert space :math:`\mathcal H_2`, and another vector :math:`|\phi\rangle` in the 3-dimensional, we can form a vector :math:`|\psi\rangle \oplus |\phi\rangle` in the sum space :math:`\mathcal H_2 \oplus \mathcal H_3`, which is a 5-dimensional space.
+This vector is nothing but the two original vectors stacked on top of each other.
+
+.. testcode:: [states]
+
+    psi = Qobj([[1], [1]])
+    phi = Qobj([[2], [2], [2]])
+    psi_plus_phi = direct_sum([psi, phi])
+    print(psi_plus_phi)
+
+**Output**:
+
+.. testoutput:: [states]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims=[([2], [3]), [1]], shape=(5, 1), type='ket', dtype=CSR
+    Qobj data =
+    [[1.]
+    [1.]
+    [2.]
+    [2.]
+    [2.]]
+
+Note that the dimensions of this quantum object now read :code:`[([2], [3]), [1]]`.
+The parentheses denote a direct sum.
+The following is a more complex example:
+
+.. testcode:: [states]
+
+    block_operator = direct_sum(
+        [[ sigmax(),          None ],
+         [ basis(2, 0).dag(), -1   ]]
+    )
+    print(block_operator)
+
+**Output**:
+
+.. testoutput:: [states]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims=[([2], [1]), ([2], [1])], shape=(3, 3), type='oper', dtype=CSR, isherm=False
+    Qobj data =
+    [[ 0.  1.  0.]
+    [ 1.  0.  0.]
+    [ 1.  0. -1.]]
+
+The :code:`direct_sum` function also supports time-dependent operators as well as superoperators and vectorized operators.
+It can be useful to model coupled differential equations.
+The functions :code:`direct_component` can be used to extract blocks from a direct sum, and :code:`set_direct_component` overwrites a block in a direct sum.
+
+
 .. _states-super:
 
 Superoperators and Vectorized Operators

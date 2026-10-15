@@ -8,14 +8,17 @@ from .base import Data
 
 from .add import *
 from .adjoint import *
+from .block_operations import *
 from .constant import *
 from .eigen import *
+from .einsum import *
 from .expect import *
 from .expm import *
 from .inner import *
 from .kron import *
 from .linalg import *
 from .matmul import *
+from .local_matmul import *
 from .make import *
 from .mul import *
 from .pow import *
@@ -28,7 +31,7 @@ from .trace import *
 from .solve import *
 from .extract import *
 # For operations with mulitple related versions, we just import the module.
-from . import norm, permute, ode
+from . import norm, permute, ode, mean
 
 
 # Set up the data conversions that are known by us.  All types covered by
@@ -56,8 +59,8 @@ from . import _creator_utils
 import numpy as np
 create.add_creators([
     (_creator_utils.is_data, _creator_utils.data_copy, 100),
-    (_creator_utils.isspmatrix_csr, CSR, 80),
-    (_creator_utils.isspmatrix_dia, Dia, 80),
+    (_creator_utils.is_csr, CSR, 80),
+    (_creator_utils.is_dia, Dia, 80),
     (_creator_utils.is_nparray, Dense, 80),
     (_creator_utils.issparse, CSR, 20),
     (_creator_utils.true, Dense, -np.inf),

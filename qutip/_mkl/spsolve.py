@@ -237,7 +237,7 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
         solve method for solving with a given RHS vector.
 
     """
-    if not sp.isspmatrix_csr(A):
+    if not (sp.issparse(A) and A.format == "csr"):
         raise TypeError('Input matrix must be in sparse CSR format.')
 
     if A.shape[0] != A.shape[1]:
@@ -245,10 +245,10 @@ def mkl_splu(A, perm=None, verbose=False, **kwargs):
 
     dim = A.shape[0]
     solver_args = _default_solver_args()
-    if set(kwargs) - set(solver_args):
+    left_over_args = set(kwargs) - set(solver_args)
+    if left_over_args:
         raise ValueError(
-            "Unknown keyword arguments pass to mkl_splu: {!r}"
-            .format(set(kwargs) - set(solver_args))
+            f"Unknown keyword arguments pass to mkl_splu: {left_over_args}"
         )
     solver_args.update(kwargs)
 
@@ -366,6 +366,7 @@ def mkl_spsolve(A, b, perm=None, verbose=False, **kwargs):
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
 
     """
+    A = sp.csr_matrix(A)
     lu = mkl_splu(A, perm=perm, verbose=verbose, **kwargs)
     b_is_sparse = sp.isspmatrix(b)
     b_shp = b.shape

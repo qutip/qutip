@@ -16,19 +16,22 @@ import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import dia_matrix as scipy_dia_matrix
 from packaging.version import parse as parse_version
 from functools import partial
 if parse_version(scipy.version.version) >= parse_version("1.14.0"):
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
     # From scipy 1.14.0, a check that the input is not scalar was added for
     # sparse arrays.
-    scipy_data_matrix = partial(scipy_data_matrix, arg1=(0,))
+    scipy_data_matrix_init = partial(scipy_data_matrix.__init__, arg1=(0,))
 elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
     # The file data was renamed to _data from scipy 1.8.0
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
 else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
+    scipy_data_matrix_init = scipy_data_matrix.__init__
+
+from scipy.sparse import dia_array as scipy_dia_array
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, CSR
@@ -47,16 +50,16 @@ cdef extern from *:
 
 __all__ = ['Dia']
 
-cdef object _dia_matrix(data, offsets, shape):
+cdef object _dia_array(data, offsets, shape):
     """
-    Factory method of scipy diag_matrix: we skip all the index type-checking
+    Factory method of scipy dia_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_dia_matrix.__new__(scipy_dia_matrix)
+    cdef object out = scipy_dia_array.__new__(scipy_dia_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
-    scipy_data_matrix.__init__(out)
+    scipy_data_matrix_init(out)
     out.data = data
     out.offsets = offsets
     out._shape = shape
@@ -81,7 +84,7 @@ cdef class Dia(base.Data):
         cdef base.idxint col
         cdef object data, offsets
 
-        if isinstance(arg, scipy.sparse.spmatrix):
+        if scipy.sparse.issparse(arg):
             arg = arg.todia()
             if shape is not None and shape != arg.shape:
                 raise ValueError("".join([
@@ -140,7 +143,7 @@ cdef class Dia(base.Data):
         self.data = <double complex *> cnp.PyArray_GETPTR1(data, 0)
         self.offsets = <base.idxint *> cnp.PyArray_GETPTR1(offsets, 0)
 
-        self._scipy = _dia_matrix(data, offsets, self.shape)
+        self._scipy = _dia_array(data, offsets, self.shape)
         if tidyup:
             tidyup_dia(self, settings.core['auto_tidyup_atol'], True)
 
@@ -212,7 +215,7 @@ cdef class Dia(base.Data):
         PyArray_ENABLEFLAGS(data, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(offsets, cnp.NPY_ARRAY_OWNDATA)
         self._deallocate = False
-        self._scipy = _dia_matrix(data, offsets, self.shape)
+        self._scipy = _dia_array(data, offsets, self.shape)
         return self._scipy
 
     cpdef double complex trace(self):
@@ -256,7 +259,7 @@ cdef class Dia(base.Data):
 
 cpdef Dia fast_from_scipy(object sci):
     """
-    Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
+    Fast path construction from scipy.sparse.csr_array. This does _no_ type
     checking on any of the inputs, and should consequently be considered very
     unsafe.  This is primarily for use in the unpickling operation.
     """

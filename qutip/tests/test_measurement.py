@@ -1,9 +1,10 @@
 from math import sqrt
-
 import numpy as np
 import pytest
 
+from qutip import CoreOptions
 from qutip import basis, identity, ket2dm, num, sigmax, sigmay, sigmaz
+
 from qutip.measurement import (
     measure_observable,
     measure_povm,
@@ -200,7 +201,7 @@ def test_measurement_statistics_observable_input_errors():
                     pytest.param(sigmay(), basis(2, 1), id="sigmax_ket2"),
                     pytest.param(sigmay(), ket2dm(basis(2, 1)),
                                  id="sigmay_dm")])
-def test_measure_observable(op, state):
+def test_measure_observable(op, state, with_seeded_random):
     """ measure_observable: basis states using different observables """
     evs, ess_or_projs, prob = measurement_statistics_observable(state, op)
 
@@ -234,7 +235,7 @@ def test_measure_observable(op, state):
                         tuple(PZ), ket2dm(basis(2, 0)), id="PZ_dm1_tuple"),
                     pytest.param(
                         tuple(PZ), ket2dm(basis(2, 1)), id="PZ_dm2_tuple")])
-def test_measure(ops, state):
+def test_measure(ops, state, with_seeded_random):
     """measure_povm: test on basis states using different projectors """
 
     collapsed_states, _ = measurement_statistics_povm(state, ops)
@@ -331,3 +332,31 @@ def test_povm():
 
     _, probabilities = measurement_statistics_povm(dm2, M)
     np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], atol=0.001)
+
+
+def test_measurement_povm_no_casting():
+    coeff = (sqrt(2) / (1 + sqrt(2)))
+
+    E_1 = coeff * ket2dm(basis(2, 1))
+    E_2 = coeff * ket2dm((basis(2, 0) - basis(2, 1))/(sqrt(2)))
+    E_3 = identity(2) - E_1 - E_2
+    M = [E_1.sqrtm(), E_2.sqrtm(), E_3.sqrtm()]
+
+    dm = (basis(2, 0) + basis(2, 1)).proj() / 2
+
+    *_, probabilities_real = measurement_statistics_povm(dm, M)
+    with CoreOptions(auto_real_casting=False):
+        *_, probabilities_cplx = measurement_statistics_povm(dm, M)
+
+    assert np.allclose(probabilities_real, probabilities_cplx)
+
+
+def test_measurement_observable_no_casting():
+    M = (sqrt(2) / (1 + sqrt(2))) * ket2dm(basis(2, 1)).sqrtm()
+    dm = (basis(2, 0) + basis(2, 1)).proj() / 2
+
+    *_, probabilities_real = measurement_statistics_observable(dm, M)
+    with CoreOptions(auto_real_casting=False):
+        *_, probabilities_cplx = measurement_statistics_observable(dm, M)
+
+    assert np.allclose(probabilities_real, probabilities_cplx)

@@ -1,0 +1,3 @@
+Fix ``isherm`` on states returned by solvers: do not copy the initial state's
+Hermiticity flag onto evolved states. Non-Hermitian generators can break
+Hermiticity, and ``Qobj.isherm`` now reflects the actual output data.

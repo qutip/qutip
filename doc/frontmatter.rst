@@ -32,7 +32,7 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Neill Lambert
 
-:Author: Eric Giguere
+:Author: Eric Giguère
 
 :Author: Boxi Li
 
@@ -60,6 +60,10 @@ Citing This Project
 
 If you find this project useful, then please cite:
 
+.. centered:: Neill Lambert , Eric Giguère, Paul Menczel, Boxi Li, Patrick Hopf, Gerardo Suárez, Marc Gali, Jake Lishman, Rushiraj Gadhvi, Rochisha Agarwal, Asier Galicia, Nathan Shammah, Paul Nation, J.R. Johansson, Shahnawaz Ahmed, Simon Cross, Alexander Pitchford and Franco Nori, "QuTiP 5: The Quantum Toolbox in Python", Physics Reports, Volume 1153, Pages 1-62 (2026).
+
+or
+
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP 2: A Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **184**, 1234 (2013).
 
 or
@@ -67,7 +71,9 @@ or
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **183**, 1760 (2012).
 
 
-which may also be downloaded from https://arxiv.org/abs/1211.6518 or https://arxiv.org/abs/1110.0573, respectively.
+which may also be downloaded from https://www.sciencedirect.com/science/article/pii/S0370157325002704 or https://arxiv.org/abs/1211.6518 or https://arxiv.org/abs/1110.0573, respectively.
+
+The function ``qutip.cite()`` will print the bibtex entry.
 
 .. _funding-qutip:
 
@@ -165,9 +171,9 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 :scQubits: `scQubits <https://scqubits.readthedocs.io/en/latest/>`_ is a Python library which provides a convenient way to simulate superconducting qubits by providing an interface to QuTiP
 
-:SimulaQron: `SimulaQron <https://softwarequtech.github.io/SimulaQron/html/index.html>`_ is a distributed simulation of the end nodes in a quantum internet with the specific goal to explore application development
+:SimulaQron: `SimulaQron <https://github.com/SoftwareQuTech/SimulaQron>`_ is a distributed simulation of the end nodes in a quantum internet with the specific goal to explore application development
 
-:QInfer: `QInfer <http://qinfer.org/>`_ is a library for working with sequential Monte Carlo methods for parameter estimation in quantum information
+:QInfer: `QInfer <https://github.com/QInfer/python-qinfer>`_ is a library for working with sequential Monte Carlo methods for parameter estimation in quantum information
 
 :QPtomographer: `QPtomographer <https://qptomographer.readthedocs.io/en/latest/>`_ derive quantum error bars for quantum processes in terms of the diamond norm to a reference quantum channel
 

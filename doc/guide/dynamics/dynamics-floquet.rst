@@ -149,7 +149,7 @@ due that the driving, degenerate quasienergies indicates a "freezing" of the dyn
    >>> args = {'w': omega}
    >>> for idx, A in enumerate(A_vec): # doctest: +SKIP
    >>>   H1 = A / 2.0 * sigmax() # doctest: +SKIP
-   >>>   H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]] # doctest: +SKIP
+   >>>   H = [H0, [H1, lambda t, w: np.sin(w * t)]] # doctest: +SKIP
    >>>   floquet_basis = FloquetBasis(H, T, args)
    >>>   q_energies[idx,:] = floquet_basis.e_quasi # doctest: +SKIP
    >>> plt.figure() # doctest: +SKIP

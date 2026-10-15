@@ -1,5 +1,7 @@
 """ODE integrator from scipy."""
 
+import warnings
+
 __all__ = [
     'IntegratorScipyAdams',
     'IntegratorScipyBDF',
@@ -14,7 +16,6 @@ from qutip.core import data as _data
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
-import warnings
 
 
 class IntegratorScipyAdams(Integrator):
@@ -34,8 +35,6 @@ class IntegratorScipyAdams(Integrator):
         'max_step': 0,
         'min_step': 0,
     }
-    support_time_dependant = True
-    supports_blackbox = True
     method = 'adams'
 
     class _zvode(zvode):
@@ -60,27 +59,29 @@ class IntegratorScipyAdams(Integrator):
         )
         self.name = "scipy zvode " + self.method
 
-    def _mul_np_vec(self, t, vec):
+    @staticmethod
+    def _mul_np_vec(t, vec, derivative, size):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
         state = _data.dense.fast_from_numpy(vec)
-        column_unstack_dense(state, self._size, inplace=True)
-        out = self.system.matmul_data(t, state)
-        column_stack_dense(out, inplace=True)
+        state = column_unstack_dense(state, size, inplace=True)
+        out = _data.to(_data.Dense, derivative(t, state))
+        out = column_stack_dense(out, inplace=out.fortran)
         return out.as_ndarray().ravel()
 
-    def set_state(self, t, state0):
+    def set_state(self, t: float, state0: _data.Data):
         self._is_set = True
         self._back = t
         self._front = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+        self._ode_solver.set_f_params(self.derivative, self._size)
         if self._mat_state:
             state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(state0.to_array().ravel(), t)
 
-    def get_state(self, copy=True):
+    def get_state(self, copy: bool = True) -> tuple[float, _data.Data]:
         if not self._is_set:
             raise IntegratorException("The state is not initialted")
         self._check_failed_integration()
@@ -104,13 +105,15 @@ class IntegratorScipyAdams(Integrator):
             if integrator.handle != integrator.__class__.active_global_handle:
                 integrator.reset(len(self._ode_solver._y), False)
 
-    def integrate(self, t, copy=True):
+    def integrate(
+        self, t: float, copy: bool = True
+    ) -> tuple[float, _data.Data]:
         self._check_handle()
         if t != self._ode_solver.t:
             self._ode_solver.integrate(t)
         return self.get_state(copy)
 
-    def mcstep(self, t, copy=True):
+    def mcstep(self, t: float, copy: bool = True) -> tuple[float, _data.Data]:
         # When working with mcstep, we use the dense output feature:
         # a range in which the state at any time can be computed with
         # minimal work. We keep track of the range with _back and _front.
@@ -159,7 +162,7 @@ class IntegratorScipyAdams(Integrator):
         )
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Supported options by zvode integrator:
 
@@ -189,7 +192,7 @@ class IntegratorScipyAdams(Integrator):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict):
         Integrator.options.fset(self, new_options)
 
 
@@ -233,34 +236,36 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
-    support_time_dependant = True
-    supports_blackbox = True
-    method = 'dop853'
 
     def _prepare(self):
         """
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
+        # scipy 1.17 does not convert automatically anymore
+        self.options["nsteps"] = int(self.options["nsteps"])
         self._ode_solver.set_integrator('dop853', **self.options)
         self.name = "scipy ode dop853"
 
-    def _mul_np_vec(self, t, vec):
+    @staticmethod
+    def _mul_np_vec(t, vec, derivative, size):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
         state = _data.dense.fast_from_numpy(vec.view(np.complex128))
-        column_unstack_dense(state, self._size, inplace=True)
-        out = self.system.matmul_data(t, state)
-        column_stack_dense(out, inplace=True)
+        column_unstack_dense(state, size, inplace=True)
+        out = _data.to(_data.Dense, derivative(t, state))
+        out = column_stack_dense(out, inplace=out.fortran)
         return out.as_ndarray().ravel().view(np.float64)
 
-    def integrate(self, t, copy=True):
+    def integrate(
+        self, t: float, copy: bool = True
+    ) -> tuple[float, _data.Data]:
         if t != self._ode_solver.t:
             self._ode_solver.integrate(t)
         return self.get_state(copy)
 
-    def mcstep(self, t, copy=True):
+    def mcstep(self, t: float, copy: bool = True) -> tuple[float, _data.Data]:
         if self._ode_solver.t <= t:
             # Scipy's DOP853 does not have a step function.
             # It has a safe step length, but can be 0 if unknown.
@@ -276,7 +281,7 @@ class IntegratorScipyDop853(Integrator):
             self._ode_solver._integrator.work[6] *= -1
         return self.get_state(copy)
 
-    def get_state(self, copy=True):
+    def get_state(self, copy: bool = True) -> tuple[float, _data.Data]:
         if not self._is_set:
             raise IntegratorException("The state is not initialted")
         self._check_failed_integration()
@@ -284,21 +289,21 @@ class IntegratorScipyDop853(Integrator):
         if self._mat_state:
             state = _data.column_unstack_dense(
                 _data.dense.fast_from_numpy(
-                    self._ode_solver._y.view(np.complex128)
+                    self._ode_solver._y.view(np.complex128).copy()
                 ),
                 self._size,
                 inplace=True)
         else:
             state = _data.dense.fast_from_numpy(
-                self._ode_solver._y.view(np.complex128)
+                self._ode_solver._y.view(np.complex128).copy()
             )
-            state = state.copy() if copy else state
         return t, state
 
-    def set_state(self, t, state0):
+    def set_state(self, t: float, state0: _data.Data):
         self._is_set = True
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+        self._ode_solver.set_f_params(self.derivative, self._size)
         if self._mat_state:
             state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(
@@ -322,7 +327,7 @@ class IntegratorScipyDop853(Integrator):
         )
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Supported options by dop853 integrator:
 
@@ -352,7 +357,7 @@ class IntegratorScipyDop853(Integrator):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict):
         Integrator.options.fset(self, new_options)
 
 
@@ -374,9 +379,6 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         'max_step': 0.0,
         'min_step': 0.0,
     }
-    support_time_dependant = True
-    supports_blackbox = True
-    method = 'lsoda'
 
     def _prepare(self):
         """
@@ -396,16 +398,20 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
             if integrator.handle != integrator.__class__.active_global_handle:
                 integrator.reset(len(self._ode_solver._y), False)
 
-    def integrate(self, t, copy=True):
+    def integrate(
+        self, t: float, copy: bool = True
+    ) -> tuple[float, _data.Data]:
         self._check_handle()
-        return super().integrate(t, copy)
+        out = super().integrate(t, copy)
+        self._front = self._ode_solver._integrator.rwork[12]
+        return out
 
-    def set_state(self, t, state0):
+    def set_state(self, t: float, state0: _data.Data):
         self._front = t
         super().set_state(t, state0)
         self._back = self.get_state()
 
-    def mcstep(self, t, copy=True):
+    def mcstep(self, t: float, copy: bool = True) -> tuple[float, _data.Data]:
         # This solver support dense output:
         # a range in which the state at any time can be computed with
         # minimal work. We keep track of the range with _back[0] and _front.
@@ -472,7 +478,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         if self._ode_solver.successful():
             return
         messages = {
-            -1: "Excess work done on this call."
+            -1: "Excess work done on this call. "
                 "Try to increase the nsteps parameter in the Options class.",
             -2: "Excess accuracy requested (tolerances too small).",
             -3: "Illegal input detected (internal error).",
@@ -487,7 +493,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         )
 
     @property
-    def options(self):
+    def options(self) -> dict:
         """
         Supported options by lsoda integrator:
 
@@ -520,7 +526,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         return self._options
 
     @options.setter
-    def options(self, new_options):
+    def options(self, new_options: dict):
         Integrator.options.fset(self, new_options)
 
 

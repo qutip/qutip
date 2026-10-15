@@ -7,9 +7,10 @@ __all__ = [
     'expand_operator'
 ]
 
-import numpy as np
+from collections.abc import Iterable
 from functools import partial
 from typing import TypeVar, overload
+import numpy as np
 
 from .operators import qeye
 from .qobj import Qobj
@@ -20,7 +21,6 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
-from .. import settings
 from ..typing import LayerType
 
 
@@ -32,12 +32,17 @@ class _reverse_partial_tensor:
     def __call__(self, op):
         return tensor(op, self.right)
 
-
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
 
 @overload
 def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+@overload
+def tensor(args: Iterable[Qobj], /) -> Qobj: ...
+
+@overload
+def tensor(args: Iterable[Qobj | QobjEvo], /) -> QobjEvo: ...
 
 def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
@@ -198,7 +203,7 @@ def composite(*args: Qobj | QobjEvo) -> QobjEvo: ...
 
 def composite(*args):
     """
-    Given two or more operators, kets or bras, returns the Qobj
+    Given two or more operators, kets or bras, returns the :class:`.Qobj`
     corresponding to a composite system over each argument.
     For ordinary operators and vectors, this is the tensor product,
     while for superoperators and vectorized operators, this is
@@ -233,10 +238,9 @@ def composite(*args):
     if all(map(_isbralike, args)):
         # Turn into ket-likes and recurse.
         return composite(*(arg.dag() for arg in args)).dag()
-    raise TypeError("Unsupported Qobj types [{}].".format(
-        ", ".join(arg.type for arg in args)
-    ))
-
+    raise TypeError(
+        "Unsupported Qobj types [" + ", ".join(arg.type for arg in args) + "]."
+    )
 
 def _tensor_contract_single(arr, i, j):
     """
@@ -268,7 +272,7 @@ def _tensor_contract_dense(arr, *pairs):
 
 
 def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
-    """Transposes one or more pairs of indices of a Qobj.
+    """Transposes one or more pairs of indices of a :class:`.Qobj`.
 
     .. note::
 
@@ -277,7 +281,7 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    q_oper : Qobj
+    q_oper : :class:`.Qobj`
         Operator to swap dims.
 
     pairs : tuple
@@ -288,8 +292,9 @@ def tensor_swap(q_oper: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    sqobj : Qobj
-        The original Qobj with all named index pairs swapped with each other
+    sqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs swapped with
+        each other
     """
     q_oper._dims._require_pure_dims("tensor swap")
     dims = q_oper.dims
@@ -322,7 +327,7 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
 
     Parameters
     ----------
-    qobj: Qobj
+    qobj: :class:`.Qobj`
         Operator to contract subspaces on.
 
     pairs : tuple
@@ -333,8 +338,8 @@ def tensor_contract(qobj: Qobj, *pairs: tuple[int, int]) -> Qobj:
     Returns
     -------
 
-    cqobj : Qobj
-        The original Qobj with all named index pairs contracted
+    cqobj : :class:`.Qobj`
+        The original :class:`.Qobj` with all named index pairs contracted
         away.
 
     """
@@ -400,9 +405,9 @@ def _check_oper_dims(oper, dims=None, targets=None):
         targ_dims = [dims[t] for t in targets]
         if oper.dims[0] != targ_dims:
             raise ValueError(
-                "The operator dims {} do not match "
-                "the target dims {}.".format(
-                    oper.dims[0], targ_dims))
+                f"The operator dims {oper.dims[0]} do not match "
+                f"the target dims {targ_dims}."
+            )
 
 
 def _targets_to_list(targets, oper=None, N=None):
@@ -435,14 +440,13 @@ def _targets_to_list(targets, oper=None, N=None):
         req_num = len(oper.dims[0])
         if len(targets) != req_num:
             raise ValueError(
-                "The given operator needs {} "
-                "target qutbis, "
-                "but {} given.".format(
-                    req_num, len(targets)))
+                f"The given operator needs {req_num} "
+                f"target qutbis, but {len(targets)} given."
+            )
     # if targets is smaller than N
     if N is not None:
         if not all([t < N for t in targets]):
-            raise ValueError("Targets must be smaller than N={}.".format(N))
+            raise ValueError(f"Targets must be smaller than N={N}.")
     return targets
 
 
@@ -455,15 +459,16 @@ def expand_operator(
     targets: int,
     dtype: LayerType = None
 ) -> QobjOrQobjEvo:
-    """
-    Expand an operator to one that acts on a system with desired dimensions.
-    e.g.
-    ```
-    expand_operator(oper, [2, 3, 4, 5], 2) ==
-        tensor(qeye(2), qeye(3), oper, qeye(5))
-    expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
-        tensor(oper2, qeye(3), oper1, qeye(5))
-    ```
+    """Expand an operator to one that acts on a system with desired dimensions.
+
+    Example
+
+    .. code-block:: python
+
+        expand_operator(oper, [2, 3, 4, 5], 2) ==
+            tensor(qeye(2), qeye(3), oper, qeye(5))
+        expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
+            tensor(oper2, qeye(3), oper1, qeye(5))
 
     Parameters
     ----------

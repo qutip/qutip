@@ -180,7 +180,7 @@ def test_jaynes_cummings_zero_temperature_spectral_str():
     sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())
     psi0 = qutip.ket2dm(qutip.tensor(qutip.basis(N, 1), qutip.basis(2, 0)))
     kappa = 0.05
-    a_ops = [[(a + a.dag()), "{kappa} * (w >= 0)".format(kappa=kappa)]]
+    a_ops = [[(a + a.dag()), f"{kappa} * (w >= 0)"]]
     e_ops = [a.dag()*a, sp.dag()*sp]
 
     w0 = 1.0 * 2*np.pi
@@ -198,16 +198,16 @@ def test_jaynes_cummings_zero_temperature_spectral_str():
 
 
 def _mixed_string(kappa, _):
-    return "{kappa} * exp(-t) * (w >= 0)".format(kappa=kappa), "1"
+    return f"{kappa} * exp(-t) * (w >= 0)", "1"
 
 
 def _separate_strings(kappa, _):
-    return ("{kappa} * (w >= 0)".format(kappa=kappa), "exp(-t/2)")
+    return (f"{kappa} * (w >= 0)", "exp(-t/2)")
 
 
 def _string_w_interpolating_t(kappa, times):
     spline = qutip.coefficient(np.exp(-times/2), tlist=times)
-    return ("{kappa} * (w >= 0)".format(kappa=kappa), spline)
+    return (f"{kappa} * (w >= 0)", spline)
 
 
 @pytest.mark.slow
@@ -247,10 +247,10 @@ def test_time_dependent_spline_in_c_ops():
 
 
 @pytest.mark.slow
-def test_nonhermitian_e_ops():
+def test_nonhermitian_e_ops(random_generator):
     N = 5
     a = qutip.destroy(N)
-    coefficient = np.random.random() + 1j*np.random.random()
+    coefficient = random_generator.random() + 1j * random_generator.random()
     H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
     H_brme = [[H, '1']]
     psi0 = qutip.basis(N, 2)
@@ -261,10 +261,10 @@ def test_nonhermitian_e_ops():
 
 
 @pytest.mark.slow
-def test_result_states():
+def test_result_states(random_generator):
     N = 5
     a = qutip.destroy(N)
-    coefficient = np.random.random() + 1j*np.random.random()
+    coefficient = random_generator.random() + 1j * random_generator.random()
     H = a.dag()*a + coefficient*a + np.conj(coefficient)*a.dag()
     H_brme = [[H, '1']]
     psi0 = qutip.fock_dm(N, 2)
@@ -287,7 +287,7 @@ def test_hamiltonian_taking_arguments():
     psi0 = qutip.ket2dm(psi0)
     times = np.linspace(0, 5 * 2*np.pi / g, 1000)
 
-    a_ops = [[(a + a.dag()), "{kappa}*(w > 0)".format(kappa=kappa)]]
+    a_ops = [[(a + a.dag()), f"{kappa}*(w > 0)"]]
     e_ops = [a.dag()*a, sp.dag()*sp]
 
     H = w0*a.dag()*a + w0*sp.dag()*sp + g*(a+a.dag())*(sp+sp.dag())
@@ -320,10 +320,10 @@ def test_feedback():
 @pytest.mark.parametrize("lam,gamma,beta", [(0.05, 1, 1), (0.1, 5, 2)])
 def test_accept_environment(lam, gamma, beta):
     DL = (
-        "2 * pi * 2.0 * {lam} / (pi * {gamma} * {beta}) if (w==0) else "
-        "2 * pi * (2.0 * {lam} * {gamma} * w / (pi * (w**2 + {gamma}**2))) "
-        "* ((1 / (exp(w * {beta}) - 1)) + 1)"
-    ).format(gamma=gamma, beta=beta, lam=lam)
+        f"2 * pi * 2.0 * {lam} / (pi * {gamma} * {beta}) if (w==0) else "
+        f"2 * pi * (2.0 * {lam} * {gamma} * w / (pi * (w**2 + {gamma}**2))) "
+        f"* ((1 / (exp(w * {beta}) - 1)) + 1)"
+    )
     H = 0.5 * qutip.sigmax()
     psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)

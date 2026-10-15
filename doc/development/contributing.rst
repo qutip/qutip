@@ -13,8 +13,8 @@ The exact details of environment set-up, build process and testing vary by repos
 
 #. Consider creating an issue on the GitHub page of the relevant repository, describing the change you think should be made and why, so we can discuss details with you and make sure it is appropriate.
 #. (If this is your first contribution.) Make a fork of the relevant repository on GitHub and clone it to your local computer.  Also add our copy as a remote (``git remote add qutip https://github.com/qutip/<repo>``)
-#. Begin on the ``master`` branch (``git checkout master``), and pull in changes from the main QuTiP repository to make sure you have an up-to-date copy (``git pull qutip master``).
-#. Switch to a new ``git`` branch (``git checkout -b <branch-name>``).
+#. Begin on the ``master`` branch (``git switch master``), and pull in changes from the main QuTiP repository to make sure you have an up-to-date copy (``git pull qutip master``).
+#. Switch to a new ``git`` branch (``git switch -c <branch-name>``).
 #. Make the changes you want to make, then create some commits with short, descriptive names (``git add <files>`` then ``git commit``).
 #. Follow the build process for this repository to build the final result so you can check your changes work sensibly.
 #. Run the tests for the repository (if it has them).
@@ -22,7 +22,7 @@ The exact details of environment set-up, build process and testing vary by repos
 #. Go to the GitHub website for the repository you are contributing to, click on the "Pull Requests" tab, click the "New Pull Request" button, and follow the instructions there.
 
 Once the pull request is created, some members of the QuTiP admin team will review the code to make sure it is suitable for inclusion in the library, to check the programming, and to ensure everything meets our standards.
-For some repositories, several automated tests will run whenever you create or modify a pull request; in general these will be the same tests you can run locally, and all tests are required to pass online before your changes are merged.
+For some repositories, several automated tests will run whenever you create or modify a pull request; in general these will be the same tests you can run locally, and all tests are required to pass in the CI before your changes are merged.
 There may be some feedback and possibly some requested changes.
 You can add more commits to address these, and push them to the relevant branch of your fork to update the pull request.
 
@@ -40,48 +40,51 @@ Building
 --------
 
 Building the core library from source is typically a bit more difficult than simply installing the package for regular use.
-You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from ::
+You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from:
+
+.. code-block:: bash
 
    conda create -n qutip-dev python
 
-:ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source using setuptools section <build-setuptools>`, not the general installation.
-You will need all the *build* and *tests* "optional" requirements for the package.
-The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``project.optional-dependencies`` section of |pyproject.toml|_.
+:ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source <build-meson>`, not the general installation.
+You will need all the *build* and *tests* dependencies for the project.
+The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``dependency-groups`` section of |pyproject.toml|_.
 You will also need the requirements for any optional features you want to test as well.
 
 .. |pyproject.toml| replace:: ``pyproject.toml`` file
 .. _pyproject.toml: https://github.com/qutip/qutip/blob/master/pyproject.toml
 
-Refer to the main instructions for the most up-to-date version, however as of version 4.6 the requirements can be installed into a conda environment with ::
+Refer to the main instructions for the most up-to-date version, however as of version 5.4 the requirements can be installed into a conda environment with ::
 
-   conda install setuptools wheel numpy scipy cython packaging pytest pytest-rerunfailures
-
-Note that ``qutip`` should *not* be installed with ``conda install``.
+   conda install meson-python ninja numpy scipy cython pytest pytest-rerunfailures
 
 .. note::
    If you prefer, you can also use ``pip`` to install all the dependencies.
-   We typically recommend ``conda`` when doing main-library development because it is easier to switch low-level packages around like BLAS implementations, but if this doesn't mean anything to you, feel free to use ``pip``.
+   We typically recommend ``conda`` when doing main-library development because it is easier to switch low-level packages around like BLAS implementations, but if you don't require this, feel free to use ``pip``.
+
+Note that ``qutip`` should *not* be listed in ``conda install`` or ``pip install``.
 
 You will need to make sure you have a functioning C++ compiler to build QuTiP.
 If you are on Linux or Mac, this is likely already done for you, however if you are on Windows, refer to the :ref:`Windows installation <install-on-windows>` section of the installation guide.
 
-The command to build QuTiP in editable mode is ::
+The command to build QuTiP in editable mode is:
 
-   python setup.py develop
+.. code-block:: bash
+
+   pip install --no-build-isolation --editable .
 
 from the repository directory.
 If you now load up a Python interpreter, you should be able to ``import qutip`` from anywhere as long as the correct Python environment is active.
 Any changes you make to the Python files in the git repository should be immediately present if you restart your Python interpreter and re-import ``qutip``.
 
-On the first run, the setup command will compile many C++ extension modules built from Cython sources (files ending ``.pxd`` and ``.pyx``).
+On the first run, the editable install command will compile many C++ extension modules built from Cython sources (files ending ``.pxd`` and ``.pyx``).
 Generally the low-level linear algebra routines that QuTiP uses are written in these files, not in pure Python.
-Unlike Python files, changes you make to Cython files will not appear until you run ``python setup.py develop`` again; you will only need to re-run this if you are changing Cython files.
-Cython will detect and compile only the files that have been changed, so this command will be faster on subsequent runs.
 
-.. note::
+.. warning::
 
-   When undertaking Cython development, the reason we use ``python setup.py develop`` instead of ``pip install -e .`` is because Cython's changed-file detection does not reliably work in the latter.
-   ``pip`` tends to build in temporary virtual environments, which often makes Cython think its core library files have been updated, triggering a complete, slow rebuild of everything.
+   The ``--no-build-isolation`` flag is required.
+   Without it, ``pip`` will build inside a temporary virtual environment which it then deletes, leaving the build directory pointing at header files that no longer exist.
+   The install itself will appear to succeed, but the next time anything needs recompiling you will get an unhelpful ``ImportError`` about the rebuild having failed.
 
 .. note::
 
@@ -90,9 +93,29 @@ Cython will detect and compile only the files that have been changed, so this co
     These coincide with the versions employed for testing in continuous integration.
 
     In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
-    In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in a patch.
+    In any case, python and dependency upgrades will only happen in major or minor versions of QuTiP, not in the patch releases.
 
 .. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
+
+Build options
+~~~~~~~~~~~~~
+
+You can pass build options through ``pip`` using ``--config-settings`` (``-C`` for short):
+
+.. code-block:: bash
+
+   pip install --no-build-isolation -Csetup-args=-Didxint_64=true --editable .
+
+Here ``idxint_64`` selects 64-bit integers for the internal sparse-matrix memory indices.
+All the available build options are declared in the ``meson.options`` file in the repository root.
+
+Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile:
+
+.. code-block:: bash
+
+   meson setup build
+   meson compile -C build
 
 
 Code Style
@@ -140,7 +163,9 @@ Testing
 -------
 
 We use ``pytest`` as our test runner.
-The base way to run every test is ::
+The base way to run every test is:
+
+.. code-block:: bash
 
    pytest /path/to/repo/qutip/tests
 
@@ -160,16 +185,63 @@ Changelog Generation
 --------------------
 
 We use ``towncrier`` for tracking changes and generating a changelog.
-When making a pull request, we require that you add a towncrier entry along with the code changes.
-You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory, where the PR number should be substituted for ``<PR number>``, and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
-depending on the type of change included in the PR.
+Every pull request must add at least one towncrier entry along with the code changes.
+You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory,
+where the PR number should be substituted for ``<PR number>``,
+and ``<change type>`` should be one of the following depending on the type of change.
 
-You can also create this file by installing ``towncrier`` and running
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``feature``
+     - New functionality available to QuTiP users.
+   * - ``bugfix``
+     - Fix for incorrect or unintended behavior of existing functionality.
+   * - ``doc``
+     - Documentation-only changes.
+   * - ``deprecation``
+     - A feature is deprecated: it now emits a warning and will be removed in a future release.
+   * - ``removal``
+     - A previously deprecated feature is removed.
+   * - ``misc``
+     - Other user-visible changes that fit none of the types above.
+
+
+You can also create this file by installing ``towncrier`` and running::
 
    towncrier create <PR number>.<change type>
 
 Running this will create a file in the ``doc/changes`` directory with a filename corresponding to the argument you passed to ``towncrier create``.
 In this file, you should add a short description of the changes that the PR introduces.
+
+A pull request can add multiple towncrier entries.
+
+Internal change types
+~~~~~~~~~~~~~~~~~~~~~
+
+The following change types are for internal changes.
+Entries of these types are not included in the changelog,
+and they should only be used by maintainers.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``meta``
+     - Changes to project metadata and tooling, such as packaging, CI configuration, or GitHub templates.
+   * - ``test``
+     - Changes to the test suite only, such as new operating systems in automated tests or adjusted tolerances.
+   * - ``patch``
+     - Small follow-up fix to a PR that is already merged but not yet released,
+       and which already has its own entry (for example, removing a forgotten debug print).
+   * - ``chore``
+     - Other internal changes with no user-visible effect, such as refactoring, cleanup, or dependency bumps.
+
 
 .. _contributing-docs:
 
@@ -187,16 +259,20 @@ You can see the rendered version of this file simply by going to the `documentat
 
 Building the documentation can be a little finnicky on occasion.
 You likely will want to keep a separate Python environment to build the documentation in, because some of the dependencies can have tight requirements that may conflict with your favourite tools for Python development.
-We recommend creating an empty ``conda`` environment containing only Python with ::
+We recommend creating an empty ``conda`` environment containing only Python with:
 
-   conda create -n qutip-doc python=3.8
+.. code-block:: bash
+
+   conda create -n qutip-doc python=3.13
 
 and install all further dependencies with ``pip``.
-There is a ``requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using ::
+There is a ``doc/requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using:
 
-   pip install -r requirements.txt
+.. code-block:: bash
 
-This known-good configuration was intended for Python 3.8, though in principle it is possible that other Python versions will work.
+   pip install -r doc/requirements.txt
+
+This known-good configuration was intended for Python 3.13, though in principle it is possible that other Python versions will work.
 
 .. note::
 
@@ -206,15 +282,19 @@ The documentation build includes running many components of the main QuTiP libra
 You therefore need to have a version of QuTiP available in the same Python environment.
 If you are only interested in updating the users' guide, you can use a release version of QuTiP, for example by running ``pip install qutip``.
 If you are also modifying the main library, you need to make your development version accessible in this environment.
-See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run ::
+See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``doc/requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run:
 
-   python setup.py develop
+.. code-block:: bash
+
+   pip install .
 
 in the main library repository.
 
 The documentation is built by running the ``make`` command.
 There are several targets to build, but the most useful will be ``html`` to build the webpage documentation, ``latexpdf`` to build the PDF documentation (you will also need a full ``pdflatex`` installation), and ``clean`` to remove all built files.
-The most important command you will want to run is ::
+The most important command you will want to run is:
+
+.. code-block:: bash
 
    make html
 

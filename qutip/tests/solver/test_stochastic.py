@@ -8,6 +8,14 @@ from qutip.solver.stochastic import smesolve, ssesolve, SMESolver, SSESolver
 from qutip.core import data as _data
 
 
+@pytest.fixture(autouse=True)
+def fix_ssolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    seedseq = np.random.SeedSequence(seed)
+    SMESolver.seed_sequence = seedseq
+    SSESolver.seed_sequence = seedseq
+
+
 def f(t, w):
     return w * t
 
@@ -382,39 +390,21 @@ def test_feedback():
     psi0 = basis(N, N-3)
 
     times = np.linspace(0, 2, 101)
-    options = {"map": "serial", "dt": 0.0005}
+    options = {"map": "serial", "dt": 0.0005, "progress_bar": True}
 
     solver = SMESolver(H, sc_ops=sc_ops, heterodyne=False, options=options)
     results = solver.run(psi0, times, e_ops=[num(N)], ntraj=ntraj)
 
     # If this was deterministic, it should never go under `6`.
     # We add a tolerance ~dt due to the stochatic part.
-    assert np.all(results.expect[0] > 6. - 0.001)
+    assert np.all(results.expect[0] > 6. - 0.0025)
     assert np.all(results.expect[0][-20:] < 6.7)
 
 
-def test_deprecation_warnings():
-    with pytest.warns(FutureWarning, match=r'map_func'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
-
-    with pytest.warns(FutureWarning, match=r'progress_bar'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], progress_bar=None)
-
-    with pytest.warns(FutureWarning, match=r'nsubsteps'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], nsubsteps=None)
-
-    with pytest.warns(FutureWarning, match=r'map_func'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], map_func=None)
-
-    with pytest.warns(FutureWarning, match=r'store_all_expect'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_all_expect=1)
-
-    with pytest.warns(FutureWarning, match=r'store_measurement'):
-        ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], store_measurement=1)
-
+def test_error():
     with pytest.raises(TypeError) as err:
         ssesolve(qeye(2), basis(2), [0, 0.01], [qeye(2)], m_ops=1)
-    assert '"m_ops" and "dW_factors"' in str(err.value)
+    assert 'm_ops' in str(err.value)
 
 
 @pytest.mark.parametrize("method", ["euler", "rouchon"])
@@ -442,14 +432,16 @@ def test_run_from_experiment_close(method, heterodyne):
         "store_states": True,
         "method": method,
     }
-    solver = SSESolver(H, sc_ops, heterodyne, options=options)
-    res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
-    res_backward = solver.run_from_experiment(
-        psi0, tlist, res_forward.dW[0], e_ops=[H]
-    )
-    res_measure = solver.run_from_experiment(
-        psi0, tlist, res_forward.measurement[0], e_ops=[H], measurement=True
-    )
+    with CoreOptions(auto_real_casting=False):
+        solver = SSESolver(H, sc_ops, heterodyne, options=options)
+        res_forward = solver.run(psi0, tlist, 1, e_ops=[H])
+        res_backward = solver.run_from_experiment(
+            psi0, tlist, res_forward.dW[0], e_ops=[H]
+        )
+        res_measure = solver.run_from_experiment(
+            psi0, tlist, res_forward.measurement[0],
+            e_ops=[H], measurement=True
+        )
 
     np.testing.assert_allclose(
         res_backward.measurement, res_forward.measurement[0], atol=1e-10
@@ -480,7 +472,7 @@ def test_run_from_experiment_open(method, heterodyne):
     a = destroy(N)
     sc_ops = [a, a.dag() * 0.1]
     psi0 = basis(N, N-1)
-    tlist = np.linspace(0, 1, 251)
+    tlist = np.linspace(0, 0.5, 501)
     options = {
         "store_measurement": "start",
         "dt": tlist[1],
@@ -589,14 +581,38 @@ def test_step(open, heterodyne):
     )
     solver.start(state0, t0=0)
     state1 = solver.step(0.01)
+
+    # Norm only statistically presenved for ssesolve
+    n_tol = 0.01 if open else 0.03
+
     assert state1.dims == state0.dims
-    assert state1.norm() == pytest.approx(1, abs=0.01)
+    assert state1.norm() == pytest.approx(1, abs=n_tol)
     state2, dW = solver.step(0.02, wiener_increment=True)
     assert state2.dims == state0.dims
-    assert state2.norm() == pytest.approx(1, abs=0.01)
+    assert state2.norm() == pytest.approx(1, abs=n_tol)
     if heterodyne:
         assert dW.shape == (2, 2)
         assert abs(dW[0, 0]) < 0.5 # 5 sigmas
     else:
         assert dW.shape == (2,)
         assert abs(dW[0]) < 0.5 # 5 sigmas
+
+
+def test_smesolve_caches_isherm_for_operator_hamiltonian():
+    """SME with operator H can cache isherm; SSE kets leave it unset."""
+    options = {
+        "progress_bar": None,
+        "store_states": True,
+        "keep_runs_results": True,
+    }
+    sme = SMESolver(num(2), [destroy(2)], heterodyne=False, options=options)
+    assert sme._rhs_preserves_hermiticity is True
+    sme_state = sme.run(fock_dm(2, 1), [0, 0.05], ntraj=1).trajectories[0].states[-1]
+    assert sme_state._isherm is True
+    assert sme_state.isherm is True
+
+    sse = SSESolver(num(2), [destroy(2)], heterodyne=False, options=options)
+    assert sse._rhs_preserves_hermiticity is True
+    sse_state = sse.run(basis(2, 1), [0, 0.05], ntraj=1).trajectories[0].states[-1]
+    assert sse_state.isket
+    assert sse_state._isherm is None

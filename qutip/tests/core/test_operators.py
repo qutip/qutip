@@ -106,6 +106,18 @@ def test_diagonal_operators(oper_func, diag, offset, args):
     assert oper == qutip.Qobj(np.diag(diag, offset))
 
 
+@pytest.mark.parametrize(['diagonals', 'expected'], [
+    pytest.param([1, 1], True, id="unitary"),
+    pytest.param([1j, -1j], True, id="unitary_phase"),
+    pytest.param([0.5, 0.5], False, id="subunit"),
+    pytest.param([2, 2], False, id="superunit"),
+])
+def test_qdiags_isunitary(diagonals, expected):
+    # A main-diagonal Qobj is unitary iff every entry has modulus 1.
+    oper = qutip.qdiags(diagonals, 0)
+    assert bool(oper.isunitary) is expected
+
+
 @pytest.mark.parametrize(['function', 'message'], [
     (qutip.qeye, "Dimensions must be integers > 0"),
     (qutip.destroy, "Hilbert space dimension must be integer value"),
@@ -140,6 +152,17 @@ def test_qzero_rectangular():
     assert qutip.qzero([2], [3]).dims == [[2], [3]]
     assert qutip.qzero([2, 3], [3]).dims == [[2, 3], [3]]
     assert qutip.qzero(qutip.dimensions.Space([2, 3]), qutip.dimensions.Space([3])).dims == [[2, 3], [3]]
+
+
+def test_qzero_isherm():
+    # A non-square zero operator cannot be Hermitian; a square one is.
+    assert qutip.qzero(3).isherm is True
+    assert qutip.qzero([2], [3]).isherm is False
+
+    square = qutip.Qobj(np.zeros((3, 3)))
+    rectangular = qutip.Qobj(np.zeros((2, 3)), dims=[[2], [3]])
+    assert qutip.qzero_like(square).isherm is True
+    assert qutip.qzero_like(rectangular).isherm is False
 
 
 @pytest.mark.parametrize("to_test", [qutip.qzero, qutip.qeye, qutip.identity])
@@ -321,9 +344,9 @@ def test_qft(dims):
 
 @pytest.mark.parametrize('N', [1, 3, 5, 8])
 @pytest.mark.parametrize('M', [2, 3, 5, 8])
-def test_swap(N, M):
-    ket1 = qutip.rand_ket(N)
-    ket2 = qutip.rand_ket(M)
+def test_swap(N, M, random_generator):
+    ket1 = qutip.rand_ket(N, seed=random_generator)
+    ket2 = qutip.rand_ket(M, seed=random_generator)
 
     assert qutip.swap(N, M) @ (ket1 & ket2) == (ket2 & ket1)
 
@@ -335,8 +358,8 @@ def test_swap(N, M):
     pytest.param([[2], [2]], "chi", id="chi"),
 ])
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
-def test_qeye_like(dims, superrep, dtype):
-    op = qutip.rand_herm(dims, dtype=dtype)
+def test_qeye_like(dims, superrep, dtype, random_generator):
+    op = qutip.rand_herm(dims, dtype=dtype, seed=random_generator)
     op.superrep = superrep
     new = qutip.qeye_like(op)
     expected = qutip.qeye(dims, dtype=dtype)
@@ -365,8 +388,8 @@ def test_qeye_like_error():
     pytest.param([[2], [2]], "chi", id="chi"),
 ])
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
-def test_qzero_like(dims, superrep, dtype):
-    op = qutip.rand_herm(dims, dtype=dtype)
+def test_qzero_like(dims, superrep, dtype, random_generator):
+    op = qutip.rand_herm(dims, dtype=dtype, seed=random_generator)
     op.superrep = superrep
     new = qutip.qzero_like(op)
     expected = qutip.qzero(dims, dtype=dtype)

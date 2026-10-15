@@ -3,6 +3,7 @@ from types import FunctionType
 
 import qutip
 from qutip.solver.mesolve import mesolve, MESolver
+from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 import pickle
 import pytest
@@ -14,7 +15,7 @@ WARN_MISSING_MODULE[0] = 0
 
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
-    if integrator.support_time_dependant
+    if integrator.rhs_format == "callable"
 ]
 
 def fidelitycheck(out1, out2, rho0vec):
@@ -33,11 +34,11 @@ class TestMESolveDecay:
     ada = a.dag() * a
 
     @pytest.fixture(params=[
-        pytest.param([ada, lambda t, args: 1], id='Hlist_func'),
+        pytest.param([ada, lambda t: 1], id='Hlist_func'),
         pytest.param([ada, '1'], id='Hlist_str'),
         pytest.param([ada, np.ones_like(tlist)], id='Hlist_array'),
         pytest.param(qutip.QobjEvo([ada, '1']), id='HQobjEvo'),
-        pytest.param(lambda t, args: qutip.create(10) * qutip.destroy(10),
+        pytest.param(lambda t: qutip.create(10) * qutip.destroy(10),
                      id='func'),
     ])
     def H(self, request):
@@ -46,10 +47,9 @@ class TestMESolveDecay:
     @pytest.fixture(params=[
         pytest.param(np.sqrt(kappa) * a,
                      id='const'),
-        pytest.param(lambda t, args: (np.sqrt(args['kappa'])
-                                      * qutip.destroy(10)),
+        pytest.param(lambda t, kappa: (np.sqrt(kappa) * qutip.destroy(10)),
                      id='func'),
-        pytest.param([a, lambda t, args: np.sqrt(args['kappa'])],
+        pytest.param([a, lambda t, kappa: np.sqrt(kappa)],
                      id='list_func'),
         pytest.param([a, 'sqrt(kappa)'],
                      id='list_str'),
@@ -62,7 +62,7 @@ class TestMESolveDecay:
         return request.param
 
     @pytest.fixture(params=[
-        pytest.param([a, lambda t, args: np.sqrt(args['kappa'] * np.exp(-t))],
+        pytest.param([a, lambda t, kappa: np.sqrt(kappa * np.exp(-t))],
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa * exp(-t))'],
                   id='list_str'),
@@ -71,9 +71,10 @@ class TestMESolveDecay:
         pytest.param(qutip.QobjEvo([a, 'sqrt(kappa * exp(-t))'],
                           args={'kappa': kappa}),
                   id='QobjEvo'),
-        pytest.param(lambda t, args: (np.sqrt(args['kappa'] * np.exp(-t)) *
-                                      qutip.destroy(10)),
-                     id='func'),
+        pytest.param(
+            lambda t, kappa: np.sqrt(kappa * np.exp(-t)) * qutip.destroy(10),
+            id='func'
+        ),
     ])
     def c_ops(self, request):
         return request.param
@@ -93,6 +94,19 @@ class TestMESolveDecay:
         actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
+    def testME_CteDecay_matrix_form(self):
+        "mesolve: constant decay with matrix_form"
+        me_error = 1e-6
+        H = self.a.dag() * self.a
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
     def testME_TDDecay(self, c_ops, method):
@@ -106,6 +120,20 @@ class TestMESolveDecay:
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * (1.0 - np.exp(-self.tlist)))
+        np.testing.assert_allclose(actual_answer, expt, rtol=me_error)
+
+    def testME_TDDecay_matrix_form(self):
+        "mesolve: time-dependent decay with matrix_form"
+        me_error = 1e-5
+        H = self.a.dag() * self.a
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [[self.a, 'sqrt(kappa * exp(-t))']]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[H],
+                         args={"kappa": self.kappa}, options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa *
+                                     (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, rtol=me_error)
 
     def testME_2TDDecay(self, c_ops, c_ops_1):
@@ -134,6 +162,42 @@ class TestMESolveDecay:
         actual_answer = 9.0 * np.exp(-self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
+    def testME_TDH_TDDecay_matrix_form(self):
+        "mesolve: time-dependent H and decay with matrix_form"
+        me_error = 5e-6
+        H = [self.ada, '1']
+        psi0 = qutip.basis(self.N, 9)
+        c_op_list = [[self.a, 'sqrt(kappa * exp(-t))']]
+        options = {"progress_bar": None, "matrix_form": True}
+        medata = mesolve(H, psi0, self.tlist, c_op_list, e_ops=[self.ada],
+                         args={"kappa": self.kappa}, options=options)
+        expt = medata.expect[0]
+        actual_answer = 9.0 * np.exp(-self.kappa *
+                                     (1.0 - np.exp(-self.tlist)))
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
+    def testME_NonHermRho_matrix_form(self):
+        "mesolve: matrix_form solver evolves a non-Hermitian transition matrix"
+        # rho0 = |0><1| — explicitly non-Hermitian
+        rho0 = (qutip.basis(self.N, 0)
+                * qutip.basis(self.N, 1).dag())
+        H = self.ada
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+
+        tlist = np.linspace(0, 5, 51)
+        options_super = {"progress_bar": None, "matrix_form": False}
+        options_matrix = {"progress_bar": None, "matrix_form": True}
+
+        out_super = mesolve(H, rho0, tlist, c_op_list,
+                            options=options_super)
+        out_matrix = mesolve(H, rho0, tlist, c_op_list,
+                             options=options_matrix)
+
+        for s_super, s_matrix in zip(out_super.states, out_matrix.states):
+            np.testing.assert_allclose(
+                s_matrix.full(), s_super.full(), atol=1e-7,
+            )
 
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
@@ -194,52 +258,80 @@ class TestMESolveDecay:
         fid = fidelitycheck(out1, out2, rho0vec)
         assert fid == pytest.approx(1., abs=me_error)
 
-    @pytest.mark.parametrize(['state_type'], [
-        pytest.param("ket", id="ket"),
-        pytest.param("dm", id="dm"),
-        pytest.param("unitary", id="unitary"),
+    @pytest.mark.parametrize(['state_type', 'use_matrix_form'], [
+        pytest.param("ket", False, id="ket-superop"),
+        pytest.param("dm", False, id="dm-superop"),
+        pytest.param("dm", True, id="dm-matrix_form"),
+        pytest.param("unitary", False, id="unitary-superop"),
+        # ket and unitary not supported by matrix_form (requires superoperator H)
     ])
-    def test_mesolve_normalization(self, state_type):
+    def test_mesolve_normalization(self, state_type, use_matrix_form):
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
-        H = qutip.spre(H) + qutip.spost(H.dag()) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
         options = {
             "normalize_output": True,
             "progress_bar": None,
             "atol": 1e-5,
             "nsteps": 1e5,
+            "matrix_form": use_matrix_form,
         }
 
         if state_type in {"ket", "dm"}:
             if state_type == "dm":
                 psi0 = qutip.ket2dm(psi0)
+            if not use_matrix_form:
+                # -i(H ρ - ρ dag(H)) matches matrix form evolution
+                H = -1j * qutip.spre(H) + 1j * qutip.spost(H.dag())
             output = mesolve(H, psi0, self.tlist, e_ops=[], options=options)
-            norms = [state.norm() for state in output.states]
+            # density matrices are normalized by trace
+            traces = [state.tr() for state in output.states]
             np.testing.assert_allclose(
-                norms, [1.0 for _ in self.tlist], atol=1e-15,
+                traces, [1.0 for _ in self.tlist], atol=1e-15,
             )
         else:
-            # evolution of unitaries should not be normalized
+            # evolution of unitaries should not be normalized (superop only)
+            H = -1j * qutip.spre(H) + 1j * qutip.spost(H.dag())
             U = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
             output = mesolve(H, U, self.tlist, e_ops=[], options=options)
             norms = [state.norm() for state in output.states]
             assert all(norm > 4 for norm in norms[1:])
 
-    def test_mesolver_pickling(self):
-        options = {"progress_bar": None}
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_pickling(self, matrix_form):
+        options = {"progress_bar": None, "matrix_form": matrix_form}
         solver_obj = MESolver(self.ada, c_ops=[self.a], options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
                             e_ops=[self.ada]).expect[0]
         e2 = solver_copy.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                             e_ops=[self.ada]).expect[0]
+        np.testing.assert_allclose(e1, e2)
+
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_pickling_after_use(self, matrix_form):
+        """Test that solvers can be pickled after being used."""
+        options = {"progress_bar": None, "matrix_form": matrix_form}
+        solver_obj = MESolver(self.ada, c_ops=[self.a], options=options)
+        # Run solver first to populate any internal buffers
+        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
                             e_ops=[self.ada]).expect[0]
+        # Pickle after use
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
+        # Run unpickled solver
+        e2 = solver_copy.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                             e_ops=[self.ada]).expect[0]
         np.testing.assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def test_mesolver_stepping(self, method):
-        options = {"method": method, "progress_bar": None}
+    @pytest.mark.parametrize('matrix_form', [False, True],
+                             ids=['superop', 'matrix_form'])
+    def test_mesolver_stepping(self, method, matrix_form):
+        options = {"method": method, "progress_bar": None,
+                   "matrix_form": matrix_form}
         solver_obj = MESolver(
             self.ada,
             c_ops=qutip.QobjEvo(
@@ -253,7 +345,7 @@ class TestMESolveDecay:
         assert qutip.expect(self.ada, state1) != (
             qutip.expect(self.ada, qutip.basis(self.N, 9))
         )
-        state2 = solver_obj.step(2, args={"kappa":0.})
+        state2 = solver_obj.step(2, args={"kappa": 0.})
         np.testing.assert_allclose(qutip.expect(self.ada, state1),
                                    qutip.expect(self.ada, state2), 1e-6)
 
@@ -294,7 +386,8 @@ class TestJCModelEvolution:
     """
     A test class for the QuTiP functions for the evolution of JC model
     """
-    def qubit_integrate(self, tlist, psi0, epsilon, delta, g1, g2):
+    def qubit_integrate(self, tlist, psi0, epsilon, delta, g1, g2,
+                        matrix_form=False):
 
         H = epsilon / 2.0 * qutip.sigmaz() + delta / 2.0 * qutip.sigmax()
 
@@ -309,7 +402,8 @@ class TestJCModelEvolution:
             c_op_list.append(np.sqrt(rate) * qutip.sigmaz())
 
         output = mesolve(H, psi0, tlist, c_op_list,
-            e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
+            e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
+            options={"matrix_form": matrix_form}
         )
 
         return output.expect[0], output.expect[1], output.expect[2]
@@ -356,7 +450,8 @@ class TestJCModelEvolution:
                 qutip.expect(sm.dag() * sm, rho_ss))
 
     def jc_integrate(self, N, wc, wa, g, kappa, gamma,
-                     pump, psi0, use_rwa, tlist, oper_evo=False):
+                     pump, psi0, use_rwa, tlist, oper_evo=False,
+                     matrix_form=False):
 
         # Hamiltonian
         a = qutip.tensor(qutip.destroy(N), qutip.identity(2))
@@ -396,7 +491,11 @@ class TestJCModelEvolution:
         if rate > 0.0:
             c_op_list.append(np.sqrt(rate) * sm.dag())
 
-        options = {"store_states": True, "progress_bar": None}
+        options = {
+            "store_states": True,
+            "progress_bar": None,
+            "matrix_form": matrix_form
+        }
 
         # evolve and calculate expectation values
         output = mesolve(
@@ -432,7 +531,8 @@ class TestJCModelEvolution:
         fid = fidelitycheck(out1, out2, rho0vec)
         assert fid == pytest.approx(1., abs=me_error)
 
-    def testQubitDynamics1(self):
+    @pytest.mark.parametrize('matrix_form', [False, True])
+    def testQubitDynamics1(self, matrix_form):
         "mesolve: qubit with dissipation"
 
         epsilon = 0.0 * 2 * np.pi   # cavity frequency
@@ -442,7 +542,8 @@ class TestJCModelEvolution:
         psi0 = qutip.basis(2, 0)        # initial state
         tlist = np.linspace(0, 5, 200)
 
-        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2,
+                                          matrix_form=matrix_form)
 
         sx_analytic = np.zeros(np.shape(tlist))
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
@@ -526,7 +627,8 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
         np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
-    def testCavity3(self):
+    @pytest.mark.parametrize('matrix_form', [False, True])
+    def testCavity3(self, matrix_form):
         "mesolve: cavity-qubit with interaction, decay"
 
         use_rwa = True
@@ -544,7 +646,8 @@ class TestJCModelEvolution:
         tlist = np.linspace(0, 200, 500)
 
         nc, na = self.jc_integrate(
-            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist)
+            N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist,
+            matrix_form=matrix_form)
 
         # we don't have any analytics for this parameters, so
         # compare with the steady state
@@ -567,7 +670,7 @@ class TestMESolveStepFuncCoeff:
     # than multi-step methods (adams, qutip 4's default)
     options = {"method": "dop853", "nsteps": 1e8, "progress_bar": None}
 
-    def python_coeff(self, t, args):
+    def python_coeff(self, t):
         if t < np.pi/2:
             return 1.
         else:
@@ -575,11 +678,11 @@ class TestMESolveStepFuncCoeff:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def test_py_coeff(self, method):
+    def test_py_coeff(self, method, random_generator):
         """
         Test for Python function as coefficient as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0, np.pi/2])
         options = {"method": method, "nsteps": 1e5, "rtol": 1e-7}
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
@@ -588,11 +691,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_cte_coeff(self):
+    def test_array_cte_coeff(self, random_generator):
         """
         Test for Array coefficient with uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -600,11 +703,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_t_coeff(self):
+    def test_array_t_coeff(self, random_generator):
         """
         Test for Array with non-uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -612,12 +715,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_coeff(self):
+    def test_array_str_coeff(self, random_generator):
         """
         Test for Array and string as step function coeff.
         qobjevo_codegen is used and uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
         npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
@@ -631,12 +734,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_py_coeff(self):
+    def test_array_str_py_coeff(self, random_generator):
         """
         Test for Array, string and Python function as step function coeff.
         qobjevo_codegen is used and non non-uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
         npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
@@ -650,7 +753,8 @@ class TestMESolveStepFuncCoeff:
         assert fid == pytest.approx(1)
 
 
-def test_num_collapse_set():
+@pytest.mark.parametrize('matrix_form', [False, True], ids=['superop', 'matrix_form'])
+def test_num_collapse_set(matrix_form):
     H = qutip.sigmaz()
     psi = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     ts = [0, 1]
@@ -659,7 +763,8 @@ def test_num_collapse_set():
         [qutip.sigmax()],
         [qutip.sigmay(), qutip.sigmax()],
     ):
-        res = mesolve(H, psi, ts, c_ops=c_ops)
+        res = mesolve(H, psi, ts, c_ops=c_ops,
+                      options={"matrix_form": matrix_form})
         if not isinstance(c_ops, list):
             c_ops = [c_ops]
         assert res.stats["num_collapse"] == len(c_ops)
@@ -683,7 +788,8 @@ def test_mesolve_bad_options():
         MESolver(qutip.qeye(4), [], options=False)
 
 
-def test_feedback():
+@pytest.mark.parametrize('matrix_form', [False, True])
+def test_feedback(matrix_form):
 
     def f(t, A):
         return (A-4.)
@@ -691,12 +797,17 @@ def test_feedback():
     N = 10
     tol = 1e-14
     psi0 = qutip.basis(N, 7)
+    # matrix_form uses operators, superop uses superoperators
+    if matrix_form:
+        feedback_op = qutip.num(N)
+    else:
+        feedback_op = qutip.spre(qutip.num(N))
     a = qutip.QobjEvo(
         [qutip.destroy(N), f],
-        args={"A": MESolver.ExpectFeedback(qutip.spre(qutip.num(N)))}
+        args={"A": MESolver.ExpectFeedback(feedback_op)}
     )
     H = qutip.QobjEvo(qutip.num(N))
-    solver = qutip.MESolver(H, c_ops=[a])
+    solver = MESolver(H, c_ops=[a], options={"matrix_form": matrix_form})
     result = solver.run(psi0, np.linspace(0, 30, 301), e_ops=[qutip.num(N)])
     assert np.all(result.expect[0] > 4. - tol)
 
@@ -706,8 +817,272 @@ def test_feedback():
     [qutip.sigmax(), qutip.sigmaz(), qutip.qeye(2)],
     ids=["sigmax", "sigmaz", "tr=2"]
 )
-def test_non_normalized_dm(rho0):
+@pytest.mark.parametrize('matrix_form', [False, True])
+def test_non_normalized_dm(rho0, matrix_form):
     H = qutip.QobjEvo(qutip.num(2))
-    solver = qutip.MESolver(H, c_ops=[qutip.sigmaz()])
+    solver = MESolver(H, c_ops=[qutip.sigmaz()],
+                      options={"matrix_form": matrix_form})
     result = solver.run(rho0, np.linspace(0, 1, 10), e_ops=[qutip.qeye(2)])
     np.testing.assert_allclose(result.expect[0], rho0.tr(), atol=1e-7)
+
+
+@pytest.mark.parametrize("kdim", [50, 1000])
+@pytest.mark.parametrize("alg", ['lanczos_fro'])
+def test_krylovsolve_mixed_state(kdim, alg, random_generator):
+    H = qutip.rand_herm(20, density=.8, seed=random_generator)
+    rho0 = qutip.rand_dm(20, seed=random_generator)
+    e_op = qutip.num(20)
+    e_op.dims = H.dims
+    tlist = np.linspace(0, 1, 11)
+
+    opts = {"store_states": True}
+    ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
+    ref_exp = ref.expect[0]
+
+    opts = {"store_states": True, "algorithm": alg, "always_compute_step": True}
+    kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    np.testing.assert_allclose(ref_exp, kout.expect[0], atol=1e-5, rtol=1e-5)
+
+
+def test_krylovsolve_decay():
+    a = qutip.destroy(10)
+    H = a.dag() * a
+    kappa = 0.2
+    c_op = np.sqrt(kappa) * a
+    tlist = np.linspace(0, 10, 201)
+    psi0 = qutip.basis(10, 9)
+
+    opt = {"store_states": True}
+    kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H], options=opt)
+    kstates = kout.states
+    np.testing.assert_allclose(np.ones(len(kstates)),
+                               [s.norm() for s in kstates])
+    expt = kout.expect[0]
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    np.testing.assert_allclose(actual_answer, expt, atol=1e-6)
+
+
+class TestMESolveMatrixForm:
+    """
+    Tests comparing matrix-form solver to superoperator solver.
+
+    Note: Basic correctness is tested via the matrix_form parameterization
+    in TestMESolveDecay. These tests directly compare the two solver forms.
+    """
+    N = 20
+    H = qutip.num(N)
+    kappa = 0.1
+    c_ops = [np.sqrt(kappa) * qutip.destroy(N)]
+    tlist = np.linspace(0, 5, 20)
+
+    def test_matrix_form_vs_superop_no_collapse(self):
+        """Test matrix_form vs superop with no collapse operators."""
+        psi0 = qutip.fock(self.N, self.N // 2)
+        rho0 = qutip.ket2dm(psi0)
+        e_ops = [qutip.num(self.N)]
+
+        # Matrix-form with no collapse operators
+        result_matrix = mesolve(
+            self.H, rho0, self.tlist, c_ops=[],
+            e_ops=e_ops,
+            options={"matrix_form": True, "method": "vern7", "progress_bar": None}
+        )
+
+        # Superoperator with no collapse operators
+        result_super = mesolve(
+            self.H, rho0, self.tlist, c_ops=[],
+            e_ops=e_ops,
+            options={"matrix_form": False, "method": "vern7", "progress_bar": None}
+        )
+
+        # Should agree (unitary evolution preserves expectation values)
+        np.testing.assert_allclose(
+            result_matrix.expect[0], result_super.expect[0],
+            rtol=1e-7, atol=1e-9
+        )
+
+        # Expectation value should be constant (no decay without c_ops)
+        np.testing.assert_allclose(
+            result_matrix.expect[0], self.N // 2, rtol=1e-7
+        )
+
+    def test_matrix_form_vs_superop_with_collapse(self):
+        """
+        Test matrix_form vs superop with collapse operators and various options.
+
+        This test exercises non-default solver options to ensure they are
+        processed correctly by both solver forms.
+        """
+        psi0 = qutip.fock(self.N, self.N // 2)
+        rho0 = qutip.ket2dm(psi0)
+        e_ops = [qutip.num(self.N), qutip.destroy(self.N).dag() * qutip.destroy(self.N)]
+
+        common_options = {
+            "method": "vern7",
+            "progress_bar": None,
+            "store_states": True,
+            "store_final_state": True,
+            "normalize_output": True,
+            "atol": 1e-9,
+            "rtol": 1e-7,
+        }
+
+        # Matrix-form solver
+        result_matrix = mesolve(
+            self.H, rho0, self.tlist, c_ops=self.c_ops,
+            e_ops=e_ops,
+            options={**common_options, "matrix_form": True}
+        )
+
+        # Superoperator solver
+        result_super = mesolve(
+            self.H, rho0, self.tlist, c_ops=self.c_ops,
+            e_ops=e_ops,
+            options={**common_options, "matrix_form": False}
+        )
+
+        # Compare expectation values
+        for i in range(len(e_ops)):
+            np.testing.assert_allclose(
+                result_matrix.expect[i], result_super.expect[i],
+                rtol=1e-6, atol=1e-8,
+                err_msg=f"Expectation values differ for e_op {i}"
+            )
+
+        # Compare stored states
+        assert len(result_matrix.states) == len(result_super.states)
+        for i, (state_m, state_s) in enumerate(
+            zip(result_matrix.states, result_super.states)
+        ):
+            np.testing.assert_allclose(
+                state_m.full(), state_s.full(),
+                rtol=1e-6, atol=1e-8,
+                err_msg=f"States differ at time index {i}"
+            )
+
+        # Compare final states
+        assert result_matrix.final_state is not None
+        assert result_super.final_state is not None
+        np.testing.assert_allclose(
+            result_matrix.final_state.full(), result_super.final_state.full(),
+            rtol=1e-6, atol=1e-8
+        )
+
+        # Verify normalization (trace should be 1)
+        for state in result_matrix.states:
+            np.testing.assert_allclose(state.tr(), 1.0, atol=1e-10)
+
+
+def test_mesolve_isherm_reflects_output_data():
+    """
+    Output-state isherm must follow the evolved data, not the initial state.
+
+    Hermiticity-preserving evolution keeps isherm True; non-Hermiticity-
+    preserving generators must not leave a false-positive isherm flag.
+    Regression for issue #2410.
+    """
+    # Standard Lindblad dynamics: density matrix stays Hermitian.
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    res_herm = mesolve(
+        qutip.sigmaz(),
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+    # Constant Hermiticity-preserving generators retain the fast cached path.
+    assert res_herm.final_state._isherm is True
+    assert res_herm.final_state.isherm is True
+    assert qutip.data.isherm(res_herm.final_state.data)
+
+    # Custom superoperator that does not preserve Hermiticity.
+    L = (
+        qutip.liouvillian(qutip.sigmaz())
+        + 1j * qutip.lindblad_dissipator(qutip.sigmap())
+    )
+    res_nonherm = mesolve(
+        L,
+        qutip.basis(2, 1),
+        [0, 1],
+        options={"progress_bar": None},
+    )
+    # Unsafe generators leave the metadata unset until Qobj checks the data.
+    assert res_nonherm.final_state._isherm is None
+    assert not qutip.data.isherm(res_nonherm.final_state.data)
+    assert res_nonherm.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
+    """A single-time ishp check cannot prove a time-dependent RHS is safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    rhs = qutip.QobjEvo(
+        [
+            qutip.liouvillian(qutip.sigmaz()),
+            [1j * qutip.lindblad_dissipator(qutip.sigmap()), lambda t: t],
+        ]
+    )
+
+    result = mesolve(
+        rhs,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is None
+    assert result.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_propagator():
+    """
+    Propagator evolved by mesolve must not inherit the fast path for isherm.
+    """
+    propagator = mesolve(
+            qutip.num(2),
+            qutip.qeye([[2], [2]]),
+            [0, 1],
+            c_ops=[qutip.destroy(2)],
+            options={"progress_bar": None},
+        ).final_state
+
+    assert propagator._isherm is None
+    assert not qutip.data.isherm(propagator.data)
+    assert propagator.isherm is False
+
+
+def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
+    """Hamiltonian and collapse-operator construction is known to be safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    hamiltonian = qutip.QobjEvo(
+        [qutip.sigmaz(), [qutip.sigmax(), lambda t: t]]
+    )
+
+    result = mesolve(
+        hamiltonian,
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
+
+
+def test_mesolve_caches_isherm_for_ishp_superoperator():
+    """Constant Hermiticity-preserving superoperators may use the fast path."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    L = qutip.liouvillian(qutip.sigmaz(), c_ops=[qutip.sigmam()])
+    assert L.issuper and L.ishp
+
+    result = mesolve(
+        L,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
+    assert result.final_state.isherm is True

@@ -12,7 +12,6 @@ _equivalence_fock = qutip.fock(_equivalence_dimension, 1)
 _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(["solver", "start"], [
     pytest.param("es", _equivalence_coherent, id="es"),
     pytest.param("es", None, id="es-steady state"),
@@ -104,16 +103,15 @@ def _n_correlation(times, n):
                      for t in range(times.shape[0])])
 
 
-def _coefficient_function(t, args):
-    t_off, tp = args['t_off'], args['tp']
-    return np.exp(-(t-t_off)*(t-t_off) / (2*tp*tp))
+def _coefficient_function(t, t_off, tp, **kw):
+    return np.exp(-(t - t_off) * (t - t_off) / (2 * tp * tp))
 
 
 _coefficient_string = "exp(-(t-t_off)**2 / (2 * tp*tp))"
 
 
-def _h_qobj_function(t, args):
-    return args['H0'] * _coefficient_function(t, args)
+def _h_qobj_function(t, H0, **args):
+    return H0 * _coefficient_function(t, **args)
 
 
 # 2LS and 3LS stand for two- and three-level system respectively.
@@ -143,7 +141,7 @@ def _2ls_g2_0(H, c_ops):
 
 @pytest.fixture(params=[
     pytest.param(_coefficient_string, id="string"),
-    pytest.param(_coefficient_function(_2ls_times, _2ls_args), id="numpy"),
+    pytest.param(_coefficient_function(_2ls_times, **_2ls_args), id="numpy"),
     pytest.param(_coefficient_function, id="function"),
 ])
 def dependence_2ls(request):
@@ -172,7 +170,9 @@ class TestTimeDependence:
     @pytest.mark.slow
     @pytest.mark.parametrize("dependence_3ls", [
         pytest.param(_coefficient_string, id="string"),
-        pytest.param(_coefficient_function(_3ls_times, _3ls_args), id="numpy"),
+        pytest.param(
+            _coefficient_function(_3ls_times, **_3ls_args), id="numpy"
+        ),
         pytest.param(_coefficient_function, id="function"),
     ])
     def test_coefficient_c_ops_3ls(self, dependence_3ls):
@@ -317,14 +317,209 @@ def test_G1():
     np.testing.assert_allclose(G1, expected * scale**2, rtol=2e-5)
 
 
-def test_G2():
+def test_G2(random_generator):
     N = 10
-    H = qutip.rand_dm(N)
-    psi0 = qutip.rand_ket(N)
+    H = qutip.rand_dm(N, seed=random_generator)
+    psi0 = qutip.rand_ket(N, seed=random_generator)
     taus = np.linspace(0, 1, 11)
     scale = 2
-    a_op = qutip.rand_unitary(N) * scale
+    a_op = qutip.rand_unitary(N, seed=random_generator) * scale
     g1, G1 = qutip.coherence_function_g2(H, psi0, taus, [], a_op)
     expected = np.ones(11)
     np.testing.assert_allclose(g1, expected, rtol=2e-5)
     np.testing.assert_allclose(G1, expected * scale**4, rtol=2e-5)
+
+
+# ---------------------------------------------------------------------------
+# Tests for speedup features: max_t_plus_tau and parallel map
+# ---------------------------------------------------------------------------
+
+
+class TestCorrelationSpeedup:
+    """Tests for max_t_plus_tau and parallel map features."""
+
+    @classmethod
+    def setup_class(cls):
+        N = 5
+        cls.a = qutip.destroy(N)
+        cls.H = cls.a.dag() * cls.a
+        cls.state = qutip.fock_dm(N, 1)
+        cls.c_ops = [np.sqrt(0.5) * cls.a]
+        cls.tlist = np.linspace(0, 3, 10)
+        cls.taulist = np.linspace(0, 3, 10)
+
+    def _corr_3op(self, **kwargs):
+        return qutip.correlation_3op_2t(
+            self.H, self.state, self.tlist, self.taulist,
+            self.c_ops,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+            **kwargs,
+        )
+
+    def _corr_2op(self, **kwargs):
+        return qutip.correlation_2op_2t(
+            self.H, self.state, self.tlist, self.taulist,
+            self.c_ops,
+            self.a.dag(), self.a,
+            **kwargs,
+        )
+
+    def _check_truncation(self, corr, full, max_tp):
+        """Check valid region matches full and skipped entries are zero."""
+        for ti, t in enumerate(self.tlist):
+            for taui, tau in enumerate(self.taulist):
+                if t + tau <= max_tp:
+                    np.testing.assert_allclose(
+                        corr[ti, taui], full[ti, taui], atol=1e-10,
+                        err_msg=f"mismatch at t={t}, tau={tau}",
+                    )
+                else:
+                    assert corr[ti, taui] == 0.0, (
+                        f"expected 0 at t={t}, tau={tau}, "
+                        f"got {corr[ti, taui]}"
+                    )
+
+    # --- max_t_plus_tau tests ---
+
+    def test_default_unchanged(self):
+        """Without new kwargs the result must be identical to before."""
+        corr = self._corr_3op()
+        assert corr.shape == (len(self.tlist), len(self.taulist))
+        assert corr.dtype == complex
+        assert np.isfinite(corr).all()
+
+    @pytest.mark.parametrize("max_tp", [2.0, 4.0])
+    def test_truncation_correctness(self, max_tp):
+        """Valid region must match full; skipped entries must be zero."""
+        full = self._corr_3op()
+        trunc = self._corr_3op(max_t_plus_tau=max_tp)
+        self._check_truncation(trunc, full, max_tp)
+
+    def test_very_small_max(self):
+        """If max_t_plus_tau is 0, only the (0,0) entry can be nonzero."""
+        trunc = self._corr_3op(max_t_plus_tau=0.0)
+        for ti, t in enumerate(self.tlist):
+            for taui, tau in enumerate(self.taulist):
+                if t + tau > 0:
+                    assert trunc[ti, taui] == 0.0
+
+    def test_inf_same_as_none(self):
+        """max_t_plus_tau=np.inf must match the default (None)."""
+        full = self._corr_3op()
+        inf = self._corr_3op(max_t_plus_tau=np.inf)
+        np.testing.assert_allclose(inf, full, atol=1e-12)
+
+    @pytest.mark.parametrize("max_tp", [0.0, 2.0, 4.0, 100.0])
+    def test_shape_preserved(self, max_tp):
+        """Output shape must always be (len(tlist), len(taulist))."""
+        corr = self._corr_3op(max_t_plus_tau=max_tp)
+        assert corr.shape == (len(self.tlist), len(self.taulist))
+
+    # --- parallel map tests ---
+
+    def test_serial_explicit_matches_default(self):
+        """Passing map='serial' explicitly must match the default."""
+        default = self._corr_3op()
+        serial = self._corr_3op(map='serial')
+        np.testing.assert_allclose(serial, default, atol=1e-12)
+
+    def test_parallel_matches_serial(self):
+        """Parallel map must give the same result as serial_map."""
+        serial = self._corr_3op()
+        parallel = self._corr_3op(
+            map='parallel', map_kw={'num_cpus': 2},
+        )
+        np.testing.assert_allclose(parallel, serial, atol=1e-10)
+
+    def test_parallel_with_max_t_plus_tau(self):
+        """Both optimisations combined must be correct."""
+        max_tp = 4.0
+        ref = self._corr_3op()
+        both = self._corr_3op(
+            max_t_plus_tau=max_tp,
+            map='parallel', map_kw={'num_cpus': 2},
+        )
+        self._check_truncation(both, ref, max_tp)
+
+    # --- passthrough tests ---
+
+    @pytest.mark.parametrize("max_tp", [None, 4.0])
+    @pytest.mark.parametrize("map_str", ['serial', 'parallel'])
+    def test_2op_passthrough(self, max_tp, map_str):
+        """New kwargs must work through correlation_2op_2t."""
+        kwargs = {'map': map_str, 'map_kw': {'num_cpus': 2}}
+        if max_tp is not None:
+            kwargs['max_t_plus_tau'] = max_tp
+
+        full = self._corr_2op()
+        result = self._corr_2op(**kwargs)
+
+        if max_tp is not None:
+            self._check_truncation(result, full, max_tp)
+        else:
+            np.testing.assert_allclose(result, full, atol=1e-10)
+
+    def test_direct_solver_call(self):
+        """correlation_3op with a solver instance and new kwargs."""
+        from qutip.solver.mesolve import MESolver
+
+        solver = MESolver(self.H, self.c_ops)
+        full = qutip.correlation_3op(
+            solver, self.state, self.tlist, self.taulist,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+        )
+        trunc = qutip.correlation_3op(
+            solver, self.state, self.tlist, self.taulist,
+            self.a.dag(), self.a.dag() * self.a, self.a,
+            max_t_plus_tau=4.0, map='parallel', map_kw={'num_cpus': 2},
+        )
+        self._check_truncation(trunc, full, 4.0)
+
+
+def test_spectrum_correlation_fft_missing_zero():
+    tlist = np.array([1.0, 2.0, 3.0, 4.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(
+        ValueError, match="tlist must contain zero"
+    ):
+        qutip.spectrum_correlation_fft(tlist, g_tau)
+
+
+def test_spectrum_correlation_fft_asymmetric_error():
+    # Asymmetric grid around zero
+    tlist = np.array([-2.0, -1.0, 0.0, 1.0, 3.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(
+        ValueError, match="tlist must be symmetric around zero"
+    ):
+        qutip.spectrum_correlation_fft(tlist, g_tau)
+
+
+@pytest.mark.parametrize("t_mode", ["symmetric", "single_sided"])
+def test_spectrum_correlation_fft_lorentzian(t_mode):
+    w0 = 1.0 * 2 * np.pi
+    gamma = 0.2
+    N = 2000
+    T = 100.0
+
+    if t_mode == "symmetric":
+        tlist = np.linspace(-T / 2, T / 2, N+1)
+    else:  # single_sided
+        tlist = np.linspace(0, T / 2, (N // 2) + 1)
+
+    # Damped oscillator correlation function
+    g_tau = np.exp(-gamma * np.abs(tlist) / 2) * np.exp(1j * w0 * tlist)
+
+    # Compute spectrum via FFT
+    w_fft, s_fft = qutip.spectrum_correlation_fft(tlist, g_tau)
+
+    dw = w_fft - w0
+    s_analytical = (
+        (gamma / (dw ** 2 + (gamma / 2) ** 2))
+        * (1 - np.exp(-gamma * T / 4)
+           * (np.cos(dw * T / 2) - (2 * dw / gamma)
+              * np.sin(dw * T / 2)))
+    )
+    atol_threshold = 1e-2
+    # Verify numerical match
+    np.testing.assert_allclose(s_fft, s_analytical, atol=atol_threshold)

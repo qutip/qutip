@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # This module was initially contributed by Ben Criger.
 #
@@ -9,7 +8,7 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 from __future__ import annotations
 
 __all__ = [
-    'kraus_to_choi', 'kraus_to_super',
+    'kraus_to_choi', 'kraus_to_super', 'to_superpauli', 'superpauli_to_super',
     'to_choi', 'to_chi', 'to_super', 'to_kraus', 'to_stinespring',
 ]
 
@@ -79,7 +78,7 @@ def _nq(dims):
     dim = np.prod(dims[0][0])
     nq = _int_log_two(dim)
     if 2 ** nq != dim:
-        raise ValueError("{} is not an integer power of 2.".format(dim))
+        raise ValueError(f"{dim} is not an integer power of 2.")
     return nq
 
 
@@ -103,14 +102,23 @@ def isqubitdims(dims: DimensionLike) -> bool:
     return all(_is_power_of_two(dim) for dim in flatten(dims))
 
 
-def _to_superpauli(q_oper):
+def to_superpauli(q_oper):
     """
-    Convert a superoperator to the Pauli basis (assuming qubit dimensions).
+    Convert a superoperator to the Pauli basis (Pauli Transfer Matrix).
 
-    This is an internal function, as QuTiP does not currently have
-    a way to mark that superoperators are represented in the Pauli
-    basis as opposed to the column-stacking basis; a Pauli-basis
-    ``type='super'`` would thus break other conversion functions.
+    The Pauli basis is only defined for qubit systems. This representation
+    is commonly used for visualization.
+
+    Parameters
+    ----------
+    q_oper : :class:`.Qobj`
+        Superoperator or operator to be converted.
+
+    Returns
+    -------
+    ptm : :class:`.Qobj`
+        Quantum object representing the superoperator in the Pauli basis
+        with ``superrep='pauli'``.
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
@@ -122,7 +130,48 @@ def _to_superpauli(q_oper):
     # since the superpauli_basis function makes different assumptions
     # about indices than we need here.
     B.dims = sqobj.dims
-    return B.dag() @ sqobj @ B
+    out = B.dag() @ sqobj @ B
+    out.superrep = 'pauli'
+    return out
+
+
+def superpauli_to_super(q_oper):
+    """
+    Convert a Pauli Transfer Matrix back to a standard superoperator
+    in the column-stacking basis.
+
+    Parameters
+    ----------
+    q_oper : :class:`.Qobj`
+        Superoperator in the Pauli basis.
+
+    Returns
+    -------
+    oper : :class:`.Qobj`
+        Superoperator in the standard QuTiP column-stacking basis
+        with ``superrep='super'``.
+    """
+    # Ensure we are working with a Pauli Transfer Matrix.
+    if not isinstance(q_oper, Qobj):
+        raise TypeError("q_oper must be a Qobj.")
+    if q_oper.superrep != 'pauli':
+        raise ValueError(
+            "q_oper must be a Pauli Transfer Matrix (superrep='pauli')."
+        )
+    if q_oper.shape[0] != q_oper.shape[1]:
+        raise ValueError("Pauli Transfer Matrix must be a square.")
+    if not isqubitdims(q_oper.dims):
+        raise ValueError(
+            "Pauli basis is only defined for qubit systems "
+            "(dimensions of 4^n)."
+        )
+
+    nq = _int_log_two(q_oper.shape[0]) // 2
+    B = _superpauli_basis(nq) * 2**(-0.5 * nq)
+    B.dims = q_oper.dims
+    out = B @ q_oper @ B.dag()
+    out.superrep = 'super'
+    return out
 
 
 def _choi_to_kraus(q_oper, tol=1e-9):
@@ -405,8 +454,8 @@ def to_choi(q_oper: Qobj) -> Qobj:
         return _super_tofrom_choi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to Choi not supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to Choi not supported."
         )
 
 
@@ -448,8 +497,8 @@ def to_chi(q_oper: Qobj) -> Qobj:
         return to_chi(sprepost(q_oper, q_oper.dag()))
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to Choi not supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to Chi not supported."
         )
 
 
@@ -485,15 +534,14 @@ def to_super(q_oper: Qobj) -> Qobj:
         elif q_oper.superrep == 'chi':
             return to_super(to_choi(q_oper))
         else:
-            raise ValueError(
-                "Unrecognized superrep '{}'.".format(q_oper.superrep))
+            raise ValueError(f"Unrecognized superrep '{q_oper.superrep}'.")
     elif q_oper.type == 'oper':  # Assume unitary
         return sprepost(q_oper, q_oper.dag())
     else:
         raise TypeError(
-            "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.superrep} to supermatrix not "
-            "supported.".format(q_oper)
+            f"Conversion of Qobj with type = {q_oper.type} "
+            f"and superrep = {q_oper.superrep} to supermatrix not "
+            "supported."
         )
 
 
@@ -530,9 +578,9 @@ def to_kraus(q_oper: Qobj, tol: float=1e-9) -> list[Qobj]:
     elif q_oper.isoper:  # Assume unitary
         return [q_oper]
     raise TypeError(
-        "Conversion of Qobj with type={0.type} "
-        "and superrep={0.superrep} to Kraus decomposition not "
-        "supported.".format(q_oper)
+        f"Conversion of Qobj with type={q_oper.type} "
+        f"and superrep={q_oper.superrep} to Kraus decomposition not "
+        "supported."
     )
 
 

@@ -10,10 +10,15 @@ formats:
 build:
   os: ubuntu-22.04
   tools:
-    python: "mambaforge-4.10"
+    python: "3.13"
 
-conda:
-  environment: doc/rtd-environment.yml
+python:
+  install:
+    - requirements: doc/requirements.txt
+    - method: pip
+      path: .
+      extra_requirements:
+        - full
 
 sphinx:
   configuration: doc/conf.py

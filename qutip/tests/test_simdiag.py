@@ -5,11 +5,11 @@ import qutip
 
 @pytest.mark.flaky(reruns=2)
 @pytest.mark.parametrize('num_mat', [1, 2, 3, 5])
-def test_simdiag(num_mat):
+def test_simdiag(num_mat, random_generator):
     N = 10
 
-    U = qutip.rand_unitary(N)
-    commuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
+    U = qutip.rand_unitary(N, seed=random_generator)
+    commuting_matrices = [U * qutip.qdiags(random_generator.random(N), 0) * U.dag()
                           for _ in range(num_mat)]
     all_evals, evecs = qutip.simdiag(commuting_matrices)
 
@@ -20,11 +20,11 @@ def test_simdiag(num_mat):
 
 @pytest.mark.flaky(reruns=2)
 @pytest.mark.parametrize('num_mat', [1, 2, 3, 5])
-def test_simdiag_no_evals(num_mat):
+def test_simdiag_no_evals(num_mat, random_generator):
     N = 10
 
-    U = qutip.rand_unitary(N)
-    commuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
+    U = qutip.rand_unitary(N, seed=random_generator)
+    commuting_matrices = [U * qutip.qdiags(random_generator.random(N), 0) * U.dag()
                           for _ in range(num_mat)]
     evecs = qutip.simdiag(commuting_matrices, evals=False)
 
@@ -36,9 +36,9 @@ def test_simdiag_no_evals(num_mat):
 
 
 @pytest.mark.flaky(reruns=2)
-def test_simdiag_degen():
+def test_simdiag_degen(random_generator):
     N = 10
-    U = qutip.rand_unitary(N)
+    U = qutip.rand_unitary(N, seed=random_generator)
     commuting_matrices = [
         U * qutip.qdiags([0, 0, 0, 1, 1, 1, 2, 2, 3, 4], 0) * U.dag(),
         U * qutip.qdiags([0, 0, 0, 1, 2, 2, 2, 2, 2, 2], 0) * U.dag(),
@@ -56,11 +56,11 @@ def test_simdiag_degen():
 
 @pytest.mark.flaky(reruns=2)
 @pytest.mark.repeat(2)
-def test_simdiag_degen_large():
+def test_simdiag_degen_large(random_generator):
     N = 20
-    U = qutip.rand_unitary(N)
+    U = qutip.rand_unitary(N, seed=random_generator)
     commuting_matrices = [
-        U * qutip.qdiags(np.random.randint(0, 3, N), 0) * U.dag()
+        U * qutip.qdiags(random_generator.integers(0, 3, N), 0) * U.dag()
         for _ in range(5)
     ]
     all_evals, evecs = qutip.simdiag(commuting_matrices, tol=1e-12)

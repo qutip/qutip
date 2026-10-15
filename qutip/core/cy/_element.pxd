@@ -10,7 +10,8 @@ cdef class _BaseElement:
     cpdef Data data(self, t)
     cpdef object qobj(self, t)
     cpdef object coeff(self, t)
-    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=?)
+    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=?, double complex scale=?)
+    cdef Data adjoint_rmatmul_data_t(_BaseElement self, t, Data state, Data out=?, double complex scale=?)
 
 
 cdef class _ConstantElement(_BaseElement):

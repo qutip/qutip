@@ -59,3 +59,28 @@ https://github.com/readthedocs/sphinx_rtd_theme/issues/1529
   position: absolute;
   right: 0.5em;
 }
+
+.survey-box {
+    color: #404040;
+    font-size: 0.9em;
+
+    background-color: #f5f5f5;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 0.8em;
+    margin: 1em;
+}
+
+.survey-box p {
+    margin-bottom: 0.5em;
+}
+
+.survey-box a {
+    color: #2980b9;
+    font-weight: 600;
+}
+
+.survey-box a:hover {
+    text-decoration: underline;
+    background: transparent;
+}

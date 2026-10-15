@@ -10,8 +10,9 @@ import numpy as np
 try:
     import matplotlib as mpl
     from matplotlib import cm
-    from matplotlib.colors import (Normalize, ColorConverter)
-except:
+    from matplotlib.colors import Normalize, ColorConverter
+
+except ImportError:
     class Normalize(object):
         def __init__(self, vmin=None, vmax=None, clip=False):
             pass

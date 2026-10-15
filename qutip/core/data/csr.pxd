@@ -163,6 +163,3 @@ cdef CSR from_coo_pointers(base.idxint *rows, base.idxint *cols, double complex 
                            base.idxint n_rows, base.idxint n_cols, base.idxint nnz,
                            double tol=*)
 cpdef CSR from_dia(Dia matrix)
-
-cpdef CSR _from_csr_blocks(base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
-                          base.idxint n_blocks, base.idxint block_size)

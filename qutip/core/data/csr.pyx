@@ -16,9 +16,10 @@ import builtins
 import numpy as np
 cimport numpy as cnp
 import scipy.sparse
-from scipy.sparse import csr_matrix as scipy_csr_matrix
 from functools import partial
+
 from packaging.version import parse as parse_version
+
 if parse_version(scipy.version.version) >= parse_version("1.14.0"):
     from scipy.sparse._data import _data_matrix as scipy_data_matrix
     # From scipy 1.14.0, a check that the input is not scalar was added for
@@ -31,6 +32,8 @@ elif parse_version(scipy.version.version) >= parse_version("1.8.0"):
 else:
     from scipy.sparse.data import _data_matrix as scipy_data_matrix
     scipy_data_matrix_init = scipy_data_matrix.__init__
+
+from scipy.sparse import csr_array as scipy_csr_array
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, Dia
@@ -53,13 +56,13 @@ __all__ = ['CSR']
 
 cdef int _ONE = 1
 
-cdef object _csr_matrix(data, indices, indptr, shape):
+cdef object _csr_array(data, indices, indptr, shape):
     """
-    Factory method of scipy csr_matrix: we skip all the index type-checking
+    Factory method of scipy csr_array: we skip all the index type-checking
     because this takes tens of microseconds, and we already know we're in
     a sensible format.
     """
-    cdef object out = scipy_csr_matrix.__new__(scipy_csr_matrix)
+    cdef object out = scipy_csr_array.__new__(scipy_csr_array)
     # `_data_matrix` is the first object in the inheritance chain which
     # doesn't have a really slow __init__.
     scipy_data_matrix_init(out)
@@ -74,8 +77,8 @@ cdef class CSR(base.Data):
     """
     Data type for quantum objects storing its data in compressed sparse row
     (CSR) format.  This is similar to the `scipy` type
-    `scipy.sparse.csr_matrix`, but significantly faster on many operations.
-    You can retrieve a `scipy.sparse.csr_matrix` which views onto the same data
+    `scipy.sparse.csr_array`, but significantly faster on many operations.
+    You can retrieve a `scipy.sparse.csr_array` which views onto the same data
     using the `as_scipy()` method.
     """
     def __cinit__(self, *args, **kwargs):
@@ -97,7 +100,7 @@ cdef class CSR(base.Data):
         cdef size_t ptr
         cdef base.idxint col
         cdef object data, col_index, row_index
-        if isinstance(arg, scipy.sparse.spmatrix):
+        if scipy.sparse.issparse(arg):
             arg = arg.tocsr()
             if shape is not None and shape != arg.shape:
                 raise ValueError("".join([
@@ -106,7 +109,7 @@ cdef class CSR(base.Data):
             shape = arg.shape
             arg = (arg.data, arg.indices, arg.indptr)
         if not isinstance(arg, tuple):
-            raise TypeError("arg must be a scipy matrix or tuple")
+            raise TypeError("arg must be a scipy sparse matrix or sparse array, or tuple")
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
         if np.lib.NumpyVersion(np.__version__) < '2.0.0b1':
@@ -174,7 +177,7 @@ cdef class CSR(base.Data):
             self.shape = shape
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
-        self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
+        self._scipy = _csr_array(data, col_index, row_index, self.shape)
         if tidyup:
             tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
@@ -222,7 +225,7 @@ cdef class CSR(base.Data):
 
     cpdef object as_scipy(self, bint full=False):
         """
-        Get a view onto this object as a `scipy.sparse.csr_matrix`.  The
+        Get a view onto this object as a `scipy.sparse.csr_array`.  The
         underlying data structures are exposed, such that modifications to the
         `data`, `indices` and `indptr` buffers in the resulting object will
         modify this object too.
@@ -254,7 +257,7 @@ cdef class CSR(base.Data):
         PyArray_ENABLEFLAGS(indices, cnp.NPY_ARRAY_OWNDATA)
         PyArray_ENABLEFLAGS(indptr, cnp.NPY_ARRAY_OWNDATA)
         self._deallocate = False
-        self._scipy = _csr_matrix(data, indices, indptr, self.shape)
+        self._scipy = _csr_array(data, indices, indptr, self.shape)
         return self._scipy
 
     cpdef CSR sort_indices(self):
@@ -307,7 +310,7 @@ cdef class CSR(base.Data):
 
 cpdef CSR fast_from_scipy(object sci):
     """
-    Fast path construction from scipy.sparse.csr_matrix.  This does _no_ type
+    Fast path construction from scipy.sparse.csr_array. This does _no_ type
     checking on any of the inputs, and should consequently be considered very
     unsafe.  This is primarily for use in the unpickling operation.
     """
@@ -932,124 +935,3 @@ def diags(diagonals, offsets=None, shape=None):
     return diags_(
         diagonals_, np.array(offsets_, dtype=idxint_dtype), n_rows, n_cols,
     )
-
-
-cpdef CSR _from_csr_blocks(
-    base.idxint[:] block_rows, base.idxint[:] block_cols, CSR[:] block_ops,
-    base.idxint n_blocks, base.idxint block_size
-):
-    """
-    Construct a CSR from non-overlapping blocks.
-
-    Each operator in ``block_ops`` should be a square CSR operator with
-    shape ``(block_size, block_size)``. The output operator consists of
-    ``n_blocks`` by ``n_blocks`` blocks and thus has shape
-    ``(n_blocks * block_size, n_blocks * block_size)``.
-
-    None of the operators should overlap (i.e. the list of block row and
-    column pairs should be unique).
-
-    Parameters
-    ----------
-    block_rows : sequence of base.idxint integers
-        The block row for each operator. The block row should be in
-        ``range(0, n_blocks)``.
-
-    block_cols : sequence of base.idxint integers
-        The block column for each operator. The block column should be in
-        ``range(0, n_blocks)``.
-
-    block_ops : sequence of CSR matrixes
-        The operators corresponding to the rows and columns in ``block_rows``
-        and ``block_cols``.
-
-    n_blocks : base.idxint
-        Number of blocks. The shape of the final matrix is
-        (n_blocks * block, n_blocks * block).
-
-    block_size : base.idxint
-        Size of each block. The shape of matrices in ``block_ops`` is
-        ``(block_size, block_size)``.
-    """
-    cdef CSR op
-    cdef base.idxint shape = n_blocks * block_size
-    cdef base.idxint nnz_ = 0
-    cdef base.idxint n_ops = len(block_ops)
-    cdef base.idxint i, j
-    cdef base.idxint row_idx, col_idx
-
-    # check arrays are the same length
-    if len(block_rows) != n_ops or len(block_cols) != n_ops:
-        raise ValueError(
-            "The arrays block_rows, block_cols and block_ops should have"
-            " the same length."
-        )
-
-    if n_ops == 0:
-        return zeros(shape, shape)
-
-    # check op shapes and calculate nnz
-    for op in block_ops:
-        if type(op) is not CSR:
-            raise TypeError("Blocks must all be CSR.")
-        nnz_ += nnz(op)
-        if op.shape[0] != block_size or op.shape[1] != block_size:
-            raise ValueError(
-                "Block operators (block_ops) do not have the correct shape."
-            )
-
-    # check ops are ordered by (row, column)
-    row_idx = block_rows[0]
-    col_idx = block_cols[0]
-    for i in range(1, n_ops):
-        if (
-            block_rows[i] < row_idx or
-            (block_rows[i] == row_idx and block_cols[i] <= col_idx)
-        ):
-            raise ValueError(
-                "The arrays block_rows and block_cols must be sorted"
-                " by (row, column)."
-            )
-        row_idx = block_rows[i]
-        col_idx = block_cols[i]
-
-    if nnz_ == 0:
-        return zeros(shape, shape)
-
-    cdef CSR out = empty(shape, shape, nnz_)
-    cdef base.idxint op_idx = 0
-    cdef base.idxint prev_op_idx = 0
-    cdef base.idxint end = 0
-    cdef base.idxint row_pos, col_pos
-    cdef base.idxint op_row, op_row_start, op_row_end, op_row_len
-
-    out.row_index[0] = 0
-
-    for row_idx in range(n_blocks):
-        prev_op_idx = op_idx
-        while op_idx < n_ops:
-            if block_rows[op_idx] != row_idx:
-                break
-            op_idx += 1
-
-        row_pos = row_idx * block_size
-        for op_row in range(block_size):
-            for i in range(prev_op_idx, op_idx):
-                op = block_ops[i]
-                if nnz(op) == 0:
-                    # empty CSR matrices have uninitialized row_index entries.
-                    # it's unclear whether users should ever see such matrixes
-                    # but we support them here anyway.
-                    continue
-                col_idx = block_cols[i]
-                col_pos = col_idx * block_size
-                op_row_start = op.row_index[op_row]
-                op_row_end = op.row_index[op_row + 1]
-                op_row_len = op_row_end - op_row_start
-                for j in range(op_row_len):
-                    out.col_index[end + j] = op.col_index[op_row_start + j] + col_pos
-                    out.data[end + j] = op.data[op_row_start + j]
-                end += op_row_len
-            out.row_index[row_pos + op_row + 1] = end
-
-    return out

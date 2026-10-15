@@ -3,7 +3,6 @@ import scipy
 import pytest
 import qutip
 import warnings
-from packaging import version as pac_version
 from qutip.solver.steadystate import _permute_rcm, _permute_wbm
 import qutip.core.data as _data
 
@@ -41,10 +40,7 @@ def test_qubit(method, kwargs, dtype):
     sz = qutip.sigmaz().to(dtype)
     sm = qutip.destroy(2, dtype=dtype)
 
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -86,7 +82,8 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     # with high accuracy for a small Liouvillian requiring correct weighting.
     H = qutip.identity(2)
     c_ops = [qutip.sigmam(), 1e-5 * qutip.sigmap()]
-    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    with qutip.CoreOptions(auto_real_casting=False):
+        rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
     expected_rho_ss = np.array([
         [1.e-10+0.j, 0.e+00-0.j],
         [0.e+00-0.j, 1.e+00+0.j],
@@ -108,10 +105,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
 def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -152,10 +146,7 @@ def test_ho(method, kwargs):
     pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -175,12 +166,12 @@ def test_driven_cavity(method, kwargs):
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
 
 
-def test_prop_ss_degen():
+def test_prop_ss_degen(random_generator):
     N = 5
     H = qutip.qeye(2) & qutip.num(N)
     a = qutip.qeye(2) & qutip.destroy(N)
-    rho_l = qutip.rand_dm(2)
-    rho_r = qutip.rand_dm(N)
+    rho_l = qutip.rand_dm(2, seed=random_generator)
+    rho_r = qutip.rand_dm(N, seed=random_generator)
     rho_ss = qutip.steadystate(H, [a], method="propagator", rho=rho_l & rho_r)
     with qutip.CoreOptions(atol=1e-5):
         assert rho_ss.ptrace([0]) == rho_l
@@ -207,7 +198,7 @@ def test_pseudo_inverse(method, kwargs):
 
 
 @pytest.mark.parametrize('sparse', [True, False])
-def test_steadystate_floquet(sparse):
+def test_steadystate_fourier(sparse):
     """
     Test the steadystate solution for a periodically
     driven system.
@@ -222,7 +213,7 @@ def test_steadystate_floquet(sparse):
 
     H = 0.5 * w_c * sz
 
-    H_t = [H, [sx, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
+    H_t = [H, [sx, lambda t, **args: args["A_l"] * np.cos(args["w_l"] * t)]]
 
     psi0 = qutip.basis(2, 0)
 
@@ -237,7 +228,7 @@ def test_steadystate_floquet(sparse):
         H_t, psi0, t_l, c_ops, e_ops=[sz], args=args
     ).expect[0]
 
-    rho_ss = qutip.steadystate_floquet(H, c_ops,
+    rho_ss = qutip.steadystate_fourier(H, c_ops,
                                        A_l * sx, w_l, n_it=3, sparse=sparse)
     expect_ss = qutip.expect(sz, rho_ss)
 
@@ -266,7 +257,7 @@ def test_rcm():
     assert bandwidth(L) > bandwidth(_permute_rcm(L, b)[0])
 
 
-def test_wbm():
+def test_wbm(random_generator):
     N = 5
     a = qutip.destroy(N)
     I = qutip.qeye(N)
@@ -277,7 +268,7 @@ def test_wbm():
 
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
-    np.random.shuffle(perm)
+    random_generator.shuffle(perm)
     L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):

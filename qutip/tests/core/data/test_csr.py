@@ -6,7 +6,7 @@ from qutip.core import data
 from qutip.core.data import csr
 from qutip import qeye, CoreOptions
 
-from . import conftest
+from qutip.testing import random_data
 
 # We only choose a small subset of dtypes to test so it isn't crazy.
 _dtype_complex = ['complex128']
@@ -35,9 +35,9 @@ def density(request): return request.param
 def sorted_(request): return request.param
 
 
-def _valid_scipy():
+def _valid_scipy(gen=None):
     """Arbitrary valid scipy CSR"""
-    return conftest.random_scipy_csr((10, 10), 0.5, True)
+    return random_data.random_scipy_csr((10, 10), 0.5, True, gen=gen)
 
 
 def _valid_arg():
@@ -49,13 +49,17 @@ def _valid_arg():
 
 
 @pytest.fixture(scope='function')
-def scipy_csr(shape, density, sorted_):
-    return conftest.random_scipy_csr(shape, density, sorted_)
+def scipy_csr(shape, density, sorted_, random_generator):
+    return random_data.random_scipy_csr(
+        shape, density, sorted_, random_generator
+    )
 
 
 @pytest.fixture(scope='function')
-def data_csr(shape, density, sorted_):
-    return conftest.random_csr(shape, density, sorted_)
+def data_csr(shape, density, sorted_, random_generator):
+    return random_data.random_csr(
+        shape, density, sorted_, random_generator
+    )
 
 
 class TestClassMethods:
@@ -130,12 +134,14 @@ class TestClassMethods:
     @pytest.mark.parametrize('r_type', _dtype_int + _dtype_uint)
     # uint on macos raise a RuntimeWarning
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test_init_from_tuple_allowed_dtypes(self, d_type, c_type, r_type):
+    def test_init_from_tuple_allowed_dtypes(
+        self, d_type, c_type, r_type, random_generator
+    ):
         """
         Test that initialisation can use a variety of dtypes and converts into
         the correct type.
         """
-        sci = _valid_scipy()
+        sci = _valid_scipy(random_generator)
         data_nz = np.random.randn(sci.nnz).astype(d_type, casting='unsafe')
         col_index = sci.indices.astype(c_type, casting='unsafe')
         row_index = sci.indptr.astype(r_type, casting='unsafe')
@@ -260,7 +266,8 @@ class TestClassMethods:
         input.
         """
         data_csr = data.CSR(scipy_csr)
-        assert isinstance(data_csr.as_scipy(), scipy.sparse.csr_matrix)
+        assert scipy.sparse.issparse(data_csr.as_scipy())
+        assert data_csr.as_scipy().format == "csr"
         assert (data_csr.as_scipy() - scipy_csr).nnz == 0
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape, density):
@@ -282,10 +289,8 @@ class TestClassMethods:
         # Some matrices _cannot_ be unsorted (e.g. if they have only one entry
         # per row), so we add in this additional assertion message just to help
         # out.
-        message = (
-            "Sort on {}sorted indices failed."
-            .format("" if data_csr.as_scipy().has_sorted_indices else "un")
-        )
+        prefix = "" if data_csr.as_scipy().has_sorted_indices else "un"
+        message = f"Sort on {prefix}sorted indices failed."
         # We test on a copy because scipy attempts to cache
         # `has_sorted_indices`, but since it's a view, it has no idea what
         # we've done to the indices behind the scenes and typically would not
@@ -302,7 +307,7 @@ class TestFactoryMethods:
         base = csr.empty(shape[0], shape[1], nnz)
         sci = base.as_scipy(full=True)
         assert isinstance(base, data.CSR)
-        assert isinstance(sci, scipy.sparse.csr_matrix)
+        assert scipy.sparse.issparse(sci)
         assert base.shape == shape
         assert sci.data.shape == (nnz,)
         assert sci.indices.shape == (nnz,)
@@ -406,111 +411,6 @@ class TestFactoryMethods:
             base = data.one_element_csr(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
-
-
-class TestFromCSRBlocks:
-    class _blocks:
-        def __init__(self, rows, cols, ops, n_blocks=2, block_size=2):
-            self.rows = np.array(rows, dtype=data.base.idxint_dtype)
-            self.cols = np.array(cols, dtype=data.base.idxint_dtype)
-            if isinstance(ops, int):
-                ops = [csr.zeros(block_size, block_size)] * ops
-            self.ops = np.array(ops, dtype=object)
-            self.n_blocks = n_blocks
-            self.block_size = block_size
-
-        def from_csr_blocks(self):
-            return csr._from_csr_blocks(
-                self.rows, self.cols, self.ops,
-                self.n_blocks, self.block_size,
-            )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((0, 1), (0,), 1), id='rows neq ops'),
-        pytest.param(_blocks((0,), (0, 1), 1), id='cols neq ops'),
-    ])
-    def test_input_length_error(self, blocks):
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "The arrays block_rows, block_cols and block_ops should have"
-            " the same length."
-        )
-
-    def test_op_shape_error(self):
-        blocks = self._blocks(
-            (0, 1), (0, 1),
-            (csr.zeros(2, 2), csr.zeros(3, 3)),
-        )
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "Block operators (block_ops) do not have the correct shape."
-        )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((1, 0), (0, 1), 2), id='rows not ordered'),
-        pytest.param(_blocks((1, 1), (1, 0), 2), id='cols not ordered'),
-        pytest.param(_blocks((1, 0), (1, 0), 2), id='non-unique block'),
-    ])
-    def test_op_ordering_error(self, blocks):
-        with pytest.raises(ValueError) as exc:
-            blocks.from_csr_blocks()
-        assert str(exc.value) == (
-            "The arrays block_rows and block_cols must be sorted"
-            " by (row, column)."
-        )
-
-    @pytest.mark.parametrize(['blocks'], [
-        pytest.param(_blocks((), (), ()), id='no ops'),
-        pytest.param(_blocks((0, 1), (1, 0), 2), id='zero ops'),
-    ])
-    def test_zeros_output_fast_paths(self, blocks):
-        out = blocks.from_csr_blocks()
-        assert out == csr.zeros(2 * 2, 2 * 2)
-        assert csr.nnz(out) == 0
-
-    def test_construct_identity_with_empty(self):
-        # users are not expected to be exposed to
-        # csr.empty directly, but it is good to
-        # avoid segfaults, so we test passing
-        # csr.empty(..) blocks here explicitly
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                csr.identity(2), csr.empty(2, 2, 0),
-                csr.empty(2, 2, 0), csr.identity(2),
-            ],
-        )
-        out = blocks.from_csr_blocks()
-        assert out == csr.identity(4)
-        assert csr.nnz(out) == 4
-
-    def test_construct_identity_with_zeros(self):
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1], [
-                csr.identity(2), csr.zeros(2, 2),
-                csr.zeros(2, 2), csr.identity(2),
-            ],
-        )
-        out = blocks.from_csr_blocks()
-        assert out == csr.identity(4)
-        assert csr.nnz(out) == 4
-
-    def test_construct_kron(self):
-        A = np.array([[1, 2], [3, 4]])
-        B = np.array([[0.3, 0.35], [0.4, 0.45]])
-        B_op = data.to("csr", data.Dense(B))
-        raw_blocks = [
-            A[0, 0] * B_op, A[0, 1] * B_op,
-            A[1, 0] * B_op, A[1, 1] * B_op,
-        ]
-        blocks = self._blocks(
-            [0, 0, 1, 1], [0, 1, 0, 1],
-            [data.to(csr.CSR, b) for b in raw_blocks]
-        )
-        out = blocks.from_csr_blocks()
-        assert out == data.kron(data.Dense(A), data.Dense(B))
-        assert csr.nnz(out) == 16
 
 
 def test_tidyup():

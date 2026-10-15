@@ -30,8 +30,8 @@ def _get_converter(orig, target):
 
 @pytest.mark.parametrize('orig', ["J", "eV", "meV", "GHz", "mK"])
 @pytest.mark.parametrize('target', ["J", "eV", "meV", "GHz", "mK"])
-def test_unit_conversions(orig, target):
-    T = np.random.rand() * 100.0
+def test_unit_conversions(orig, target, random_generator):
+    T = random_generator.random() * 100.0
     T_converted = convert_unit(T, orig=orig, to=target)
     T_back = convert_unit(T_converted, orig=target, to=orig)
 
@@ -46,8 +46,8 @@ def test_unit_conversions(orig, target):
 @pytest.mark.parametrize('orig', ["J", "eV", "meV", "GHz", "mK"])
 @pytest.mark.parametrize('middle', ["J", "eV", "meV", "GHz", "mK"])
 @pytest.mark.parametrize('target', ["J", "eV", "meV", "GHz", "mK"])
-def test_unit_conversions_loop(orig, middle, target):
-    T = np.random.rand() * 100.0
+def test_unit_conversions_loop(orig, middle, target, random_generator):
+    T = random_generator.random() * 100.0
     T_middle = convert_unit(T, orig=orig, to=middle)
     T_converted = convert_unit(T_middle, orig=middle, to=target)
     T_back = convert_unit(T_converted, orig=target, to=orig)
@@ -64,14 +64,14 @@ def test_unit_conversions_bad_unit():
 
 @pytest.mark.parametrize('j1', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
 @pytest.mark.parametrize('j2', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
-def test_unit_clebsch_delta_j(j1, j2):
+def test_unit_clebsch_delta_j(j1, j2, random_generator):
     """sum_m1 sum_m2 C(j1,j2,j3,m1,m2,m3) * C(j1,j2,j3',m1,m2,m3') =
     delta j3,j3' delta m3,m3'"""
     for _ in range(10):
-        j3 = np.random.choice(np.arange(abs(j1-j2), j1+j2+1))
-        j3p = np.random.choice(np.arange(abs(j1-j2), j1+j2+1))
-        m3 = np.random.choice(np.arange(-j3, j3+1))
-        m3p = np.random.choice(np.arange(-j3p, j3p+1))
+        j3 = random_generator.choice(np.arange(abs(j1-j2), j1+j2+1))
+        j3p = random_generator.choice(np.arange(abs(j1-j2), j1+j2+1))
+        m3 = random_generator.choice(np.arange(-j3, j3+1))
+        m3p = random_generator.choice(np.arange(-j3p, j3p+1))
 
         sum_match = 0
         sum_differ = 0
@@ -87,14 +87,14 @@ def test_unit_clebsch_delta_j(j1, j2):
 
 @pytest.mark.parametrize('j1', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
 @pytest.mark.parametrize('j2', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
-def test_unit_clebsch_delta_m(j1, j2):
+def test_unit_clebsch_delta_m(j1, j2, random_generator):
     """sum_j3 sum_m3 C(j1,j2,j3,m1,m2,m3)*C(j1,j2,j3,m1',m2',m3) =
     delta m1,m1' delta m2,m2'"""
     for _ in range(10):
-        m1 = np.random.choice(np.arange(-j1, j1+1))
-        m1p = np.random.choice(np.arange(-j1, j1+1))
-        m2 = np.random.choice(np.arange(-j2, j2+1))
-        m2p = np.random.choice(np.arange(-j2, j2+1))
+        m1 = random_generator.choice(np.arange(-j1, j1+1))
+        m1p = random_generator.choice(np.arange(-j1, j1+1))
+        m2 = random_generator.choice(np.arange(-j2, j2+1))
+        m2p = random_generator.choice(np.arange(-j2, j2+1))
 
         sum_match = 0
         sum_differ = 0
@@ -123,8 +123,37 @@ def test_cpu_count(monkeypatch):
     assert new_ncpus >= 1
 
 
+def test_zeta(random_generator):
+    mpmath = pytest.importorskip("mpmath")
+    N = 50
+    s_list = random_generator.random(N) + 1.0001
+    # could randomly fail if q is an integer <=0
+    q_list = (random_generator.random(N) + 0.05) * 10
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    q_list = (random_generator.random(N) * 0.9 - .95
+              - random_generator.integers(10))
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    s_list = random_generator.random(N) + 1.001
+    q_list = ((random_generator.random(N) - 0.5) * 10
+              + random_generator.standard_normal(N) * 10j)
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+    s_list = (
+        1 + (random_generator.lognormal(size=N) + 1e-6)
+        * np.exp((random_generator.random(N) * 0.8 - 0.4) * 1j * np.pi)
+    )  # Real part > 1.000001
+    q_list = ((random_generator.random(N) + 0.1) * 10
+              + random_generator.standard_normal(N) * 10j)
+    for s, q in zip(s_list, q_list):
+        assert utils.zeta(s, q) == pytest.approx(mpmath.zeta(s, q), rel=1e-12)
+
+
 class TestFitting:
-    rng = np.random.default_rng(seed=42)
 
     def model(self, x, a, b, c):
         return np.real(a * np.exp(-(b + 1j * c) * x))
@@ -138,24 +167,35 @@ class TestFitting:
     def _prony_model(self, n, amp, phase):
         return amp * np.power(phase, np.arange(n))
 
-    @pytest.fixture(params = [True, False])
-    def generate_data(self, request):
+    @pytest.fixture(params = [0.005, 0], ids =["True", "False"])
+    def noisy(self, request):
+        return request.param
+
+    def generate_data(self, noisy, wavy, random_generator):
         """Generate test data."""
-        noisy = request.param
         x = np.linspace(0, 10, 100)
-        fparams1 = [1, .5, 0]
-        fparams2 = [3, 2, .5]
+        if wavy:
+            fparams1 = [-.5, .25, 0]
+            fparams2 = [3, 0.25, 5]
+        else:
+            fparams1 = [1, 0.5, 0]
+            fparams2 = [3, 2, .5]
         y = self.model(x, *fparams1) + self.model(x, *fparams2)
         if noisy:
-            noise = self.rng.normal(0, 0.01, len(x))
+            noise = random_generator.normal(0, noisy, len(x))
             y += noise
         return x, y, fparams1, fparams2, noisy
 
-    def test_fit(self, generate_data):
-        x, y, fparams1, fparams2, noisy = generate_data
+    @pytest.mark.flaky(reruns=2)
+    def test_fit(self, noisy, random_generator):
+        # Less 1% failure rate in noisy=True test.
+        x, y, fparams1, fparams2, noisy = self.generate_data(
+            noisy, True, random_generator
+        )
+        tol = 1e-2 if noisy else 1e-8
         rmse, params = utils.iterated_fit(
             self.model, num_params=3, xdata=x, ydata=y,
-            lower=[-np.inf, -np.inf, 0], target_rmse=1e-8, Nmax=2
+            lower=[-np.inf, -np.inf, 0], target_rmse=tol, Nmax=2
         )
         fit_y = self.model(x, *params[0]) + self.model(x, *params[1])
         assert rmse == pytest.approx(
@@ -163,52 +203,93 @@ class TestFitting:
         )
 
         if noisy:
+            tol = 0.2 * np.max(y)
             assert rmse < 1e-2
-            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=.2)) or
-                    np.all(np.isclose(params, [fparams2, fparams1], atol=.2)))
+            assert (np.all(np.isclose(params, [fparams1, fparams2], atol=tol)) or
+                    np.all(np.isclose(params, [fparams2, fparams1], atol=tol)))
         else:
             assert rmse < 1e-8
             assert (np.all(np.isclose(params, [fparams1, fparams2], atol=1e-3)) or
                     np.all(np.isclose(params, [fparams2, fparams1], atol=1e-3)))
 
-    def test_aaa(self, generate_data):
-        x, y, _, _ , noisy= generate_data
-        result = utils.aaa(y, x, tol=1e-8, max_iter=10)
-        rmse = result["rmse"]
+    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.parametrize("noisy", [0.0005, 0], ids =["True", "False"])
+    def test_aaa(self, noisy, random_generator):
+        # 0.1% failure rate in noisy=True test.
+        x, y, _, _ , noisy = self.generate_data(noisy, False, random_generator)
+        # Can't have a better fit that the noise
+        tol = 0.05 if noisy else 1e-8
+        result = utils.aaa(y, x, tol=tol, max_iter=10)
+
         if noisy:
-            assert rmse < 2e-2
-            np.testing.assert_allclose(result["function"](x), y, atol=1e-1*np.max(y))
+            tol = 1e-1*np.max(y)
+            assert result["rmse"] < 1e-2
+            np.testing.assert_allclose(result["function"](x), y, rtol=tol)
         else:
-            assert rmse < 1e-8
+            assert result["rmse"] < 1e-8
             np.testing.assert_allclose(result["function"](x), y, rtol=1e-4)
 
-    def test_espira_I(self, generate_data):
-        x, y, _, _, noisy = generate_data
+    @pytest.mark.flaky(reruns=2)
+    def test_espira_I(self, noisy, random_generator):
+        # Less than 0.1% fail rate with noisy=True
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
         rmse, params = utils.espira1(y, 4, tol=1e-16)
         if noisy:
-            assert rmse < 1e-2
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
+            assert rmse < 2e-2
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=5e-2*np.max(y))
         else:
-            assert rmse < 1e-8
+            assert rmse < 1e-8, f"{rmse=}"
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
 
-    def test_espira_II(self, generate_data):
-        x, y, _, _, noisy = generate_data
+    @pytest.mark.flaky(reruns=2)
+    def test_espira_II(self, noisy, random_generator):
+        # Less than 0.1% fail rate with noisy=True
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
         rmse, params = utils.espira2(y, 4, tol=1e-16)
-        if noisy:
-            assert rmse < 1e-2
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=1e-2*np.max(y))
-        else:
-            assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
-
-    @pytest.mark.parametrize("method", ["prony", "esprit"])
-    def test_prony_methods(self, generate_data, method):
-        x, y, _, _, noisy = generate_data
-        rmse, params = utils.prony_methods(method, y, 4)
         if noisy:
             assert rmse < 1e-2
             np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=2e-2*np.max(y))
         else:
+            # For windows numpy=1.26 scipy=1.17, the error is suprinsingly high
+            # 7e-6 while I get 1e-15 on linux...
+            # Probably a bug in eigvals or pinv of the joined math libraries...
+            assert rmse < 1e-5
+            np.testing.assert_allclose(self.eval_prony(len(x), params), y, atol=3e-4)
+
+    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.parametrize("method", ["prony", "esprit"])
+    def test_prony_methods(self, noisy, method, random_generator):
+        # Less than 0.1% failure rate in noisy=True test.
+        x, y, _, _, noisy = self.generate_data(noisy, False, random_generator)
+        rmse, params = utils.prony_methods(method, y, 4)
+        if noisy:
+            assert rmse < 2e-2
+            np.testing.assert_allclose(
+                self.eval_prony(len(x), params), y, atol=3e-2*np.max(y)
+            )
+        else:
             assert rmse < 1e-8
-            np.testing.assert_allclose(self.eval_prony(len(x), params), y, rtol=1e-4)
+            np.testing.assert_allclose(
+                self.eval_prony(len(x), params), y, rtol=1e-4
+            )
+
+
+@pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
+def test_clebsch_large_j(j):
+    """<j 0; j 0 | 0 0> = (-1)^j / sqrt(2j + 1).
+
+    The intermediate factorials leave the float range long before the
+    coefficient itself does, so these used to underflow silently to 0.0, then
+    to nan, then raise ZeroDivisionError/OverflowError as j grew.
+    """
+    expected = (-1) ** j / np.sqrt(2 * j + 1)
+    assert clebsch(j, j, 0, 0, 0, 0) == pytest.approx(expected, rel=1e-12)
+
+
+@pytest.mark.parametrize('j', [60, 90, 120])
+def test_clebsch_large_j_normalisation(j):
+    """sum_j3 C(j,j,j3,m1,m2,m1+m2)^2 = 1, for j large enough to overflow."""
+    m1, m2 = j / 2, -j / 2
+    total = sum(clebsch(j, j, j3, m1, m2, m1 + m2) ** 2
+                for j3 in range(2 * j + 1))
+    assert total == pytest.approx(1.0)

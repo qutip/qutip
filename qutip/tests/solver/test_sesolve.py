@@ -13,7 +13,7 @@ WARN_MISSING_MODULE[0] = 0
 
 all_ode_method = [
     method for method, integrator in SESolver.avail_integrators().items()
-    if integrator.support_time_dependant
+    if integrator.rhs_format == "callable"
 ]
 
 def _analytic(t, alpha):
@@ -37,7 +37,7 @@ class TestSeSolve():
         pytest.param(lambda t, alpha: (np.pi * qutip.sigmax()
                                        * np.exp(-alpha * t)),
                      _analytic, id='func_H'),
-        pytest.param([[H1, lambda t, args: np.exp(-args['alpha'] * t)]],
+        pytest.param([[H1, lambda t, alpha: np.exp(-alpha * t)]],
                      _analytic, id='list_func_H'),
         pytest.param([[H1, 'exp(-alpha*t)']],
                      _analytic, id='list_str_H'),
@@ -166,8 +166,8 @@ class TestSeSolve():
              np.cos(w_a * t) * np.pi * qutip.sigmax()
          ), {'a':a, 'w_a':w_a}, id='func_H'),
          pytest.param([
-             [H0, lambda t, args: args['a']*t],
-             [H1, lambda t, args: np.cos(args['w_a']*t)]
+             [H0, lambda t, a: a * t],
+             [H1, lambda t, w_a: np.cos(w_a * t)]
          ], {'a':a, 'w_a':w_a}, id='list_func_H'),
          pytest.param([H0, [H1, 'cos(w_a*t)']], {'w_a':w_a}, id='list_str_H'),
     ])
@@ -298,27 +298,28 @@ def test_sesolve_step_no_start():
         solver.step(1)
 
 
-@pytest.mark.parametrize("always_compute_step", [True, False])
-def test_krylovsolve(always_compute_step):
-    H = qutip.tensor([qutip.rand_herm(2) for _ in range(8)])
-    psi0 = qutip.basis([2]*8, [1]*8)
+@pytest.mark.parametrize("algorithm", ['lanczos', 'lanczos_fro'])
+def test_krylovsolve_pure_state(algorithm, random_generator):
+    H = qutip.rand_herm([2] * 8, seed=random_generator)
+    psi0 = qutip.basis([2] * 8, [1] * 8)
     e_op = qutip.num(256)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
     ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
-    options = {"always_compute_step": always_compute_step}
+    options = {"store_states": True, "algorithm": algorithm}
     krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
-    np.testing.assert_allclose(ref, krylov_sol.expect[0])
+    np.testing.assert_allclose(np.ones(len(krylov_sol.states)),
+                               [s.norm() for s in krylov_sol.states])
+    np.testing.assert_allclose(ref, krylov_sol.expect[0], atol=1e-7, rtol=1e-6)
 
 
 def test_krylovsolve_error():
-    H = qutip.rand_herm(256, density=0.2)
-    psi0 = qutip.basis([256], [255])
+    H = qutip.rand_herm(10, density=0.2)
+    psi0 = qutip.basis([10], [9])
     tlist = np.linspace(0, 1, 11)
-    options = {"min_step": 1e10}
     with pytest.raises(ValueError) as err:
-        krylovsolve(H, psi0, tlist, 20, options=options)
-    assert "error with the minimum step" in str(err.value)
+        krylovsolve(H, psi0, tlist, 8, algorithm="foo_bar")
+    assert "The requested algorithm" in str(err.value)
 
 
 def test_feedback():
