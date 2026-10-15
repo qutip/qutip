@@ -159,27 +159,6 @@ class BosonicEnvironment(abc.ABC):
 
         ...
 
-    def _g_w(
-        self, w: float | ArrayLike, *, eps: float = 1e-10
-    ) -> (float | ArrayLike):
-        """
-        Square root of the power_spectrum.
-
-        Used for the Universal Lindblad equation.
-
-        Parameters
-        ----------
-        w : array_like or float
-            The frequencies at which to evaluate the power spectrum.
-
-        eps : optional, float
-            To derive the zero-frequency power spectrum from the spectral
-            density, the spectral density must be differentiated numerically.
-            In that case, this parameter is used as the finite difference in
-            the numerical differentiation.
-        """
-        return (self.power_spectrum(w, eps=eps))**0.5 / (2 * np.pi)
-
     def jump_correlator_function(
         self, *,
         atol: float = 1e-4,
@@ -1106,6 +1085,7 @@ class _BosonicEnvironment_fromSD(BosonicEnvironment):
 class _BosonicEnvironment_fromJC(BosonicEnvironment):
     def __init__(self, g, tlist, tMax, T, tag, args):
         super().__init__(T, tag)
+        self._cf = None
         if tlist is not None:
             tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
 
@@ -1113,6 +1093,8 @@ class _BosonicEnvironment_fromJC(BosonicEnvironment):
             self._jc = g
             if not hasattr(self._jc, "tMax"):
                 self._jc.tMax = tMax
+            else:
+                tMax = self._jc.tMax
         else:
             self._jc = _SymmetricSpline(
                 g, tlist, tMax, 'jump correlator function',

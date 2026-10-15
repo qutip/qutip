@@ -405,6 +405,7 @@ def _make_operators(
     lamb_shift : QobjEvo or {0}
         Lamb shift Hamiltonian, 0 when ``use_lamb_shift`` is False.
     """
+    # TODO: Add, coupled and FermionicEnvironment support
     options = options or {}
     method = options.get("ULME_creation")
 
@@ -434,12 +435,17 @@ def _operators_eigen(
             "ULME_creation='eigen' requires a time-independent Hamiltonian "
             "and coupling operator."
         )
+    # TODO: reuse the eigen basis of H for multiple collapses
 
     vals, vecs = H(0).eigenstates(output_type="oper")
     X_diag = (vecs.dag() @ X(0) @ vecs)
     X_np = X_diag.full()
     X_data = X_diag.data
-    L_res = _data.Dense(env._g_w(-np.subtract.outer(vals, vals)))
+
+    def _g_w(w):
+        return env.power_spectrum(w)**0.5 / (2 * np.pi)
+
+    L_res = _data.Dense(_g_w(-np.subtract.outer(vals, vals)))
     L_H = _data.multiply(X_data, L_res) * (np.pi * 2)
     if not use_lamb_shift:
         return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
@@ -449,7 +455,7 @@ def _operators_eigen(
     @functools.lru_cache(maxsize=None)
     def _integral(e1, e2):
         return integrate.quad(
-            lambda w: env._g_w(w -e1) * env._g_w(w + e2),
+            lambda w: _g_w(w -e1) * _g_w(w + e2),
             -limits, limits, weight='cauchy', wvar=0
         )[0] * (-2 * np.pi)
 
@@ -546,19 +552,15 @@ class ULOP():
         eye = _data.dense.identity(self.size)
         zero = _data.dense.zeros(self.size, self.size, fortran=True)
         self._tmp = zero.copy()
-        self._Xp = zero.copy()  # TODO: use or remove
-        self._Xm = zero.copy()  # TODO: use or remove
+
         if self._with_lamb:
-            self._derr = merge_dense([zero, zero, zero, zero, zero, zero])
             initial = merge_dense([eye, eye, zero, zero, zero, zero])
         else:
-            self._derr = merge_dense([zero, zero, zero, zero])
             initial = merge_dense([eye, eye, zero, zero])
         return initial
 
     def _rhs(self, s, state):
         Up, Um, Lp, Lm, *_ = split_dense(state, self.size)
-        # TODO: check to reuse buffer: self._derr
         _derr = _data.dense.zeros(self.size**2, self._ncols, fortran=True)
         dUp, dUm, dLp, dLm, *dY = split_dense(_derr, self.size)
 
@@ -630,3 +632,9 @@ class ULOP():
             self._lamb = (
                 (Lp.adjoint() + Lm.adjoint()) @ (-Lp + Lm) + (Yp + Ym)
             ) * -0.5j
+
+    __TODO__ = """
+    Add interpolation step and periodic support.
+    Knowing the period T, keep previous operators and when t>T use
+    interpolation.
+    """
