@@ -163,19 +163,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg imagemagick texlive-latex-extra
 
-      - name: Convert v5 tutorials to notebooks
+      - name: Convert v5 parallelisation tutorials to notebooks
         run: |
+          mapfile -t notebooks < tools/parallel-tutorials.txt
           cd ../qutip-tutorials
           mkdir notebooks
           cp -r tutorials-v5/* notebooks
           cd notebooks
-          find . -name '*.md' -exec jupytext --to notebook {} +
-          find . -name '*.md' -delete
-          # This notebook requires a CUDA-capable runner
-          rm miscellaneous/cuQuantum_backend.ipynb
-          rm time-evolution/024_v5_paper-mesolve.ipynb # temporarily exclude this notebook
+          for notebook in "${notebooks[@]}"; do
+            jupytext --to notebook "${notebook%.ipynb}.md"
+          done
 
-      - name: Run tutorial notebooks
+      - name: Run parallelisation tutorial notebooks
         run: |
+          # Shared with the local runner; include parallel_map and parallel solver options.
+          mapfile -t notebooks < tools/parallel-tutorials.txt
           cd ../qutip-tutorials/notebooks
-          find . -name '*.ipynb' -exec pytest --nbmake --nbmake-timeout=900 {} +
+          pytest --nbmake --nbmake-timeout=900 "${notebooks[@]}"
