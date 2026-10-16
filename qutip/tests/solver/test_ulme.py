@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.core.environment import DrudeLorentzEnvironment, OhmicEnvironment, UnderDampedEnvironment
+from qutip.core.environment import (
+    DrudeLorentzEnvironment, OhmicEnvironment, UnderDampedEnvironment
+)
 from qutip.solver.ulmesolve import ULMESolver, ulmesolve, UL_transform
 from qutip.solver.ulmesolve import _make_operators, ULOP
 from qutip import sigmax, sigmay, sigmaz, basis, qeye
@@ -151,7 +153,6 @@ def test_runs_and_normalizes(method, lamb_shift):
 # ---------------------------------------------------------------------------
 # Cross-checks between construction methods.
 # ---------------------------------------------------------------------------
-@pytest.mark.filterwarnings("ignore:ULME operators:RuntimeWarning")
 class TestMethodsAgree:
     def make_H(self, td):
         H = [0.5 * qutip.sigmaz()]
@@ -172,13 +173,13 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_prop, _ = _make_operators(
-            H, X, env, False, {"ULME_creation": "propagator"}
+            H, [(X, env)], False, {"ULME_creation": "propagator"}
         )
         L_sum = _make_dissipator_sum(H, X, env, T=25, Nt=3000)
 
         np.testing.assert_allclose(
             L_sum(0.6).full(),
-            L_prop(0.6).full(),
+            L_prop[0](0.6).full(),
             atol = 2e-3
         )
 
@@ -189,15 +190,15 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         _, lamb_prop = _make_operators(
-            H, X, env, True, {"ULME_creation": "propagator"}
+            H, [(X, env)], True, {"ULME_creation": "propagator"}
         )
         lamb_sum = _make_ULME_lamb_shift_sum(H, X, env, T=25, Nt=1000)
         with qutip.CoreOptions(atol=1e-5):
-            assert lamb_prop(0.6).isherm
+            assert lamb_prop[0](0.6).isherm
             assert lamb_sum(0.6).isherm
         np.testing.assert_allclose(
             lamb_sum(0.6).full(),
-            lamb_prop(0.6).full(),
+            lamb_prop[0](0.6).full(),
             atol = 1e-3
         )
 
@@ -207,28 +208,28 @@ class TestMethodsAgree:
         X = self.make_X(False)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_eigen , lamb_eigen = _make_operators(
-            H, X, env, lamb_shift, {
+            H, [(X, env)], lamb_shift, {
                 "ULME_creation": "eigen",
                 "eigen_pv_integral_limits": 50,
             },
         )
         L_prop, lamb_prop = _make_operators(
-            H, X, env, lamb_shift, {"ULME_creation": "propagator"},
+            H, [(X, env)], lamb_shift, {"ULME_creation": "propagator"},
         )
         np.testing.assert_allclose(
-            L_eigen(0.6).full(),
-            L_prop(0.6).full(),
+            L_eigen[0](0.6).full(),
+            L_prop[0](0.6).full(),
             atol = 1e-3
         )
         if lamb_shift:
             np.testing.assert_allclose(
-                lamb_eigen(0.6).full(),
-                lamb_prop(0.6).full(),
+                lamb_eigen[0](0.6).full(),
+                lamb_prop[0](0.6).full(),
                 atol = 1e-3
             )
             with qutip.CoreOptions(atol=1e-5):
-                assert lamb_prop(0.6).isherm
-                assert lamb_eigen(0.6).isherm
+                assert lamb_prop[0](0.6).isherm
+                assert lamb_eigen[0](0.6).isherm
 
 
 class TestEvolution:
@@ -267,7 +268,7 @@ class TestEvolution:
             H, rho0, tlist, a_ops=[(X, env)], e_ops=e_ops,
         )
 
-        for i in range(3):
+        for i in range(4):
             np.testing.assert_allclose(
                 result_ulme.expect[i],
                 result_br.expect[i],

@@ -27,7 +27,7 @@ _ULME_DEFAULT_OPTIONS = {
     "propagator_method": "tsit5",
     "propagator_ODE_options": {},
     "JC_options": {"atol": 1e-4, "rtol":1e-3},
-    "conv_tol": 1e-4,
+    "conv_tol": 0,
 }
 
 
@@ -40,6 +40,7 @@ def ulmesolve(
         | tuple[QobjEvoLike, BosonicEnvironment]
     ),
     *,
+    c_ops: list[QobjEvoLike] = None,
     e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
@@ -53,6 +54,7 @@ def ulmesolve(
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo` or :obj:`.QobjEvo` compatible format.
         System Hamiltonian. Can be time-independent or time-dependent.
+        H cannot be a pre-made Liouvillian superoperator.
 
     rho0 : :obj:`.Qobj`
         Initial state density matrix or state vector (ket).
@@ -67,6 +69,9 @@ def ulmesolve(
     e_ops : list of :obj:`.Qobj` / callback function, optional
         Single operator or list of operators for which to evaluate
         expectation values.
+
+    c_ops : list of :obj:`.QobjEvo` compatible format, optional
+        List of collapse operators.
 
     args : dict, optional
         Dictionary of parameters for time-dependent Hamiltonians or coupling
@@ -85,7 +90,7 @@ def ulmesolve(
             only.
           | "propagator": Integration in the interaction picture, general.
         - | eigen_pv_integral_limits : float, default: 30
-            Limit of the power_spectrum integral for the lambda shift operator
+            Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
         - | propagator_method: str, default: "tsit5"
           | ODE method used for the propagator ULME_creation method.
@@ -93,7 +98,7 @@ def ulmesolve(
           | Options for the ODE integrator used for the propagator method.
         - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
           | Options used to build the jump correlator for the propagator method.
-        - | conv_tol: float, default: 1e-4,
+        - | conv_tol: float, default: 0
           | Convergence tolerance of the operator for the propagator method.
 
         All options are listed in ``ULMESolver.options``'s docstring.
@@ -104,11 +109,14 @@ def ulmesolve(
         An instance of the class :obj:`.Result`, containing expectation
         values and/or states.
     """
-    # Backward compatibility warnings
+    c_ops = c_ops if c_ops is not None else []
+    if not isinstance(c_ops, (list, tuple)):
+        c_ops = [c_ops]
+    c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     H = QobjEvo(H, args=args, tlist=tlist)
     a_ops = _parse_a_ops(a_ops, args, tlist)
-    solver = ULMESolver(H, a_ops, options=options)
+    solver = ULMESolver(H, a_ops, c_ops=c_ops, options=options)
     return solver.run(rho0, tlist, e_ops=e_ops)
 
 
@@ -126,15 +134,19 @@ class ULMESolver(MESolver):
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
+        Possibly time-dependent Hamiltonian as a Qobj or QobjEvo.
+        List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable that
         can be made into :obj:`.QobjEvo` are also accepted.
-        Note: H cannot be a superoperator.
+        Note that H cannot be a superoperator.
 
     a_ops : list of tuple[:obj:`.Qobj` | :obj:`.QobjEvo`, BosonicEnvironment]
         List of tuples where each contains a system-bath coupling
         operator and its corresponding :obj:`BosonicEnvironment`. All baths are
         assumed to be independent.
+
+    c_ops : list of :obj:`.Qobj`, :obj:`.QobjEvo`
+        Single collapse operator, or list of collapse operators, or a list
+        of Lindblad dissipator. None is equivalent to an empty list.
 
     options : dict, optional
         Options for the solver,
@@ -158,6 +170,7 @@ class ULMESolver(MESolver):
         self,
         H: Qobj | QobjEvo,
         a_ops: list[tuple[Qobj | QobjEvo, BosonicEnvironment]],
+        c_ops: Qobj | QobjEvo | list[Qobj | QobjEvo] = None,
         *,
         options: dict = None
     ):
@@ -165,6 +178,13 @@ class ULMESolver(MESolver):
         if self.H.issuper:
             raise TypeError("ULME cannot be used with superoperator H")
         self.a_ops = _parse_a_ops(a_ops, strict=True)
+
+        c_ops = c_ops or []
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
         for i, (op, _) in enumerate(self.a_ops):
             if op.dims != self.H.dims:
                 raise ValueError(
@@ -176,20 +196,16 @@ class ULMESolver(MESolver):
         self._num_collapse = len(self.a_ops)
         self.options = options
 
-        self.c_ops = []
-        self.lamb_shifts = []
         use_lamb_shift = self.options["use_lamb_shift"]
 
-        for op, env in self.a_ops:
-
-            L, lamb_shift = _make_operators(
-                self.H, op, env, use_lamb_shift, self.options
-            )
-            self.c_ops.append(L)
-            self.lamb_shifts.append(lamb_shift)
+        self.L_ops, self.lamb_shifts = _make_operators(
+            self.H, self.a_ops, use_lamb_shift, self.options
+        )
 
         super().__init__(
-            self.H + sum(self.lamb_shifts), self.c_ops, options=self.options
+            self.H + sum(self.lamb_shifts),
+            self.L_ops + c_ops,
+            options=self.options,
         )
 
     @property
@@ -240,7 +256,7 @@ class ULMESolver(MESolver):
             effective Hamiltonian.
 
         eigen_pv_integral_limits : float, default: 30
-            Limit of the power_spectrum integral for the lambda shift operator
+            Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
 
         propagator_method: str, default: "tsit5"
@@ -253,14 +269,14 @@ class ULMESolver(MESolver):
             them both for the ulmesolve evolution and the propagator evolution
             should be avoided.
 
-        propagator_ODE_options: dict, default: {},
+        propagator_ODE_options: dict, default: {}
             Options for the ODE integrator used for the propagator ODE.
 
-        JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
+        JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3}
             Options used to build the jump correlator used in the propagator
             ODE.
 
-        conv_tol: float, default: 1e-4,
+        conv_tol: float, default: 0
             Convergence tolerance of the operators for the propagator method.
         """
         return self._options
@@ -268,6 +284,13 @@ class ULMESolver(MESolver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            raise NotImplementedError(
+                "ulmesolve does not support updating arguments"
+            )
 
 
 def UL_transform(
@@ -285,7 +308,9 @@ def UL_transform(
     Parameters
     ----------
     H: Qobj or QobjEvo
-        Hamiltonian of the system
+        Possibly time-dependent Hamiltonian as a Qobj or QobjEvo.
+        Note that H cannot be a superoperator.
+
     a_ops: list of tuple of (Qobj | QobjEvo, BosonicEnvironment)
         One or multiple coupling operators with their bath as
         BosonicEnvironment. The bath must be independent.
@@ -312,7 +337,7 @@ def UL_transform(
             only.
           | "propagator": Integration in the interaction picture, general.
         - | eigen_pv_integral_limits : float, default: 30
-            Limit of the power_spectrum integral for the lambda shift operator
+            Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
         - | propagator_method: str, default: "tsit5"
           | ODE method used for the propagator ULME_creation method.
@@ -320,7 +345,7 @@ def UL_transform(
           | Options for the ODE integrator used for the propagator method.
         - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
           | Options used to build the jump correlator for the propagator method.
-        - | conv_tol: float, default: 1e-4,
+        - | conv_tol: float, default: 0
           | Convergence tolerance of the operator for the propagator method.
 
     Returns
@@ -333,14 +358,13 @@ def UL_transform(
         **_ULME_DEFAULT_OPTIONS,
         **(options or {}),
     }
+    if not isinstance(H, (Qobj, QobjEvo)):
+        raise TypeError("H must be a Qobj or QobjEvo")
     H_evo = QobjEvo(H, copy=False)
-    c_ops = []
-    lamb_shifts = []
+
     use_lamb_shift = options["use_lamb_shift"]
-    for op, env in _parse_a_ops(a_ops):
-        L, Lamb = _make_operators(H_evo, op, env, use_lamb_shift, options)
-        c_ops.append(L)
-        lamb_shifts.append(Lamb)
+    a_ops = _parse_a_ops(a_ops, strict=True)
+    c_ops, lamb_shifts = _make_operators(H_evo, a_ops, use_lamb_shift, options)
 
     return H + sum(lamb_shifts), c_ops
 
@@ -390,8 +414,7 @@ def _parse_a_ops(a_ops, args=None, tlist=None, strict=False):
 
 def _make_operators(
     H: QobjEvo,
-    X: QobjEvo,
-    env: BosonicEnvironment,
+    a_ops: list[tuple[QobjEvo, BosonicEnvironment]],
     use_lamb_shift: bool,
     options: dict,
 ):
@@ -405,18 +428,36 @@ def _make_operators(
     lamb_shift : QobjEvo or {0}
         Lamb shift Hamiltonian, 0 when ``use_lamb_shift`` is False.
     """
-    # TODO: Add, coupled and FermionicEnvironment support
+    # TODO: Add, coupled and Fermionic environment support?
     options = options or {}
-    method = options.get("ULME_creation")
+    method = options.get("ULME_creation", "propagator")
+
+    c_ops = []
+    lamb_shifts = []
 
     if method == "eigen":
-        return _operators_eigen(H, X, env, use_lamb_shift, options)
-    if method == "propagator":
-        return _operators_prop(H, X, env, use_lamb_shift, options)
-    raise ValueError(
-        f"Unknown ULME_creation method {method!r}, "
-        "expected 'eigen' or 'propagator'."
-    )
+        if not H.isconstant:
+            raise TypeError(
+                "ULME_creation='eigen' requires a time-independent Hamiltonian"
+            )
+        vals, vecs = H(0).eigenstates(output_type="oper")
+        for op, env in a_ops:
+            L, LL = _operators_eigen(
+                vals, vecs, op, env, use_lamb_shift, options
+            )
+            c_ops.append(L)
+            lamb_shifts.append(LL)
+    elif method == "propagator":
+        for op, env in a_ops:
+            L, LL =  _operators_prop(H, op, env, use_lamb_shift, options)
+            c_ops.append(L)
+            lamb_shifts.append(LL)
+    else:
+        raise ValueError(
+            f"Unknown ULME_creation method {method!r}, "
+            "expected 'eigen' or 'propagator'."
+        )
+    return c_ops, lamb_shifts
 
 
 # ---------------------------------------------------------------------------
@@ -424,20 +465,19 @@ def _make_operators(
 # ---------------------------------------------------------------------------
 
 def _operators_eigen(
-    H: QobjEvo,
+    vals: ArrayLike,
+    vecs: Qobj,
     X: QobjEvo,
     env: BosonicEnvironment,
     use_lamb_shift: bool,
     options: dict,
 ):
-    if not (H.isconstant and X.isconstant):
+    if not X.isconstant:
         raise TypeError(
-            "ULME_creation='eigen' requires a time-independent Hamiltonian "
-            "and coupling operator."
+            "ULME_creation='eigen' requires a time-independent "
+            "coupling operator."
         )
-    # TODO: reuse the eigen basis of H for multiple collapses
 
-    vals, vecs = H(0).eigenstates(output_type="oper")
     X_diag = (vecs.dag() @ X(0) @ vecs)
     X_np = X_diag.full()
     X_data = X_diag.data
@@ -461,11 +501,19 @@ def _operators_eigen(
 
     N = len(vals)
     fs = np.zeros((N, N, N), dtype=float)
+    # This should be more presice than integrate.quad, but help with caching
+    precision = int(np.round(15 - np.log10(limits), 0))
     for i, j, k in itertools.product(range(N), repeat=3):
-        #TODO: optimize
-        fs[i, j, k] = _integral(vals[j] - vals[i], vals[k] - vals[j])
+        e1 = np.round(vals[j] - vals[i], precision)
+        e2 = np.round(vals[k] - vals[j], precision)
+        if np.abs(e1) < np.abs(e2):
+            # _integral(a, b) = _integral(-b, -a)
+            # Swap to use cache to compute only one pair
+            e1, e2 = -e2, -e1
+        fs[i, j, k] = _integral(e1, e2)
 
     LL = np.einsum("ijk,ij,jk->ik", fs, X_np, X_np)
+    LL = (LL + LL.T.conj()) / 2
     return (
         QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()),
         QobjEvo(vecs @ Qobj(LL) @ vecs.dag()),
@@ -516,10 +564,15 @@ class ULOP():
     options : dict, optional
         ``tol`` is used to find the time window over which ``g`` is not zero.
     """
+    # TODO
+    # Add interpolation step and periodic support:
+    # Knowing the period T, keep previous operators and when t>T use
+    # interpolation.
     def __init__(self, H, X, env, use_lamb_shift, options=None):
         options = options or {}
         self.H = H
         self.X = X
+        self.dtype = X.dtype
         self.size = H.shape[0]
         self._with_lamb = use_lamb_shift
         self._ncols = 6 if self._with_lamb else 4
@@ -561,6 +614,7 @@ class ULOP():
 
     def _rhs(self, s, state):
         Up, Um, Lp, Lm, *_ = split_dense(state, self.size)
+        # OPTIMIZE: Reuse _derr buffer.
         _derr = _data.dense.zeros(self.size**2, self._ncols, fortran=True)
         dUp, dUm, dLp, dLm, *dY = split_dense(_derr, self.size)
 
@@ -591,14 +645,14 @@ class ULOP():
     def L(self, t):
         if t != self.t:
             self.compute(t)
-        return Qobj(self._L, dims=self.H._dims)
+        return Qobj(self._L, dims=self.H._dims, dtype=self.dtype)
 
     def lamb_shift(self, t):
         if not self._with_lamb:
             raise RuntimeError("ULOP was created with lamb_shift=False.")
         if t != self.t:
             self.compute(t)
-        return Qobj(self._lamb, dims=self.H._dims)
+        return Qobj(self._lamb, dims=self.H._dims, dtype=self.dtype)
 
     def compute(self, t):
         prev = self._initial_state()
@@ -609,7 +663,7 @@ class ULOP():
 
         diff = np.inf
         s = 0
-        # TODO: tol should scale with state size and use absolute scale
+        # TODO: tol should scale with state size and use relative scale
         while diff > tol and s < self._t_max:
             s += t_scale
             _, state = self._integrator.integrate(s)
@@ -618,23 +672,11 @@ class ULOP():
             )
             prev = state
 
-        if diff > tol:
-            warnings.warn(
-                "ULME operators did not converge within the support of "
-                f"the jump correlator (t_max={self._t_max:.3g}).",
-                RuntimeWarning,
-            )
-
         _, _, Lp, Lm, *Ys = split_dense(state, self.size)
         self._L = Lp + Lm
         if self._with_lamb:
             Yp, Ym = Ys
-            self._lamb = (
+            LL = (
                 (Lp.adjoint() + Lm.adjoint()) @ (-Lp + Lm) + (Yp + Ym)
             ) * -0.5j
-
-    __TODO__ = """
-    Add interpolation step and periodic support.
-    Knowing the period T, keep previous operators and when t>T use
-    interpolation.
-    """
+            self._lamb = (LL + LL.adjoint()) / 2
