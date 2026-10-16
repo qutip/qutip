@@ -7,6 +7,26 @@ from qutip.solver.steadystate import _permute_rcm, _permute_wbm
 import qutip.core.data as _data
 
 
+@pytest.mark.parametrize("phase", [1, 1j, -1j, np.exp(0.7j)])
+@pytest.mark.parametrize("dtype", ["dense", "csr"])
+def test_power_complex_phase(monkeypatch, phase, dtype):
+    H = 0.5 * qutip.sigmax()
+    c_ops = [qutip.sigmam()]
+    L = qutip.liouvillian(H, c_ops).to(dtype)
+    expected = qutip.steadystate(L, method="direct")
+    iterate = qutip.operator_to_vector(expected).data * phase
+
+    # A converged inverse-power iterate has an arbitrary complex phase.
+    monkeypatch.setattr(_data, "solve", lambda *args, **kwargs: iterate)
+    rho = qutip.steadystate(L, method="power")
+
+    np.testing.assert_allclose(rho.full(), expected.full(), atol=1e-12)
+    assert rho.tr() == pytest.approx(1)
+    assert rho.isherm
+    assert np.min(rho.eigenenergies()) >= -1e-12
+    assert (L * qutip.operator_to_vector(rho)).norm() < 1e-12
+
+
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'solver':'mkl'}, id="direct_mkl",
