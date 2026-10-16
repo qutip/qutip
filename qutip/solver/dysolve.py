@@ -27,7 +27,7 @@ DriveType = (
     Drive
     | tuple[Qobj, float]
     | tuple[Qobj, float, Literal["cos", "sin", "exp"]]
-    | tuple[Qobj, float, Literal["cos", "sin", "exp"], Coefficient]
+    | tuple[Qobj, float, Literal["cos", "sin", "exp"], Coefficient | complex]
 )
 
 
@@ -70,7 +70,7 @@ class Dysolve:
             Which of ``cos(w*t)``, ``sin(w*t)``, ``exp(1j*w*t)`` is the form of
             the drive for the perturbation.
 
-        envelope : Coefficient, optional
+        envelope : Coefficient | complex, optional
             If provided, a slowly varying envelope to the drive. The envelope
             is estimated to be flat over each step of ``options["step_size"]``.
             Note that when used, it is usually good to use very small step size
@@ -108,9 +108,9 @@ class Dysolve:
             using the eigen basis, but the extra drive increase the numerical
             error significantly.
         - | polar : bool, False
-          | Whether to use polar decomposition on the propagator. Improve
+          | Whether to use polar decomposition on the propagator. Improves
             accuracy for low odd order.
-            *Can't be used with non-hermitian Hamiltonian.*
+            *Can't be used with a non-hermitian Hamiltonian.*
 
     Notes
     -----
@@ -142,7 +142,7 @@ class Dysolve:
         self._dims = H_0._dims
         self.dims = H_0.dims
         if not isinstance(drives, list):
-            raise TypeError("drives must be a list of tuple")
+            raise TypeError("drives must be a list of tuples")
         drives = drives.copy()
 
         if self.options["eigen"]:
@@ -184,6 +184,8 @@ class Dysolve:
                 perturbations.append((oper, -omega, coeff, factor * 0.5j))
             elif form == "exp":
                 perturbations.append((oper, omega, coeff, factor))
+            else:
+                raise ValueError(...)
 
         if perturbations:
             self.perturbations = list(zip(*perturbations))

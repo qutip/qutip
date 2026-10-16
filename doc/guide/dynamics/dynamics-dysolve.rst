@@ -55,7 +55,7 @@ the propagator over a small time step :math:`\delta t` can be expanded as a Dyso
 
 The expansion terms :math:`U^{(n)}` are computed analytically.
 A key advantage of this method is that for a constant envelope :math:`\mathcal{E}_j`,
-the heavy lifting of the expansion—specifically the multidimensional integrals—depends only on
+the heavy lifting of the expansion — specifically the multidimensional integrals — depends only on
 :math:`\delta t` and the frequencies, not on the absolute time :math:`t`.
 
 Why use Dysolve?
