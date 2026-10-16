@@ -15,11 +15,9 @@ Within this document, the git remote ``upstream`` refers to the main QuTiP organ
 In short, the steps you need to take are:
 
 1. Prepare the release branch (see git_).
-2. Run the "Build wheels, optionally deploy to PyPI" GitHub action to build binary and source packages and upload them to PyPI (see deploy_).
-3. Create a GitHub release and uploaded the built files to it (see github_).
-4. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
-5. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
-
+2. Create a GitHub release, it will build binary and source packages and upload them (see deploy_).
+3. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
+4. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
 
 
 .. _git:
@@ -182,12 +180,34 @@ Build Release Distribution and Deploy
 +++++++++++++++++++++++++++++++++++++
 
 This step builds the source (sdist) and binary (wheel) distributions, and uploads them to PyPI (pip).
-You will also be able to download the built files yourself in order to upload them to the QuTiP website.
+It is automatically triggered when publishing a release under github release.
 
-Build and Deploy
-----------------
+.. _github:
 
-This is handled entirely by a GitHub Action.
+Making a Release on GitHub
+--------------------------
+
+This is all done through `the "Releases" section <https://github.com/qutip/qutip/releases>`_ of the ``qutip/qutip`` repository on GitHub.
+
+- Click the "Draft a new release" button.
+- Choose the correct branch for your release (e.g. ``qutip-4.5.X``) in the drop-down.
+- For the tag name, use ``v<your-version>``, where the version matches the contents of the ``VERSION`` file.
+  In other words, if you are releasing a micro version 4.5.3, use ``v4.5.3`` as the tag, or if you are releasing major version 5.0.0, use ``v5.0.0``.
+- The title is "QuTiP <your-version>", e.g. "QuTiP 4.6.0".
+- For the description, write a short (~two-line for a patch release) summary of the reason for this release, and note down any particular user-facing changes that need special attention.
+  Underneath, put the changelog you wrote when you did the documentation release.
+  Note that there may be some syntax differences between the ``.rst`` file of the changelog and the Markdown of this description field (for example, GitHub's markdown typically maintains hard-wrap linebreaks, which is probably not what you wanted).
+
+Click on the "Publish release" button to finalise.
+
+Upon publishing the release, the ``build`` action will be triggered to build the wheels, publish them to pypi and attach them to the github release.
+It should take between 30 minutes and an hour, after which the new version will be available for install by ``pip install qutip``.
+You should see the new version appear on `QuTiP's PyPI page <https://pypi.org/project/qutip>`_.
+
+Manual Build
+------------
+
+When the previous step failed or when testing the wheel build, it is possible to run the build manually.
 Go to the `"Actions" tab at the top of the QuTiP code repository <https://github.com/qutip/qutip/actions>`_.
 Click on the "Build wheels, optionally deploy to PyPI" action in the left-hand sidebar.
 Click the "Run workflow" dropdown in the header notification; it should look like the image below.
@@ -199,6 +219,7 @@ Click the "Run workflow" dropdown in the header notification; it should look lik
   This must *never* be ``master``.
 - To make the release to PyPI, type the branch name (e.g. ``qutip-4.5.X``) into the "Confirm chosen branch name [...]" field.
   You *may* leave this field blank to skip the deployment and only build the package.
+- To have the action upload the artifact to a github release, use the tag instead of the branch: ``v5.4.0`` and write it in the confirmation field.
 - (Special circumstances) If for some reason you need to override the version number (for example if the previous deployment to PyPI only partially succeeded), you can type a valid Python version identifier into the "Override version number" field.
   You probably do not need to do this.
   The mechanism is designed to make alpha-testing major upgrades with nightly releases easier.
@@ -206,21 +227,6 @@ Click the "Run workflow" dropdown in the header notification; it should look lik
 - Click the lower "Run workflow" to perform the build and deployment.
 
 At this point, the deployment will take care of itself.
-It should take between 30 minutes and an hour, after which the new version will be available for install by ``pip install qutip``.
-You should see the new version appear on `QuTiP's PyPI page <https://pypi.org/project/qutip>`_.
-
-Download Built Files
---------------------
-
-When the build is complete, click into its summary screen.
-This is the main screen used to both monitor the build and see its output, and should look like the below image on a success.
-
-.. image:: ../figures/release_guide_after_workflow.png
-
-The built binary wheels and the source distribution are the "build artifacts" at the bottom.
-You need to download both the wheels and the source distribution.
-Save them on your computer, and unzip both files; you should have many wheel ``qutip-*.whl`` files, and two sdist files: ``qutip-*.tar.gz`` and ``qutip-*.zip``.
-These are the same files that have just been uploaded to PyPI.
 
 
 Monitoring Progress (optional)
@@ -234,27 +240,6 @@ If it fails, you have forgotten to choose the correct branch in the drop-down me
 You can check that the deployment instruction has been understood by clicking the "Verify PyPI deployment confirmation" job, and opening the "Compare confirmation to current reference" subjob.
 You will see a message saying "Built wheels will be deployed" if you typed in the confirmation, or "Only building wheels" if you did not.
 If you see "Only building wheels" but you meant to deploy the release to PyPI, you can cancel the workflow and re-run it after typing the confirmation.
-
-
-.. _github:
-
-Making a Release on GitHub
-++++++++++++++++++++++++++
-
-This is all done through `the "Releases" section <https://github.com/qutip/qutip/releases>`_ of the ``qutip/qutip`` repository on GitHub.
-
-- Click the "Draft a new release" button.
-- Choose the correct branch for your release (e.g. ``qutip-4.5.X``) in the drop-down.
-- For the tag name, use ``v<your-version>``, where the version matches the contents of the ``VERSION`` file.
-  In other words, if you are releasing a micro version 4.5.3, use ``v4.5.3`` as the tag, or if you are releasing major version 5.0.0, use ``v5.0.0``.
-- The title is "QuTiP <your-version>", e.g. "QuTiP 4.6.0".
-- For the description, write a short (~two-line for a patch release) summary of the reason for this release, and note down any particular user-facing changes that need special attention.
-  Underneath, put the changelog you wrote when you did the documentation release.
-  Note that there may be some syntax differences between the ``.rst`` file of the changelog and the Markdown of this description field (for example, GitHub's markdown typically maintains hard-wrap linebreaks, which is probably not what you wanted).
-- Drag-and-drop all the ``qutip-*.whl``, ``qutip-*.tar.gz`` and ``qutip-*.zip`` files you got after the build step into the assets box.
-  You may need to unzip the files ``wheels.zip`` and ``sdist.zip`` to find them if you haven't already; **don't** upload those two zip files.
-
-Click on the "Publish release" button to finalise.
 
 
 .. _web:
