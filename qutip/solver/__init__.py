@@ -16,6 +16,7 @@ from .floquet_bwcomp import *
 from .steadystate import *
 from .countstat import *
 from .brmesolve import *
+from .ulmesolve import *
 from .krylovsolve import *
 from .parallel import *
 import qutip.solver.sode as sode
