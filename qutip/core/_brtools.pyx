@@ -1,4 +1,3 @@
-#cython: language_level=3
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 
@@ -32,23 +31,27 @@ cdef class SpectraCoefficient(Coefficient):
         self.coeff_w = coeff_w
         self.w = w
 
-    cdef complex _call(self, double t) except *:
+    cdef double complex _call_w(self, double t, double w) except *:
+        """Evaluate at time ``t`` and frequency ``w`` without boxing."""
         if self.coeff_t is None:
-            return self.coeff_w(self.w)
-        return self.coeff_t(t) * self.coeff_w(self.w)
+            return self.coeff_w._call(w)
+        return self.coeff_t._call(t) * self.coeff_w._call(w)
+
+    cdef double complex _call(self, double t) except *:
+        return self._call_w(t, self.w)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`.Coefficient`."""
-        return SpectraCoefficient(self.coeff_t, self.coeff_w, self.w)
+        return SpectraCoefficient(self.coeff_w, self.coeff_t, self.w)
 
     def replace_arguments(self, _args=None, *, w=None, **kwargs):
         if _args:
             kwargs.update(_args)
         if kwargs:
             return SpectraCoefficient(
-                self.coeff_w.replace(**kwargs),
-                self.coeff_t.replace(**kwargs) if self.coeff_t else None,
-                kwargs.get('w', w or self.w)
+                self.coeff_w.replace_arguments(**kwargs),
+                self.coeff_t.replace_arguments(**kwargs) if self.coeff_t is not None else None,
+                kwargs.get('w', w if w is not None else self.w)
               )
         if w is not None:
             return SpectraCoefficient(self.coeff_w, self.coeff_t, w)
@@ -69,7 +72,7 @@ cdef Data _apply_trans(Data original, int trans):
     return out
 
 
-cdef char _fetch_trans_code(int trans):
+cdef char _fetch_trans_code(int trans) except 0:
     """helper function for matmul_var_Dense, fetch the blas flag byte"""
     if trans == 0:
         return b'N'
@@ -77,6 +80,7 @@ cdef char _fetch_trans_code(int trans):
         return b'T'
     elif trans == 3:
         return b'C'
+    raise ValueError(f"No BLAS transpose code for trans={trans}")
 
 
 cpdef Data matmul_var_data(Data left, Data right,

@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 cdef extern from "src/intdtype.h":
     # cython is smart enough to understand this int can be 32 or 64 bits.
     ctypedef int idxint
