@@ -12,7 +12,7 @@ from time import time
 from collections.abc import Sequence
 from .multitrajresult import MultiTrajResult
 from .sode.ssystem import StochasticOpenSystem, StochasticClosedSystem
-from .sode._noise import PreSetWiener
+from .sode._noise import Wiener, PreSetWiener
 from .result import Result, ExpectOp
 from .multitraj import _MultiTrajRHS, MultiTrajSolver
 from .. import Qobj, QobjEvo
@@ -242,6 +242,7 @@ class _StochasticRHS(_MultiTrajRHS):
     the rouchon integrator need the part but does not use the usual drift and
     diffusion computation.
     """
+    system = None
 
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
@@ -282,12 +283,15 @@ class _StochasticRHS(_MultiTrajRHS):
             self._dims = self.H._dims
 
     def __call__(self, options):
-        if self.issuper:
-            return StochasticOpenSystem(
-                self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
-            )
-        else:
-            return StochasticClosedSystem(self.H, self.sc_ops)
+        if self.system is None:
+            if self.issuper:
+                self.system = StochasticOpenSystem(
+                    self.H, self.sc_ops, self.c_ops, options.get("derr_dt", 1e-6)
+                )
+            else:
+                self.system = StochasticClosedSystem(self.H, self.sc_ops)
+
+        return self.system
 
     def arguments(self, args):
         self.H.arguments(args)
@@ -297,7 +301,7 @@ class _StochasticRHS(_MultiTrajRHS):
             sc_op.arguments(args)
 
     def _register_feedback(self, val):
-        self.H._register_feedback({"wiener_process": val}, "stochastic solver")
+        self.H._register_feedback({"WienerFeedback": val}, "stochastic solver")
         for c_op in self.c_ops:
             c_op._register_feedback(
                 {"WienerFeedback": val}, "stochastic solver"
@@ -306,6 +310,8 @@ class _StochasticRHS(_MultiTrajRHS):
             sc_op._register_feedback(
                 {"WienerFeedback": val}, "stochastic solver"
             )
+        if hasattr(self.system, "_register_feedback"):
+            self.system._register_feedback(val)
 
 
 def smesolve(
@@ -413,6 +419,7 @@ def smesolve(
         - | method : str
           | Which stochastic differential equation integration method to use.
             Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+            Use ``SMESolver.avail_integrators()`` to list all methods.
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
@@ -549,7 +556,8 @@ def ssesolve(
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | method : str
           | Which stochastic differential equation integration method to use.
-            Main ones are {"euler", "rouchon", "platen", "taylor1.5_imp"}
+            Main ones are {"euler", "rouchon", "platen", "explicit1.5"}
+            Use ``SSESolver.avail_integrators()`` to list all methods.
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
@@ -648,6 +656,10 @@ class StochasticSolver(MultiTrajSolver):
             raise ValueError("c_ops are not supported by ssesolve.")
 
         rhs = _StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
+        # H must be an operator (enforced by _StochasticRHS). SME density
+        # matrices stay Hermitian under that construction; SSE uses kets so
+        # isherm stays false regardless of this flag.
+        self._rhs_preserves_hermiticity = True
         super().__init__(rhs, options=options)
 
         if heterodyne:
@@ -741,6 +753,34 @@ class StochasticSolver(MultiTrajSolver):
         for t, state, noise in self._integrator.run(tlist):
             result.add(t, self._restore_state(state, copy=False), noise)
         return seed, result
+
+    def _initialize_run_one_traj(
+        self,
+        seed,
+        state,
+        tlist,
+        e_ops,
+        **integrator_kwargs
+    ):
+        result = self._trajectory_resultclass(e_ops, self.options)
+        if "generator" in integrator_kwargs:
+            generator = integrator_kwargs.pop("generator")
+        else:
+            generator = self._get_generator(seed)
+
+        if isinstance(generator, (Wiener, PreSetWiener)):
+            wiener = generator
+        else:
+            num_collapse = len(self.rhs.sc_ops)
+            wiener = Wiener(
+                tlist[0], self.options["dt"], generator, num_collapse
+            )
+
+        # Reset integrator per trajectory to apply the feedback
+        self.rhs._register_feedback(wiener)
+        self._integrator.set_state(tlist[0], state, wiener)
+        result.add(tlist[0], self._restore_state(state, copy=False))
+        return result
 
     def run_from_experiment(
         self,
@@ -845,6 +885,40 @@ class StochasticSolver(MultiTrajSolver):
         result.stats.update(stats)
         return result
 
+    def start(self, state0: Qobj, t0: float, seed: int | SeedSequence = None):
+        """
+        Set the initial state and time for a step evolution.
+
+        Parameters
+        ----------
+        state : :obj:`.Qobj`
+            Initial state of the evolution.
+
+        t0 : double
+            Initial time of the evolution.
+
+        seed : int, SeedSequence, list, optional
+            Seed for the random number generator. It can be a single seed used
+            to spawn seeds for each trajectory or a list of seed, one for each
+            trajectory.
+
+        Notes
+        -----
+        When using step evolution, only one trajectory can be computed at once.
+        """
+        if isinstance(seed, Wiener):
+            wiener = generator
+        else:
+            seeds = self._read_seed(seed, 1)
+            generator = self._get_generator(seeds[0])
+            num_collapse = len(self.rhs.sc_ops)
+            wiener = Wiener(
+                t0, self.options["dt"], generator, num_collapse
+            )
+
+        self.rhs._register_feedback(wiener)
+        self._integrator.set_state(t0, self._prepare_state(state0), wiener)
+
     @overload
     def step(
         self, t: float,
@@ -942,6 +1016,8 @@ class StochasticSolver(MultiTrajSolver):
 
         method: str, default: "platen"
             Which differential equation integration method to use.
+            Common methods are "euler", "platen", "rouchon".
+            To see all supported method, use: ``SMESolver.avail_integrators()``
 
         map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
             How to run the trajectories. "parallel" uses the multiprocessing
@@ -1034,6 +1110,40 @@ class StochasticSolver(MultiTrajSolver):
         if raw_data:
             return _DataFeedback(default, open=cls._open)
         return _QobjFeedback(default, open=cls._open)
+
+    def _get_integrator(self):
+        """ Return the initialted integrator. """
+        _time_start = time()
+        method = self._options["method"]
+        if method in self.avail_integrators():
+            integrator = self.avail_integrators()[method]
+        elif issubclass(method, Integrator):
+            integrator = method
+        else:
+            raise ValueError("Integrator method not supported.")
+
+        if integrator.rhs_format == "system":
+            integrator_instance = integrator(
+                self.rhs, self.options
+            )
+        elif integrator.rhs_format == "SDETaylorSystem":
+            if not self._open:
+                raise TypeError(
+                    f"The integration method {method} "
+                    "only support systems with derivatives."
+                )
+            integrator_instance = integrator(
+                self.rhs(self.options), self.options
+            )
+        elif integrator.rhs_format == "SDESystem":
+            integrator_instance = integrator(
+                self.rhs(self.options), self.options
+            )
+        else:
+            raise ValueError("Integrator entry point not supported.")
+
+        self._init_integrator_time = time() - _time_start
+        return integrator_instance
 
 
 class SMESolver(StochasticSolver):

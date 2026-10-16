@@ -12,7 +12,7 @@ import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 import scipy.special
-from scipy.special import genlaguerre, binom, factorial
+from scipy.special import genlaguerre, binom, factorial, gammaln, xlogy
 
 try:
     from scipy.special import sph_harm_y
@@ -179,7 +179,7 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
     Parameters
     ----------
 
-    state : qobj
+    psi : qobj
         A state vector or density matrix.
 
     xvec : array_like
@@ -227,7 +227,7 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
 
     W : array (2D)
         Values representing the Wigner function calculated over the specified
-        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to 
+        range [xvec,yvec]. The array is indexed such that W[j, k] corresponds to
         y-coordinate yvec[j] and x-coordinate xvec[k].
 
     yvex : array
@@ -348,7 +348,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel, offset=0):
     # compute wigner functions for density matrices |m><n| and
     # weight by all the elements in the density matrix
     B = 4 * abs(A) ** 2
-    if sp.isspmatrix_csr(rho.data):
+    if sp.issparse(rho.data):
         # for compress sparse row matrices
         if parallel:
             iterator = (
@@ -666,17 +666,6 @@ class _QFuncCoherentGrid:
         self.grid.imag = -y
         self.prefactor = np.exp(-0.5 * (x * x + y * y)).astype(np.complex128)
 
-    def _start(self, first: int):
-        """
-        Get the coherent state matrix corresponding to the first needed Fock
-        state.
-        """
-        if first == 0:
-            return self.prefactor.copy()
-        out = np.power(self.grid, first)
-        out *= self.prefactor
-        return out
-
     def __call__(self, first: int, last: int = None):
         """
         Get a 3D array of shape ``(yvec.size, xvec.size, last - first)`` of the
@@ -686,18 +675,22 @@ class _QFuncCoherentGrid:
         ``numpy.meshgrid``), and the last runs over the selected range of
         Fock-space dimensions.
         """
-        ns = np.arange(first, last).reshape(1, 1, -1)
-        # Technically we could avoid hitting the limits of floating-point
-        # exponents for longer by doing all this in logarithmic space (using
-        # scipy.special.gammaln), but that ends up involving more
-        # floating-point operations overall, and needs special care around the
-        # point alpha = 0 to avoid nan appearing, due to how Python handles
-        # mixed-width arithmetic operations.
+        ns = np.arange(first, last)
         out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
-        out[:, :, 0] = self._start(ns.flat[0])
-        for i in range(ns.size - 1):
-            out[:, :, i+1] = out[:, :, i] * self.grid
-        out /= np.sqrt(scipy.special.factorial(ns))
+
+        lngrid = scipy.special.xlogy(1, self.grid)
+        zeros_loc = self.grid == 0
+        lngrid[zeros_loc] = 0
+        prefact = -0.5 * np.abs(self.grid)**2
+        for i, n in enumerate(ns):
+            part = (
+                lngrid * n
+                -0.5 * scipy.special.gammaln(n + 1)
+                + prefact
+            )
+            part[zeros_loc] = 0 if n == 0 else -np.inf
+            out[:, :, i] = np.exp(part)
+
         return out
 
 
@@ -750,7 +743,11 @@ class QFunc:
     """
 
     def __init__(
-        self, xvec, yvec, g: float = np.sqrt(2), memory: float = 1024
+        self,
+        xvec,
+        yvec,
+        g: float = np.sqrt(2),
+        memory: float = 1024,
     ):
         self._g = g
         self._coherent_grid = _QFuncCoherentGrid(xvec, yvec, g)
@@ -813,20 +810,29 @@ class QFunc:
 
 
 def _qfunc_iterative_single(
-    vector: np.ndarray, alpha_grid: _QFuncCoherentGrid, g: float,
+    vector: np.ndarray,
+    alpha_grid: _QFuncCoherentGrid,
+    g: float,
 ):
     r"""
     Get the Q function (without the :math:`\pi` scaling factor) of a single
     state vector, using the iterative algorithm which recomputes the powers of
     the coherent-state matrix.
     """
-    ns = np.arange(vector.shape[0])
-    out = np.polyval(
-        (0.5*g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
-        alpha_grid.grid,
-    )
-    out *= alpha_grid.prefactor
-    return np.abs(out)**2
+    out = 0
+    ns = np.nonzero(vector)[0]
+    # Using xlogy(n, alpha_grid.grid) would avoid special case at `0`
+    # But the log in the loop is quite slow
+    lngrid = scipy.special.xlogy(1, alpha_grid.grid)
+    zeros_loc = alpha_grid.grid == 0
+    lngrid[zeros_loc] = 0
+    prefact = -0.5 * np.abs(alpha_grid.grid)**2
+    for n in ns:
+        part = lngrid * n - 0.5 * scipy.special.gammaln(n + 1) + prefact
+        part[zeros_loc] = 0 if n == 0 else -np.inf
+        out += np.exp(part) * vector[n]
+
+    return np.abs(out * 0.5 * g)**2
 
 
 def qfunc(
@@ -894,14 +900,18 @@ def qfunc(
         )
     alpha_grid = _QFuncCoherentGrid(xvec, yvec, g)
     if state.isket:
-        out = _qfunc_iterative_single(state.full().ravel(), alpha_grid, g)
+        out = _qfunc_iterative_single(
+            state.full().ravel(), alpha_grid, g
+        )
         out /= np.pi
         return out
     # We don't use Qobj.eigenstates() to avoid building many unnecessary CSR
     # versions of dense matrices.
     values, vectors = eigh(state.full())
     vectors = vectors.T
-    out = values[0] * _qfunc_iterative_single(vectors[0], alpha_grid, g)
+    out = values[0] * _qfunc_iterative_single(
+        vectors[0], alpha_grid, g
+    )
     for value, vector in zip(values[1:], vectors[1:]):
         out += value * _qfunc_iterative_single(vector, alpha_grid, g)
     out /= np.pi
@@ -911,6 +921,11 @@ def qfunc(
 # -----------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
+def _log_binomial(n, k):
+    """``log(binom(n, k))``, which stays finite where ``binom`` overflows."""
+    return gammaln(n + 1) - gammaln(k + 1) - gammaln(n - k + 1)
+
+
 def spin_q_function(rho, theta, phi):
     r"""The Husimi Q function for spins is defined as ``Q(theta, phi) =
     SCS.dag() * rho * SCS`` for the spin coherent state ``SCS = spin_coherent(
@@ -926,7 +941,7 @@ def spin_q_function(rho, theta, phi):
 
     Parameters
     ----------
-    state : qobj
+    rho : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
         Polar (colatitude) angle at which to calculate the Husimi-Q function.
@@ -958,15 +973,28 @@ def spin_q_function(rho, theta, phi):
     Q = np.zeros_like(THETA, dtype=complex)
     data = rho.full()
 
+    # The binomial coefficients and the trigonometric powers are individually
+    # outside the float range long before their product is -- `binom(2j, j)`
+    # overflows to `inf` around j = 550 while the powers underflow to zero --
+    # so each term is accumulated in log space and exponentiated once.
+    # `xlogy` keeps a zero exponent at zero rather than `0 * -inf`, which is
+    # what makes theta = 0 and theta = pi work.
+    cos_half = cos(THETA / 2)
+    sin_half = sin(THETA / 2)
+
+    def _log_coefficient(exp_cos, exp_sin):
+        """log of ``cos(theta/2)**exp_cos * sin(theta/2)**exp_sin``."""
+        return xlogy(exp_cos, cos_half) + xlogy(exp_sin, sin_half)
+
     for m1 in arange(-j, j + 1):
-        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * \
-             sin(THETA / 2) ** (2 * (j - m1)) * \
-             data[int(j - m1), int(j - m1)]
+        log_b1 = _log_binomial(2 * j, j + m1)
+        Q += exp(log_b1 + _log_coefficient(2 * (j + m1), 2 * (j - m1))) * \
+            data[int(j - m1), int(j - m1)]
 
         for m2 in arange(m1 + 1, j + 1):
-            Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
-                  cos(THETA / 2) ** (2 * j + m1 + m2) *
-                  sin(THETA / 2) ** (2 * j - m1 - m2)) * \
+            log_b2 = _log_binomial(2 * j, j + m2)
+            Q += exp(0.5 * (log_b1 + log_b2) +
+                     _log_coefficient(2 * j + m1 + m2, 2 * j - m1 - m2)) * \
              (exp(1j * (m1 - m2) * PHI) * data[int(j - m1), int(j - m2)] +
               exp(1j * (m2 - m1) * PHI) * data[int(j - m2), int(j - m1)])
 
@@ -1020,7 +1048,7 @@ def spin_wigner(rho, theta, phi):
 
     Parameters
     ----------
-    state : qobj
+    rho : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
         Polar (colatitude) angle at which to calculate the W function.

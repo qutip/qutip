@@ -28,7 +28,8 @@ try:
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap
     from mpl_toolkits.mplot3d import Axes3D
-except:
+
+except ImportError:
     # Type when matplotlib is not installed
     from typing import Any
     Figure = Any
@@ -129,8 +130,9 @@ class Distribution:
                                       show_xlabel=show_xlabel,
                                       show_ylabel=show_ylabel)
         else:
-            raise NotImplementedError("Distribution visualization in " +
-                                      "%d dimensions is not implemented." % n)
+            raise NotImplementedError(
+                f"Distribution visualization in {n} dimensions is not implemented."
+            )
 
     def _visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
                                colorbar=True, cmap=None,
@@ -307,7 +309,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        psi : Qobj
             A wavefunction from which the distribution is generated.
 
         """
@@ -337,7 +339,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        rho : Qobj
             A density matrix from which the distribution is generated.
 
         """
@@ -504,7 +506,7 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
 
         Parameters
         ----------
-        state : Qobj
+        rho : Qobj
             A density matrix from which the distribution is generated.
 
         """

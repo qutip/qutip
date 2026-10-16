@@ -50,14 +50,14 @@ def testPropHOTd():
     assert (U - U2).norm('max') < 1e-4
 
 
-def testPropHOTd():
+def testPropHOTd_open(random_generator):
     "Propagator: func array td format + open"
     a = destroy(5)
     H = a.dag()*a
     ts = np.linspace(-0.01, 1.01, 103)
     coeffs = np.cos(ts)
     Htd = [H, [H, coeffs]]
-    rho_0 = rand_dm(5)
+    rho_0 = rand_dm(5, seed=random_generator)
     rho_1_prop = propagator(Htd, 1, c_ops=[a], tlist=ts)(rho_0)
     rho_1_me = mesolve(QobjEvo(Htd, tlist=ts), rho_0, [0, 1], [a]).final_state
 

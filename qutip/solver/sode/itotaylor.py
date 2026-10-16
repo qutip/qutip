@@ -16,6 +16,8 @@ class EulerSODE(_Explicit_Simple_Integrator):
     solver which could take non-commuting ``sc_ops``.
 
     - Order: 0.5
+
+    Set ``options={"method":"euler"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -23,17 +25,21 @@ class EulerSODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Euler
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
+    rhs_format = "SDESystem"
 
 
 class Milstein_SODE(_Explicit_Simple_Integrator):
     """
     An order 1.0 strong Taylor scheme.  Better approximate numerical
     solution to stochastic differential equations.  See eq. (3.12) of
-    chapter 10.3 of Peter E. Kloeden and Exkhard Platen,
+    chapter 10.3 of Peter E. Kloeden and Eckhard Platen,
     *Numerical Solution of Stochastic Differential Equations*..
 
     - Order strong 1.0
+
+    Set ``options={"method":"milstein"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -41,16 +47,20 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Milstein
     N_dw = 1
+    _support_measurement_noise = True
     _stepper_options = ["measurement_noise"]
+    rhs_format = "SDETaylorSystem"
 
 
 class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     """
     Order 1.5 strong Taylor scheme.  Solver with more terms of the
     Ito-Taylor expansion. See eq. (4.6) of chapter 10.4 of Peter E. Kloeden and
-    Exkhard Platen, *Numerical Solution of Stochastic Differential Equations*.
+    Eckhard Platen, *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
+
+    Set ``options={"method":"taylor1.5"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
@@ -59,6 +69,7 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     }
     stepper = _sode.Taylor15
     N_dw = 2
+    rhs_format = "SDETaylorSystem"
 
     @property
     def options(self):
@@ -88,13 +99,16 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
     Taylor scheme using finite difference instead of derivatives.
     Slower than ``taylor15`` but usable when derrivatives cannot be
     analytically obtained.
-    See eq. (2.13) of chapter 11.2 of Peter E. Kloeden and Exkhard Platen,
+    See eq. (2.13) of chapter 11.2 of Peter E. Kloeden and Eckhard Platen,
     *Numerical Solution of Stochastic Differential Equations.*
 
     - Order: strong 1.5
+
+    Set ``options={"method":"explicit1.5"}`` to use.
     """
     stepper = _sode.Explicit15
     N_dw = 2
+    rhs_format = "SDESystem"
 
 
 class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
@@ -102,33 +116,39 @@ class Implicit_Milstein_SODE(_Implicit_Simple_Integrator):
     An order 1.0 implicit strong Taylor scheme.  Implicit Milstein
     scheme for the numerical simulation of stiff stochastic
     differential equations.  Eq. (2.11) with alpha=0.5 of
-    chapter 12.2 of Peter E. Kloeden and Exkhard Platen,
+    chapter 12.2 of Peter E. Kloeden and Eckhard Platen,
     *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.0
+
+    Set ``options={"method":"milstein_imp"}`` to use.
     """
     stepper = _sode.Milstein_imp
     N_dw = 1
+    rhs_format = "SDETaylorSystem"
 
 
 class Implicit_Taylor1_5_SODE(_Implicit_Simple_Integrator):
     """
     Order 1.5 implicit strong Taylor scheme.  Solver with more terms of the
     Ito-Taylor expansion.  Eq. (2.18) with ``alpha=0.5`` of chapter 12.2 of
-    Peter E. Kloeden and Exkhard Platen,
+    Peter E. Kloeden and Eckhard Platen,
     *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
+
+    Set ``options={"method":"taylor1.5_imp"}`` to use.
     """
     integrator_options = {
         "dt": 0.001,
         "tol": 1e-10,
         "solve_method": None,
         "solve_options": {},
-        "deff_dt": 1e-6
+        "derr_dt": 1e-6
     }
     stepper = _sode.Taylor15_imp
     N_dw = 2
+    rhs_format = "SDETaylorSystem"
 
     @property
     def options(self):

@@ -15,7 +15,7 @@ WARN_MISSING_MODULE[0] = 0
 
 all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
-    if integrator.support_time_dependant
+    if integrator.rhs_format == "callable"
 ]
 
 def fidelitycheck(out1, out2, rho0vec):
@@ -176,6 +176,28 @@ class TestMESolveDecay:
         actual_answer = 9.0 * np.exp(-self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
         np.testing.assert_allclose(actual_answer, expt, atol=me_error)
+
+    def testME_NonHermRho_matrix_form(self):
+        "mesolve: matrix_form solver evolves a non-Hermitian transition matrix"
+        # rho0 = |0><1| — explicitly non-Hermitian
+        rho0 = (qutip.basis(self.N, 0)
+                * qutip.basis(self.N, 1).dag())
+        H = self.ada
+        c_op_list = [np.sqrt(self.kappa) * self.a]
+
+        tlist = np.linspace(0, 5, 51)
+        options_super = {"progress_bar": None, "matrix_form": False}
+        options_matrix = {"progress_bar": None, "matrix_form": True}
+
+        out_super = mesolve(H, rho0, tlist, c_op_list,
+                            options=options_super)
+        out_matrix = mesolve(H, rho0, tlist, c_op_list,
+                             options=options_matrix)
+
+        for s_super, s_matrix in zip(out_super.states, out_matrix.states):
+            np.testing.assert_allclose(
+                s_matrix.full(), s_super.full(), atol=1e-7,
+            )
 
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
@@ -656,11 +678,11 @@ class TestMESolveStepFuncCoeff:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def test_py_coeff(self, method):
+    def test_py_coeff(self, method, random_generator):
         """
         Test for Python function as coefficient as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0, np.pi/2])
         options = {"method": method, "nsteps": 1e5, "rtol": 1e-7}
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
@@ -669,11 +691,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_cte_coeff(self):
+    def test_array_cte_coeff(self, random_generator):
         """
         Test for Array coefficient with uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -681,11 +703,11 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_t_coeff(self):
+    def test_array_t_coeff(self, random_generator):
         """
         Test for Array with non-uniform tlist as step function coeff
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
@@ -693,12 +715,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_coeff(self):
+    def test_array_str_coeff(self, random_generator):
         """
         Test for Array and string as step function coeff.
         qobjevo_codegen is used and uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
         npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
@@ -712,12 +734,12 @@ class TestMESolveStepFuncCoeff:
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
 
-    def test_array_str_py_coeff(self):
+    def test_array_str_py_coeff(self, random_generator):
         """
         Test for Array, string and Python function as step function coeff.
         qobjevo_codegen is used and non non-uniform tlist
         """
-        rho0 = qutip.rand_ket(2)
+        rho0 = qutip.rand_ket(2, seed=random_generator)
         tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
         npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
@@ -806,9 +828,9 @@ def test_non_normalized_dm(rho0, matrix_form):
 
 @pytest.mark.parametrize("kdim", [50, 1000])
 @pytest.mark.parametrize("alg", ['lanczos_fro'])
-def test_krylovsolve_mixed_state(kdim, alg):
-    H = qutip.rand_herm(20, density=.8)
-    rho0 = qutip.rand_dm(20)
+def test_krylovsolve_mixed_state(kdim, alg, random_generator):
+    H = qutip.rand_herm(20, density=.8, seed=random_generator)
+    rho0 = qutip.rand_dm(20, seed=random_generator)
     e_op = qutip.num(20)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
@@ -952,3 +974,115 @@ class TestMESolveMatrixForm:
         # Verify normalization (trace should be 1)
         for state in result_matrix.states:
             np.testing.assert_allclose(state.tr(), 1.0, atol=1e-10)
+
+
+def test_mesolve_isherm_reflects_output_data():
+    """
+    Output-state isherm must follow the evolved data, not the initial state.
+
+    Hermiticity-preserving evolution keeps isherm True; non-Hermiticity-
+    preserving generators must not leave a false-positive isherm flag.
+    Regression for issue #2410.
+    """
+    # Standard Lindblad dynamics: density matrix stays Hermitian.
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    res_herm = mesolve(
+        qutip.sigmaz(),
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+    # Constant Hermiticity-preserving generators retain the fast cached path.
+    assert res_herm.final_state._isherm is True
+    assert res_herm.final_state.isherm is True
+    assert qutip.data.isherm(res_herm.final_state.data)
+
+    # Custom superoperator that does not preserve Hermiticity.
+    L = (
+        qutip.liouvillian(qutip.sigmaz())
+        + 1j * qutip.lindblad_dissipator(qutip.sigmap())
+    )
+    res_nonherm = mesolve(
+        L,
+        qutip.basis(2, 1),
+        [0, 1],
+        options={"progress_bar": None},
+    )
+    # Unsafe generators leave the metadata unset until Qobj checks the data.
+    assert res_nonherm.final_state._isherm is None
+    assert not qutip.data.isherm(res_nonherm.final_state.data)
+    assert res_nonherm.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_time_dependent_rhs():
+    """A single-time ishp check cannot prove a time-dependent RHS is safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    rhs = qutip.QobjEvo(
+        [
+            qutip.liouvillian(qutip.sigmaz()),
+            [1j * qutip.lindblad_dissipator(qutip.sigmap()), lambda t: t],
+        ]
+    )
+
+    result = mesolve(
+        rhs,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is None
+    assert result.final_state.isherm is False
+
+
+def test_mesolve_does_not_cache_isherm_for_propagator():
+    """
+    Propagator evolved by mesolve must not inherit the fast path for isherm.
+    """
+    propagator = mesolve(
+            qutip.num(2),
+            qutip.qeye([[2], [2]]),
+            [0, 1],
+            c_ops=[qutip.destroy(2)],
+            options={"progress_bar": None},
+        ).final_state
+
+    assert propagator._isherm is None
+    assert not qutip.data.isherm(propagator.data)
+    assert propagator.isherm is False
+
+
+def test_mesolve_caches_isherm_for_time_dependent_standard_rhs():
+    """Hamiltonian and collapse-operator construction is known to be safe."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    hamiltonian = qutip.QobjEvo(
+        [qutip.sigmaz(), [qutip.sigmax(), lambda t: t]]
+    )
+
+    result = mesolve(
+        hamiltonian,
+        rho0,
+        [0, 1],
+        c_ops=[qutip.sigmam()],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
+
+
+def test_mesolve_caches_isherm_for_ishp_superoperator():
+    """Constant Hermiticity-preserving superoperators may use the fast path."""
+    rho0 = qutip.ket2dm(qutip.basis(2, 1))
+    L = qutip.liouvillian(qutip.sigmaz(), c_ops=[qutip.sigmam()])
+    assert L.issuper and L.ishp
+
+    result = mesolve(
+        L,
+        rho0,
+        [0, 1],
+        options={"progress_bar": None},
+    )
+
+    assert result.final_state._isherm is True
+    assert result.final_state.isherm is True

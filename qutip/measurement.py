@@ -92,7 +92,7 @@ def _measurement_statistics_povm_dm(density_mat, ops, tol=None):
 
     Parameters
     ----------
-    state : :class:`.Qobj` (density matrix)
+    density_mat : :class:`.Qobj` (density matrix)
         The density matrix specifying the state to measure.
 
     ops : iterable of :class:`.Qobj`

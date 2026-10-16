@@ -1,1 +1,0 @@
-Added **kwargs to arguments of: add_state, add_vector, add_points to pass to underlying matplotlib function

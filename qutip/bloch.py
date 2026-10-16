@@ -1,11 +1,10 @@
 __all__ = ['Bloch']
 
-import os
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
 from numpy import cos, ones, outer, sin
-from packaging.version import parse as parse_version
 
 from . import Qobj, expect, sigmax, sigmay, sigmaz
 
@@ -14,16 +13,6 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import Axes3D, proj3d
-
-    # Define a custom _axes3D function based on the matplotlib version.
-    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
-    if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-        def _axes3D(fig, *args, **kwargs):
-            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
-            return fig.add_axes(ax)
-    else:
-        def _axes3D(*args, **kwargs):
-            return Axes3D(*args, **kwargs)
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -44,6 +33,7 @@ try:
             xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             return np.min(zs)
+
 except ImportError:
     pass
 
@@ -225,40 +215,48 @@ class Bloch:
             - "polarization stokes"
               see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
-        ketex = "$\\left.|%s\\right\\rangle$"
-        # \left.| is on purpose, so that every ket has the same size
+        ket = lambda state: rf"$\left.|{state}\right\rangle$"
 
-        if convention == "original":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "xyz":
-            self.xlabel = ['$x$', '']
-            self.ylabel = ['$y$', '']
-            self.zlabel = ['$z$', '']
-        elif convention == "sx sy sz":
-            self.xlabel = ['$s_x$', '']
-            self.ylabel = ['$s_y$', '']
-            self.zlabel = ['$s_z$', '']
-        elif convention == "01":
-            self.xlabel = ['', '']
-            self.ylabel = ['', '']
-            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        elif convention == "polarization jones":
-            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
-                           ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
-            self.ylabel = [ketex % "\\circlearrowleft", ketex %
-                           "\\circlearrowright"]
-            self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
-        elif convention == "polarization jones letters":
-            self.xlabel = [ketex % "D", ketex % "A"]
-            self.ylabel = [ketex % "L", ketex % "R"]
-            self.zlabel = [ketex % "H", ketex % "V"]
-        elif convention == "polarization stokes":
-            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$",
-                           "$\\nwarrow\\hspace{-1.46}\\searrow$"]
-            self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
-            self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
+        bloch_conventions = {
+            "original": (
+                ['$x$', ''],
+                ['$y$', ''],
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "xyz": (
+                ['$x$', ''],
+                ['$y$', ''],
+                ['$z$', '']
+            ),
+            "sx sy sz": (
+                ['$s_x$', ''],
+                ['$s_y$', ''],
+                ['$s_z$', '']
+            ),
+            "01": (
+                ['', ''],
+                ['', ''],
+                [r'$\left|0\right\rangle$', r'$\left|1\right\rangle$']
+            ),
+            "polarization stokes": (
+                ["$\\leftrightarrow$", "$\\updownarrow$"],
+                ["$\\nearrow\\hspace{-1.46}\\swarrow$", "$\\nwarrow\\hspace{-1.46}\\searrow$"],
+                ["$\\circlearrowleft$", "$\\circlearrowright$"],
+            ),
+            "polarization jones": (
+                [ket(r"\nearrow\hspace{-1.46}\swarrow"), ket(r"\nwarrow\hspace{-1.46}\searrow")],
+                [ket(r"\circlearrowleft"), ket(r"\circlearrowright")],
+                [ket(r"\leftrightarrow"), ket(r"\updownarrow")]
+            ),
+            "polarization jones letters": (
+                [ket("D"), ket("A")],
+                [ket("L"), ket("R")],
+                [ket("H"), ket("V")]
+            )
+        }
+
+        if convention in bloch_conventions:
+            self.xlabel, self.ylabel, self.zlabel = bloch_conventions[convention]
         else:
             raise Exception("No such convention.")
 
@@ -739,7 +737,11 @@ class Bloch:
                 plt.close(self.fig)
 
         if self.axes is None:
-            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            self.axes = self.fig.add_axes(Axes3D(
+                self.fig,
+                azim=self.view[0],
+                elev=self.view[1],
+            ))
 
         # Clearing the axes is horrifically slow and loses a lot of the
         # axes state, but matplotlib doesn't seem to provide a better way
@@ -755,10 +757,8 @@ class Bloch:
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
-        # Manually set aspect ratio to fit a square bounding box.
-        # Matplotlib did this stretching for < 3.3.0, but not above.
-        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
-            self.axes.set_box_aspect((1, 1, 1))
+
+        self.axes.set_box_aspect((1, 1, 1))
 
         self.plot_arcs("rear")
         self.plot_back()
@@ -1020,19 +1020,12 @@ class Bloch:
 
         """
         self.render()
-        # Conditional variable for first argument to savefig
-        # that is set in subsequent if-elses
-        complete_path = ""
-        if dirc:
-            if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
-                os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
+            base = Path.cwd()
             if dirc:
-                complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-                                + str(self.savenum) + '.' + format
-            else:
-                complete_path = os.getcwd() + '/bloch_' + \
-                                str(self.savenum) + '.' + format
+                base = base / str(dirc)
+                base.mkdir(parents=True, exist_ok=True)
+            complete_path = base / f'bloch_{self.savenum}.{format}'
         else:
             complete_path = name
 

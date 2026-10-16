@@ -3,7 +3,6 @@
 #cython: wraparound=False
 #cython: initializedcheck=False
 #cython: cdvision=True
-#cython: c_api_binop_methods=True
 
 from .. import data as _data
 from qutip.core.cy.coefficient import coefficient_function_parameters
@@ -220,7 +219,7 @@ cdef class _BaseElement:
         cdef double complex total_scale = scale * conj(coeff_val)
         cdef Data data_t
         cdef Data data_adj
-        
+
         data_t = self.data(t)
         if out is None:
             return _data.matmul_dag[type(state), type(data_t), type(state)](
@@ -349,18 +348,17 @@ cdef class _ConstantElement(_BaseElement):
         self._qobj = qobj
         self._data = self._qobj.data
 
-    def __mul__(left, right):
-        if type(left) is _ConstantElement:
-            return _ConstantElement((<_ConstantElement> left)._qobj * right)
-        elif type(right) is _ConstantElement:
-            return _ConstantElement((<_ConstantElement> right)._qobj * left)
-        return NotImplemented
+    def __mul__(_ConstantElement self, other):
+        return _ConstantElement((<_ConstantElement> self)._qobj * other)
 
-    def __matmul__(left, right):
-        if type(left) is _ConstantElement and type(right) is _ConstantElement:
+    def __rmul__(_ConstantElement self, other):
+        return _ConstantElement((<_ConstantElement> self)._qobj * other)
+
+    def __matmul__(_ConstantElement self, other):
+        if type(other) is _ConstantElement:
             return _ConstantElement(
-                (<_ConstantElement> left)._qobj @
-                (<_ConstantElement> right)._qobj
+                (<_ConstantElement> self)._qobj @
+                (<_ConstantElement> other)._qobj
             )
         return NotImplemented
 
@@ -400,27 +398,27 @@ cdef class _EvoElement(_BaseElement):
         self._data = self._qobj.data
         self._coefficient = coefficient
 
-    def __mul__(left, right):
-        cdef _EvoElement base
-        cdef object factor
-        if type(left) is _EvoElement:
-            base = left
-            factor = right
-        if type(right) is _EvoElement:
-            base = right
-            factor = left
-        return _EvoElement(base._qobj * factor, base._coefficient)
+    def __mul__(_EvoElement self, factor):
+        return _EvoElement(self._qobj * factor, self._coefficient)
 
-    def __matmul__(left, right):
-        if isinstance(left, _EvoElement) and isinstance(right, _EvoElement):
-            coefficient = left._coefficient * right._coefficient
-        elif isinstance(left, _EvoElement) and isinstance(right, _ConstantElement):
-            coefficient = left._coefficient
-        elif isinstance(right, _EvoElement) and isinstance(left, _ConstantElement):
-            coefficient = right._coefficient
+    def __rmul__(_EvoElement self, factor):
+        return _EvoElement(self._qobj * factor, self._coefficient)
+
+    def __matmul__(_EvoElement self, other):
+        if isinstance(other, _EvoElement):
+            coefficient = self._coefficient * other._coefficient
+        elif isinstance(other, _ConstantElement):
+            coefficient = self._coefficient
         else:
             return NotImplemented
-        return _EvoElement(left._qobj * right._qobj, coefficient)
+        return _EvoElement(self._qobj * other._qobj, coefficient)
+
+    def __rmatmul__(_EvoElement self, other):
+        if isinstance(other, _ConstantElement):
+            coefficient = self._coefficient
+        else:
+            return NotImplemented
+        return _EvoElement(other._qobj * self._qobj, coefficient)
 
     cpdef Data data(self, t):
         return self._data
@@ -517,16 +515,17 @@ cdef class _FuncElement(_BaseElement):
         self._f_parameters = _f_parameters
         self._previous = (Nan, None)
 
-    def __mul__(left, right):
-        cdef _MapElement out
-        if type(left) is _FuncElement:
-            out = _MapElement(left, [], right)
-        if type(right) is _FuncElement:
-            out = _MapElement(right, [], left)
-        return out
+    def __mul__(_FuncElement self, other):
+        return _MapElement(self, [], other)
 
-    def __matmul__(left, right):
-        return _ProdElement(left, right, [])
+    def __rmul__(_FuncElement self, other):
+        return _MapElement(self, [], other)
+
+    def __matmul__(_FuncElement self, other):
+        return _ProdElement(self, other, [])
+
+    def __rmatmul__(_FuncElement self, other):
+        return _ProdElement(other, self, [])
 
     cpdef Data data(self, t):
         return self.qobj(t).data
@@ -589,23 +588,25 @@ cdef class _MapElement(_BaseElement):
         self._transform = transform
         self._coeff = coeff
 
-    def __mul__(left, right):
-        cdef _MapElement out, self
-        cdef double complex factor
-        if type(left) is _MapElement:
-            self = left
-            factor = right
-        elif type(right) is _MapElement:
-            self = right
-            factor = left
+    def __mul__(_MapElement self, other):
         return _MapElement(
             self._base,
             self._transform.copy(),
-            self._coeff*factor
+            self._coeff * other,
         )
 
-    def __matmul__(left, right):
-        return _ProdElement(left, right, [])
+    def __rmul__(_MapElement self, other):
+        return _MapElement(
+            self._base,
+            self._transform.copy(),
+            self._coeff * other,
+        )
+
+    def __matmul__(self, other):
+        return _ProdElement(self, other, [])
+
+    def __rmatmul__(self, other):
+        return _ProdElement(other, self, [])
 
     cpdef Data data(self, t):
         return self.qobj(t).data
@@ -650,20 +651,19 @@ cdef class _ProdElement(_BaseElement):
         self._conj = conj
         self._transform = transform
 
-    def __mul__(left, right):
-        cdef _ProdElement self
-        cdef double complex factor
-        if type(left) is _ProdElement:
-            self = left
-            factor = right
-        if type(right) is _ProdElement:
-            self = right
-            factor = left
+    def __mul__(_ProdElement self, factor):
         return _ProdElement(self._left, self._right * factor,
                             self._transform.copy(), self._conj)
 
-    def __matmul__(left, right):
-        return _ProdElement(left, right, [])
+    def __rmul__(_ProdElement self, factor):
+        return _ProdElement(self._left, self._right * factor,
+                            self._transform.copy(), self._conj)
+
+    def __matmul__(_ProdElement self, other):
+        return _ProdElement(self, other, [])
+
+    def __rmatmul__(_ProdElement self, other):
+        return _ProdElement(other, self, [])
 
     cpdef Data data(self, t):
         return self.qobj(t).data

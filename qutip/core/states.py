@@ -15,7 +15,6 @@ import warnings
 from collections.abc import Iterator
 from typing import Literal
 import numpy as np
-import scipy.sparse as sp
 
 from . import data as _data
 from .qobj import Qobj

@@ -3,7 +3,6 @@ import scipy
 import pytest
 import qutip
 import warnings
-from packaging import version as pac_version
 from qutip.solver.steadystate import _permute_rcm, _permute_wbm
 import qutip.core.data as _data
 
@@ -41,10 +40,7 @@ def test_qubit(method, kwargs, dtype):
     sz = qutip.sigmaz().to(dtype)
     sm = qutip.destroy(2, dtype=dtype)
 
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -109,10 +105,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
 def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -153,10 +146,7 @@ def test_ho(method, kwargs):
     pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
-    if (
-        pac_version.parse(scipy.__version__) >= pac_version.parse("1.12")
-        and "tol" in kwargs
-    ):
+    if "tol" in kwargs:
         # From scipy 1.12, the tol keyword is renamed to rtol
         kwargs["rtol"] = kwargs.pop("tol")
 
@@ -176,12 +166,12 @@ def test_driven_cavity(method, kwargs):
     assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
 
 
-def test_prop_ss_degen():
+def test_prop_ss_degen(random_generator):
     N = 5
     H = qutip.qeye(2) & qutip.num(N)
     a = qutip.qeye(2) & qutip.destroy(N)
-    rho_l = qutip.rand_dm(2)
-    rho_r = qutip.rand_dm(N)
+    rho_l = qutip.rand_dm(2, seed=random_generator)
+    rho_r = qutip.rand_dm(N, seed=random_generator)
     rho_ss = qutip.steadystate(H, [a], method="propagator", rho=rho_l & rho_r)
     with qutip.CoreOptions(atol=1e-5):
         assert rho_ss.ptrace([0]) == rho_l
@@ -267,7 +257,7 @@ def test_rcm():
     assert bandwidth(L) > bandwidth(_permute_rcm(L, b)[0])
 
 
-def test_wbm():
+def test_wbm(random_generator):
     N = 5
     a = qutip.destroy(N)
     I = qutip.qeye(N)
@@ -278,7 +268,7 @@ def test_wbm():
 
     # shuffling the Liouvillian to ensure the diag is almost empty
     perm = np.arange(N**4)
-    np.random.shuffle(perm)
+    random_generator.shuffle(perm)
     L = _data.permute.indices(L, None, perm, dtype="CSR")
 
     def dia_dominance(mat):

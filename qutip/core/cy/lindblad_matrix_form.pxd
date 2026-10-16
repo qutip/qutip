@@ -7,6 +7,7 @@ cdef class LindbladMatrixForm(QobjEvo):
     cdef public QobjEvo H_nh
     cdef public list c_ops
     cdef public int num_collapse
+    cdef public bint assume_hermitian_state
 
     # Pre-allocated temporary buffer
     cdef Dense _temp_buffer

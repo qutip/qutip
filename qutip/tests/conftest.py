@@ -3,6 +3,7 @@ import functools
 import os
 import tempfile
 import numpy as np
+import hashlib
 
 
 def _add_repeats_if_marked(metafunc):
@@ -16,7 +17,7 @@ def _add_repeats_if_marked(metafunc):
         metafunc.fixturenames.append('_repeat_count')
         metafunc.parametrize('_repeat_count',
                              range(count),
-                             ids=["rep({})".format(x+1) for x in range(count)])
+                             ids=[f"rep({x+1})" for x in range(count)])
 
 
 def _skip_cython_tests_if_unavailable(item):
@@ -57,3 +58,62 @@ def in_temporary_directory():
         # than outside to prevent the case of the directory failing to be
         # removed because it is 'busy'.
         os.chdir(previous_dir)
+
+
+SEEDSEQ = np.random.SeedSequence()
+
+import warnings
+
+class NotReprGenerator(np.random.Generator):
+    """
+    Numpy generator without repr for test listing.
+    Usual repr is "Generator(PCG64) at 0x7ECCB9C91000" which is not useful
+    in a test name.
+    """
+    def __repr__(self):
+        return ""
+
+
+@pytest.fixture
+def random_generator(request):
+    # We avoid using the spawn to create a seed that do not change with test
+    # order.
+    # The seed is determined from the global seed and test name
+    test_name = request.node.nodeid.split("::")[-1].encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
+    # pytest-rerunfailures's flaky rerun count
+    rerun = getattr(request.node, "execution_count", 1)
+    seed = (SEEDSEQ.entropy + name_hash + rerun) % 2**128
+    request.node.user_properties.append(("numpy_generator", seed))
+    default = np.random.default_rng(seed)
+    yield NotReprGenerator(default._bit_generator)
+
+
+@pytest.fixture
+def with_seeded_random(request):
+    test_name = request.node.nodeid.split("::")[-1].encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:8], 16)
+    seed = (SEEDSEQ.entropy + name_hash) % 2**32
+    request.node.user_properties.append(("numpy_global_seed", seed))
+    np.random.seed(seed)
+    yield None
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_runtest_makereport(item, call):
+    # Print the seeds at the end of error messages
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call" and report.failed:
+        if item.user_properties:
+            props_str = "\n".join([
+                f"{name}: {value}" for name, value in item.user_properties
+            ])
+            report.longrepr = f"{report.longrepr}\n\n{props_str}"
+
+
+def pytest_sessionstart(session):
+    print("Run global seed:", SEEDSEQ.entropy)
+    default_type = type(np.random.default_rng().bit_generator)
+    print("Type of bit generator:", default_type.__name__)

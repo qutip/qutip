@@ -231,6 +231,22 @@ class MESolver(SESolver):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
         self._num_collapse = len(c_ops)
+        # The Liouvillian assembled from Hamiltonian and collapse operators
+        # preserves Hermiticity by construction.  User-supplied superoperators
+        # are safe only when already known Hermitian-preserving (``Qobj._ishp``).
+        # Use the cached flag, not ``ishp`` (which may compute the Choi matrix).
+        # ``mesolve`` converts ``H`` to a ``QobjEvo`` before building the solver,
+        # so also accept a constant ``QobjEvo`` whose single ``Qobj`` carries the
+        # flag.  A time-dependent superoperator cannot be certified from a
+        # single-time probe, hence the ``isconstant`` guard.
+        h_preserves = (
+            not H.issuper
+            or (isinstance(H, Qobj) and H._ishp)
+            or (isinstance(H, QobjEvo) and H.isconstant and H(0)._ishp)
+        )
+        self._rhs_preserves_hermiticity = (
+            h_preserves and not any(c_op.issuper for c_op in c_ops)
+        )
 
         # Check for matrix_form option
         matrix_form = (options or {}).get('matrix_form', False)
@@ -252,12 +268,12 @@ class MESolver(SESolver):
         Solver.__init__(self, rhs, options=options)
 
     def _prepare_state(self, state):
-        # Kets skip this check: ket2dm (in super) always produces a
-        # Hermitian dm.  Only explicit dm inputs need validation.
-        if not self._vectorize_state and state.isoper and not state.isherm:
-            raise ValueError(
-                "matrix_form=True requires a Hermitian density matrix"
-            )
+        # In matrix_form mode the integrand has a fast path that assumes rho
+        # is Hermitian (drho/dt = A + A.dag()).  Kets always become a
+        # Hermitian dm via ket2dm, so only explicit dm inputs can deviate;
+        # detect that and switch the integrand to the full-RHS branch.
+        if not self._vectorize_state and state.isoper:
+            self.rhs.assume_hermitian_state = state.isherm
         return super()._prepare_state(state)
 
     def _initialize_stats(self):

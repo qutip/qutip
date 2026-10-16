@@ -7,9 +7,10 @@ __all__ = [
     'expand_operator'
 ]
 
-import numpy as np
+from collections.abc import Iterable
 from functools import partial
 from typing import TypeVar, overload
+import numpy as np
 
 from .operators import qeye
 from .qobj import Qobj
@@ -20,7 +21,6 @@ from .dimensions import (
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
-from .. import settings
 from ..typing import LayerType
 
 
@@ -32,12 +32,17 @@ class _reverse_partial_tensor:
     def __call__(self, op):
         return tensor(op, self.right)
 
-
 @overload
 def tensor(*args: Qobj) -> Qobj: ...
 
 @overload
 def tensor(*args: Qobj | QobjEvo) -> QobjEvo: ...
+
+@overload
+def tensor(args: Iterable[Qobj], /) -> Qobj: ...
+
+@overload
+def tensor(args: Iterable[Qobj | QobjEvo], /) -> QobjEvo: ...
 
 def tensor(*args: Qobj | QobjEvo) -> Qobj | QobjEvo:
     """Calculates the tensor product of input operators.
@@ -233,10 +238,9 @@ def composite(*args):
     if all(map(_isbralike, args)):
         # Turn into ket-likes and recurse.
         return composite(*(arg.dag() for arg in args)).dag()
-    raise TypeError("Unsupported Qobj types [{}].".format(
-        ", ".join(arg.type for arg in args)
-    ))
-
+    raise TypeError(
+        "Unsupported Qobj types [" + ", ".join(arg.type for arg in args) + "]."
+    )
 
 def _tensor_contract_single(arr, i, j):
     """
@@ -401,9 +405,9 @@ def _check_oper_dims(oper, dims=None, targets=None):
         targ_dims = [dims[t] for t in targets]
         if oper.dims[0] != targ_dims:
             raise ValueError(
-                "The operator dims {} do not match "
-                "the target dims {}.".format(
-                    oper.dims[0], targ_dims))
+                f"The operator dims {oper.dims[0]} do not match "
+                f"the target dims {targ_dims}."
+            )
 
 
 def _targets_to_list(targets, oper=None, N=None):
@@ -436,14 +440,13 @@ def _targets_to_list(targets, oper=None, N=None):
         req_num = len(oper.dims[0])
         if len(targets) != req_num:
             raise ValueError(
-                "The given operator needs {} "
-                "target qutbis, "
-                "but {} given.".format(
-                    req_num, len(targets)))
+                f"The given operator needs {req_num} "
+                f"target qutbis, but {len(targets)} given."
+            )
     # if targets is smaller than N
     if N is not None:
         if not all([t < N for t in targets]):
-            raise ValueError("Targets must be smaller than N={}.".format(N))
+            raise ValueError(f"Targets must be smaller than N={N}.")
     return targets
 
 

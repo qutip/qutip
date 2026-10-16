@@ -1,10 +1,13 @@
 import os
 import warnings
+from importlib import metadata
 
 import qutip.settings
 from qutip.settings import settings
-import qutip.version
-from qutip.version import version as __version__
+
+# Setup the Version
+__version__ = metadata.version("qutip")
+
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #

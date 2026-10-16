@@ -108,6 +108,8 @@ def nm_mcsolve(
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
           | Which differential equation integration method to use.
+            Use ``NonMarkovianMCSolver.avail_integrators()`` to list supported
+            methods.
         - | atol, rtol : float
           | Absolute and relative tolerance of the ODE integrator.
         - | nsteps : int
@@ -615,6 +617,9 @@ class NonMarkovianMCSolver(MCSolver):
 
         method: str, default: "adams"
             Which differential equation integration method to use.
+            Common methods are: "adams", "bdf", "diag", "tsit5".
+            To see all supported method, use:
+            ``NonMarkovianMCSolver.avail_integrators()``
 
         map: str {"serial", "parallel", "loky", "mpi"}, default: "serial"
             How to run the trajectories. "parallel" uses the multiprocessing

@@ -1,7 +1,7 @@
 """
 Citation generator for QuTiP
 """
-import os
+from pathlib import Path
 
 __all__ = ['cite']
 
@@ -40,11 +40,13 @@ def cite(save=False, path=None):
     print(citation)
 
     if not path:
-        path = os.getcwd()
+        path = Path.cwd()
+    else:
+        path = Path(path)
 
     if save:
         filename = "qutip.bib"
-        with open(os.path.join(path, filename), 'w') as f:
+        with open(path / filename, 'w') as f:
             f.write("\n".join(citation))
 
 

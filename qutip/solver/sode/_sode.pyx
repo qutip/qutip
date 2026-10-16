@@ -3,17 +3,16 @@
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
-from collections import defaultdict
 cimport cython
-from qutip.solver.sode.ssystem cimport _StochasticSystem
+from qutip.solver.sode.ssystem cimport BaseStochasticSystem, TaylorStochasticSystem
 import numpy as np
 
 
 cdef class Euler:
-    cdef _StochasticSystem system
+    cdef BaseStochasticSystem system
     cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system, measurement_noise=False):
+    def __init__(self, BaseStochasticSystem system, measurement_noise=False):
         self.system = system
         self.measurement_noise = measurement_noise
 
@@ -38,19 +37,19 @@ cdef class Euler:
         By Peter E. Kloeden, Eckhard Platen
         """
         cdef int i
-        cdef _StochasticSystem system = self.system
+        cdef BaseStochasticSystem system = self.system
         cdef list expect
 
         cdef Data a = system.drift(t, state)
         b = system.diffusion(t, state)
 
         if self.measurement_noise:
-            expect = system.expect(t, state)
-            for i in range(system.num_collapse):
+            expect = system._shift(t, state)
+            for i in range(system.num_diffusion):
                 dW[0, i] -= expect[i].real * dt
 
         cdef Data new_state = _data.add(state, a, dt)
-        for i in range(system.num_collapse):
+        for i in range(system.num_diffusion):
             new_state = _data.add(new_state, b[i], dW[0, i])
         return new_state
 
@@ -71,8 +70,8 @@ cdef class Platen(Euler):
         The Theory of Open Quantum Systems
         Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
         """
-        cdef _StochasticSystem system = self.system
-        cdef int i, j, num_ops = system.num_collapse
+        cdef BaseStochasticSystem system = self.system
+        cdef int i, j, num_ops = system.num_diffusion
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
         cdef double dw, dw2, dw2p, dw2m
@@ -84,8 +83,8 @@ cdef class Platen(Euler):
         cdef list expect
 
         if self.measurement_noise:
-            expect = system.expect(t, state)
-            for i in range(system.num_collapse):
+            expect = system._shift(t, state)
+            for i in range(system.num_diffusion):
                 dW[0, i] -= expect[i].real * dt
 
         out = _data.mul(d1, 0.5)
@@ -121,7 +120,7 @@ cdef class Platen(Euler):
 
 
 cdef class Explicit15(Euler):
-    def __init__(self, _StochasticSystem system):
+    def __init__(self, BaseStochasticSystem system):
         self.system = system
 
     @cython.boundscheck(False)
@@ -133,8 +132,8 @@ cdef class Explicit15(Euler):
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
-        cdef int i, j, k, num_ops = system.num_collapse
+        cdef BaseStochasticSystem system = self.system
+        cdef int i, j, k, num_ops = system.num_diffusion
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
         cdef double ddz, ddw, ddd
@@ -252,12 +251,12 @@ cdef class Explicit15(Euler):
 
 
 cdef class Milstein:
-    cdef _StochasticSystem system
+    cdef TaylorStochasticSystem system
     cdef bint measurement_noise
 
-    def __init__(self, _StochasticSystem system, measurement_noise=False):
-            self.system = system
-            self.measurement_noise = measurement_noise
+    def __init__(self, TaylorStochasticSystem system, measurement_noise=False):
+        self.system = system
+        self.measurement_noise = measurement_noise
 
     @cython.wraparound(False)
     def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
@@ -283,8 +282,8 @@ cdef class Milstein:
         dV = -iH*V*dt + d1*dt + d2_i*dW_i
         + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
         """
-        cdef _StochasticSystem system = self.system
-        cdef int i, j, num_ops = system.num_collapse
+        cdef BaseStochasticSystem system = self.system
+        cdef int i, j, num_ops = system.num_diffusion
         cdef double dw
 
         system.set_state(t, state)
@@ -294,9 +293,9 @@ cdef class Milstein:
         iadd_dense(out, system.a(), dt)
 
         if self.measurement_noise:
-            expect = system.expect(t, state)
-            for i in range(system.num_collapse):
-                dW[0, i] -= system.expect_i(i).real * dt
+            expect = system._shift(t, state)
+            for i in range(system.num_diffusion):
+                dW[0, i] -= system._shift_i(i).real * dt
 
         for i in range(num_ops):
             iadd_dense(out, system.bi(i), dW[0, i])
@@ -313,11 +312,11 @@ cdef class Milstein:
 cdef class PredCorr:
     cdef Dense euler
     cdef double alpha, eta
-    cdef _StochasticSystem system
+    cdef TaylorStochasticSystem system
     cdef bint measurement_noise
 
     def __init__(
-        self, _StochasticSystem system,
+        self, TaylorStochasticSystem system,
         double alpha=0., double eta=0.5,
         measurement_noise=False
     ):
@@ -348,17 +347,17 @@ cdef class PredCorr:
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
-        cdef int i, j, k, num_ops = system.num_collapse
+        cdef TaylorStochasticSystem system = self.system
+        cdef int i, j, k, num_ops = system.num_diffusion
         cdef double eta=self.eta, alpha=self.alpha
         cdef Dense euler = self.euler
 
         system.set_state(t, state)
 
         if self.measurement_noise:
-            expect = system.expect(t, state)
-            for i in range(system.num_collapse):
-                dW[0, i] -= system.expect_i(i).real * dt
+            expect = system._shift(t, state)
+            for i in range(system.num_diffusion):
+                dW[0, i] -= system._shift_i(i).real * dt
 
         imul_dense(out, 0.)
         iadd_dense(out, state, 1)
@@ -386,7 +385,7 @@ cdef class PredCorr:
 
 
 cdef class Taylor15(Milstein):
-    def __init__(self, _StochasticSystem system):
+    def __init__(self, TaylorStochasticSystem system):
         self.system = system
         self.measurement_noise = False
 
@@ -398,12 +397,12 @@ cdef class Taylor15(Milstein):
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
+        cdef TaylorStochasticSystem system = self.system
         system.set_state(t, state)
-        cdef int i, j, k, num_ops = system.num_collapse
+        cdef int i, j, k, num_ops = system.num_diffusion
         cdef double[:] dz, dw
 
-        num_ops = system.num_collapse
+        num_ops = system.num_diffusion
         dw = dW[0, :]
         dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
 
@@ -431,14 +430,14 @@ cdef class Taylor15(Milstein):
 
 
 cdef class Milstein_imp:
-    cdef _StochasticSystem system
+    cdef TaylorStochasticSystem system
     cdef bint use_inv
     cdef QobjEvo implicit
     cdef Data inv
     cdef double prev_dt
     cdef dict imp_opt
 
-    def __init__(self, _StochasticSystem system, solve_method=None, solve_options={}):
+    def __init__(self, TaylorStochasticSystem system, solve_method=None, solve_options={}):
         self.system = system
         self.prev_dt = 0
         if solve_method == "inv":
@@ -475,8 +474,8 @@ cdef class Milstein_imp:
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
-        cdef int i, j, num_ops = system.num_collapse
+        cdef TaylorStochasticSystem system = self.system
+        cdef int i, j, num_ops = system.num_diffusion
         cdef double dw
 
         system.set_state(t, state)
@@ -513,12 +512,12 @@ cdef class Taylor15_imp(Milstein_imp):
         Numerical Solution of Stochastic Differential Equations
         By Peter E. Kloeden, Eckhard Platen
         """
-        cdef _StochasticSystem system = self.system
+        cdef TaylorStochasticSystem system = self.system
         system.set_state(t, state)
-        cdef int i, j, k, num_ops = system.num_collapse
+        cdef int i, j, k, num_ops = system.num_diffusion
         cdef double[:] dz, dw
 
-        num_ops = system.num_collapse
+        num_ops = system.num_diffusion
         dw = dW[0, :]
         dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
 

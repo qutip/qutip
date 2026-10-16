@@ -5,7 +5,7 @@ import pytest
 from qutip.core import data, qeye, CoreOptions
 from qutip.core.data import dia, Dense, Dia
 
-from . import conftest
+from qutip.testing import random_data
 
 # We only choose a small subset of dtypes to test so it isn't crazy.
 _dtype_complex = ['complex128']
@@ -41,26 +41,26 @@ def density(request): return request.param
 
 
 @pytest.fixture(scope='function')
-def scipy_dia(shape, density):
-    return conftest.random_scipy_dia(shape, density)
+def scipy_dia(shape, density, random_generator):
+    return random_data.random_scipy_dia(shape, density, gen=random_generator)
 
 
-def _valid_scipy():
+def _valid_scipy(gen=None):
     """Arbitrary valid scipy Dia"""
-    return conftest.random_scipy_dia((10, 10), 0.5)
+    return random_data.random_scipy_dia((10, 10), 0.5, gen)
 
 
-def _valid_arg():
+def _valid_arg(gen=None):
     """
     Arbitrary valid 3-tuple which is a valid `arg` parameter for __init__.
     """
-    sci = _valid_scipy()
+    sci = _valid_scipy(gen)
     return (sci.data, sci.offsets)
 
 
 @pytest.fixture(scope='function')
-def data_diag(shape, density):
-    return conftest.random_diag(shape, density)
+def data_diag(shape, density, random_generator):
+    return random_data.random_diag(shape, density, gen=random_generator)
 
 
 class TestClassMethods:
@@ -84,12 +84,14 @@ class TestClassMethods:
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
     ))
     @pytest.mark.parametrize('o_type', _dtype_int + _dtype_uint)
-    def test_init_from_tuple_allowed_dtypes(self, d_type, o_type):
+    def test_init_from_tuple_allowed_dtypes(
+        self, d_type, o_type, random_generator
+    ):
         """
         Test that initialisation can use a variety of dtypes and converts into
         the correct type.
         """
-        sci = _valid_scipy()
+        sci = _valid_scipy(random_generator)
         data = sci.data.real.astype(d_type, casting='unsafe')
         offsets = sci.offsets.astype(o_type, casting='unsafe')
         scipy_dia = scipy.sparse.dia_matrix((data, offsets), shape=sci.shape)
@@ -195,7 +197,8 @@ class TestClassMethods:
         input.
         """
         data_diag = dia.Dia(scipy_dia)
-        assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_matrix)
+        assert isinstance(data_diag.as_scipy(), scipy.sparse.dia_array)
+        assert data_diag.as_scipy().format == "dia"
         assert _dia_eq(data_diag.as_scipy(), scipy_dia)
 
     def test_as_scipy_of_uninitialised_is_empty(self, shape):
@@ -219,7 +222,7 @@ class TestFactoryMethods:
         base = dia.empty(shape[0], shape[1], ndiag)
         sci = base.as_scipy(full=True)
         assert isinstance(base, dia.Dia)
-        assert isinstance(sci, scipy.sparse.dia_matrix)
+        assert isinstance(sci, scipy.sparse.dia_array)
         assert base.shape == shape
         assert sci.data.shape == (ndiag, shape[1])
         assert sci.offsets.shape == (ndiag,)

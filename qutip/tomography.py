@@ -8,7 +8,7 @@ import itertools
 
 try:
     import matplotlib.pyplot as plt
-except:
+except ImportError:
     pass
 
 

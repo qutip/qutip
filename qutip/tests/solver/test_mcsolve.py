@@ -5,6 +5,12 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
+@pytest.fixture(autouse=True)
+def fix_mtsolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    MCSolver.seed_sequence = np.random.SeedSequence(seed)
+
+
 def _return_constant(t, constant):
     return constant
 
@@ -133,7 +139,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         collapse_op = qutip.destroy(self.size)
         c_op_types = [
             (np.sqrt(coupling)*collapse_op, {}, "constant"),
-            ([collapse_op, 'sqrt({})'.format(coupling)], {}, "string"),
+            ([collapse_op, f'sqrt({coupling})'], {}, "string"),
             (callable_qobj(collapse_op, _return_constant),
              {'constant': np.sqrt(coupling)}, "function"),
         ]
@@ -165,7 +171,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
         coupling = 0.2
         collapse_op = qutip.destroy(self.size)
         collapse_args = {'constant': np.sqrt(coupling), 'rate': 0.5}
-        collapse_string = 'sqrt({} * exp(-t))'.format(coupling)
+        collapse_string = f'sqrt({coupling} * exp(-t))'
         c_op_types = [
             ([collapse_op, _return_decay], collapse_args, "function"),
             ([collapse_op, collapse_string], {}, "string"),
@@ -655,4 +661,38 @@ def test_mixed_equals_merged(improved_sampling, p):
     assert (
         sum(merged_result.runs_weights + merged_result.deterministic_weights)
         == pytest.approx(1.)
+    )
+
+
+@pytest.mark.parametrize(
+    "weight_0, weight_1, expected_trace",
+    [
+        (0.5, 0.25, 0.75),
+        (0.75, 0.5, 1.25),
+    ],
+)
+def test_mcsolve_unnormalized_mixed_state(
+    weight_0, weight_1, expected_trace
+):
+    ntraj = 10
+
+    # Test density matrices with traces below and above one.
+    initial_state = (
+        weight_0 * qutip.fock_dm(2, 0)
+        + weight_1 * qutip.fock_dm(2, 1)
+    )
+
+    result = mcsolve(
+        qutip.sigmaz(),
+        initial_state,
+        np.linspace(0, 1, 100),
+        [qutip.sigmam()],
+        ntraj=ntraj,
+        options={"progress_bar": False},
+    )
+    assert result.num_trajectories == ntraj
+    assert sum(result.ntraj_per_initial_state) == ntraj
+    assert all(
+        state.tr() == pytest.approx(expected_trace)
+        for state in result.states
     )

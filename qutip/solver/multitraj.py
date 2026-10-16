@@ -63,6 +63,7 @@ class MultiTrajSolver(Solver):
     _resultclass = MultiTrajResult
     _trajectory_resultclass = Result
     _avail_integrators = {}
+    seed_sequence = SeedSequence()
 
     # Class of option used by the solver
     solver_options = {
@@ -87,7 +88,6 @@ class MultiTrajSolver(Solver):
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
-        self.seed_sequence = SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -98,7 +98,7 @@ class MultiTrajSolver(Solver):
 
         Parameters
         ----------
-        state : :obj:`.Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double
@@ -377,7 +377,7 @@ class MultiTrajSolver(Solver):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if args:
             self.rhs.arguments(args)
-            self._integrator.arguments(args)
+            self._integrator.reset()
 
     def _get_generator(self, seed):
         """
@@ -439,7 +439,8 @@ class _InitialConditions:
             raise ValueError('Each initial state must be use for at least '
                              'one trajectory')
 
-    def _minimum_roundoff_ensemble(self, state_list, ntraj_total):
+    @classmethod
+    def _minimum_roundoff_ensemble(cls, state_list, ntraj_total):
         """
         Calculate a list ntraj from the given total number, under contraints
         explained above. Algorithm based on https://stackoverflow.com/a/792490
