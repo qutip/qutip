@@ -308,6 +308,14 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         each value in ``values``. If a ``reduce_func`` is provided, and empty
         list will be returned.
 
+    Notes
+    -----
+    Because ``parallel_map`` uses Python's ``multiprocessing`` module, all
+    task functions and arguments must be serializable using ``pickle``.
+    Anonymous functions (``lambda``) and functions defined dynamically in local
+    scopes cannot be pickled and will raise a ``PicklingError``. To avoid
+    this, define functions as top-level named functions with ``def`` or use
+    :func:`loky_pmap` (``"map": "loky"``), which relies on ``cloudpickle``.
     """
 
     map_kw = _read_map_kw(map_kw)
