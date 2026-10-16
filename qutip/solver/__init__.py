@@ -20,3 +20,4 @@ from .krylovsolve import *
 from .parallel import *
 import qutip.solver.sode as sode
 from .stochastic import *
+from .dysolve import *
