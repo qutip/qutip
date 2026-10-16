@@ -172,7 +172,7 @@ class Dysolve:
                 self.td = True
                 coeff = given_coeff
             elif given_coeff is not None:
-                factor = given_coeff
+                factor *= given_coeff
 
             oper = self._transform(oper, inverse=True)
             if form == "cos":

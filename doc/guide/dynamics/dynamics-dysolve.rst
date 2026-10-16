@@ -81,7 +81,7 @@ The solver is accessed via the :func:`dysolve` function or the :class:`Dysolve` 
   The envelope :math:`\mathcal{E}(t)` is assumed to be constant over this interval.
 * ``eigen``: How to get the Hamiltonian in the interaction picture.
   If true, the Hamiltonian will be diagonalized.
-  If false, the non-diagonal parts will be computed as a drive with frequency of zeros.
+  If false, the non-diagonal parts will be computed as a drive of frequency zero.
   Precomputation is much slower with full diagonalization, but the numerical error is much smaller.
 
 .. _dysolve_code_example:
@@ -113,7 +113,7 @@ Rabi oscillation under a high-frequency drive.
 
     # Solve using Dyson series
     result_dy = dysolve(
-        H0, drives, psi0, tlist, 
+        H0, drives, psi0, tlist,
         options={"order": 4, "step_size": 0.1}
     )
 

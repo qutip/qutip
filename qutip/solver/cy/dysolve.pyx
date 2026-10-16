@@ -10,6 +10,8 @@ cdef extern from "<complex>" namespace "std" nogil:
 np_fact = np.zeros(21, dtype=float)
 cdef double[:] inv_factorial = np_fact
 inv_factorial[0] = 1
+
+cdef int i
 for i in range(1, 21):
     inv_factorial[i] = inv_factorial[i-1] / i
 
@@ -66,25 +68,25 @@ cdef complex cy_compute_core(
 
 
 cdef complex cy_compute_tn_integrals(
-    double[:] ws, int n, double dt, double a_tol, double _cum_shift
+    double[:] ws, int n, double dt, double a_tol, double cum_shift
 ) noexcept nogil:
     """
         Helper function to compute nested integrals when the function to
         integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
         some effective omegas are 0. In that case, the recursion differs a
-        bit from _compute_integrals().
+        bit from cy_compute_integrals().
     """
     cdef complex factor, term1, term2, inv, acc
     cdef int j
 
     if n == 0:
-        return cy_compute_core(ws[1:], dt, a_tol, ws[0] + _cum_shift)
+        return cy_compute_core(ws[1:], dt, a_tol, ws[0] + cum_shift)
 
     if n == 20:
         # Max supported n, order of 1e-18
         return 0.
 
-    cdef double w0 = ws[0] + _cum_shift
+    cdef double w0 = ws[0] + cum_shift
 
     if ws.shape[0] == 1:
         if abs(w0) < a_tol:
@@ -105,5 +107,5 @@ cdef complex cy_compute_tn_integrals(
         else:
             factor = -1j / w0
             term1 = cy_compute_tn_integrals(ws[1:], n, dt, a_tol, w0)
-            term2 = cy_compute_tn_integrals(ws, n - 1, dt, a_tol, _cum_shift)
+            term2 = cy_compute_tn_integrals(ws, n - 1, dt, a_tol, cum_shift)
             return factor * (term1 - term2)
