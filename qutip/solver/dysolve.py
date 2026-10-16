@@ -185,7 +185,10 @@ class Dysolve:
             elif form == "exp":
                 perturbations.append((oper, omega, coeff, factor))
             else:
-                raise ValueError(...)
+                raise ValueError(
+                    f"form invalid, got {form}, "
+                    "expect one of 'exp, 'cos', 'sin'"
+                )
 
         if perturbations:
             self.perturbations = list(zip(*perturbations))
