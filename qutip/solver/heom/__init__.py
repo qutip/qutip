@@ -31,6 +31,8 @@ __all__ = [
     "HSolverDL",
     "HierarchyADOs",
     "HierarchyADOsState",
+    "PETScHEOMSolver",
+    "IntegratorPETSc",
 ]
 
 from .bofin_baths import (
@@ -53,3 +55,11 @@ from .bofin_solvers import (
     HierarchyADOs,
     HierarchyADOsState,
 )
+
+try:
+    from .backend_petsc import PETScHEOMSolver, IntegratorPETSc
+except ImportError as _e:
+    # Only suppress the error when petsc4py itself is not installed.
+    # Re-raise for any other ImportError (e.g. a bug inside backend_petsc.py).
+    if "petsc4py" not in str(_e):
+        raise
