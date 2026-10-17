@@ -1,0 +1,1 @@
+Fixed an AttributeError in Bloch.render() while using the interactive ipympl matplotlib backend.
