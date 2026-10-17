@@ -864,6 +864,11 @@ def prony_methods(method: Literal["prony", "esprit"],
         The input signal (1D complex array).
     n: int
         Desired number of modes to  use as estimation (rank of the signal).
+        It is capped at ``len(signal) // 2 - 1`` when the requested number
+        of modes exceeds the rank available to the shift-invariance solve;
+        using more modes than needed does not improve the fit. Requesting
+        more modes than the signal rank yields zero poles, which carry no
+        dynamics, so request only as many exponents as the signal supports.
 
     Returns
     -------
@@ -873,16 +878,30 @@ def prony_methods(method: Literal["prony", "esprit"],
         A list of tuples containing the amplitudes and phases
         of our approximation
     """
-    if method != "prony":
-        n = len(signal)-n
-    hankel0 = hankel(c=signal[:n], r=signal[n - 1: -1])
-    hankel1 = hankel(c=signal[1: n + 1], r=signal[n:])
+    signal = np.asarray(signal, dtype=np.complex128).ravel()
+    if n < 1:
+        raise ValueError("n must be at least 1.")
+    N = len(signal) // 2
+    hankel0 = hankel(c=signal[:N], r=signal[N - 1: -1])
+    hankel1 = hankel(c=signal[1: N + 1], r=signal[N:])
+    # The shift-invariance solve needs V1 to have full column rank, so the
+    # number of modes cannot exceed the number of Hankel columns minus one.
+    n = min(n, hankel0.shape[1] - 1)
+    if n < 1:
+        raise ValueError("The signal is too short for the requested method.")
     if method == "prony":
-        pencil_matrix = lstsq(hankel0.T, hankel1.T)[0]
+        U, S, Vh = svd(hankel0, full_matrices=False, check_finite=False)
+        U_r = U[:, :n]
+        S_r = np.diag(S[:n])
+        Vh_r = Vh[:n, :]
+        pencil_matrix = (np.linalg.pinv(S_r) @ U_r.conj().T
+                         @ hankel1 @ Vh_r.conj().T)
         phases = eigvals(pencil_matrix.T)
     elif method == "esprit":
-        U1, _, _ = svd(hankel0)
-        pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
+        _, _, Vh = svd(hankel0, full_matrices=False, check_finite=False)
+        V1 = Vh[:n, :-1]
+        V2 = Vh[:n, 1:]
+        pencil_matrix = np.linalg.pinv(V1.T) @ V2.T
         phases = eigvals(pencil_matrix)
     vandermonte = np.array(
         [[phase**k for phase in phases] for k in range(len(signal))])
