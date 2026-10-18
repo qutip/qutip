@@ -211,6 +211,17 @@ def test_rand_eigen_equal_eigenvalues(N, spread):
     assert H == 0.5 * qeye(N)
 
 
+def test_rand_eigen_close_eigenvalues_large_tidyup():
+    """
+    Random Qobjs: the tolerance follows auto_tidyup_atol, so a larger tidyup
+    setting does not bring the infinite loop back.
+    """
+    eigenvalues = 1 / 3 + 1e-12 * np.array([-1, 0, 1])
+    with CoreOptions(auto_tidyup_atol=1e-10):
+        rho = rand_dm(3, distribution="eigen", eigenvalues=eigenvalues)
+    np.testing.assert_allclose(rho.full(), np.eye(3) / 3, atol=1e-10)
+
+
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize('kind', ["left", "right"])
 def test_rand_stochastic(dimensions, kind, dtype, random_generator):

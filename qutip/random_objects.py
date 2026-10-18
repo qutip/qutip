@@ -150,10 +150,11 @@ def _rand_rotated_diag(eigenvalues, nvals, generator):
     until it has about ``nvals`` non-zero entries.
     """
     out = _data.diag[_data.CSR](eigenvalues, 0)
-    if np.ptp(eigenvalues) < settings.core["atol"]:
+    if np.ptp(eigenvalues) < 20 * settings.core["auto_tidyup_atol"]:
         # A multiple of the identity is left unchanged by every rotation.
         # Rotations only create off-diagonal terms of the size of the
-        # eigenvalue differences, which the matmul tidyup drops when tiny.
+        # eigenvalue differences, which the matmul tidyup drops when they are
+        # below auto_tidyup_atol.
         return out
     out = _rand_jacobi_rotation(out, generator)
     while _data.csr.nnz(out) < 0.95 * nvals:
