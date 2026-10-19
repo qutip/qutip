@@ -1,9 +1,11 @@
 import numpy as np
 import pytest
+import pickle
 
 import qutip
 from qutip.core.environment import (
-    DrudeLorentzEnvironment, OhmicEnvironment, UnderDampedEnvironment
+    BosonicEnvironment, DrudeLorentzEnvironment, OhmicEnvironment,
+    UnderDampedEnvironment
 )
 from qutip.solver.ulmesolve import ULMESolver, ulmesolve, UL_transform
 from qutip.solver.ulmesolve import _make_operators, ULOP
@@ -306,3 +308,172 @@ class TestEvolution:
             result_transform.e_data["energy"], result_solver.e_data["energy"],
             atol=1e-8
         )
+
+    def test_matches_UL_transform(self, random_generator):
+        tlist = np.linspace(0, 10, 50)
+        N = 5
+        H = qutip.rand_herm(N, density=0.6, seed=random_generator)
+        c_op = qutip.rand_herm(N, seed=random_generator)
+        env = OhmicEnvironment(T=0.5, alpha=1.0, wc=0.5, s=1.)
+        options = {"ULME_creation": "eigen", "use_lamb_shift": False}
+        e_ops = {"num": qutip.num(N), "energy": H}
+        rho0 = qutip.rand_dm(N, dtype="dense", seed=random_generator)
+
+        H_eff, c_ops = UL_transform(H, (c_op, env), options=options)
+        result_transform = qutip.mcsolve(
+            H_eff, rho0, tlist, c_ops=c_ops, e_ops=e_ops, ntraj=100
+        )
+        result_solver = ulmesolve(
+            H, rho0, tlist, (c_op, env), e_ops=e_ops, options=options
+        )
+
+        np.testing.assert_allclose(
+            result_transform.average_e_data["num"],
+            result_solver.e_data["num"],
+            atol=0.05, rtol=0.05,
+        )
+        np.testing.assert_allclose(
+            result_transform.average_e_data["energy"],
+            result_solver.e_data["energy"],
+            atol=0.05, rtol=0.05,
+        )
+
+    @pytest.mark.parametrize("method", ["eigen", "propagator"])
+    def test_degen_H(self, method):
+        H = qutip.qdiags([-1., -0.1, -0.01, -0.01, 0, 0, 0.01, 0.01, 0.1, 1.])
+        a = qutip.destroy(10)
+        X = a + a.dag()
+
+        env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
+
+        solver = ULMESolver(
+            H, a_ops = (X, env), c_ops = a.dag() * 0.1,
+            options={"ULME_creation": method, "use_lamb_shift": False}
+        )
+        tlist = np.linspace(1, 2, 11)
+
+        e_ops = [qutip.num(10)]
+        rho0 = qutip.coherent_dm(10, 3)
+        result = solver.run(rho0, tlist=tlist, e_ops=e_ops)
+
+        ref = qutip.brmesolve(
+            H, rho0, tlist = tlist,
+            a_ops = [(X, env)], c_ops = a.dag() * 0.1, e_ops = e_ops,
+            sec_cutoff = -1,
+        )
+        np.testing.assert_allclose(
+            result.expect[0], ref.expect[0], atol=1e-4, rtol=1e-4
+        )
+
+    @pytest.mark.parametrize("method", ["eigen", "propagator"])
+    def test_multi_bath(self, method, random_generator):
+        H = qutip.rand_herm(4, density=0.5, seed=random_generator)
+        X0 = qutip.rand_herm(4, density=0.1, seed=random_generator)
+        X1 = qutip.rand_herm(4, density=0.1, seed=random_generator)
+
+        env0 = UnderDampedEnvironment(T=1.0, lam=0.05, gamma=2.0, w0=3.)
+        env1 = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
+        a_ops = [(X0, env0), (X1, env1)]
+
+        solver = ULMESolver(H, a_ops=a_ops, options={"ULME_creation": method})
+
+        e_ops = [qutip.num(4)]
+        rho0 = qutip.basis(4, 3)
+        result = solver.run(rho0, tlist=np.linspace(0, 1, 11), e_ops=e_ops)
+
+        ref = qutip.brmesolve(
+            H, rho0, tlist=np.linspace(0, 1, 11), a_ops=a_ops, e_ops=e_ops,
+            sec_cutoff = -1,
+        )
+
+        np.testing.assert_allclose(
+            result.expect[0], ref.expect[0], atol=2e-5, rtol=2e-5,
+        )
+
+    @pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+    def test_pulse(self):
+        H = qutip.sigmaz()
+        # Need an environment with thin jump_correlator
+        env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
+        pulse = qutip.coefficient(lambda t: 5 * np.exp(-1000 * (t - 0.5)**2) )
+        a_ops = (qutip.sigmax() * pulse, env)
+
+        psi0 = qutip.basis(2, 0)
+        tlist = np.linspace(0, 1.0, 101)
+        result = qutip.ulmesolve(
+            H, psi0, tlist, a_ops, e_ops={"z": qutip.sigmaz()},
+            options={"use_lamb_shift": True, "max_step": 0.05}
+        )
+        # test flat outside pulse
+        np.testing.assert_allclose(
+            result.e_data["z"][0], result.e_data["z"][:20],
+        )
+        np.testing.assert_allclose(
+            result.e_data["z"][-1], result.e_data["z"][-20:],
+        )
+        # Moved dusing pulse
+        assert abs(result.e_data["z"][0] - result.e_data["z"][-1]) > 0.5
+
+
+def test_pickle(random_generator):
+    N = 3
+
+    H = qutip.QobjEvo([
+        qutip.rand_herm(N, density=0.6, seed=random_generator),
+        [qutip.rand_herm(N, density=0.1, seed=random_generator), "t"],
+    ])
+    c_op = qutip.rand_herm(N, density=0.1, seed=random_generator)
+    env = OhmicEnvironment(T=0.5, alpha=1.0, wc=0.5, s=1.)
+
+    H_eff, c_ops = UL_transform(H, (c_op, env))
+
+    H_rebuild = pickle.loads(pickle.dumps(H_eff))
+    L_rebuild = pickle.loads(pickle.dumps(c_ops[0]))
+
+    assert H_eff(0.2) == H_rebuild(0.2)
+    assert c_ops[0](0.2) == L_rebuild(0.2)
+
+
+@pytest.mark.filterwarnings("ignore:DrudeLorentzEnvironment")
+@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+def test_JC_env():
+    env = DrudeLorentzEnvironment(T=0.1, lam=10., gamma=1.)
+
+    jc = env.jump_correlator_function()
+    t_Max = jc.tMax
+
+    env_from_jc = BosonicEnvironment.from_jump_correlator(jc)
+    env_from_func = BosonicEnvironment.from_jump_correlator(
+        lambda t: jc(t), tMax = t_Max
+    )
+    tlist = np.linspace(0, t_Max, 2001)
+    env_from_array = BosonicEnvironment.from_jump_correlator(
+        jc(tlist), tlist = tlist
+    )
+
+    ts = np.linspace(t_Max, t_Max, 11)
+    for approx_env in [env_from_jc, env_from_func, env_from_array]:
+        # Same function everywhere
+        np.testing.assert_allclose(
+            env.jump_correlator(ts),
+            approx_env.jump_correlator(ts),
+            atol=1e-10, rtol= 1e-8
+        )
+
+    ts = np.linspace(t_Max/20, t_Max/2, 101)
+    for approx_env in [env_from_jc, env_from_func, env_from_array]:
+        np.testing.assert_allclose(
+            env.correlation_function(ts),
+            approx_env.correlation_function(ts),
+            atol=1e-5, rtol= 0.05
+        )
+
+
+@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+def test_options():
+    H = sigmaz()
+    X = sigmax()
+    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
+    solver = ULMESolver(H, (X, env), options={
+        # TODO
+    })

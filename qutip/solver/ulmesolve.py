@@ -4,8 +4,8 @@ import warnings
 from typing import Any
 
 import numpy as np
-import scipy.integrate as integrate
 from numpy.typing import ArrayLike
+import scipy.integrate as integrate
 
 from .. import Qobj, QobjEvo
 from ..core import data as _data
