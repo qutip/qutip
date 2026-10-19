@@ -223,8 +223,8 @@ Propagators
 Dysolve
 -------
 
-.. automodule:: qutip.solver.dysolve_propagator
-    :members: dysolve_propagator, DysolvePropagator
+.. automodule:: qutip.solver.dysolve
+    :members: dysolve, dysolve_propagator, Dysolve
 
 
 ************************
