@@ -173,7 +173,7 @@ cpdef double one_dia(Dia matrix) except -1:
         for col in range(start, end):
             cols_one[col] += abs(matrix.data[diag * matrix.shape[1] + col])
 
-    # BLAS is a Fortran library, so it's one-indexed of course..
+    # BLAS is a Fortran library, so it's one-indexed of course.
     return cols_one[blas.idamax(&n, &cols_one[0], &inc) - 1]
 
 
