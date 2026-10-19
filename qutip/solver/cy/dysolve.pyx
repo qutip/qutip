@@ -13,7 +13,9 @@ for i in range(1, 21):
     inv_factorial[i] = inv_factorial[i-1] / i
 
 
-cpdef complex cy_compute_integrals(double[:] ws, double dt, double a_tol=1e-10):
+cpdef complex cy_compute_integrals(
+    double[:] ws, double dt, double a_tol=1e-10
+) noexcept nogil:
     """
         Computes the value of the nested integrals for a given array of
         effective omegas. See eq. (7) in Ref.

@@ -35,9 +35,9 @@ def density(request): return request.param
 def sorted_(request): return request.param
 
 
-def _valid_scipy():
+def _valid_scipy(gen=None):
     """Arbitrary valid scipy CSR"""
-    return random_data.random_scipy_csr((10, 10), 0.5, True)
+    return random_data.random_scipy_csr((10, 10), 0.5, True, gen=gen)
 
 
 def _valid_arg():
@@ -49,13 +49,17 @@ def _valid_arg():
 
 
 @pytest.fixture(scope='function')
-def scipy_csr(shape, density, sorted_):
-    return random_data.random_scipy_csr(shape, density, sorted_)
+def scipy_csr(shape, density, sorted_, random_generator):
+    return random_data.random_scipy_csr(
+        shape, density, sorted_, random_generator
+    )
 
 
 @pytest.fixture(scope='function')
-def data_csr(shape, density, sorted_):
-    return random_data.random_csr(shape, density, sorted_)
+def data_csr(shape, density, sorted_, random_generator):
+    return random_data.random_csr(
+        shape, density, sorted_, random_generator
+    )
 
 
 class TestClassMethods:
@@ -130,12 +134,14 @@ class TestClassMethods:
     @pytest.mark.parametrize('r_type', _dtype_int + _dtype_uint)
     # uint on macos raise a RuntimeWarning
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test_init_from_tuple_allowed_dtypes(self, d_type, c_type, r_type):
+    def test_init_from_tuple_allowed_dtypes(
+        self, d_type, c_type, r_type, random_generator
+    ):
         """
         Test that initialisation can use a variety of dtypes and converts into
         the correct type.
         """
-        sci = _valid_scipy()
+        sci = _valid_scipy(random_generator)
         data_nz = np.random.randn(sci.nnz).astype(d_type, casting='unsafe')
         col_index = sci.indices.astype(c_type, casting='unsafe')
         row_index = sci.indptr.astype(r_type, casting='unsafe')
