@@ -268,24 +268,29 @@ cpdef bint isdiag_dia(Dia matrix, double tol=-1) except -1 nogil:
     return True
 
 
-cpdef bint isdiag_csr(CSR matrix) noexcept nogil:
-    cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
+cpdef bint isdiag_csr(CSR matrix, double tol=-1) except -1 nogil:
+    cdef size_t row, ptr
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    cdef double tolsq = tol*tol
     for row in range(matrix.shape[0]):
-        ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
-        if ptr_end - ptr_start > 1:
-            return False
-        if ptr_end - ptr_start == 1:
-            if matrix.col_index[ptr_start] != row:
+        for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
+            if matrix.col_index[ptr] != row and _abssq(matrix.data[ptr]) > tolsq:
                 return False
     return True
 
 
-cpdef bint isdiag_dense(Dense matrix) noexcept nogil:
+cpdef bint isdiag_dense(Dense matrix, double tol=-1) except -1 nogil:
     cdef size_t row, row_stride = 1 if matrix.fortran else matrix.shape[1]
     cdef size_t col, col_stride = matrix.shape[0] if matrix.fortran else 1
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    cdef double tolsq = tol*tol
     for row in range(matrix.shape[0]):
         for col in range(matrix.shape[1]):
-            if (col != row) and matrix.data[col * col_stride + row * row_stride] != 0.:
+            if col != row and _abssq(matrix.data[col * col_stride + row * row_stride]) > tolsq:
                 return False
     return True
 
@@ -492,6 +497,8 @@ isherm.add_specialisations([
 isdiag = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_ONLY),
+        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=-1),
     ]),
     name='isdiag',
     module=__name__,
@@ -506,6 +513,9 @@ isdiag.__doc__ =\
     ----------
     matrix : Data
         The matrix to test for diagonality.
+    tol : real, optional
+        The absolute tolerance to use when comparing off-diagonal elements to
+        zero.  If not given, or less than 0, use the core setting `atol`.
     """
 isdiag.add_specialisations([
     (Dense, isdiag_dense),
