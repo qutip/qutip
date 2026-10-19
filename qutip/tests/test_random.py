@@ -199,26 +199,29 @@ def test_rand_dm(dimensions, kw, dtype, distribution, random_generator):
 
 @pytest.mark.parametrize('spread', [0, 1e-15])
 @pytest.mark.parametrize('N', [1, 2, 3])
-def test_rand_eigen_equal_eigenvalues(N, spread):
+def test_rand_eigen_equal_eigenvalues(N, spread, random_generator):
     """
     Random Qobjs: equal (or nearly equal) eigenvalues give a multiple of the
     identity, which no rotation can make denser.
     """
     shift = spread * (np.arange(N) - (N - 1) / 2)
-    rho = rand_dm(N, distribution="eigen", eigenvalues=1 / N + shift)
+    rho = rand_dm(N, distribution="eigen", eigenvalues=1 / N + shift,
+                  seed=random_generator)
     assert rho == qeye(N) / N
-    H = rand_herm(N, density=1, distribution="eigen", eigenvalues=0.5 + shift)
+    H = rand_herm(N, density=1, distribution="eigen", eigenvalues=0.5 + shift,
+                  seed=random_generator)
     assert H == 0.5 * qeye(N)
 
 
-def test_rand_eigen_close_eigenvalues_large_tidyup():
+def test_rand_eigen_close_eigenvalues_large_tidyup(random_generator):
     """
     Random Qobjs: the tolerance follows auto_tidyup_atol, so a larger tidyup
     setting does not bring the infinite loop back.
     """
     eigenvalues = 1 / 3 + 1e-12 * np.array([-1, 0, 1])
     with CoreOptions(auto_tidyup_atol=1e-10):
-        rho = rand_dm(3, distribution="eigen", eigenvalues=eigenvalues)
+        rho = rand_dm(3, distribution="eigen", eigenvalues=eigenvalues,
+                      seed=random_generator)
     np.testing.assert_allclose(rho.full(), np.eye(3) / 3, atol=1e-10)
 
 
