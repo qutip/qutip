@@ -117,3 +117,16 @@ def pytest_sessionstart(session):
     print("Run global seed:", SEEDSEQ.entropy)
     default_type = type(np.random.default_rng().bit_generator)
     print("Type of bit generator:", default_type.__name__)
+
+
+@pytest.fixture
+def jax_key(request):
+    pytest.importorskip("jax")  # skip the test if jax isn't installed
+    from qutip.testing import get_test_jax_key
+
+    test_name = request.node.nodeid.split("::")[-1]
+    rerun = getattr(request.node, "execution_count", 1)
+    entropy = SEEDSEQ.entropy + rerun
+    # Prints the seeds at the end of error messages.
+    request.node.user_properties.append(("jax_key_entropy", entropy))
+    return get_test_jax_key(entropy, test_name)
