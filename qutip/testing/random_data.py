@@ -4,6 +4,21 @@ import scipy.sparse
 import qutip
 
 
+def _to_numpy_gen(gen):
+    """
+    Accept None, a numpy Generator, or a jax PRNG key.
+    Return None or a numpy Generator.
+    """
+    if gen is None or isinstance(gen, np.random.Generator):
+        return gen
+    import jax
+
+    # Take the raw numbers inside the key and use them as a numpy seed.
+    seed = np.asarray(jax.random.key_data(gen)).ravel().tolist()
+    return np.random.default_rng(seed)
+
+
+
 def shuffle_indices_scipy_csr(matrix, gen=None):
     """
     Given a scipy CSR matrix or array, shuffle the indices within each row and
@@ -16,11 +31,15 @@ def shuffle_indices_scipy_csr(matrix, gen=None):
     general, we attempt to shuffle, and if this returns the same order as
     before, we just reverse it to ensure it's different.
 
-    An optional numpy random generator can be passed as `gen`.
+    An optional numpy random generator or jax PRNG key can be passed as `gen`.
     If not provided one will be created.
+    
     """
     if gen is None:
         gen = np.random.default_rng()
+    
+    gen = _to_numpy_gen(gen) # check if its a numpy or a jax key
+    
     out = matrix.copy()
     for row in range(out.shape[0]):
         ptr = (out.indptr[row], out.indptr[row + 1])
@@ -37,12 +56,15 @@ def random_scipy_dia(shape, density, sort=False, gen=None, sparray=True):
     """
     Generate a random scipy dia array with the given shape, density.
 
-    An optional numpy random generator can be passed as `gen`.
+    An optional numpy random generator or jax PRNG key can be passed as `gen`.
     If not provided one will be created.  Pass ``sparray=False`` to generate a
     legacy ``dia_matrix`` instead of a ``dia_array``.
     """
     if gen is None:
         gen = np.random.default_rng()
+        
+    gen = _to_numpy_gen(gen) # check if its a numpy or a jax key
+
     num_diag = int(density * (shape[0] + shape[1] - 1)) or 1
     offsets = []
     data = []
@@ -74,12 +96,15 @@ def random_scipy_csr(shape, density, sorted_, gen=None, sparray=True):
     with indices that are either sorted or unsorted.  The nnz elements will
     always be at least one.
 
-    An optional numpy random generator can be passed as `gen`.
+    An optional numpy random generator or jax PRNG key can be passed as `gen`.
     If not provided one will be created.  Pass ``sparray=False`` to generate a
     legacy ``csr_matrix`` instead of a ``csr_array``.
     """
     if gen is None:
         gen = np.random.default_rng()
+        
+    gen = _to_numpy_gen(gen) # check if its a numpy or a jax key
+
     nnz = int(shape[0] * shape[1] * density) or 1
     data = gen.uniform(size=nnz) + 1j * gen.uniform(size=nnz)
     rows = gen.choice(np.arange(shape[0]), nnz)
@@ -95,11 +120,14 @@ def random_numpy_dense(shape, fortran, gen=None):
     """
     Generate a random numpy dense matrix with the given shape.
 
-    An optional numpy random generator can be passed as `gen`.
+    An optional numpy random generator or jax PRNG key can be passed as `gen`.
     If not provided one will be created.
     """
     if gen is None:
         gen = np.random.default_rng()
+    
+    gen = _to_numpy_gen(gen) # check if its a numpy or a jax key
+
     out = gen.uniform(size=shape) + 1j * gen.uniform(size=shape)
     if fortran:
         out = np.asfortranarray(out)
@@ -115,6 +143,7 @@ def random_csr(shape, density, sorted_, gen=None):
     An optional numpy random generator can be passed as `gen`.
     If not provided one will be created.
     """
+    
     return qutip.core.data.CSR(random_scipy_csr(shape, density, sorted_, gen))
 
 

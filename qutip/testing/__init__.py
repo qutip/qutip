@@ -58,3 +58,36 @@ def get_test_generator(entropy, test_name):
     test_name = test_name.encode("utf-8")
     name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
     return np.random.default_rng( (entropy + name_hash) % 2**128 )
+
+
+def get_test_jax_key(entropy, test_name):
+    """
+    Recreate the jax PRNG key used in tests from the test global seed
+    and test name. This is the jax equivalent of `get_test_generator`.
+
+    Parameters
+    ----------
+    entropy: int128
+        Number printed at the start of the test suite:
+        Run global seed: *********
+
+    test_name: str
+        Name of the test with parametrisation ids:
+        "test_data_binary_operator[matmul-CSR-Dense]"
+        The file name is not used.
+    """
+    import jax
+
+    if "::" in test_name:
+        test_name = test_name.split("::")[-1]
+    test_name = test_name.encode("utf-8")
+    name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
+    seed = (entropy + name_hash) % 2**128
+
+    # jax keys only accept ~32 bit seeds, but the seed here is 128 bits.
+    # Mix it in as four 32-bit pieces so none of it is thrown away.
+    key = jax.random.key(0)
+    for i in range(4):
+        chunk = (seed >> (32 * i)) & 0xFFFFFFFF
+        key = jax.random.fold_in(key, chunk)
+    return key
