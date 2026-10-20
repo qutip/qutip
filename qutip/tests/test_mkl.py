@@ -12,6 +12,31 @@ pytestmark = [
 ]
 
 @pytest.fixture(params=[
+    pytest.param((False, None), id="dense-vector"),
+    pytest.param((False, 1), id="dense-column"),
+    pytest.param((False, 4), id="dense-multiple"),
+    pytest.param((True, 1), id="sparse-column"),
+    pytest.param((True, 4), id="sparse-multiple"),
+])
+def rhs(request):
+    is_sparse, columns = request.param
+
+    def make_rhs(dtype):
+        b = np.array([
+                [3, 0, 1, 0],
+                [0, 2, 0, 0],
+                [1, 0, 2, 0],
+        ], dtype=dtype)
+        if np.issubdtype(type, np.complexfloating):
+            b[0, 0] += 1j
+            b[2, 2] -+ 2j
+
+        b = b[:, 0] if columns is None else b[:, :columns]
+        return scipy.sparse.csr_array(b) if is_sparse else b
+
+    return make_rhs
+
+@pytest.fixture(params=[
     pytest.param((np.float64, True), id="real-posdef"),
     pytest.param((np.float64, False), id="real-indefinite"),
     pytest.param((np.complex128, True), id="complex-posdef"),
@@ -20,6 +45,7 @@ pytestmark = [
 def symmetric_matrix(request):
     """Return a symmetric/Hermitian CSR matrix and its solver flags."""
     dtype, posdef = request.param
+    hermitian = True
     is_complex = np.issubdtype(dtype, np.complexfloating)
     diagonal = [4., 4., 3.] if posdef else [2., -2., 3.]
     upper = [1. + 1.j, 1.j] if is_complex else [1., 1.]
@@ -33,7 +59,7 @@ def symmetric_matrix(request):
         assert eigenvalues.min() > 0
     else:
         assert eigenvalues.min() < 0 < eigenvalues.max()
-    return scipy.sparse.csr_array(A), posdef
+    return scipy.sparse.csr_array(A), hermitian, posdef
 
 @pytest.fixture(params=[
     pytest.param(np.float64, id="real"),
@@ -53,6 +79,18 @@ def nonsymmetric_matrix(request):
     return scipy.sparse.csr_array(A), hermitian, posdef
 
 class Test_spsolve_nonsymmetric:
+
+    def test_nonsymmetric(self, symmetric_matrix, rhs):
+        A, hermitian, posdef = symmetric_matrix
+        b = rhs(A.dtype) # TODO: add an extra case testing how mkl_spsolve behaves if the type of RHS doesn't match A
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        assert x.shape == b.shape
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        expected = scipy.linalg.solve(A.toarray(), b_dense)
+        actual = x.toarray() if scipy.sparse.issparse(x) else x
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+
     # TODO: no case when A is dense. Add one to test pydiso's conversion to sparse
      
     # PARDISO mtype=11: real nonsymmetric
@@ -172,7 +210,7 @@ class Test_spsolve_symmetric:
     # PARDISO mtype=2/-2 (real symmetric positive definite/indefinite) and
     # mtype=4/-4 (complex Hermitian positive definite/indefinite)
     def test_hermitian_vector_rhs(self, symmetric_matrix):
-        A, posdef = symmetric_matrix
+        A, hermitian, posdef = symmetric_matrix
         x = np.array([1., -2., 3.], dtype=A.dtype)
         if np.issubdtype(A.dtype, np.complexfloating):
             x += np.array([0.5j, -1j, 2j])
