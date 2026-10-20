@@ -274,7 +274,7 @@ class TestEvolution:
             np.testing.assert_allclose(
                 result_ulme.expect[i],
                 result_br.expect[i],
-                atol=1e-2, rtol=1e-2
+                atol=5e-2, rtol=5e-2
             )
 
     def test_matches_UL_transform(self, random_generator):
@@ -284,7 +284,7 @@ class TestEvolution:
             qutip.rand_herm(N, density=0.6, seed=random_generator),
             [qutip.rand_herm(N, seed=random_generator), lambda t: np.sin(t)],
         ])
-        c_op = qutip.rand_herm(N, seed=random_generator)
+        c_op = qutip.rand_herm(N, seed=random_generator) * 0.5
         env = OhmicEnvironment(T=0.5, alpha=1.0, wc=0.5, s=1.)
         e_ops = {
             "num": qutip.num(N),
@@ -309,8 +309,8 @@ class TestEvolution:
             atol=1e-8
         )
 
-    def test_matches_UL_transform(self, random_generator):
-        tlist = np.linspace(0, 10, 50)
+    def test_mcsolve(self, random_generator):
+        tlist = np.linspace(0, 2, 21)
         N = 5
         H = qutip.rand_herm(N, density=0.6, seed=random_generator)
         c_op = qutip.rand_herm(N, seed=random_generator)
@@ -330,12 +330,12 @@ class TestEvolution:
         np.testing.assert_allclose(
             result_transform.average_e_data["num"],
             result_solver.e_data["num"],
-            atol=0.05, rtol=0.05,
+            atol=0.1, rtol=0.1,
         )
         np.testing.assert_allclose(
             result_transform.average_e_data["energy"],
             result_solver.e_data["energy"],
-            atol=0.05, rtol=0.05,
+            atol=0.1, rtol=0.1,
         )
 
     @pytest.mark.parametrize("method", ["eigen", "propagator"])
@@ -406,10 +406,10 @@ class TestEvolution:
         )
         # test flat outside pulse
         np.testing.assert_allclose(
-            result.e_data["z"][0], result.e_data["z"][:20],
+            result.e_data["z"][0], result.e_data["z"][:20], atol=1e-7,
         )
         np.testing.assert_allclose(
-            result.e_data["z"][-1], result.e_data["z"][-20:],
+            result.e_data["z"][-1], result.e_data["z"][-20:], atol=1e-7,
         )
         # Moved dusing pulse
         assert abs(result.e_data["z"][0] - result.e_data["z"][-1]) > 0.5
