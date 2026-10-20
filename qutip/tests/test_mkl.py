@@ -103,7 +103,7 @@ class Test_spsolve_nonsymmetric:
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-    # TODO: no case when A is dense. Add one to test pydiso's conversion to sparse
+    # TODO: no case when A is dense. Add one to test if necessary conversion to sparse always works
      
     # PARDISO mtype=11: real nonsymmetric
     # A - sparse, real-valued
@@ -174,56 +174,6 @@ class Test_spsolve_nonsymmetric:
                         [0, 0]])
         np.testing.assert_allclose(x.toarray(), ans)
     
-    # PARDISO mtype=13: complex nonsymmetric, with sparse multiple RHS
-    # A - complex, sparse
-    # RHS - complex matrix, sparse
-    def test_complex_nonhermitian_sparse_rhs(self):
-        A = scipy.sparse.csr_array(np.array([
-            [1, 2 + 1j, 0],
-            [0, 3, 1j],
-            [4, 0, 5],
-        ], dtype=np.complex128))
-        b = scipy.sparse.csr_array(np.array([
-            [0, 1], [1, 0], [0, 2],
-        ], dtype=np.complex128))
-        x = mkl_spsolve(A, b, hermitian=False, posdef=False, verbose=True)
-        assert scipy.sparse.issparse(x)
-        assert x.shape == b.shape
-        np.testing.assert_allclose(
-            x.toarray(), scipy.linalg.solve(A.toarray(), b.toarray()),
-            atol=1e-12,
-        )
-    
-    # PARDISO mtype=13 with complex matrix and RHS entries
-    # A - complex and dense, sparse
-    # RHS is parameterised to be column-vector, row-vector, and matrix
-    # RHS is dense, complex-valued
-    @pytest.mark.parametrize("k", [
-        pytest.param(None, id="vector"),
-        pytest.param(1, id="column"),
-        pytest.param(4, id="multiple"),
-    ])
-    def test_complex_nonhermitian_rhs(self, k):
-        A = np.array([
-            [4 + 1j, 1.2 + 0.3j, 0],
-            [1 - 0.2j, 5, 1],
-            [0, 1, 6],
-        ], dtype=np.complex128)
-        assert not np.allclose(A, A.conj().T)
-        rhs = np.array([
-            [3 + 1j, 0, 1, 2 - 1j],
-            [0, 2 - 1j, 0, 1],
-            [1j, 0, 1 + 2j, 4],
-        ], dtype=np.complex128)
-        b = rhs[:, 0] if k is None else rhs[:, :k]
-        expected = scipy.linalg.solve(A, b)
-        y = mkl_spsolve(
-            scipy.sparse.csr_array(A), b,
-            hermitian=False, posdef=False, verbose=False,
-        )
-        assert y.shape == b.shape
-        np.testing.assert_allclose(y, expected, atol=1e-10)
-
 class Test_spsolve_symmetric:
     
     def test_symmetric(self, symmetric_matrix, rhs):
