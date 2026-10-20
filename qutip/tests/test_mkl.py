@@ -115,7 +115,7 @@ class Test_spsolve_nonsymmetric:
         As = scipy.sparse.csr_matrix(Adense)
         x = random_generator.standard_normal(3)
         b = As * x
-        x2 = mkl_spsolve(As, b, hermitian=False, posdef=False, verbose=False)
+        x2 = mkl_spsolve(As, b, hermitian=False, posdef=False, verbose=True)
         np.testing.assert_allclose(x, x2)
 
     def test_single_rhs_vector_complex(self, random_generator):
@@ -137,7 +137,7 @@ class Test_spsolve_nonsymmetric:
             [0, 2, 0],
             [0, 0, 0],
         ], dtype=A.dtype)
-        sX = mkl_spsolve(A, N, hermitian=hermitian, posdef=posdef, verbose=False)
+        sX = mkl_spsolve(A, N, hermitian=hermitian, posdef=posdef, verbose=True)
         X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(X, sX)
    
@@ -168,7 +168,7 @@ class Test_spsolve_nonsymmetric:
             [1, 0],
             [0, 0],
         ])
-        x = mkl_spsolve(A, b, hermitian=False, posdef=False, verbose=False)
+        x = mkl_spsolve(A, b, hermitian=False, posdef=False, verbose=True)
         ans = np.array([[-0.66666667, 1],
                         [0.33333333, 0],
                         [0, 0]])
@@ -186,7 +186,7 @@ class Test_spsolve_nonsymmetric:
         b = scipy.sparse.csr_array(np.array([
             [0, 1], [1, 0], [0, 2],
         ], dtype=np.complex128))
-        x = mkl_spsolve(A, b, hermitian=False, posdef=False, verbose=False)
+        x = mkl_spsolve(A, b, hermitian=False, posdef=False, verbose=True)
         assert scipy.sparse.issparse(x)
         assert x.shape == b.shape
         np.testing.assert_allclose(
@@ -262,7 +262,7 @@ class Test_splu:
             [0, 0, 0],
         ], dtype=A.dtype)
         test_X = np.zeros((3, 3), dtype=A.dtype)
-        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=False)
+        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
         for k in range(3):
             test_X[:, k] = lu.solve(N[:, k])
         lu.delete()
