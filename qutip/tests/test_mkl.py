@@ -4,13 +4,14 @@ import scipy.linalg
 import scipy.sparse
 import qutip
 
+if not qutip.settings.has_mkl:
+    pytest.skip(
+        "MKL extensions not found.",
+        allow_module_level=True,
+    )
+
 if qutip.settings.has_mkl:
     from qutip._mkl.spsolve import mkl_splu, mkl_spsolve, _mkl_matrix_type
-
-pytestmark = [
-    pytest.mark.skipif(not qutip.settings.has_mkl,
-                       reason='MKL extensions not found.'),
-]
 
 @pytest.fixture(params=[
     pytest.param((False, None), id="rhs-dense-vector"),
