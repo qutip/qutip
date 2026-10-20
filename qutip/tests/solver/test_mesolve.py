@@ -828,14 +828,15 @@ def test_non_normalized_dm(rho0, matrix_form):
 
 @pytest.mark.parametrize("kdim", [50, 1000])
 @pytest.mark.parametrize("alg", ['lanczos_fro'])
-def test_krylovsolve_mixed_state(kdim, alg, random_generator):
+@pytest.mark.parametrize("matrix_form", [False, True])
+def test_krylovsolve_mixed_state(kdim, alg, matrix_form, random_generator):
     H = qutip.rand_herm(20, density=.8, seed=random_generator)
     rho0 = qutip.rand_dm(20, seed=random_generator)
     e_op = qutip.num(20)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
 
-    opts = {"store_states": True}
+    opts = {"store_states": True, "matrix_form": matrix_form}
     ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
     ref_exp = ref.expect[0]
 
@@ -847,7 +848,8 @@ def test_krylovsolve_mixed_state(kdim, alg, random_generator):
     np.testing.assert_allclose(ref_exp, kout.expect[0], atol=1e-5, rtol=1e-5)
 
 
-def test_krylovsolve_decay():
+@pytest.mark.parametrize('matrix_form', [False, True])
+def test_krylovsolve_decay(matrix_form):
     a = qutip.destroy(10)
     H = a.dag() * a
     kappa = 0.2
@@ -855,7 +857,7 @@ def test_krylovsolve_decay():
     tlist = np.linspace(0, 10, 201)
     psi0 = qutip.basis(10, 9)
 
-    opt = {"store_states": True}
+    opt = {"store_states": True, "matrix_form": matrix_form}
     kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H], options=opt)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
@@ -863,6 +865,26 @@ def test_krylovsolve_decay():
     expt = kout.expect[0]
     actual_answer = 9.0 * np.exp(-kappa * tlist)
     np.testing.assert_allclose(actual_answer, expt, atol=1e-6)
+
+
+@pytest.mark.parametrize("c_ops", [
+    pytest.param([], id="closed"),
+    pytest.param([np.sqrt(0.1) * qutip.destroy(10)], id="open"),
+])
+def test_krylovsolve_matrix_form_states(c_ops):
+    a = qutip.destroy(10)
+    H = a.dag() * a + 0.3 * (a + a.dag())
+    rho0 = qutip.coherent_dm(10, 1.0)
+    tlist = np.linspace(0, 2, 11)
+ 
+    vec = krylovsolve(H, rho0, tlist, 20, c_ops=c_ops,
+                      options={"store_states": True})
+    mat = krylovsolve(H, rho0, tlist, 20, c_ops=c_ops,
+                      options={"store_states": True, "matrix_form": True})
+    for state_vec, state_mat in zip(vec.states, mat.states):
+        assert state_mat.dims == state_vec.dims
+        np.testing.assert_allclose(state_mat.full(), state_vec.full(),
+                                   atol=1e-10)
 
 
 class TestMESolveMatrixForm:
