@@ -103,13 +103,12 @@ class Test_spsolve_nonsymmetric:
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-    """
     # TODO: no case when A is dense. Add one to test pydiso's conversion to sparse
      
     # PARDISO mtype=11: real nonsymmetric
     # A - sparse, real-valued
     # b - sparse/dense? , real-valued
-    def test_real_nonsymmetric_vector_rhs(self, random_generator):
+    def test_single_rhs_vector_real(self, random_generator):
         Adense = np.array([[0, 1, 1],
                            [1, 0, 1],
                            [0, 0, 1]])
@@ -118,11 +117,20 @@ class Test_spsolve_nonsymmetric:
         b = As * x
         x2 = mkl_spsolve(As, b, hermitian=False, posdef=False, verbose=False)
         np.testing.assert_allclose(x, x2)
+
+    def test_single_rhs_vector_complex(self, random_generator):
+        A = qutip.rand_herm(
+            10, density=0.8, dtype='csr', seed=random_generator
+        )
+        x = qutip.rand_ket(10, seed=random_generator).full()
+        b = A.full() @ x
+        y = mkl_spsolve(A.data.as_scipy(), b, verbose=True)
+        np.testing.assert_allclose(x, y)
     
     # PARDISO mtype=11 (real) and mtype=13 (complex), with multiple RHS
     # A - sparse, real/complex
     # b - dense, real/complex
-    def test_nonsymmetric_multiple_rhs(self, nonsymmetric_matrix):
+    def test_multi_rhs_vector(self, nonsymmetric_matrix):
         A, hermitian, posdef = nonsymmetric_matrix
         N = np.array([
             [3, 0, 1],
@@ -132,17 +140,30 @@ class Test_spsolve_nonsymmetric:
         sX = mkl_spsolve(A, N, hermitian=hermitian, posdef=posdef, verbose=False)
         X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(X, sX)
-    
+   
+    def test_rhs_shape_is_maintained(self):
+        A = scipy.sparse.csr_matrix(np.array([
+            [1, 0, 2],
+            [0, 0, 3],
+            [-4, 5, 6],
+        ], dtype=np.complex128))
+        b = np.array([0, 2, 0], dtype=np.complex128)
+        out = mkl_spsolve(A, b, verbose=True)
+        assert b.shape == out.shape
+
+        b = np.array([0, 2, 0], dtype=np.complex128).reshape((3, 1))
+        out = mkl_spsolve(A, b, verbose=True)
+        assert b.shape == out.shape
     # PARDISO mtype=11
     # A - real-valued, sparse
     # RHS: sparse, real valued matrix
-    def test_real_nonsymmetric_integer_sparse_rhs(self):
-        A = scipy.sparse.csr_matrix([
+    def test_sparse_rhs(self):
+        A = scipy.sparse.csr_array([
             [1, 2, 0],
             [0, 3, 0],
             [0, 0, 5],
         ])
-        b = scipy.sparse.csr_matrix([
+        b = scipy.sparse.csr_array([
             [0, 1],
             [1, 0],
             [0, 0],
@@ -202,7 +223,7 @@ class Test_spsolve_nonsymmetric:
         )
         assert y.shape == b.shape
         np.testing.assert_allclose(y, expected, atol=1e-10)
-"""
+
 class Test_spsolve_symmetric:
     
     def test_symmetric(self, symmetric_matrix, rhs):
@@ -215,33 +236,20 @@ class Test_spsolve_symmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-"""
     # PARDISO mtype=4: complex Hermitian positive-definite
     # A - complex-valued, sparse
     # RHS - dense, complex valued, column vector
-    def test_complex_hermitian_posdef_column_rhs(self, random_generator):
-        A = qutip.rand_herm(
-            10, density=0.8, distribution='pos_def',
-            seed=random_generator, dtype='csr'
-        )
-        x = qutip.rand_ket(10, seed=random_generator).full()
-        b = A.full() @ x
-        y = mkl_spsolve(
-            A.data.as_scipy(), b, hermitian=True, posdef=True, verbose=False
-        )
+    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+    def test_symmetric_solver(self, dtype):
+        A = qutip.rand_herm(10, distribution="eigen",
+                            eigenvalues=np.arange(1, 11),
+                            dtype='csr').data.as_scipy()
+        if dtype == np.float64:
+            A = A.real
+        x = np.ones(10, dtype=dtype)
+        b = A.dot(x)
+        y = mkl_spsolve(A, b, hermitian=1, verbose=True)
         np.testing.assert_allclose(x, y)
-
-    # PARDISO mtype=2/-2 (real symmetric positive definite/indefinite) and
-    # mtype=4/-4 (complex Hermitian positive definite/indefinite)
-    def test_hermitian_vector_rhs(self, symmetric_matrix):
-        A, hermitian, posdef = symmetric_matrix
-        x = np.array([1., -2., 3.], dtype=A.dtype)
-        if np.issubdtype(A.dtype, np.complexfloating):
-            x += np.array([0.5j, -1j, 2j])
-        b = A @ x
-        y = mkl_spsolve(A, b, hermitian=True, posdef=posdef, verbose=True)
-        assert y.shape == b.shape
-        np.testing.assert_allclose(y, x, rtol=1e-10, atol=1e-12)
 
 class Test_splu:
     # PARDISO mtype=11 (real) and mtype=13 (complex): reuse the general
@@ -260,4 +268,3 @@ class Test_splu:
         lu.delete()
         expected_X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(test_X, expected_X)
-"""
