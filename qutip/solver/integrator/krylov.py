@@ -59,7 +59,8 @@ class IntegratorKrylov(Integrator):
             # The Krylov vectors are not Hermitian, so we cannot use the
             # hermitian fast-path. We therefore create a private copy.
             self.rhs = LindbladMatrixForm(
-                trhs.Hnh, trhs.c_ops, assume_herm=False, _H_nh=trhs.Hnh
+                trhs.H_nh, trhs.c_ops,
+                assume_hermitian_state=False, _H_nh=trhs.H_nh
             )
             # Without c_ops 1j * L is hermitian
             self._hermitian = trhs.num_collapse == 0 and trhs.H_nh(0).isherm
