@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 import scipy.linalg
 import scipy.sparse
-
 import qutip
 if qutip.settings.has_mkl:
     from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
@@ -19,7 +18,7 @@ pytestmark = [
     pytest.param((np.complex128, False), id="complex-indefinite"),
 ])
 def symmetric_matrix(request):
-    """Return a symmetric/Hermitian CSR matrix and its solver flag."""
+    """Return a symmetric/Hermitian CSR matrix and its solver flags."""
     dtype, posdef = request.param
     is_complex = np.issubdtype(dtype, np.complexfloating)
     diagonal = [4., 4., 3.] if posdef else [2., -2., 3.]
@@ -35,6 +34,23 @@ def symmetric_matrix(request):
     else:
         assert eigenvalues.min() < 0 < eigenvalues.max()
     return scipy.sparse.csr_array(A), posdef
+
+@pytest.fixture(params=[
+    pytest.param(np.float64, id="real"),
+    pytest.param(np.complex128, id="complex"),
+])
+def nonsymmetric_matrix(request):
+    """Return a nonsymmetric CSR matrix and its solver flags."""
+    dtype = request.param
+    hermitian = False
+    posdef = False
+    A = np.array([
+        [1, 0, 2],
+        [0, 0, 3],
+        [-4, 5, 6],
+    ], dtype=dtype)
+    assert not np.allclose(A, A.conj().T)
+    return scipy.sparse.csr_array(A), hermitian, posdef
 
 class Test_spsolve_nonsymmetric:
     # TODO: no case when A is dense. Add one to test pydiso's conversion to sparse
@@ -55,21 +71,15 @@ class Test_spsolve_nonsymmetric:
     # PARDISO mtype=11 (real) and mtype=13 (complex), with multiple RHS
     # A - sparse, real/complex
     # b - dense, real/complex
-    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_nonsymmetric_multiple_rhs(self, dtype):
-        M = np.array([
-            [1, 0, 2],
-            [0, 0, 3],
-            [-4, 5, 6],
-        ], dtype=dtype)
-        sM = scipy.sparse.csr_matrix(M)
+    def test_nonsymmetric_multiple_rhs(self, nonsymmetric_matrix):
+        A, hermitian, posdef = nonsymmetric_matrix
         N = np.array([
             [3, 0, 1],
             [0, 2, 0],
             [0, 0, 0],
-        ], dtype=dtype)
-        sX = mkl_spsolve(sM, N, hermitian=False, posdef=False, verbose=True)
-        X = scipy.linalg.solve(M, N)
+        ], dtype=A.dtype)
+        sX = mkl_spsolve(A, N, hermitian=hermitian, posdef=posdef, verbose=True)
+        X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(X, sX)
     
     # PARDISO mtype=11
@@ -174,23 +184,17 @@ class Test_spsolve_symmetric:
 class Test_splu:
     # PARDISO mtype=11 (real) and mtype=13 (complex): reuse the general
     # factorization for repeated vector RHS solves
-    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_nonsymmetric_repeated_vector_rhs(self, dtype):
-        M = np.array([
-            [1, 0, 2],
-            [0, 0, 3],
-            [-4, 5, 6],
-        ], dtype=dtype)
-        sM = scipy.sparse.csr_matrix(M)
+    def test_nonsymmetric_repeated_vector_rhs(self, nonsymmetric_matrix):
+        A, hermitian, posdef = nonsymmetric_matrix
         N = np.array([
             [3, 0, 1],
             [0, 2, 0],
             [0, 0, 0],
-        ], dtype=dtype)
-        test_X = np.zeros((3, 3), dtype=dtype)
-        lu = mkl_splu(sM, hermitian=False, posdef=False, verbose=True)
+        ], dtype=A.dtype)
+        test_X = np.zeros((3, 3), dtype=A.dtype)
+        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
         for k in range(3):
             test_X[:, k] = lu.solve(N[:, k])
         lu.delete()
-        expected_X = scipy.linalg.solve(M, N)
+        expected_X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(test_X, expected_X)
