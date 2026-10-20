@@ -164,7 +164,9 @@ class IntegratorKrylov(Integrator):
             [subdiag[:k-1], diag[:k], subdiag[:k-1]],
             [-1, 0, 1]
         )
-        krylov_basis = _data.Dense(np.hstack([p.to_array() for p in Q]))
+        krylov_basis = _data.Dense(
+            np.hstack([_data.column_stack(p).to_array() for p in Q])
+        )
 
         return krylov_trid, krylov_basis
 
@@ -243,7 +245,7 @@ class IntegratorKrylov(Integrator):
 
         krylov_hesse = _data.Dense(h[:k, :k])
         krylov_basis = _data.Dense(
-            np.hstack([p.to_array() for p in Q])
+            np.hstack([_data.column_stack(p).to_array() for p in Q])
         )
         return krylov_hesse, krylov_basis
 
@@ -269,7 +271,10 @@ class IntegratorKrylov(Integrator):
         """
         phases = _data.Dense(np.exp(-1j * dt * eigenvalues))
         aux = _data.multiply(phases, e0)
-        return _data.matmul(U, aux)
+        psi = _data.matmul(U, aux)
+        if self._matrix_form:
+            psi = _data.column_unstack(psi, self._state_shape[0])
+        return psi
 
     def _compute_max_step(self, krylov_tridiag):
         """
@@ -295,6 +300,7 @@ class IntegratorKrylov(Integrator):
 
     def set_state(self, t: float, state0: _data.Data):
         self._t_0 = t
+        self._state_shape = state0.shape
 
         krylov_tridiag, krylov_basis = self._algorithm(state0)
         self._krylov_state = \
@@ -302,7 +308,7 @@ class IntegratorKrylov(Integrator):
 
         if (
             krylov_tridiag.shape[0] < self._krylov_dim
-            or krylov_tridiag.shape == self.rhs.shape
+            or krylov_tridiag.shape[0] == state0.shape[0] * state0.shape[1]
         ):
             # happy_breakdown
             self._max_step = np.inf
