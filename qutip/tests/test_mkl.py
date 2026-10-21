@@ -49,7 +49,7 @@ def rhs(request):
             ],
             dtype=dtype,
         )
-        if np.issubdtype(type, np.complexfloating):
+        if np.issubdtype(dtype, np.complexfloating):
             b[0, 0] += 1j
             b[2, 2] - +2j
 
@@ -57,7 +57,6 @@ def rhs(request):
         return scipy.sparse.csr_array(b) if is_sparse else b
 
     return make_rhs
-
 
 @pytest.fixture(
     params=[
