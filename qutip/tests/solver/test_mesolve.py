@@ -840,7 +840,8 @@ def test_krylovsolve_mixed_state(kdim, alg, matrix_form, random_generator):
     ref = mesolve(H, rho0, tlist, e_ops=[e_op], options=opts)
     ref_exp = ref.expect[0]
 
-    opts = {"store_states": True, "algorithm": alg, "always_compute_step": True}
+    opts = {"store_states": True, "algorithm": alg,
+            "always_compute_step": True}
     kout = krylovsolve(H, rho0, tlist, kdim, e_ops=[e_op], options=opts)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
@@ -858,7 +859,8 @@ def test_krylovsolve_decay(matrix_form):
     psi0 = qutip.basis(10, 9)
 
     opt = {"store_states": True, "matrix_form": matrix_form}
-    kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H], options=opt)
+    kout = krylovsolve(H, psi0, tlist, 20, c_ops=[c_op], e_ops=[H],
+                       options=opt)
     kstates = kout.states
     np.testing.assert_allclose(np.ones(len(kstates)),
                                [s.norm() for s in kstates])
@@ -876,7 +878,7 @@ def test_krylovsolve_matrix_form_states(c_ops):
     H = a.dag() * a + 0.3 * (a + a.dag())
     rho0 = qutip.coherent_dm(10, 1.0)
     tlist = np.linspace(0, 2, 11)
- 
+
     vec = krylovsolve(H, rho0, tlist, 20, c_ops=c_ops,
                       options={"store_states": True})
     mat = krylovsolve(H, rho0, tlist, 20, c_ops=c_ops,
