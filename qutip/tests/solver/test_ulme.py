@@ -8,8 +8,8 @@ from qutip.core.environment import (
     UnderDampedEnvironment
 )
 from qutip.solver.ulmesolve import ULMESolver, ulmesolve, UL_transform
-from qutip.solver.ulmesolve import _make_operators, ULOP
-from qutip import sigmax, sigmay, sigmaz, basis, qeye
+from qutip.solver.ulmesolve import _make_operators
+from qutip import sigmax, sigmay, sigmaz, basis, qeye, num
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +97,8 @@ def _make_ULME_lamb_shift_sum(H, X, env, T=15, Nt=300):
 # ---------------------------------------------------------------------------
 
 class TestAOpsParsing:
+    env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
+
     @pytest.mark.parametrize("a_ops_formater", [
         pytest.param(tuple, id="tuple"),
         pytest.param(list, id="list"),
@@ -137,19 +139,14 @@ class TestAOpsParsing:
             ULMESolver(qutip.liouvillian(sigmaz()), [(sigmax(), env)])
         assert "ULME cannot be used with superoperator" in str(err.value)
 
-
-@pytest.mark.parametrize("method", ["eigen", "propagator"])
-@pytest.mark.parametrize("lamb_shift", [True, False])
-def test_runs_and_normalizes(method, lamb_shift):
-    env = OhmicEnvironment(T=0.5, alpha=1.0, wc=0.5, s=1.)
-
-    result = ulmesolve(
-        sigmaz(), basis(2, 1), np.linspace(0, 1, 51), (sigmax(), env),
-        options={"ULME_creation": method, "use_lamb_shift": lamb_shift},
-    )
-    for state in result.states:
-        assert np.isclose(state.tr(), 1.0, atol=1e-6)
-        assert state.isherm
+    @pytest.mark.parametrize("a_ops, exc, msg", [
+        ((sigmax(), env, 1), TypeError, "pair"),
+        ("abc", TypeError, "list of"),
+        ((env, sigmax()), TypeError, "\(operator, environment\) pair")
+    ])
+    def test_bad_a_ops(self, a_ops, exc, msg):
+        with pytest.raises(exc, match=msg):
+            ulmesolve(sigmaz(), basis(2, 1), [0, 1], a_ops)
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +249,28 @@ class TestEvolution:
             ]
         return qutip.QobjEvo(X)
 
+    @pytest.mark.parametrize("lamb_shift", [True, False])
+    def test_runs_and_normalizes(self, lamb_shift):
+        env = OhmicEnvironment(T=0.5, alpha=1.0, wc=0.5, s=1.)
+
+        H = (sigmaz() & sigmaz())
+        X1 = (sigmax() & qeye(2)) * qutip.coefficient("a*t", args={"a": 0})
+        X2 = (qeye(2) & sigmax()) * qutip.coefficient("b*t", args={"b": 1})
+
+        result = ulmesolve(
+            H, basis([2, 2], [1, 1]), np.linspace(0, 1, 51),
+            a_ops = [(X1, env), (X2, env)], c_ops=(sigmay() & sigmay()),
+            args={"a": 1}, e_ops=[num(2) & qeye(2), qeye(2) & num(2)],
+            options={"use_lamb_shift": lamb_shift, "store_states": True},
+        )
+        for state in result.states:
+            assert np.isclose(state.tr(), 1.0, atol=1e-6)
+            assert state.isherm
+            assert state.dims == H.dims
+            assert min(state.eigenenergies()) >= 0
+
+        np.testing.assert_allclose(result.expect[0], result.expect[1])
+
     @pytest.mark.parametrize("H_td", [True, False])
     @pytest.mark.parametrize("X_td", [True, False])
     def test_matches_brmesolve(self, H_td, X_td, random_generator):
@@ -267,14 +286,14 @@ class TestEvolution:
         )
 
         result_br = qutip.brmesolve(
-            H, rho0, tlist, a_ops=[(X, env)], e_ops=e_ops,
+            H, rho0, tlist, a_ops=[(X, env)], e_ops=e_ops, sec_cutoff=-1,
         )
 
         for i in range(4):
             np.testing.assert_allclose(
                 result_ulme.expect[i],
                 result_br.expect[i],
-                atol=5e-2, rtol=5e-2
+                atol=1e-2, rtol=1e-2
             )
 
     def test_matches_UL_transform(self, random_generator):
@@ -301,11 +320,13 @@ class TestEvolution:
         )
 
         np.testing.assert_allclose(
-            result_transform.e_data["num"], result_solver.e_data["num"],
+            result_transform.e_data["num"],
+            result_solver.e_data["num"],
             atol=1e-8
         )
         np.testing.assert_allclose(
-            result_transform.e_data["energy"], result_solver.e_data["energy"],
+            result_transform.e_data["energy"],
+            result_solver.e_data["energy"],
             atol=1e-8
         )
 
@@ -367,9 +388,9 @@ class TestEvolution:
 
     @pytest.mark.parametrize("method", ["eigen", "propagator"])
     def test_multi_bath(self, method, random_generator):
-        H = qutip.rand_herm(4, density=0.5, seed=random_generator)
-        X0 = qutip.rand_herm(4, density=0.1, seed=random_generator)
-        X1 = qutip.rand_herm(4, density=0.1, seed=random_generator)
+        H = qutip.rand_herm([2, 2], density=0.5, seed=random_generator)
+        X0 = qeye(2) & qutip.rand_herm(2, density=0.1, seed=random_generator)
+        X1 = qutip.rand_herm(2, density=0.1, seed=random_generator) & qeye(2)
 
         env0 = UnderDampedEnvironment(T=1.0, lam=0.05, gamma=2.0, w0=3.)
         env1 = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
@@ -377,8 +398,8 @@ class TestEvolution:
 
         solver = ULMESolver(H, a_ops=a_ops, options={"ULME_creation": method})
 
-        e_ops = [qutip.num(4)]
-        rho0 = qutip.basis(4, 3)
+        e_ops = [qutip.num(2) & qeye(2), qeye(2) & qutip.num(2)]
+        rho0 = qutip.basis([2, 2], [1, 1])
         result = solver.run(rho0, tlist=np.linspace(0, 1, 11), e_ops=e_ops)
 
         ref = qutip.brmesolve(
@@ -390,9 +411,15 @@ class TestEvolution:
             result.expect[0], ref.expect[0], atol=1e-4, rtol=1e-4,
         )
 
-    @pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+        np.testing.assert_allclose(
+            result.expect[1], ref.expect[1], atol=1e-4, rtol=1e-4,
+        )
+
+    @pytest.mark.filterwarnings(
+        "ignore:overflow encountered in exp:RuntimeWarning"
+    )
     def test_pulse(self):
-        H = qutip.sigmaz()
+        H = sigmaz()
         # Need an environment with thin jump_correlator
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
         pulse = qutip.coefficient(lambda t: 5 * np.exp(-1000 * (t - 0.5)**2) )
@@ -411,8 +438,16 @@ class TestEvolution:
         np.testing.assert_allclose(
             result.e_data["z"][-1], result.e_data["z"][-20:], atol=1e-7,
         )
-        # Moved dusing pulse
+        # Moved during pulse
         assert abs(result.e_data["z"][0] - result.e_data["z"][-1]) > 0.5
+
+
+def test_UL_transform_no_lamb():
+    H = sigmaz()
+    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
+    X = sigmax()
+    H_eff, _ = UL_transform(H, (X, env), options={"use_lamb_shift": False})
+    assert H == H_eff(0)
 
 
 def test_pickle(random_generator):
@@ -451,7 +486,10 @@ def test_JC_env():
         jc(tlist), tlist = tlist
     )
 
-    ts = np.linspace(t_Max, t_Max, 11)
+    np.testing.assert_allclose(jc(tlist), jc(-tlist).conj())
+    assert jc(t_Max * 1.01) == 0.
+
+    ts = np.linspace(-t_Max, t_Max, 11)
     for approx_env in [env_from_jc, env_from_func, env_from_array]:
         # Same function everywhere
         np.testing.assert_allclose(
@@ -469,7 +507,9 @@ def test_JC_env():
         )
 
 
-@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+@pytest.mark.filterwarnings(
+    "ignore:overflow encountered in exp:RuntimeWarning"
+)
 def test_options_propagator():
     H = sigmaz()
     X = sigmax()
@@ -483,29 +523,60 @@ def test_options_propagator():
         "matrix_form": True,
         "store_final_state": True,
     }
-    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
+
+    def jc(t):
+        if np.any(t > 10):
+            raise RuntimeError("Should have converged.")
+        t = np.array(t)
+        out = np.zeros_like(t)
+        out[t < 5] = np.exp(-2 * np.abs(t[t < 5]))
+        return out
+
+    env = BosonicEnvironment.from_jump_correlator(jc, tMax=15)
     solver = ULMESolver(H, (X, env), options=options)
     result = solver.run(basis(2, 1), [0, 1], e_ops=[lambda t, state: 0])
     assert result.final_state.dims == H.dims
 
 
-@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+@pytest.mark.filterwarnings(
+    "ignore:overflow encountered in exp:RuntimeWarning"
+)
 def test_options_eigen():
     H = sigmaz()
     X = sigmax()
-    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=0.95)
-    options = {
-        "ULME_creation": "eigen",
-        "eigen_pv_integral_limits": True,
-    }
+    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.1)
 
-    H_eff_traces = [
-        UL_transform(
-            H, (X, env), 
-            options={"ULME_creation": "eigen", "eigen_pv_integral_limits": l},
-        )[0](0).tr()
-        for l in [1, 5, 15, 30, 60, 100]
-    ]
-    diff = np.abs(np.array(H_eff_traces[:-1]) - H_eff_traces[-1])
-    # Ensure getting closer to the best approximation when increasing teh limit
+    H_ref = UL_transform(
+        H, (X, env),
+        options={"ULME_creation": "eigen", "eigen_pv_integral_limits": 100},
+    )[0](0)
+
+    diff = []
+    for limit in [1, 5, 15, 30, 60]:
+        H_eff = UL_transform(
+            H, (X, env),
+            options={
+                "ULME_creation": "eigen",
+                "eigen_pv_integral_limits": limit,
+        },
+        )[0](0)
+        diff.append((H_ref - H_eff).norm())
+
     assert np.all(np.diff(diff) < 0)
+
+
+class TestErrors:
+    env = UnderDampedEnvironment(T=1.0, lam=0.005, gamma=5.0, w0=1.)
+
+    @pytest.mark.parametrize("td", ["H", "X"])
+    def test_eigen_needs_constant(self, td):
+        H = sigmaz() if td == "X" else [sigmaz(), [sigmax(), "t"]]
+        X = sigmax() if td == "H" else [sigmax(), [sigmay(), "t"]]
+        with pytest.raises(TypeError, match="time-independent"):
+            ULMESolver(qutip.QobjEvo(H), [(qutip.QobjEvo(X), self.env)],
+                       options={"ULME_creation": "eigen"})
+
+    def test_bad_creation(self):
+        H = sigmaz()
+        with pytest.raises(ValueError, match="Unknown ULME_creation"):
+            ULMESolver(H, [(H, self.env)], options={"ULME_creation": "None"})

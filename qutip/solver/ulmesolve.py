@@ -366,7 +366,7 @@ def UL_transform(
     a_ops = _parse_a_ops(a_ops, strict=True)
     c_ops, lamb_shifts = _make_operators(H_evo, a_ops, use_lamb_shift, options)
 
-    return H + sum(lamb_shifts), c_ops
+    return H_evo + sum(lamb_shifts), c_ops
 
 
 def _parse_a_ops(a_ops, args=None, tlist=None, strict=False):
