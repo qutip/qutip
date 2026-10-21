@@ -56,7 +56,7 @@ class IntegratorKrylov(Integrator):
 
         self._matrix_form = isinstance(trhs, LindbladMatrixForm)
         if self._matrix_form:
-            # Krylov basis operators are not Hermitian, so we cannot assume
+            # Krylov basis elements are not Hermitian, so we cannot assume
             # hermiticity. So we cannot use the fast path of LMF.
             self.rhs = LindbladMatrixForm(
                 trhs.H_nh, trhs.c_ops,
