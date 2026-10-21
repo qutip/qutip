@@ -14,8 +14,8 @@ class IntegratorKrylov(Integrator):
     Evolve the state ("rho0") finding an approximation for the time evolution
     operator of a Hamiltonian ("H") by obtaining the projection on a set of
     small dimensional Krylov subspaces (m <= dim(H)). The construction of this
-    subspace is performed by the Lanczos, fully-reorthogonalized Lanczos or
-    Arnoldi algorithm.
+    subspace is performed by the Lanczos, fully-reorthogonalized Lanczos
+    (default) or Arnoldi algorithm.
 
     Usable with ``method="tsit5"`` and :func:`krylovsolve`
     """
@@ -56,8 +56,8 @@ class IntegratorKrylov(Integrator):
 
         self._matrix_form = isinstance(trhs, LindbladMatrixForm)
         if self._matrix_form:
-            # The Krylov vectors are not Hermitian, so we cannot use the
-            # hermitian fast-path. We therefore create a private copy.
+            # Krylov basis operators are not Hermitian, so we cannot assume
+            # hermiticity. So we cannot use the fast path of LMF.
             self.rhs = LindbladMatrixForm(
                 trhs.H_nh, trhs.c_ops,
                 assume_hermitian_state=False, _H_nh=trhs.H_nh
@@ -251,7 +251,7 @@ class IntegratorKrylov(Integrator):
 
     def _compute_krylov_set(self, krylov_tridiag, krylov_basis):
         """
-        Compute the eigen energies, basis transformation operator (U) and e0.
+        Compute the eigenenergies, basis transformation operator (U) and e0.
         """
         evals, evecs = _data.eigs(krylov_tridiag, self._hermitian)
         N = evals.shape[0]
