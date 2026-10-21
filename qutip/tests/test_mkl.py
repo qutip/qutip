@@ -89,6 +89,30 @@ def symmetric_matrix(request):
     return scipy.sparse.csr_array(A), hermitian, posdef
 
 @pytest.fixture(params=[
+    pytest.param((True, ), id="real-symmetric-posdef"),
+    pytest.param((False, ), id="real-symmetric-indef"),
+])
+def symmetric_real_matrix_random(request, random_generator):
+    """Returns symmetric real-valued randomly generated matrices,
+    positive definite and indefinite. """
+    posdef = request.param
+    N = 10
+    hermitian = True
+
+    A = random_generator.standard_normal((N, N))
+    A = A @ A.T
+
+    if posdef:
+        # Eigenvalues have to be at least 1
+        A += np.eye(N)
+    else:
+        eigenvalues = np.linalg.eigvalsh(A)
+        shift = (eigenvalues[0] + eigenvalues[-1]) / 2
+        A -= shift * np.eye(N)
+
+    return scipy.sparse.csr_array(A), N, posdef, hermitian
+
+@pytest.fixture(params=[
     pytest.param(
         dtype,
         id=f"{name}-mtype={_mkl_matrix_type(dtype, False, False)}",
@@ -116,12 +140,6 @@ def nonsymmetric_matrix(request):
     assert not np.allclose(A, A.conj().T)
     return scipy.sparse.csr_array(A), hermitian, posdef
 
-    # Preserve random generation of Hermitian matrices and kets
-    # A = qutip.rand_herm(
-    #         10, density=0.8, dtype='csr', seed=random_generator
-    # )
-    # x = qutip.rand_ket(10, seed=random_generator).full()
-
 # TODO: no case when A is dense (but in principle, passing a dense A is allowed, as long as it can be then converted to csr_array). Add one test if necessary conversion to sparse always works
 
 class Test_spsolve_nonsymmetric:
@@ -136,8 +154,32 @@ class Test_spsolve_nonsymmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+
 class Test_spsolve_symmetric:
     
+    def test_real_symmetric_random_input(self, symmetric_real_matrix_random, random_generator):
+        A, N, posdef, hermitian = symmetric_real_matrix_random
+
+        x = random_generator.standard_normal(N)
+        b = A @ x
+        expected = scipy.linalg.solve(A.toarray(), b)
+        actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+
+    def test_hermitian_random_input(self, random_generator):
+        # Ideally, we would also cover same input combinations as test_symmetric, for A and b
+        # As well as solver flags
+        N = 10
+        A = qutip.rand_herm(
+                N, density=0.8, dtype='csr', distribution='pos_def', seed=random_generator)
+        x = qutip.rand_ket(N, seed=random_generator)
+        b = A.full() @ x.full()
+        expected = scipy.linalg.solve(A.full(), b)
+        actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+
     def test_symmetric(self, symmetric_matrix, rhs):
         A, hermitian, posdef = symmetric_matrix
         b = rhs(A.dtype)
