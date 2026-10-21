@@ -74,10 +74,11 @@ jobs:
           pytest tests -vv -W "ignore::DeprecationWarning"
 
   tutorials:
-    name: qutip-tutorials, python${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    name: qutip-tutorials, python${{ matrix.python-version }}, ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - python-version: "3.15"
             no-conda: false
@@ -159,13 +160,17 @@ jobs:
           python -m pip install --no-deps git+https://github.com/qutip/qutip-qoc
 
       - name: Install system dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg imagemagick texlive-latex-extra
 
       - name: Convert v5 parallelisation tutorials to notebooks
         run: |
-          mapfile -t notebooks < tools/parallel-tutorials.txt
+          notebooks=()
+          while IFS= read -r notebook; do
+            notebooks+=("$notebook")
+          done < tools/parallel-tutorials.txt
           cd ../qutip-tutorials
           mkdir notebooks
           cp -r tutorials-v5/* notebooks
@@ -177,6 +182,9 @@ jobs:
       - name: Run parallelisation tutorial notebooks
         run: |
           # Shared with the local runner; include parallel_map and parallel solver options.
-          mapfile -t notebooks < tools/parallel-tutorials.txt
+          notebooks=()
+          while IFS= read -r notebook; do
+            notebooks+=("$notebook")
+          done < tools/parallel-tutorials.txt
           cd ../qutip-tutorials/notebooks
           pytest --nbmake --nbmake-timeout=900 "${notebooks[@]}"
