@@ -68,17 +68,17 @@ class IntegratorKrylov(Integrator):
             self.rhs = trhs
             self._hermitian = _data.isherm(trhs * 1j)
 
-    def _matmul(self, psi):
+    def _matmul(self, kvec):
         """
-        Apply the generator ``1j * rhs`` to the Krylov vector ``psi``.
+        Apply the generator ``1j * rhs`` to the Krylov element ``kvec``.
         """
         if self._matrix_form:
-            return self.rhs.matmul_data(0, psi, scale=1j)
-        return _data.matmul(self.rhs, psi, scale=1j)
+            return self.rhs.matmul_data(0, kvec, scale=1j)
+        return _data.matmul(self.rhs, kvec, scale=1j)
 
     def _inner(self, left, right):
         """
-        Inner product of two Krylov vectors: ``<left|right>`` for kets and
+        Inner product of two Krylov elements: ``<left|right>`` for kets and
         the Hilbert-Schmidt product ``tr(left^dag right)`` for operators.
         """
         if right.shape[1] == 1:
