@@ -271,7 +271,7 @@ which, together with :func:`.mesolve`, is equivalent to calling
 
     plt.plot(result_me.times, result_me.expect[0], label="ME")
     plt.plot(result_mc.times, result_mc.runs_expect[0].T, "--", lw=0.5)
-    plt.plot(result_mc.times, result_mc.average_expect[0], "-.", label="ME")
+    plt.plot(result_mc.times, result_mc.average_expect[0], "-.", label="MC")
     plt.ylabel("cavity population")
     plt.xlabel("time")
     plt.legend()

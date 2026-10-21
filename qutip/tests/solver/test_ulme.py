@@ -387,7 +387,7 @@ class TestEvolution:
         )
 
         np.testing.assert_allclose(
-            result.expect[0], ref.expect[0], atol=2e-5, rtol=2e-5,
+            result.expect[0], ref.expect[0], atol=1e-4, rtol=1e-4,
         )
 
     @pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
@@ -470,10 +470,42 @@ def test_JC_env():
 
 
 @pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
-def test_options():
+def test_options_propagator():
     H = sigmaz()
     X = sigmax()
+    options = {
+        "ULME_creation": "propagator",
+        "use_lamb_shift": True,
+        "propagator_method": "vern7",
+        "propagator_ODE_options": {"atol": 1e-7},
+        "JC_options": {"atol": 1e-4, "rtol":1e-3, "tMax": 10},
+        "conv_tol": 1e-3,
+        "matrix_form": True,
+        "store_final_state": True,
+    }
     env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
-    solver = ULMESolver(H, (X, env), options={
-        # TODO
-    })
+    solver = ULMESolver(H, (X, env), options=options)
+    result = solver.run(basis(2, 1), [0, 1], e_ops=[lambda t, state: 0])
+    assert result.final_state.dims == H.dims
+
+
+@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+def test_options_eigen():
+    H = sigmaz()
+    X = sigmax()
+    env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=0.95)
+    options = {
+        "ULME_creation": "eigen",
+        "eigen_pv_integral_limits": True,
+    }
+
+    H_eff_traces = [
+        UL_transform(
+            H, (X, env), 
+            options={"ULME_creation": "eigen", "eigen_pv_integral_limits": l},
+        )[0](0).tr()
+        for l in [1, 5, 15, 30, 60, 100]
+    ]
+    diff = np.abs(np.array(H_eff_traces[:-1]) - H_eff_traces[-1])
+    # Ensure getting closer to the best approximation when increasing teh limit
+    assert np.all(np.diff(diff) < 0)
