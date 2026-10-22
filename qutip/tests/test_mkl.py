@@ -173,9 +173,7 @@ def nonsymmetric_matrix(request):
     return scipy.sparse.csr_array(A), hermitian, posdef
 
 
-# TODO: no case when A is dense (but in principle, passing a dense A is allowed, as long as it can be then converted to csr_array). Add one test if necessary conversion to sparse always works
-
-
+# TODO: add test with solver args not matching inputs
 class Test_spsolve_nonsymmetric:
 
     def test_nonsymmetric(self, nonsymmetric_matrix, rhs):
