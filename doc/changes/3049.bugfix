@@ -1,0 +1,1 @@
+Fix ``rand_dm`` and ``rand_herm`` never returning with ``distribution="eigen"`` when all eigenvalues are equal.
