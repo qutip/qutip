@@ -21,4 +21,5 @@ Time Evolution and Quantum System Dynamics
    dynamics/dynamics-options.rst
    dynamics/dynamics-visualization.rst
    dynamics/dynamics-propagator.rst
+   dynamics/dynamics-ulme.rst
    dynamics/dynamics-dysolve.rst
