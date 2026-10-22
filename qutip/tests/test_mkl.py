@@ -13,7 +13,6 @@ if not qutip.settings.has_mkl:
 if qutip.settings.has_mkl:
     from qutip._mkl.spsolve import mkl_splu, mkl_spsolve, _mkl_matrix_type
 
-
 @pytest.fixture(
     params=[
         pytest.param((False, None), id="rhs-dense-vector"),
