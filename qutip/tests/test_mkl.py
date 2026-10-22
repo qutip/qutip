@@ -24,7 +24,7 @@ if qutip.settings.has_mkl:
     ]
 )
 def rhs(request):
-    """Return a right-hand side of a liner system of different types and structures:
+    """Return a right-hand side of a linear system of different types and structures:
     1. Dense, row vector (1D array), real-valued
     2. Dense, row vector (1D array), complex-valued
     3. Sparse, row vector (1D array), real-valued
@@ -49,7 +49,7 @@ def rhs(request):
             ],
             dtype=dtype,
         )
-        if np.issubdtype(type, np.complexfloating):
+        if np.issubdtype(dtype, np.complexfloating):
             b[0, 0] += 1j
             b[2, 2] - +2j
 
@@ -58,6 +58,20 @@ def rhs(request):
 
     return make_rhs
 
+@pytest.fixture(params=[np.float64, np.complex128], ids=["real", "complex"])
+def nonsymmetric_matrix_random(request, random_generator):
+    """Return sparse randomly generated nonsymmetric matrix, complex and real-valued."""
+    dtype = request.param
+    hermitian = False
+    posdef = False
+    N = 10
+
+    A = random_generator.standard_normal((N, N))
+
+    if np.issubdtype(dtype, np.complexfloating):
+       A = A + 1j * random_generator.standard_normal((N, N))
+    
+    return scipy.sparse.csr_array(A), hermitian, posdef, N
 
 @pytest.fixture(
     params=[
@@ -73,7 +87,7 @@ def rhs(request):
     ]
 )
 def symmetric_matrix(request):
-    """Return a symmetric/Hermitian CSR matrix and its solver flags.
+    """Return a sparse symmetric/Hermitian CSR matrix and its solver flags.
     Generated matrices correspond to the following PARDISO mtypes:
     1. mtype = 2 - real-valued symmetric positive-definite
     2. mtype = -2 - real-valued symmetric indefinite
@@ -105,7 +119,7 @@ def symmetric_matrix(request):
     ]
 )
 def symmetric_real_matrix_random(request, random_generator):
-    """Returns symmetric real-valued randomly generated matrices,
+    """Returns a sparse symmetric real-valued randomly generated matrices,
     positive definite and indefinite."""
     posdef = request.param
     N = 10
@@ -174,14 +188,31 @@ class Test_spsolve_nonsymmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+    def test_nonsymmetric_random_input(self, nonsymmetric_matrix_random, random_generator):
+        A, hermitian, posdef, N = nonsymmetric_matrix_random
+        x = random_generator.standard_normal(N)
+        b = A @ x
+        expected = scipy.linalg.solve(A.toarray(), b)
+        actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
 
 class Test_spsolve_symmetric:
+
+    def test_symmetric(self, symmetric_matrix, rhs):
+        A, hermitian, posdef = symmetric_matrix
+        b = rhs(A.dtype)
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        assert x.shape == b.shape
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        expected = scipy.linalg.solve(A.toarray(), b_dense)
+        actual = x.toarray() if scipy.sparse.issparse(x) else x
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_real_symmetric_random_input(
         self, symmetric_real_matrix_random, random_generator
     ):
         A, N, posdef, hermitian = symmetric_real_matrix_random
-
         x = random_generator.standard_normal(N)
         b = A @ x
         expected = scipy.linalg.solve(A.toarray(), b)
@@ -202,17 +233,6 @@ class Test_spsolve_symmetric:
         expected = scipy.linalg.solve(A.full(), b)
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-
-    def test_symmetric(self, symmetric_matrix, rhs):
-        A, hermitian, posdef = symmetric_matrix
-        b = rhs(A.dtype)
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        assert x.shape == b.shape
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-
 
 class Test_splu:
     # PARDISO mtype=11 (real) and mtype=13 (complex): reuse the general

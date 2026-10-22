@@ -113,12 +113,11 @@ def _mkl_versions() -> tuple[str | None, str | None]:
         pydiso_version = version("pydiso")
     except PackageNotFoundError:
         pydiso_version = "unknown"
-
     try:
         from pydiso.mkl_solver import get_mkl_version
         v = get_mkl_version()
         mkl_version = (f"{v['MajorVersion']}.{v['MinorVersion']}.{v['UpdateVersion']}")
-    except Exception:
+    except (ImportError, KeyError) as exc:
         mkl_version = "unknown"
 
     return pydiso_version, mkl_version
