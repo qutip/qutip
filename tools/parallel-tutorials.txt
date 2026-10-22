@@ -1,4 +1,3 @@
-time-evolution/010_brmesolve_phonon_interaction.ipynb
 time-evolution/013_nonmarkovian_monte_carlo.ipynb
 time-evolution/015_smesolve-heterodyne.ipynb
 time-evolution/016_smesolve-inefficient-detection.ipynb
