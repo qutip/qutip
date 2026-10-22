@@ -170,9 +170,8 @@ jobs:
         run: |
           notebooks=()
           while IFS= read -r notebook; do
-            # Git may check out the list with CRLF line endings on Windows.
-            notebooks+=("${notebook%$'\r'}")
-          done < tools/parallel-tutorials.txt
+            notebooks+=("$notebook")
+          done < <(tr -d '\r' < tools/parallel-tutorials.txt)
           cd ../qutip-tutorials
           mkdir notebooks
           cp -r tutorials-v5/* notebooks
@@ -186,8 +185,7 @@ jobs:
           # Shared with the local runner; include parallel_map and parallel solver options.
           notebooks=()
           while IFS= read -r notebook; do
-            # Git may check out the list with CRLF line endings on Windows.
-            notebooks+=("${notebook%$'\r'}")
-          done < tools/parallel-tutorials.txt
+            notebooks+=("$notebook")
+          done < <(tr -d '\r' < tools/parallel-tutorials.txt)
           cd ../qutip-tutorials/notebooks
           pytest --nbmake --nbmake-timeout=900 "${notebooks[@]}"
