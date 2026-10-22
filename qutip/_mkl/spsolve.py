@@ -5,7 +5,10 @@ import time
 from pydiso.mkl_solver import MKLPardisoSolver
 
 
-def _prepare_pydiso_args(max_iter_refine: int, perm=None):
+def _prepare_pydiso_args(
+    max_iter_refine: int, perm=None, *, hermitian=False,
+    scaling_vectors=True, weighted_matching=True,
+):
     """
     Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
 
@@ -16,6 +19,12 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
         PARDISO's automatic refinement behavior.
     perm : array_like (optional)
         User permutation.
+    hermitian : bool, default: False
+        Whether the matrix is Hermitian.
+    scaling_vectors : bool, default: True
+        Enable scaling for non-Hermitian matrices.
+    weighted_matching : bool, default: True
+        Enable weighted matching for non-Hermitian matrices.
 
     Returns
     -------
@@ -30,6 +39,10 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
         - ``iparm[1]`` (fill-in reducing permutation) is set to 3 via ``fill_reducing_ordering`` argument of MKLPardisoSolver
           - Note: if a user-defined permutation is passed via ``perm``, value for ``iparm[1]`` will be ignored in pydiso.
 
+    For non-Hermitian matrices, ``scaling_vectors`` and ``weighted_matching``
+    control ``iparm[10]`` and ``iparm[12]`` through pydiso's ``scaling`` and
+    ``weighted_matching`` arguments. Ignored for Hermitian matrices.
+
     The rest of ``iparms`` is handled by pydiso's defaults.
     """
     overrides = {
@@ -37,6 +50,9 @@ def _prepare_pydiso_args(max_iter_refine: int, perm=None):
         "max_iterative_refinement_steps": max_iter_refine,
         "parallel_factorization": True,
     }
+    if not hermitian:
+        overrides["scaling"] = scaling_vectors
+        overrides["weighted_matching"] = weighted_matching
     return overrides
 
 
@@ -180,6 +196,8 @@ def mkl_splu(
     hermitian=False,
     posdef=False,
     max_iter_refine=10,
+    scaling_vectors=True,
+    weighted_matching=True,
 ):
     """
     Returns the LU factorization of the sparse matrix A.
@@ -204,6 +222,12 @@ def mkl_splu(
     max_iter_refine : int, default: 10
         Maximum iterative-refinement steps. Use ``0`` for PARDISO's
         automatic behavior.
+    scaling_vectors : bool, default: True
+        Enable scaling vectors for non-Hermitian matrices.
+        Ignored when ``hermitian=True``.
+    weighted_matching : bool, default: True
+        Enable weighted matching for non-Hermitian matrices.
+        Ignored when ``hermitian=True``.
 
     Returns
     -------
@@ -227,7 +251,13 @@ def mkl_splu(
 
     # Call solver
     _factor_start = time.perf_counter()
-    iparms = _prepare_pydiso_args(max_iter_refine=max_iter_refine, perm=perm)
+    iparms = _prepare_pydiso_args(
+        max_iter_refine=max_iter_refine,
+        perm=perm,
+        hermitian=hermitian,
+        scaling_vectors=scaling_vectors,
+        weighted_matching=weighted_matching,
+    )
     solver = MKLPardisoSolver(
         A, matrix_type=matrix_type, verbose=verbose, **iparms
     )
@@ -245,6 +275,8 @@ def mkl_spsolve(
     hermitian=False,
     posdef=False,
     max_iter_refine=10,
+    scaling_vectors=True,
+    weighted_matching=True,
 ):
     """
     Solves a sparse linear system of equations using the
@@ -275,6 +307,12 @@ def mkl_spsolve(
     max_iter_refine : int, default: 10
         Maximum iterative-refinement steps. Use ``0`` for PARDISO's
         automatic behavior.
+    scaling_vectors : bool, default: True
+        Enable scaling vectors for non-Hermitian matrices.
+        Ignored when ``hermitian=True``.
+    weighted_matching : bool, default: True
+        Enable weighted matching for non-Hermitian matrices.
+        Ignored when ``hermitian=True``.
     Returns
     -------
     x : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
@@ -291,6 +329,8 @@ def mkl_spsolve(
         hermitian=hermitian,
         posdef=posdef,
         max_iter_refine=max_iter_refine,
+        scaling_vectors=scaling_vectors,
+        weighted_matching=weighted_matching,
     )
     try:
         return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
