@@ -8,11 +8,11 @@ from qutip.core._brtensor import (
     _br_cterm_dense, _br_cterm_sparse, _br_cterm_data,
     _BlochRedfieldElement
 )
+from qutip.testing import random_data
 
 
 def _make_rand_data(shape, rng):
-    array = rng.random(shape) + 1j*rng.random(shape)
-    return qutip.data.Dense(array)
+    return random_data.random_dense(shape, True, rng)
 
 
 transform = {
@@ -28,11 +28,10 @@ transform = {
                          ids=['', 'transpose', 'conj', 'dag'])
 @pytest.mark.parametrize('transright', [0, 1, 2, 3],
                          ids=['', 'transpose', 'conj', 'dag'])
-def test_matmul_var(datatype, transleft, transright):
+def test_matmul_var(datatype, transleft, transright, random_generator):
     shape = (5, 5)
-    rng = np.random.default_rng(seed=11)
-    left = qutip.data.to(datatype, _make_rand_data(shape, rng))
-    right = qutip.data.to(datatype, _make_rand_data(shape, rng))
+    left = qutip.data.to(datatype, _make_rand_data(shape, random_generator))
+    right = qutip.data.to(datatype, _make_rand_data(shape, random_generator))
 
     expected = qutip.data.matmul(
         transform[transleft](left),
@@ -175,7 +174,7 @@ def test_br_term(cutoff, spectra):
 
 
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
-def test_brterm(cutoff):
+def test_brterm(cutoff, random_generator):
     N = 5
     H = qutip.num(N)
     a = qutip.destroy(N)
@@ -186,7 +185,7 @@ def test_brterm(cutoff):
     assert isinstance(R, qutip.Qobj)
     assert isinstance(R_eigs, qutip.Qobj)
     assert isinstance(evecs, qutip.Qobj)
-    state = qutip.operator_to_vector(qutip.rand_dm(N))
+    state = qutip.operator_to_vector(qutip.rand_dm(N, seed=random_generator))
     fock_computed = R @ state
     eig_computed = R_eigs @ qutip.sprepost(evecs.dag(), evecs) @ state
     eig_computed = qutip.sprepost(evecs, evecs.dag()) @ eig_computed
@@ -195,7 +194,7 @@ def test_brterm(cutoff):
 
 
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
-def test_td_brterm(cutoff):
+def test_td_brterm(cutoff, random_generator):
     N = 5
     H = qutip.QobjEvo([qutip.num(N), "0.5+t**2"])
     a = qutip.destroy(N)
@@ -206,7 +205,7 @@ def test_td_brterm(cutoff):
     assert isinstance(R, qutip.QobjEvo)
     assert isinstance(R_eigs, qutip.QobjEvo)
     assert isinstance(evecs, qutip.QobjEvo)
-    state = qutip.operator_to_vector(qutip.rand_dm(N))
+    state = qutip.operator_to_vector(qutip.rand_dm(N, seed=random_generator))
     fock_computed = R @ state
     eig_computed = R_eigs @ qutip.sprepost(evecs.dag(), evecs) @ state
     eig_computed = qutip.sprepost(evecs, evecs.dag()) @ eig_computed
@@ -298,7 +297,7 @@ def test_bloch_redfield_tensor_fermionbath():
 
 
 @pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
-def test_bloch_redfield_tensor_basis(cutoff):
+def test_bloch_redfield_tensor_basis(cutoff, random_generator):
     N = 5
     H = qutip.num(N)
     a = qutip.destroy(N)
@@ -321,7 +320,7 @@ def test_bloch_redfield_tensor_basis(cutoff):
     assert isinstance(R, qutip.Qobj)
     assert isinstance(R_eigs, qutip.Qobj)
     assert isinstance(evecs, qutip.Qobj)
-    state = qutip.operator_to_vector(qutip.rand_dm(N))
+    state = qutip.operator_to_vector(qutip.rand_dm(N, seed=random_generator))
     fock_computed = R @ state
     eig_computed = R_eigs @ qutip.sprepost(evecs.dag(), evecs) @ state
     eig_computed = qutip.sprepost(evecs, evecs.dag()) @ eig_computed

@@ -40,7 +40,7 @@ Building
 --------
 
 Building the core library from source is typically a bit more difficult than simply installing the package for regular use.
-You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from ::
+You will most likely want to do this in a clean Python environment so that you do not compromise a working installation of a release version, for example by starting from:
 
 .. code-block:: bash
 
@@ -48,7 +48,7 @@ You will most likely want to do this in a clean Python environment so that you d
 
 :ref:`Complete instructions for the build <install>` are elsewhere in this guide, however beware that you will need to follow the :ref:`installation from source <build-meson>`, not the general installation.
 You will need all the *build* and *tests* dependencies for the project.
-The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``project.group-dependency`` section of |pyproject.toml|_.
+The build requirements can be found in the |pyproject.toml|_ file, and the testing requirements are in the ``tests`` key of the ``dependency-groups`` section of |pyproject.toml|_.
 You will also need the requirements for any optional features you want to test as well.
 
 .. |pyproject.toml| replace:: ``pyproject.toml`` file
@@ -67,7 +67,7 @@ Note that ``qutip`` should *not* be listed in ``conda install`` or ``pip install
 You will need to make sure you have a functioning C++ compiler to build QuTiP.
 If you are on Linux or Mac, this is likely already done for you, however if you are on Windows, refer to the :ref:`Windows installation <install-on-windows>` section of the installation guide.
 
-The command to build QuTiP in editable mode is ::
+The command to build QuTiP in editable mode is:
 
 .. code-block:: bash
 
@@ -101,7 +101,7 @@ Generally the low-level linear algebra routines that QuTiP uses are written in t
 Build options
 ~~~~~~~~~~~~~
 
-You can pass build options are passed through ``pip`` using ``--config-settings`` (``-C`` for short) ::
+You can pass build options through ``pip`` using ``--config-settings`` (``-C`` for short):
 
 .. code-block:: bash
 
@@ -110,7 +110,7 @@ You can pass build options are passed through ``pip`` using ``--config-settings`
 Here ``idxint_64`` selects 64-bit integers for the internal sparse-matrix memory indices.
 All the available build options are declared in the ``meson.options`` file in the repository root.
 
-Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile ::
+Also you can build C extension without installing QuTiP, which is useful when you only want to check that your changes compile:
 
 .. code-block:: bash
 
@@ -163,7 +163,7 @@ Testing
 -------
 
 We use ``pytest`` as our test runner.
-The base way to run every test is ::
+The base way to run every test is:
 
 .. code-block:: bash
 
@@ -185,16 +185,63 @@ Changelog Generation
 --------------------
 
 We use ``towncrier`` for tracking changes and generating a changelog.
-When making a pull request, we require that you add a towncrier entry along with the code changes.
-You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory, where the PR number should be substituted for ``<PR number>``, and ``<change type>`` is either ``feature``, ``bugfix``, ``doc``, ``removal``, ``misc``, or ``deprecation``,
-depending on the type of change included in the PR.
+Every pull request must add at least one towncrier entry along with the code changes.
+You should create a file named ``<PR number>.<change type>`` in the ``doc/changes`` directory,
+where the PR number should be substituted for ``<PR number>``,
+and ``<change type>`` should be one of the following depending on the type of change.
 
-You can also create this file by installing ``towncrier`` and running
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``feature``
+     - New functionality available to QuTiP users.
+   * - ``bugfix``
+     - Fix for incorrect or unintended behavior of existing functionality.
+   * - ``doc``
+     - Documentation-only changes.
+   * - ``deprecation``
+     - A feature is deprecated: it now emits a warning and will be removed in a future release.
+   * - ``removal``
+     - A previously deprecated feature is removed.
+   * - ``misc``
+     - Other user-visible changes that fit none of the types above.
+
+
+You can also create this file by installing ``towncrier`` and running::
 
    towncrier create <PR number>.<change type>
 
 Running this will create a file in the ``doc/changes`` directory with a filename corresponding to the argument you passed to ``towncrier create``.
 In this file, you should add a short description of the changes that the PR introduces.
+
+A pull request can add multiple towncrier entries.
+
+Internal change types
+~~~~~~~~~~~~~~~~~~~~~
+
+The following change types are for internal changes.
+Entries of these types are not included in the changelog,
+and they should only be used by maintainers.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   * - Type
+     - Description
+   * - ``meta``
+     - Changes to project metadata and tooling, such as packaging, CI configuration, or GitHub templates.
+   * - ``test``
+     - Changes to the test suite only, such as new operating systems in automated tests or adjusted tolerances.
+   * - ``patch``
+     - Small follow-up fix to a PR that is already merged but not yet released,
+       and which already has its own entry (for example, removing a forgotten debug print).
+   * - ``chore``
+     - Other internal changes with no user-visible effect, such as refactoring, cleanup, or dependency bumps.
+
 
 .. _contributing-docs:
 
@@ -212,14 +259,14 @@ You can see the rendered version of this file simply by going to the `documentat
 
 Building the documentation can be a little finnicky on occasion.
 You likely will want to keep a separate Python environment to build the documentation in, because some of the dependencies can have tight requirements that may conflict with your favourite tools for Python development.
-We recommend creating an empty ``conda`` environment containing only Python with ::
+We recommend creating an empty ``conda`` environment containing only Python with:
 
 .. code-block:: bash
 
    conda create -n qutip-doc python=3.13
 
 and install all further dependencies with ``pip``.
-There is a ``doc/requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using ::
+There is a ``doc/requirements.txt`` file in the repository root that fixes all package versions exactly into a known-good configuration for a completely empty environment, using:
 
 .. code-block:: bash
 
@@ -235,17 +282,17 @@ The documentation build includes running many components of the main QuTiP libra
 You therefore need to have a version of QuTiP available in the same Python environment.
 If you are only interested in updating the users' guide, you can use a release version of QuTiP, for example by running ``pip install qutip``.
 If you are also modifying the main library, you need to make your development version accessible in this environment.
-See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``doc/requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run ::
+See the `above section on building QuTiP <contributing-qutip_>`_ for more details, though the ``doc/requirements.txt`` file will have already installed all the build requirements, so you should be able to simply run:
 
 .. code-block:: bash
 
-   python install .
+   pip install .
 
 in the main library repository.
 
 The documentation is built by running the ``make`` command.
 There are several targets to build, but the most useful will be ``html`` to build the webpage documentation, ``latexpdf`` to build the PDF documentation (you will also need a full ``pdflatex`` installation), and ``clean`` to remove all built files.
-The most important command you will want to run is ::
+The most important command you will want to run is:
 
 .. code-block:: bash
 
