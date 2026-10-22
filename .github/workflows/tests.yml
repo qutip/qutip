@@ -41,7 +41,7 @@ jobs:
         scipy-run: [""]
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
-        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W 'ignore:This process [(]pid=[0-9]+[)] is multi-threaded, use of fork[(][)] may lead to deadlocks in the child[.]:DeprecationWarning'"]
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
@@ -125,7 +125,7 @@ jobs:
             python-version: "3.15"
             nomkl: 1
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W 'ignore:This process [(]pid=[0-9]+[)] is multi-threaded, use of fork[(][)] may lead to deadlocks in the child[.]:DeprecationWarning'"
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus

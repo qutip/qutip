@@ -7,6 +7,7 @@ __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'mpi_pmap']
 
 import multiprocessing
 import os
+import sys
 import time
 import threading
 import concurrent.futures
@@ -14,7 +15,14 @@ import warnings
 from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
 
-mp_context = multiprocessing.get_context()
+if sys.platform == 'darwin':
+    mp_context = multiprocessing.get_context('fork')
+elif sys.platform == 'linux':
+    # forkserver would handle threads better, but is much slower at starting
+    # the executor and spawning tasks
+    mp_context = multiprocessing.get_context('fork')
+else:
+    mp_context = multiprocessing.get_context()
 
 
 default_map_kw = {
