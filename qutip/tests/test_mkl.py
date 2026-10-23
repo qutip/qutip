@@ -178,9 +178,10 @@ class Test_spsolve_nonsymmetric:
     def test_nonsymmetric(self, nonsymmetric_matrix, rhs):
         A, hermitian, posdef = nonsymmetric_matrix
         b = rhs(A.dtype)
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         assert x.shape == b.shape
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
@@ -193,6 +194,32 @@ class Test_spsolve_nonsymmetric:
         actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+
+    def test_posdef_ignored_for_nonhermitian_input(self, nonsymmetric_matrix, rhs):
+        """Test that the solution of the sparse solver is still correct despite
+        posdef solver argument having wrong value. """
+        A, hermitian, posdef = nonsymmetric_matrix
+
+        b = rhs(A.dtype)
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+
+        expected = scipy.linalg.solve(A.toarray(), b_dense)
+
+        # Solve linear system
+        x, info = mkl_spsolve(
+            scipy.sparse.csr_array(A),
+            b,
+            hermitian=hermitian,
+            posdef=True,  # Deliberately inconsistent with the input
+            return_info=True,
+        )
+        # For comparison with SciPy output,
+        # convert to dense in case the sparse solver returned sparse solution
+        actual = x.toarray() if scipy.sparse.issparse(x) else x
+        assert not posdef
+        assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
 class Test_spsolve_symmetric:
 
