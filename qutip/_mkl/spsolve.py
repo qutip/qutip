@@ -128,6 +128,13 @@ class MKLFactorization:
             )
         b = np.asarray(b)
 
+        n = self._solver.shape[0]
+        if b.ndim not in (1, 2):
+            raise ValueError(
+                    f"Right-hand side must have shape ({n}, ) or ({n}, k);"
+                    f"got shape {b.shape}."
+            )
+
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
             raise TypeError(
                 "Got a complex right-hand side: cannot solve real-valued factorization"
@@ -241,7 +248,7 @@ def mkl_splu(
         raise TypeError("Input matrix must be in sparse CSR format.")
 
     if A.shape[0] != A.shape[1]:
-        raise Exception("Input matrix must be square")
+        raise ValueError(f"Input matrix must be square; got shape {A.shape}.")
 
     if not np.issubdtype(A.dtype, np.inexact):
         A = sp.csr_array(A, dtype=np.float64, copy=None)

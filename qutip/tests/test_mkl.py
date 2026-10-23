@@ -435,3 +435,18 @@ class Test_splu:
 
         with pytest.raises(RuntimeError, match="memory"):
             lu.solve(A)
+
+    def test_faulty_inputs_rejection(self):
+        """Test input validation"""
+        # Non-square matrix
+        A = np.array([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(ValueError, match="square"):
+            mkl_splu(scipy.sparse.csr_array(A))
+        # Dense matrix
+        A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        with pytest.raises(TypeError, match="sparse"):
+            mkl_splu(A)
+        # CSC instead of CSR
+        A = scipy.sparse.csc_array(np.ones((3, 3)))
+        with pytest.raises(TypeError, match="CSR"):
+            mkl_splu(A)
