@@ -122,9 +122,10 @@ def krylovsolve(
         vectors or density matrices corresponding to the times in ``tlist`` [if
         ``e_ops`` is an empty list of ``store_states=True`` in options].
     """
-    options = options or {}
+    options = dict(options or {})
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
-    options["algorithm"] = algorithm
+    # option setting overwrites argument
+    options.setdefault("algorithm", algorithm)
 
     return mesolve(H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options)
