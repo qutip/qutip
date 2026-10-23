@@ -324,6 +324,23 @@ jobs:
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
 
+  pyodide:
+    name: Pyodide, ${{ matrix.build }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [cp313, cp314]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pypa/cibuildwheel@v4.2.1
+        env:
+          CIBW_PLATFORM: pyodide
+          CIBW_BUILD: ${{ matrix.build }}-*
+          CIBW_TEST_GROUPS: tests
+          CIBW_TEST_COMMAND: python -m pytest --color=yes --pyargs qutip
+
   towncrier-check:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
