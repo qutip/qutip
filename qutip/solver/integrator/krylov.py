@@ -11,9 +11,9 @@ __all__ = ["IntegratorKrylov"]
 
 class IntegratorKrylov(Integrator):
     """
-    Evolve the state ("rho0") finding an approximation for the time evolution
-    operator of a Hamiltonian ("H") by obtaining the projection on a set of
-    small dimensional Krylov subspaces (m <= dim(H)). The construction of this
+    Evolve the state ("rho0") finding a reduced form of the time evolution
+    operator of a Liouvillian ("L") by obtaining the projection on a set of
+    small dimensional Krylov subspaces (m <= dim(L)). The construction of this
     subspace is performed by the Lanczos, fully-reorthogonalized Lanczos
     (default) or Arnoldi algorithm.
 
@@ -121,10 +121,10 @@ class IntegratorKrylov(Integrator):
     def _lanczos_core(self, psi, max_orthog_steps=0):
         """
         Computes a basis of the Krylov subspace for the time independent
-        Hamiltonian 'H', a system state 'psi' and Krylov dimension 'krylov_dim'
+        Liouvillian 'L', a system state 'psi' and Krylov dimension 'krylov_dim'
         using the Lanczos algorithm with a given orthogonalization function.
         The space is spanned by
-        {psi, H psi, H^2 psi, ..., H^(krylov_dim - 1) psi}.
+        {psi, L psi, L^2 psi, ..., L^(krylov_dim - 1) psi}.
 
         Parameters
         ------------
@@ -362,17 +362,17 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default: 0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation.
+            evolution calculation.
 
         algorithm: str, default: "auto"
             Algorithm for Krylov space constructions. The default ``auto`` will
             choose ``lanczos_fro`` for Hermitian and ``arnoldi`` for
             non-Hermitian systems. Alternatively the standard ``lanczos`` can
-            be set.
+            be set for closed systems.
 
         sub_system_tol: float, default: 1e-7
             Tolerance to detect a happy breakdown. A happy breakdown occurs
-            when the initial ket is in a subspace of the Hamiltonian smaller
+            when the initial state is in a subspace of the Hamiltonian smaller
             than ``krylov_dim``.
 
         always_compute_step: bool, default: False

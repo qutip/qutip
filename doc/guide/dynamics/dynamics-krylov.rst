@@ -23,8 +23,8 @@ Hamiltonian is given by
 	\mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
 
 where the dimension :math:`N<D` is a parameter of choice. To construct an
-orthonormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithm
-is the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure.
+orthonormal basis for :math:`\mathcal{K}_{N}`, the simplest algorithm is the
+well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure.
 Written in this basis the time-evolved state can be approximated as
 
 .. math::
@@ -32,7 +32,7 @@ Written in this basis the time-evolved state can be approximated as
 
 	|\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle,
 
-where  :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian
+where :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian
 reduced to the Krylov subspace (which takes a tridiagonal matrix form), and
 :math:`\mathbb{V}_{N}^{\dagger}` is the matrix containing the vectors of the
 Krylov basis as columns.
@@ -43,30 +43,51 @@ huge speed-ups in computation of short-time evolutions when the dimension of the
 Hamiltonian is very large, a point at which exact calculations on the complete
 subspace are practically impossible.
 
-One of the biggest problems with this type of method is the control of the error.
-After a short time, the error starts to grow exponentially. However, this can be
-easily corrected by restarting the subspace when the error reaches a certain
-threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions
-provides accurate solutions for the complete time evolution. Within this scheme,
-the magic of Krylov resides not only in its ability to capture complex time
-evolutions from very large Hilbert spaces with very small dimenions :math:`M`,
-but also in the computing speed-up it presents.
+One of the biggest problems with this type of method is the control of the
+error.  If :math:`N` is smaller than the dimension :math:`D`, the error
+grows exponentially once a certain time threshold is hit. This threshold can be
+bounded a priori using the lower off-diagonal elements :math:`\beta_j` of the
+tridiagonal matrix :math:`T_N` obtained from the Lanczos / Arnoldi algorithm.
+The error of the approximation is estimated by
+
+.. math::
+	:label: krylov_error
+
+	\left\| |\psi(t)\rangle - |\psi_N(t)\rangle \right\|
+	\lesssim \frac{t^{N}}{N!} \prod_{j=1}^{N-1} \beta_j ,
+
+so that requiring it to stay below the tolerance ``atol`` gives the maximal
+time step
+
+.. math::
+	:label: krylov_max_step
+
+	\Delta t_{\max} = \left( \frac{\mathrm{atol} \cdot N!}
+	{\prod_{j=1}^{N-1} \beta_j} \right)^{1/N}.
+
+After each step of length :math:`\Delta t_{\max}`, the Krylov subspace is
+rebuilt from the current state. To reach an arbitrary simulation time, a series
+of :math:`M` such Krylov-subspace time evolutions therefore provides accurate
+solutions for the complete time evolution. Within this scheme, the magic of
+Krylov resides not only in its ability to capture complex time evolutions from
+very large Hilbert spaces with very small dimensions :math:`N`, but also in the
+computing speed-up it presents.
 
 For exceptional cases, the Lanczos algorithm might arrive at the exact evolution
-of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy
-breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`,
-then the algorithm will optimize using the value math:`M_{hb}<M`:, at which the
-evolution is not only exact but also cheap.
+of the initial state at a dimension :math:`N_{hb}<N`. This is called a happy
+breakdown. For example, if a Hamiltonian has a symmetry subspace
+:math:`D_{\text{sim}}<N`, then the algorithm will optimize using the value
+:math:`N_{hb}<N`, at which the evolution is not only exact but also cheap.
 
 Krylov for Mixed States
 -----------------------
 
-In a similar manner, the Liouvillian :math:`\mathcal{L}` of a system can be taken as in input for
-the construction of the Kyrlov basis.
-This extends the applicability of this method to density operator dyanmics in
-both closed and open systems.
-In these cases, the subspace is spanned by repeated application of the
-Liouvillian onto the vectorized form of the density operator, thereby forming
+In a similar manner, the Liouvillian :math:`\mathcal{L}` of a system can be
+taken as an input for the construction of the Krylov basis.  This extends the
+applicability of this method to density operator dynamics in both closed and
+open systems. In these cases, the subspace is spanned by repeated application of
+the Liouvillian onto the vectorized form of the density operator, thereby
+forming
 
 .. math::
 	:label: krylovsubspace_mixed
@@ -74,7 +95,7 @@ Liouvillian onto the vectorized form of the density operator, thereby forming
 	\mathcal{K}_{N}=\operatorname{span}\left\{|\rho), \mathcal{L}|\rho), \ldots, \mathcal{L}^{N-1}|\rho)\right\}.
 
 Same as for the pure states mentioned above, the Krylov basis vectors are
-calculated using the Lanczos algorithm (or alternative - see below).
+calculated using one of the algorithms below.
 
 Matrix-Form Krylov Evolution
 ----------------------------
@@ -85,29 +106,30 @@ bottleneck for large systems. As an alternative, the Krylov basis can be
 constructed in *matrix form*, analogous to the matrix-form solver of
 :func:`.mesolve` (see :ref:`master-matrix-form`). Here, the Krylov basis
 elements are kept as :math:`D \times D` operators and the action of the
-Liouvillian, is evaluated directly with matrix-matrix products.
+Liouvillian is evaluated directly with matrix-matrix products.
 Orthogonalization of the basis elements uses the Hilbert-Schmidt inner product
 :math:`(A|B) = \operatorname{tr}(A^\dagger B)`.
 Since the Krylov basis elements are in general not Hermitian, they are treated
 as general operators during the construction.
 
-Alternative Algorithms for Kyrlov Construction
+Alternative Algorithms for Krylov Construction
 ----------------------------------------------
 
 As the number of degrees of freedom grows, the standard Lanczos algorithm shows
 significant errors due to numerical inaccuracies.
 This is why the *default* algorithm in QuTiP to construct the Krylov basis is
-the *fully-reorthogonalized* Lanczos algorithm (FRO).
-It orthogonalizes new basis vectors with respect to *all* (contrary to just the
-last two) previously created vectors to greatly limit the accumulation of
-numerical errors.  However, by specifically setting
-``options["algorithm"]="lanczos"``, the standard Lanczos algorithm is still
-available.
+the *fully-reorthogonalized* Lanczos algorithm (FRO) for closed systems and
+the Arnoldi iteration for open systems.  It orthogonalizes new basis vectors
+with respect to *all* (contrary to just the last two) previously created vectors
+to greatly limit the accumulation of numerical errors.  However, by specifically
+setting ``options["algorithm"]="lanczos"``, the standard Lanczos algorithm is
+still available.
 
-In addition, QuTiP supports the Arnoldi iteration.
-It is necessary to correctly calculate open system dynamics.
-Contrary to the standard Lanczos and FRO Lanczos which produce a tri-diagonal
-matrix, the Arnoldi interation provides an upper-Hessenberg form.
+The Arnoldi iteration, which extends the Krylov space methods to open quantum
+systems described by a Liouvillian.  It is the default method provided
+``c_ops`` are given.  Contrary to the standard Lanczos and FRO Lanczos which
+produce a tri-diagonal matrix, the Arnoldi iteration provides a non-Hermitian
+upper-Hessenberg form.
 
 Finding a Good Krylov-Subspace Dimension
 ----------------------------------------
@@ -119,9 +141,20 @@ breakdown is detected). It then evolves the state up to the time where accuracy
 up to the provided tolerance ``atol`` is still guaranteed, and then recalculates
 the subspace. By repeating this, the time evolution is calculated.
 
+The step length :math:`\Delta t_{\max}` from :eq:`krylov_max_step` can be
+further controlled through the options ``max_step`` and ``min_step``. The step
+is capped at ``max_step`` (default ``1e5``). If the estimated step falls below
+``min_step`` (default ``1e-5``), the solver raises a ``ValueError``, since the
+chosen ``krylov_dim`` is too small to reach the tolerance ``atol`` in a
+reasonable time. In this case, increasing ``krylov_dim`` or relaxing ``atol``
+is recommended. By default, the step length is estimated only once, for the
+first Krylov subspace, and then reused. Setting ``always_compute_step=True``
+re-estimates it every time a new subspace is built, which can be beneficial if
+the dynamics change considerably over time.
+
 To achieve the promised speed-up, it is essential to choose a suitable
 Krylov-subspace dimension. Too small a dimension leads to frequent recalculation
-of the Kyrlov basis and thus high computational load. Too big of a basis
+of the Krylov basis and thus high computational load. Too big of a basis
 however leads to an increasingly expensive calculation of basis vectors and
 little gain in accuracy.
 
