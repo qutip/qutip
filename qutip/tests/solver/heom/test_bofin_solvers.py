@@ -761,12 +761,13 @@ class TestHEOMSolver:
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
-    @pytest.mark.parametrize(['use_mkl'], [
-        pytest.param(False, id="test_steady_state_heom_no_mkl"),
-        pytest.param(True, id="test_steady_state_heom_with_mkl", marks=skip_no_mkl),
+    @pytest.mark.parametrize(['use_mkl', 'use_perm'], [
+        pytest.param(False, False, id="test_steady_state_heom_no_mkl"),
+        pytest.param(True, False, id="test_steady_state_heom_with_mkl", marks=skip_no_mkl),
+        pytest.param(True, True, id="test_steady_state_heom_with_mkl_permuted", marks=skip_no_mkl),
     ])
     def test_steady_state(
-        self, use_mkl, atol=1e-3
+        self, use_mkl, use_perm, random_generator, atol=1e-3
     ):
         H_sys = 0.25 * sigmaz() + 0.5 * sigmay()
 
@@ -779,7 +780,13 @@ class TestHEOMSolver:
         rho0 = basis(2, 0) * basis(2, 0).dag()
 
         result = hsolver.run(rho0, tlist)
-        rho_final, ado_state = hsolver.steady_state(use_mkl=use_mkl)
+
+        perm = None
+        if use_perm:
+            rhs_size = hsolver.rhs.shape[0]
+            perm = random_generator.permutation(rhs_size)
+
+        rho_final, ado_state = hsolver.steady_state(use_mkl=use_mkl, mkl_perm=perm)
         fid = fidelity(rho_final, result.states[-1])
         np.testing.assert_allclose(fid, 1.0, atol=atol)
 
