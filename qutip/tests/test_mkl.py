@@ -245,7 +245,7 @@ class Test_spsolve_nonsymmetric:
 
         # Solve linear system
         x, info = mkl_spsolve(
-            scipy.sparse.csr_array(A),
+            A,
             b,
             hermitian=hermitian,
             posdef=True,  # Deliberately inconsistent with the input
@@ -261,9 +261,24 @@ class Test_spsolve_nonsymmetric:
 
     @pytest.mark.parametrize("scaling_vectors", [False, True])
     @pytest.mark.parametrize("weighted_matching", [False, True])
-    def test_solver_options(self, symmetric_matrix, scaling_vectors, weighted_matching):
-        _check_solver_options(symmetric_matrix, scaling_vectors, weighted_matching)
+    def test_solver_options(self, nonsymmetric_matrix, scaling_vectors, weighted_matching):
+        _check_solver_options(nonsymmetric_matrix, scaling_vectors, weighted_matching)
 
+    @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
+    def test_max_iter_refine(self, nonsymmetric_matrix, max_iter_refine):
+        A, _, _ = nonsymmetric_matrix
+        expected = np.array([1, 2, 3], dtype=A.dtype)
+        b = A @ expected
+
+        actual, info = mkl_spsolve(
+            scipy.sparse.csr_array(A),
+            b,
+            max_iter_refine=max_iter_refine,
+            return_info=True,
+        )
+
+        assert info["iparm"][7] == max_iter_refine
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 class Test_spsolve_symmetric:
 
@@ -320,6 +335,22 @@ class Test_spsolve_symmetric:
     @pytest.mark.parametrize("weighted_matching", [False, True])
     def test_solver_options(self, symmetric_matrix, scaling_vectors, weighted_matching):
         _check_solver_options(symmetric_matrix, scaling_vectors, weighted_matching)
+
+    @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
+    def test_max_iter_refine(self, symmetric_matrix, max_iter_refine):
+        A, _, _ = symmetric_matrix
+        expected = np.array([1, 2, 3], dtype=A.dtype)
+        b = A @ expected
+
+        actual, info = mkl_spsolve(
+            scipy.sparse.csr_array(A),
+            b,
+            max_iter_refine=max_iter_refine,
+            return_info=True,
+        )
+
+        assert info["iparm"][7] == max_iter_refine
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 
 class Test_splu:
