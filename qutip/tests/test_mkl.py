@@ -172,7 +172,6 @@ def nonsymmetric_matrix(request):
     return scipy.sparse.csr_array(A), hermitian, posdef
 
 
-# TODO: add test with solver args not matching inputs
 class Test_spsolve_nonsymmetric:
 
     def test_nonsymmetric(self, nonsymmetric_matrix, rhs):
@@ -199,6 +198,29 @@ class Test_spsolve_nonsymmetric:
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+    @pytest.mark.parametrize("scaling_vectors", [False, True])
+    @pytest.mark.parametrize("weighted_matching", [False, True])
+    def test_nonsymmetric_solver_options(self, nonsymmetric_matrix, scaling_vectors, weighted_matching):
+        A, hermitian, posdef = nonsymmetric_matrix
+        # Obtain RHS in a simple way; using `rhs` fixture would unflate number of tests unnecessarily
+        expected = np.array([1, 2, 3], dtype=A.dtype)
+        b = A @ expected
+
+        actual, info = mkl_spsolve(
+            scipy.sparse.csr_array(A),
+            b,
+            hermitian=hermitian,
+            posdef=posdef,
+            scaling_vectors=scaling_vectors,
+            weighted_matching=weighted_matching,
+            return_info=True,
+        )
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+        if not hermitian:
+            assert info["iparm"][10] == int(scaling_vectors)
+            assert info["iparm"][12] == int(weighted_matching)
 
     def test_nonsymmetric_random_input(self, nonsymmetric_matrix_random, random_generator):
         A, hermitian, posdef, N = nonsymmetric_matrix_random

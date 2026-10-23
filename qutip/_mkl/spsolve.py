@@ -167,6 +167,7 @@ class MKLFactorization:
             "Solvemem": round(iparm[16] / 1024, 4),
             "IterRefine": iparm[6],
             "MatrixType": self._solver.matrix_type,
+            "iparm": iparm
         }
 
     def delete(self):
