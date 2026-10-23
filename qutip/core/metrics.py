@@ -17,6 +17,7 @@ from .operators import qeye, qeye_like
 from .states import ket2dm
 from .semidefinite import dnorm_problem, dnorm_sparse_problem
 from . import data as _data
+from ..settings import settings
 
 try:
     import cvxpy
@@ -79,7 +80,7 @@ def fidelity(A, B):
     # even for positive semidefinite matrices, small negative eigenvalues
     # can be reported.
     eig_vals = (sqrtmA * B * sqrtmA).eigenenergies()
-    eig_vals_non_neg = np.where(eig_vals > 0, eig_vals, 0)
+    eig_vals_non_neg = np.where(eig_vals > settings.core["atol"], eig_vals, 0)
     return np.real(np.sqrt(eig_vals_non_neg).sum())
 
 
@@ -373,7 +374,8 @@ def bures_angle(A, B):
         B = B.proj()
     if A._dims != B._dims:
         raise TypeError('A and B do not have same dimensions.')
-    return np.arccos(fidelity(A, B))
+    fid = np.real(fidelity(A, B))
+    return np.arccos(np.clip(fid, -1.0, 1.0))
 
 
 def hellinger_dist(A, B, sparse=False, tol=0):

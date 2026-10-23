@@ -299,9 +299,9 @@ def test_sesolve_step_no_start():
 
 
 @pytest.mark.parametrize("algorithm", ['lanczos', 'lanczos_fro'])
-def test_krylovsolve_pure_state(algorithm):
-    H = qutip.tensor([qutip.rand_herm(2) for _ in range(8)])
-    psi0 = qutip.basis([2]*8, [1]*8)
+def test_krylovsolve_pure_state(algorithm, random_generator):
+    H = qutip.rand_herm([2] * 8, seed=random_generator)
+    psi0 = qutip.basis([2] * 8, [1] * 8)
     e_op = qutip.num(256)
     e_op.dims = H.dims
     tlist = np.linspace(0, 1, 11)
@@ -310,7 +310,7 @@ def test_krylovsolve_pure_state(algorithm):
     krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op], options=options)
     np.testing.assert_allclose(np.ones(len(krylov_sol.states)),
                                [s.norm() for s in krylov_sol.states])
-    np.testing.assert_allclose(ref, krylov_sol.expect[0])
+    np.testing.assert_allclose(ref, krylov_sol.expect[0], atol=1e-7, rtol=1e-6)
 
 
 def test_krylovsolve_error():

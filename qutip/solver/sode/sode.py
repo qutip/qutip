@@ -267,7 +267,7 @@ class PlatenSODE(_Explicit_Simple_Integrator):
 
 
 class PredCorr_SODE(_Explicit_Simple_Integrator):
-    """
+    r"""
     Generalization of the trapezoidal method to stochastic differential
     equations. More stable than explicit methods.  See eq. (5.4) of
     chapter 15.5 of Peter E. Kloeden and Eckhard Platen,
