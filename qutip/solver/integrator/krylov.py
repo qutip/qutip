@@ -44,23 +44,24 @@ class IntegratorKrylov(Integrator):
         self._max_step = -np.inf
         self._krylov_dim = self.options["krylov_dim"]
 
-        trhs = system
-        if not isinstance(system, _data.Data):
-            if not system.rhs.isconstant:
-                raise TypeError(
-                    "The Krylov solver only supports time-independent systems."
-                )
-            trhs = system.rhs
-            if not isinstance(system.rhs, LindbladMatrixForm):
-                trhs = system.rhs(0).data
-
-        self._matrix_form = isinstance(trhs, LindbladMatrixForm)
+        # Build rhs
+        if isinstance(system, _data.Data):
+            # Integrator used directly with the constant generator matrix
+            trhs, self._matrix_form = system, False
+        elif not system.rhs.isconstant:
+            raise TypeError(
+                "The integration method krylov only support constant systems."
+            )
+        else:
+            self._matrix_form = system.options.get("matrix_form", False)
+            trhs = system.rhs if self._matrix_form else system.rhs(0).data
+ 
         if self._matrix_form:
             # Krylov basis elements are not Hermitian, so we cannot assume
-            # hermiticity. So we cannot use the fast path of LMF.
+            # hermiticity and cannot use the fast path of LMF.
             self.rhs = LindbladMatrixForm(
                 trhs.H_nh, trhs.c_ops,
-                assume_hermitian_state=False, _H_nh=trhs.H_nh
+                assume_hermitian_state=False, _H_nh=trhs.H_nh,
             )
             # Without c_ops 1j * L is hermitian
             self._hermitian = trhs.num_collapse == 0 and trhs.H_nh(0).isherm
