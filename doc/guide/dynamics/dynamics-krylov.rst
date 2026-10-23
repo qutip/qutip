@@ -125,10 +125,10 @@ to greatly limit the accumulation of numerical errors.  However, by specifically
 setting ``options["algorithm"]="lanczos"``, the standard Lanczos algorithm is
 still available.
 
-The Arnoldi iteration, which extends the Krylov space methods to open quantum
-systems described by a Liouvillian.  It is the default method provided
-``c_ops`` are given.  Contrary to the standard Lanczos and FRO Lanczos which
-produce a tri-diagonal matrix, the Arnoldi iteration provides a non-Hermitian
+The Arnoldi iteration extends the Krylov space methods to open quantum systems
+described by a Liouvillian.  It is the default method provided ``c_ops`` are
+given.  Contrary to the standard Lanczos and FRO Lanczos which produce a
+tri-diagonal matrix, the Arnoldi iteration provides a non-Hermitian
 upper-Hessenberg form.
 
 Finding a Good Krylov-Subspace Dimension
@@ -167,21 +167,14 @@ dimension very much depends on both the Hamiltonian and the initial state.
 Krylov Solver in QuTiP
 ======================
 
-In QuTiP, Krylov-subspace evolution is implemented as the function :func:`.krylovsolve`.
-Arguments are nearly the same as :func:`.sesolve` or :func:`.mesolve` function
-for master-equation evolution, except that the Hamiltonian cannot depend on
-time and an additional parameter ``krylov_dim`` is needed.
-``krylov_dim`` defines the maximum allowed Krylov-subspace dimension.
+In QuTiP, Krylov-subspace evolution is implemented as the function
+:func:`.krylovsolve`. Arguments are nearly the same as :func:`.sesolve` or
+:func:`.mesolve` function for master-equation evolution, except that the
+Hamiltonian cannot depend on time and an additional parameter ``krylov_dim`` is
+needed. ``krylov_dim`` defines the maximum allowed Krylov-subspace dimension.
 
-For density-matrix evolution, the matrix-form Krylov construction described
-above can be enabled by passing ``matrix_form=True`` in the options:
-
-.. code-block:: python
-
-    >>> result = krylovsolve(H, rho0, tlist, krylov_dim=20, c_ops=c_ops,
-    ...                      e_ops=[op], options={"matrix_form": True})
-
-Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
+Let's solve a simple example using the algorithm in QuTiP to get familiar with
+the method.
 
 .. plot::
     :context: reset
@@ -199,6 +192,51 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
     >>> for expect in results.expect:
     >>>    plt.plot(tlist, expect)
     >>> plt.legend(('jmat x', 'jmat y', 'jmat z'))
+    >>> plt.xlabel('Time')
+    >>> plt.ylabel('Expectation values')
+    >>> plt.show()
+
+Open systems are solved in the same way by passing collapse operators.
+As an example, consider a damped harmonic oscillator with Hamiltonian
+:math:`H = \omega a^\dagger a` and collapse operator :math:`\sqrt{\kappa} a`,
+initialized in a coherent state :math:`|\alpha\rangle` with real
+:math:`\alpha`. The state stays coherent with a decaying amplitude, so the
+expectation values are known analytically:
+
+.. math::
+
+   \langle a^\dagger a \rangle(t) = |\alpha|^2 e^{-\kappa t}, \qquad
+   \langle a + a^\dagger \rangle(t) = 2 \alpha e^{-\kappa t / 2}
+   \cos(\omega t).
+
+Here, the Arnoldi iteration is chosen automatically. For density-matrix
+evolution, the matrix-form Krylov construction described above can be enabled
+by passing ``matrix_form=True`` in the options:
+
+.. plot::
+    :context: reset
+
+    >>> N = 20
+    >>> a = destroy(N)
+    >>> omega, kappa, alpha = 1.0, 0.2, 2.0
+    >>> H = omega * a.dag() * a
+    >>> c_ops = [np.sqrt(kappa) * a]
+    >>> rho0 = coherent_dm(N, alpha)
+    >>> e_ops = [a.dag() * a, a + a.dag()]
+    >>> tlist = np.linspace(0.0, 20.0, 200)
+    >>> results = krylovsolve(H, rho0, tlist, krylov_dim=20, c_ops=c_ops,
+    ...                       e_ops=e_ops, options={"matrix_form": True})
+    >>> n_exact = alpha**2 * np.exp(-kappa * tlist)
+    >>> x_exact = (2 * alpha * np.exp(-kappa * tlist / 2)
+    ...            * np.cos(omega * tlist))
+    >>> plt.figure()
+    >>> plt.plot(tlist, n_exact, 'k-', label='analytical')
+    >>> plt.plot(tlist, x_exact, 'k-')
+    >>> plt.plot(tlist[::5], results.expect[0][::5], 'o',
+    ...          label=r'$\langle a^\dagger a \rangle$ (Krylov)')
+    >>> plt.plot(tlist[::5], results.expect[1][::5], 's',
+    ...          label=r'$\langle a + a^\dagger \rangle$ (Krylov)')
+    >>> plt.legend()
     >>> plt.xlabel('Time')
     >>> plt.ylabel('Expectation values')
     >>> plt.show()
