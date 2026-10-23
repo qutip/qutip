@@ -571,6 +571,32 @@ def test_feedback(func, kind):
     assert np.all(result.expect[0] > 4. - tol)
 
 
+def test_statefeedback_ket_run():
+    # MCSolver.StateFeedback defaults to a closed system: the coefficient
+    # must receive the state as a ket during the run.
+    received = []
+
+    def coeff(t, state=None):
+        if state is not None:
+            received.append(state)
+        return 1.0
+
+    psi0 = qutip.basis(2, 0)
+    a = qutip.destroy(2)
+    H = qutip.QobjEvo(qutip.sigmax())
+    solver = qutip.MCSolver(
+        H,
+        c_ops=[qutip.QobjEvo(
+            [a, coeff], args={"state": qutip.MCSolver.StateFeedback()}
+        )],
+        options={"map": "serial"},
+    )
+    solver.run(psi0, np.linspace(0, 1, 3), ntraj=1)
+    assert received, "feedback coefficient was never called"
+    for state in received:
+        assert state.isket
+
+
 @pytest.mark.parametrize(["initial_state", "ntraj"], [
     pytest.param(qutip.maximally_mixed_dm(2), 5, id="dm"),
     pytest.param([(qutip.basis(2, 0), 0.3), (qutip.basis(2, 1), 0.7)],
