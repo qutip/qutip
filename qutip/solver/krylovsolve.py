@@ -108,6 +108,9 @@ def krylovsolve(
           | Tolerance to detect an happy breakdown. An happy breakdown happens
             when the initial ket is in a subspace of the Hamiltonian smaller
             than ``krylov_dim``.
+        - | matrix_form : bool
+          | Use matrix-form Lindblad solver instead of superoperator form.
+            Only used for density matrix evolution. Default: False.
 
     Returns
     -------
