@@ -297,6 +297,18 @@ class Test_spsolve_nonsymmetric:
         assert info["iparm"][7] == max_iter_refine
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+    def test_matrix_type_correct(self, nonsymmetric_matrix_random, random_generator):
+        A, hermitian, posdef, N = nonsymmetric_matrix_random
+        x = random_generator.standard_normal(N)
+        b = A @ x
+        actual, info = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, return_info=True)
+
+        if np.issubdtype(A.dtype, np.complexfloating):
+            expected = 13
+        else:
+            expected = 11
+        assert info["MatrixType"] == expected
+
 
 class Test_spsolve_symmetric:
 
@@ -375,6 +387,24 @@ class Test_spsolve_symmetric:
 
         assert info["iparm"][7] == max_iter_refine
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+    def test_matrix_type_correct(self, symmetric_real_matrix_random, random_generator):
+        A, N, posdef, hermitian = symmetric_real_matrix_random
+        x = random_generator.standard_normal(N)
+        b = A @ x
+        actual, info = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, return_info=True)
+
+        if np.issubdtype(A.dtype, np.complexfloating):
+            if posdef:
+                expected = 4
+            else:
+                expected = -4
+        else:
+            if posdef:
+                expected = 2
+            else:
+                expected = -2
+        assert info["MatrixType"] == expected
 
 
 class Test_splu:
