@@ -76,6 +76,21 @@ Liouvillian onto the vectorized form of the density operator, thereby forming
 Same as for the pure states mentioned above, the Krylov basis vectors are
 calculated using the Lanczos algorithm (or alternative - see below).
 
+Matrix-Form Krylov Evolution
+----------------------------
+
+Building the Liouvillian :math:`\mathcal{L}` explicitly requires storing a
+:math:`D^2 \times D^2` superoperator, which quickly becomes a memory
+bottleneck for large systems. As an alternative, the Krylov basis can be
+constructed in *matrix form*, analogous to the matrix-form solver of
+:func:`.mesolve` (see :ref:`master-matrix-form`). Here, the Krylov basis
+elements are kept as :math:`D \times D` operators and the action of the
+Liouvillian, is evaluated directly with matrix-matrix products.
+Orthogonalization of the basis elements uses the Hilbert-Schmidt inner product
+:math:`(A|B) = \operatorname{tr}(A^\dagger B)`.
+Since the Krylov basis elements are in general not Hermitian, they are treated
+as general operators during the construction.
+
 Alternative Algorithms for Kyrlov Construction
 ----------------------------------------------
 
@@ -124,6 +139,14 @@ Arguments are nearly the same as :func:`.sesolve` or :func:`.mesolve` function
 for master-equation evolution, except that the Hamiltonian cannot depend on
 time and an additional parameter ``krylov_dim`` is needed.
 ``krylov_dim`` defines the maximum allowed Krylov-subspace dimension.
+
+For density-matrix evolution, the matrix-form Krylov construction described
+above can be enabled by passing ``matrix_form=True`` in the options:
+
+.. code-block:: python
+
+    >>> result = krylovsolve(H, rho0, tlist, krylov_dim=20, c_ops=c_ops,
+    ...                      e_ops=[op], options={"matrix_form": True})
 
 Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
 
