@@ -186,6 +186,20 @@ class Test_spsolve_nonsymmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+    def test_nonsymmetric_with_perm(self, nonsymmetric_matrix, rhs, random_generator):
+        """Check that supplying a permutation produces correct solution."""
+        A, hermitian, posdef = nonsymmetric_matrix
+        b = rhs(A.dtype)
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        # Create a non-trivial permutation
+        perm = random_generator.permutation(b_dense.shape[0])
+        # Solve linear system
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
+        assert x.shape == b.shape
+        expected = scipy.linalg.solve(A.toarray(), b_dense)
+        actual = x.toarray() if scipy.sparse.issparse(x) else x
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
     def test_nonsymmetric_random_input(self, nonsymmetric_matrix_random, random_generator):
         A, hermitian, posdef, N = nonsymmetric_matrix_random
         x = random_generator.standard_normal(N)
@@ -197,7 +211,8 @@ class Test_spsolve_nonsymmetric:
 
     def test_posdef_ignored_for_nonhermitian_input(self, nonsymmetric_matrix, rhs):
         """Test that the solution of the sparse solver is still correct despite
-        posdef solver argument having wrong value. """
+        posdef solver argument having wrong value. Ensure matrix type is determined
+        correctly nevertheless. """
         A, hermitian, posdef = nonsymmetric_matrix
 
         b = rhs(A.dtype)
@@ -221,6 +236,7 @@ class Test_spsolve_nonsymmetric:
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
         np.testing.assert_allclose(A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
+
 class Test_spsolve_symmetric:
 
     def test_symmetric(self, symmetric_matrix, rhs):
@@ -229,6 +245,20 @@ class Test_spsolve_symmetric:
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         assert x.shape == b.shape
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        expected = scipy.linalg.solve(A.toarray(), b_dense)
+        actual = x.toarray() if scipy.sparse.issparse(x) else x
+        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+    def test_symmetric_with_perm(self, symmetric_matrix, rhs, random_generator):
+        """Check that supplying a permutation produces correct solution."""
+        A, hermitian, posdef = symmetric_matrix
+        b = rhs(A.dtype)
+        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        # Create a non-trivial permutation
+        perm = random_generator.permutation(b_dense.shape[0])
+        # Solve linear system
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
+        assert x.shape == b.shape
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
@@ -257,6 +287,7 @@ class Test_spsolve_symmetric:
         expected = scipy.linalg.solve(A.full(), b)
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
 
 class Test_splu:
     # PARDISO mtype=11 (real) and mtype=13 (complex): reuse the general
