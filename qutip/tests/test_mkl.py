@@ -13,6 +13,7 @@ if not qutip.settings.has_mkl:
 if qutip.settings.has_mkl:
     from qutip._mkl.spsolve import mkl_splu, mkl_spsolve, _mkl_matrix_type
 
+
 @pytest.fixture(
     params=[
         pytest.param((False, None), id="rhs-dense-vector"),
@@ -57,6 +58,7 @@ def rhs(request):
 
     return make_rhs
 
+
 @pytest.fixture(params=[np.float64, np.complex128], ids=["real", "complex"])
 def nonsymmetric_matrix_random(request, random_generator):
     """Return sparse randomly generated nonsymmetric matrix, complex and real-valued."""
@@ -68,9 +70,10 @@ def nonsymmetric_matrix_random(request, random_generator):
     A = random_generator.standard_normal((N, N))
 
     if np.issubdtype(dtype, np.complexfloating):
-       A = A + 1j * random_generator.standard_normal((N, N))
-    
+        A = A + 1j * random_generator.standard_normal((N, N))
+
     return scipy.sparse.csr_array(A), hermitian, posdef, N
+
 
 @pytest.fixture(
     params=[
@@ -172,14 +175,14 @@ def nonsymmetric_matrix(request):
     return scipy.sparse.csr_array(A), hermitian, posdef
 
 
-
 def _check_solver_options(matrix, scaling_vectors, weighted_matching):
     A, hermitian, posdef = matrix
     # Obtain RHS in a simple way; using `rhs` fixture would unflate number of tests unnecessarily
     expected = np.array([1, 2, 3], dtype=A.dtype)
 
     actual, info = mkl_spsolve(
-        A, A @ expected,
+        A,
+        A @ expected,
         hermitian=hermitian,
         posdef=posdef,
         scaling_vectors=scaling_vectors,
@@ -188,7 +191,10 @@ def _check_solver_options(matrix, scaling_vectors, weighted_matching):
     )
 
     np.testing.assert_allclose(
-        actual, expected, rtol=1e-10, atol=1e-12,
+        actual,
+        expected,
+        rtol=1e-10,
+        atol=1e-12,
     )
 
     if not hermitian:
@@ -209,7 +215,9 @@ class Test_spsolve_nonsymmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-    def test_nonsymmetric_with_perm(self, nonsymmetric_matrix, rhs, random_generator):
+    def test_nonsymmetric_with_perm(
+        self, nonsymmetric_matrix, rhs, random_generator
+    ):
         """Check that supplying a permutation produces correct solution."""
         A, hermitian, posdef = nonsymmetric_matrix
         b = rhs(A.dtype)
@@ -223,7 +231,9 @@ class Test_spsolve_nonsymmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-    def test_nonsymmetric_random_input(self, nonsymmetric_matrix_random, random_generator):
+    def test_nonsymmetric_random_input(
+        self, nonsymmetric_matrix_random, random_generator
+    ):
         A, hermitian, posdef, N = nonsymmetric_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
@@ -231,11 +241,12 @@ class Test_spsolve_nonsymmetric:
         actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-
-    def test_posdef_ignored_for_nonhermitian_input(self, nonsymmetric_matrix, rhs):
+    def test_posdef_ignored_for_nonhermitian_input(
+        self, nonsymmetric_matrix, rhs
+    ):
         """Test that the solution of the sparse solver is still correct despite
         posdef solver argument having wrong value. Ensure matrix type is determined
-        correctly nevertheless. """
+        correctly nevertheless."""
         A, hermitian, posdef = nonsymmetric_matrix
 
         b = rhs(A.dtype)
@@ -257,12 +268,18 @@ class Test_spsolve_nonsymmetric:
         assert not posdef
         assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-        np.testing.assert_allclose(A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(
+            A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12
+        )
 
     @pytest.mark.parametrize("scaling_vectors", [False, True])
     @pytest.mark.parametrize("weighted_matching", [False, True])
-    def test_solver_options(self, nonsymmetric_matrix, scaling_vectors, weighted_matching):
-        _check_solver_options(nonsymmetric_matrix, scaling_vectors, weighted_matching)
+    def test_solver_options(
+        self, nonsymmetric_matrix, scaling_vectors, weighted_matching
+    ):
+        _check_solver_options(
+            nonsymmetric_matrix, scaling_vectors, weighted_matching
+        )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
     def test_max_iter_refine(self, nonsymmetric_matrix, max_iter_refine):
@@ -280,6 +297,7 @@ class Test_spsolve_nonsymmetric:
         assert info["iparm"][7] == max_iter_refine
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
+
 class Test_spsolve_symmetric:
 
     def test_symmetric(self, symmetric_matrix, rhs):
@@ -292,7 +310,9 @@ class Test_spsolve_symmetric:
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-    def test_symmetric_with_perm(self, symmetric_matrix, rhs, random_generator):
+    def test_symmetric_with_perm(
+        self, symmetric_matrix, rhs, random_generator
+    ):
         """Check that supplying a permutation produces correct solution."""
         A, hermitian, posdef = symmetric_matrix
         b = rhs(A.dtype)
@@ -333,8 +353,12 @@ class Test_spsolve_symmetric:
 
     @pytest.mark.parametrize("scaling_vectors", [False, True])
     @pytest.mark.parametrize("weighted_matching", [False, True])
-    def test_solver_options(self, symmetric_matrix, scaling_vectors, weighted_matching):
-        _check_solver_options(symmetric_matrix, scaling_vectors, weighted_matching)
+    def test_solver_options(
+        self, symmetric_matrix, scaling_vectors, weighted_matching
+    ):
+        _check_solver_options(
+            symmetric_matrix, scaling_vectors, weighted_matching
+        )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
     def test_max_iter_refine(self, symmetric_matrix, max_iter_refine):
