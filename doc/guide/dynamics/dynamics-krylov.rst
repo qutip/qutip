@@ -71,7 +71,7 @@ Liouvillian onto the vectorized form of the density operator, thereby forming
 .. math::
 	:label: krylovsubspace_mixed
 
-	\mathcal{K}_{N}=\operatorname{span}\left\{|\rho), H|\psi\rangle, \ldots, \mathcal{L}^{N-1}|\psi\rangle\right\}.
+	\mathcal{K}_{N}=\operatorname{span}\left\{|\rho), \mathcal{L}|\rho), \ldots, \mathcal{L}^{N-1}|\rho)\right\}.
 
 Same as for the pure states mentioned above, the Krylov basis vectors are
 calculated using the Lanczos algorithm (or alternative - see below).
