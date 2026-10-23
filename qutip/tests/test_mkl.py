@@ -51,7 +51,7 @@ def rhs(request):
         )
         if np.issubdtype(dtype, np.complexfloating):
             b[0, 0] += 1j
-            b[2, 2] - +2j
+            b[2, 2] -= +2j
 
         b = b[:, 0] if columns is None else b[:, :columns]
         return scipy.sparse.csr_array(b) if is_sparse else b
@@ -397,3 +397,11 @@ class Test_splu:
         lu.delete()
         expected_X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(test_X, expected_X)
+
+    def test_solve_after_delete(self, nonsymmetric_matrix):
+        A, _, _ = nonsymmetric_matrix
+        lu = mkl_splu(A)
+        lu.delete()
+
+        with pytest.raises(RuntimeError, match="memory"):
+            lu.solve(A)
