@@ -6,8 +6,12 @@ from pydiso.mkl_solver import MKLPardisoSolver
 
 
 def _prepare_pydiso_args(
-    max_iter_refine: int, perm=None, *, hermitian=False,
-    scaling_vectors=True, weighted_matching=True,
+    max_iter_refine: int,
+    perm=None,
+    *,
+    hermitian=False,
+    scaling_vectors=True,
+    weighted_matching=True,
 ):
     """
     Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
@@ -123,21 +127,26 @@ class MKLFactorization:
 
         if sp.issparse(b):
             raise TypeError(
-                "Right-hand side must be dense. Use mkl_spsolve for a sparse b"
-                "instead of using MKLFactorization.solve directly"
+                "Right-hand side must be dense. Use mkl_spsolve() for sparse right-hand sides."
             )
         b = np.asarray(b)
 
         n = self._solver.shape[0]
+
         if b.ndim not in (1, 2):
             raise ValueError(
-                    f"Right-hand side must have shape ({n}, ) or ({n}, k);"
-                    f"got shape {b.shape}."
+                f"Right-hand side must have shape ({n}, ) or ({n}, k);"
+                f"got shape {b.shape}."
+            )
+
+        if b.shape[0] != n:
+            raise ValueError(
+                f"Right-hand side must have {n} rows; got shape {b.shape}"
             )
 
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
             raise TypeError(
-                "Got a complex right-hand side: cannot solve real-valued factorization"
+                "A real-valued factorization cannot solve a complex right-hand side. Factorize a complex-valued matrix instead."
             )
 
         if b.dtype != self._dtype:
@@ -174,7 +183,7 @@ class MKLFactorization:
             "Solvemem": round(iparm[16] / 1024, 4),
             "IterRefine": iparm[6],
             "MatrixType": self._solver.matrix_type,
-            "iparm": iparm
+            "iparm": iparm,
         }
 
     def delete(self):
