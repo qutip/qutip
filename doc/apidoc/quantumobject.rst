@@ -79,6 +79,12 @@ Tensor
 .. automodule:: qutip.partial_transpose
     :members: partial_transpose
 
+Subsystem Application
+---------------------
+
+.. automodule:: qutip.core.subsystem_apply
+    :members: subsystem_apply
+
 Superoperators and Liouvillians
 -------------------------------
 
