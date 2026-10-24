@@ -32,6 +32,7 @@ else:
     scipy_data_matrix_init = scipy_data_matrix.__init__
 
 from scipy.sparse import dia_array as scipy_dia_array
+include "_blas_int.pxi"
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense, CSR
@@ -39,6 +40,19 @@ from qutip.core.data.adjoint import adjoint_dia, transpose_dia, conj_dia
 from qutip.core.data.trace import trace_dia
 from qutip.core.data.tidyup import tidyup_dia
 from .base import idxint_dtype
+
+# NumPy 2's ``copy=False`` means "never copy" and raises if a dtype conversion
+# is needed, where NumPy 1's meant "copy only if needed". SciPy's index arrays
+# are always int32, so on an ``idxint_64`` build converting them to idxint
+# genuinely requires a copy. Fall back to copy-if-needed in exactly that case.
+_NUMPY_2 = np.lib.NumpyVersion(np.__version__) >= '2.0.0b1'
+
+
+cdef object _array_idxint(object arg, object copy):
+    if _NUMPY_2 and copy is False and np.asarray(arg).dtype != idxint_dtype:
+        copy = None
+    return np.array(arg, dtype=idxint_dtype, copy=copy, order='C')
+
 from qutip.settings import settings
 
 cnp.import_array()
@@ -100,7 +114,7 @@ cdef class Dia(base.Data):
             # np2 accept None which act as np1's False
             copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
-        offsets = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
+        offsets = _array_idxint(arg[1], copy)
 
         self.num_diag = offsets.shape[0]
         self._max_diag = self.num_diag
@@ -385,7 +399,7 @@ cpdef Dia clean_dia(Dia matrix, bint inplace=False):
     cdef base.idxint diag=0, new_diag=0, start, end, col
     cdef double complex zONE=1.
     cdef bint has_duplicate
-    cdef int length=out.shape[1], ONE=1
+    cdef blas_int length=out.shape[1], ONE=1
 
     if out.num_diag == 0:
         return out
