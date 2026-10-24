@@ -83,9 +83,18 @@ jobs:
           - case-name: mkl, version-4
             os: ubuntu-latest
             python-version: "3.12"
-            numpy-run: "==2.1.*"
-            scipy-run: "==1.14.*"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
             qutip-optional: "[graphics]"
+            conda-extra-pkgs: pydiso
+
+          - case-name: pydiso conda
+            os: windows-latest
+            python-version: "3.12"
+            numpy-run: "==2.2.*"
+            scipy-run: "==1.15.*"
+            qutip-optional: "[graphics]"
+            conda-extra-pkgs: pydiso
 
           - case-name: version-5
             os: ubuntu-latest
@@ -239,7 +248,9 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
+            conda install --yes --override-channels --channel conda-forge \
+              "libblas=*=*mkl" \
+              $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi
@@ -257,6 +268,48 @@ jobs:
           if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
+
+      - name: Diagnose Linux MKL environment
+        if: >-
+          runner.os == 'Linux' &&
+          (matrix.case-name == 'Latest' ||
+           matrix.case-name == 'mkl, version-4')
+        working-directory: ${{ runner.temp }}
+        run: |
+          echo "=== Python and environment ==="
+          command -v python
+          python -c "import sys; print(sys.executable); print(sys.version); print(sys.prefix)"
+          printenv | sort | grep -E '^(CONDA|LD_LIBRARY_PATH|LD_PRELOAD|MKL|OMP|PYTHON)' || true
+
+          echo "=== Package versions and channels ==="
+          conda list --show-channel-urls
+          python -m pip show numpy scipy mkl mkl-service pydiso || true
+
+          echo "=== MKL libraries and symlinks ==="
+          find "$CONDA_PREFIX/lib" -maxdepth 1 \
+            -name 'libmkl*' -exec ls -ld {} +
+
+          echo "=== Missing library and its dependencies ==="
+          target="$CONDA_PREFIX/lib/libmkl_gf_lp64.so.3"
+          ls -l "$target" || true
+          readlink -f "$target" || true
+          ldd "$target" || true
+
+          echo "=== NumPy extension dependencies ==="
+          find "$CONDA_PREFIX/lib"/python*/site-packages/numpy \
+            -name '*_multiarray_umath*.so' -exec ldd {} \;
+
+          echo "=== Conda transaction history ==="
+          cat "$CONDA_PREFIX/conda-meta/history"
+
+          echo "=== NumPy import and BLAS operation ==="
+          python -u -c "import numpy as np; print(np.__version__, flush=True); np.show_config(); print(np.ones((32, 32)) @ np.ones((32, 32)))" || true
+
+          echo "=== SciPy import and LAPACK operation ==="
+          python -u -c "import scipy; import scipy.linalg as la; print(scipy.__version__, flush=True); print(la.inv([[2., 0.], [0., 3.]]))" || true
+
+          echo "=== QuTiP import ==="
+          python -u -c "import qutip; qutip.about()" || true
 
       - name: Package information
         working-directory: ${{ runner.temp }}
