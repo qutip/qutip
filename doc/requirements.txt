@@ -1,7 +1,7 @@
 alabaster==1.0.0
 asttokens==3.0.1
 babel==2.17.0
-certifi==2026.1.4
+certifi==2026.10.19
 cffi==2.0.0
 charset-normalizer==3.4.4
 clarabel==0.11.1
