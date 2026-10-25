@@ -217,10 +217,13 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     """
     len_op = np.prod(kraus_ops[0].shape)
     # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density
-    # matrix and produce [M, M] d.m.), Choi matrix Hilbert space will
-    # be [[M, N], [M, N]] because Choi Hilbert space
-    # is (output space) x (input space).
-    choi_dims = [SuperSpace(kraus_ops[0]._dims, rep="choi")] * 2
+    # matrix and produce [M, M] d.m.), the Choi matrix is built from the
+    # transposed dims [N, M], the same convention ``to_choi`` uses, so that
+    # converting it back with ``to_super`` maps [N, N] to [M, M] operators.
+    kraus_dims = kraus_ops[0]._dims
+    choi_dims = [
+        SuperSpace(Dimensions(kraus_dims[0], kraus_dims[1]), rep="choi")
+    ] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
     kraus_vectors = np.asarray([
