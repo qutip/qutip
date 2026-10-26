@@ -67,9 +67,8 @@ def krylovsolve(
         - "arnoldi": use the Arnoldi iteration.
 
     c_ops : list of :obj:`.Qobj`, optional
-        Single collapse operator, or list of collapse operators, or a list
-        of Liouvillian superoperators. They must be time-independent. None is
-        equivalent to an empty list.
+        Single collapse operator, or list of collapse operators. They must be
+        time-independent. None is equivalent to an empty list.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
         Single operator, or list or dict of operators, for which to evaluate
