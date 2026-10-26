@@ -27,7 +27,7 @@ def sesolve(
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
 ) -> Result:
-    """
+    r"""
     Schrodinger equation evolution of a state vector or unitary matrix
     for a given Hamiltonian.
 
@@ -35,6 +35,15 @@ def sesolve(
     Hamiltonian (``H``), by integrating the set of ordinary differential
     equations that define the system. Alternatively evolve a unitary matrix in
     solving the Schrodinger operator equation.
+
+    The equation solved is
+
+    .. math::
+
+        \frac{d}{dt}|\psi(t)\rangle = -i H(t) |\psi(t)\rangle,
+
+    in units where :math:`\hbar = 1`. ``H`` is therefore given in units of
+    angular frequency, and ``tlist`` in the inverse of those units.
 
     The output is either the state vector or unitary matrix at arbitrary points
     in time (``tlist``), or the expectation values of the supplied operators

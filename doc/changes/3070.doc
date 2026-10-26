@@ -1,0 +1,1 @@
+Document that the solvers work in units where ``hbar = 1``: state the equation solved in the ``sesolve`` and ``mesolve`` docstrings, and add a note on units to the master equation guide.

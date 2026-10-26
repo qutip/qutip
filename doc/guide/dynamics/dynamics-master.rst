@@ -49,6 +49,15 @@ or the function :func:`.sesolve`. It evolves the state vector and evaluates the
 expectation values for a set of operators ``e_ops`` at the points in time in
 the list ``times``, using an ordinary differential equation solver.
 
+.. note::
+
+   QuTiP's solvers work in units where :math:`\hbar = 1`: :func:`.sesolve`
+   solves :math:`\frac{d}{dt}\left|\psi\right> = -iH\left|\psi\right>`, and the
+   master equation solvers drop :math:`\hbar` in the same way. The Hamiltonian
+   is therefore given in units of angular frequency, and ``times`` in the
+   inverse of those units. In the example below, ``2*np.pi * 0.1`` is the
+   angular frequency for a tunneling rate of 0.1.
+
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 0.1 that initially is in the up state is calculated, and the expectation values
 of the :math:`\sigma_z` operator evaluated, with the following code
