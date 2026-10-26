@@ -114,7 +114,16 @@ Liouvillian is evaluated directly with matrix-matrix products.
 Orthogonalization of the basis elements uses the Hilbert-Schmidt inner product
 :math:`(A|B) = \operatorname{tr}(A^\dagger B)`.
 Since the Krylov basis elements are in general not Hermitian, they are treated
-as general operators during the construction.
+as general operators during the construction. Consequently, the faster
+Hermitian-state path of the matrix-form :func:`.mesolve`, cannot be used for
+Krylov evolution.
+
+Note that the matrix form only removes the cost of storing :math:`\mathcal{L}`.
+The Krylov basis itself still consists of :math:`N` dense elements of size
+:math:`D^2`, i.e. it requires :math:`N D^2` complex numbers in both forms.
+For sparse Liouvillians, whose number of non-zero elements is often much
+smaller than :math:`D^4`, the memory savings are therefore moderate.  They are
+largest for dense Hamiltonians or systems with many collapse operators.
 
 Alternative Algorithms for Krylov Construction
 ----------------------------------------------
