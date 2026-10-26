@@ -73,11 +73,15 @@ Krylov resides not only in its ability to capture complex time evolutions from
 very large Hilbert spaces with very small dimensions :math:`N`, but also in the
 computing speed-up it presents.
 
-For exceptional cases, the Lanczos algorithm might arrive at the exact evolution
-of the initial state at a dimension :math:`N_{hb}<N`. This is called a happy
-breakdown. For example, if a Hamiltonian has a symmetry subspace
-:math:`D_{\text{sim}}<N`, then the algorithm will optimize using the value
-:math:`N_{hb}<N`, at which the evolution is not only exact but also cheap.
+Exceptional cases can lead to the Krylov subspace closing under the action of
+:math:`H` at a dimension :math:`N_{hb}<N`. This is called a happy breakdown. It
+happens, for example, if the initial state lies entirely within a symmetry
+sector of the Hamiltonian of dimension :math:`D_{\text{sym}}<N`, in which case
+:math:`N_{hb} \leq D_{\text{sym}}`. In QuTiP, a happy breakdown is detected
+when the norm of the residual vector falls below the option
+``sub_system_tol``. The construction then stops at :math:`N_{hb}`, and the
+evolution is not only exact for all times (no restarts are needed), but also
+cheap.
 
 Krylov for Mixed States
 -----------------------
@@ -170,8 +174,9 @@ Krylov Solver in QuTiP
 In QuTiP, Krylov-subspace evolution is implemented as the function
 :func:`.krylovsolve`. Arguments are nearly the same as :func:`.sesolve` or
 :func:`.mesolve` function for master-equation evolution, except that the
-Hamiltonian cannot depend on time and an additional parameter ``krylov_dim`` is
-needed. ``krylov_dim`` defines the maximum allowed Krylov-subspace dimension.
+Hamiltonian and collapse operators cannot depend on time and an additional
+parameter ``krylov_dim`` is needed. ``krylov_dim`` defines the maximum allowed
+Krylov-subspace dimension.
 
 Let's solve a simple example using the algorithm in QuTiP to get familiar with
 the method.

@@ -28,9 +28,9 @@ def krylovsolve(
     independent Hamiltonians using the Krylov method.
 
     Evolve the state vector or density matrix ("rho0") finding a reduced form
-    of the time evolution operator of Liouvillian ("L") by obtaining the
-    projection of the time evolution operator on a set of small dimensional
-    Krylov subspaces (``krylov_dim`` << dim(L)).
+    of the time evolution operator of the Hamiltonian or Liouvillian ("H") by
+    obtaining the projection of the time evolution operator on a set of small
+    dimensional Krylov subspaces (``krylov_dim`` << dim(H)).
 
     The output is either the state vector or density matrix at arbitrary
     points in time (`tlist`), or the expectation values of the supplied
@@ -72,8 +72,8 @@ def krylovsolve(
         equivalent to an empty list.
 
     e_ops : :obj:`.Qobj`, callable, list or dict, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operators can be Qobj, QobjEvo or callables.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`~qutip.core.expect.expect` for more detail of operator
         expectation.
@@ -101,7 +101,9 @@ def krylovsolve(
         - | progress_kwargs : dict
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | atol: float
-          | Absolute tolerance of the ODE integrator.
+          | Absolute tolerance of the integrator. It bounds the estimated
+            error of each Krylov step and thereby sets the maximal step
+            length.
         - | nsteps : int
           | Maximum number of (internally defined) steps allowed in one
             ``tlist`` step.
@@ -109,12 +111,12 @@ def krylovsolve(
           | Minimum and maximum length of one internal step.
         - | always_compute_step: bool
           | If True, the step length is computed each time a new Krylov
-            subspace is computed. Otherwise it is computed only once when
-            creating the integrator.
+            subspace is computed. Otherwise it is computed only once, for the
+            first Krylov subspace.
         - | sub_system_tol: float
           | Tolerance to detect a happy breakdown. A happy breakdown happens
-            when the initial state is in a subspace of the Hamiltonian smaller
-            than ``krylov_dim``.
+            when the initial state is in a subspace of the Hamiltonian or
+            Liouvillian smaller than ``krylov_dim``.
         - | matrix_form : bool
           | Use matrix-form Lindblad solver instead of superoperator form.
             Only used for density matrix evolution. Default: False.
