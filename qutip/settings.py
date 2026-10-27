@@ -127,8 +127,6 @@ class Settings:
     Qutip's settings and options.
     """
     def __init__(self):
-        self._mkl_lib = ""
-        self._mkl_lib_loc = ""
         try:
             self.tmproot = str(Path.home() / '.qutip')
         except OSError:
@@ -157,16 +155,7 @@ class Settings:
 
     @property
     def mkl_lib_location(self) -> str | None:
-        """ Location of the mkl library file. The file is usually called:
-
-        - `libmkl_rt.so` (Linux)
-        - `libmkl_rt.dylib` (Mac)
-        - `mkl_rt.dll` (Windows)
-
-        It search for the library in the python lib path per default.
-        If the library is in other location, update this variable as needed.
-        """
-        warnings.warn("The 'mkl_lib_location' property is deprecated; use 'has_mkl' instead.",
+        warnings.warn("The 'mkl_lib_location' property is deprecated.",
             category=DeprecationWarning,
             stacklevel=2
         )
@@ -178,7 +167,7 @@ class Settings:
             "is no longer supported with pydiso. To use a custom MKL "
             "installation, build pydiso from source with the appropriate "
             "MKL configuration."),
-            category=None,
+            category=DeprecationWarning,
             stacklevel=2
         )
 
