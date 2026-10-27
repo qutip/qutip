@@ -285,7 +285,7 @@ jobs:
           merge-multiple: true
 
       - name: Sign the dists with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v3.4.0
+        uses: sigstore/gh-action-sigstore-python@v3
         with:
           inputs: ./wheels/*.tar.gz ./wheels/*.whl
           release-signing-artifacts: false
