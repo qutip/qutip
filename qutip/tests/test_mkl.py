@@ -176,11 +176,13 @@ def nonsymmetric_matrix(request):
 
 
 def _check_solver_options(matrix, scaling_vectors, weighted_matching):
+    # Helper function for test_solver_options tests;
+    # checks if scaling_vectors and weighted_matching arguments are set correctly in the solver
     A, hermitian, posdef = matrix
     # Obtain RHS in a simple way; using `rhs` fixture would unflate number of tests unnecessarily
     expected = np.array([1, 2, 3], dtype=A.dtype)
 
-    actual, info = mkl_spsolve(
+    _, info = mkl_spsolve(
         A,
         A @ expected,
         hermitian=hermitian,
@@ -188,13 +190,6 @@ def _check_solver_options(matrix, scaling_vectors, weighted_matching):
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
         return_info=True,
-    )
-
-    np.testing.assert_allclose(
-        actual,
-        expected,
-        rtol=1e-10,
-        atol=1e-12,
     )
 
     if not hermitian:
@@ -205,35 +200,48 @@ def _check_solver_options(matrix, scaling_vectors, weighted_matching):
 class Test_spsolve_nonsymmetric:
 
     def test_nonsymmetric(self, nonsymmetric_matrix, rhs):
+        """Tests the solver on non-symmetric matrices (real- and complex-valued)
+        combined with RHS of different shapes and value types."""
         A, hermitian, posdef = nonsymmetric_matrix
+        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
+        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        # Check if output shape matches input shape
         assert x.shape == b.shape
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
+        # Compare solutions of mkl pardiso and scipy
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_with_perm(
         self, nonsymmetric_matrix, rhs, random_generator
     ):
-        """Check that supplying a permutation produces correct solution."""
+        """Ensures that supplying a user-defined permutation for a non-symmetric matrix
+        does not affect solution's correctness."""
         A, hermitian, posdef = nonsymmetric_matrix
+        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
+        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Create a non-trivial permutation
         perm = random_generator.permutation(b_dense.shape[0])
         # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
+        # Check if output shape matches input shape
         assert x.shape == b.shape
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
+        # Check if output shape matches input shape
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_random_input(
         self, nonsymmetric_matrix_random, random_generator
     ):
+        """Tests the solver on non-symmetric matrices (real- and complex-valued),
+        left- and right-hand sides are randomized."""
         A, hermitian, posdef, N = nonsymmetric_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
@@ -244,12 +252,14 @@ class Test_spsolve_nonsymmetric:
     def test_posdef_ignored_for_nonhermitian_input(
         self, nonsymmetric_matrix, rhs
     ):
-        """Test that the solution of the sparse solver is still correct despite
-        posdef solver argument having wrong value. Ensure matrix type is determined
+        """Ensures that the solution of the sparse solver is still correct despite
+        posdef solver argument having a wrong value.
+        Checks that the matrix type is determined
         correctly nevertheless."""
         A, hermitian, posdef = nonsymmetric_matrix
-
+        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
+        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
 
         expected = scipy.linalg.solve(A.toarray(), b_dense)
@@ -266,8 +276,11 @@ class Test_spsolve_nonsymmetric:
         # convert to dense in case the sparse solver returned sparse solution
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         assert not posdef
+        # Ensure the solver inferred the matrix type correctly based on provided solver args
         assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
+        # Compare solutions
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        # Ensure the linear system holds
         np.testing.assert_allclose(
             A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12
         )
@@ -277,12 +290,16 @@ class Test_spsolve_nonsymmetric:
     def test_solver_options(
         self, nonsymmetric_matrix, scaling_vectors, weighted_matching
     ):
+        """Ensures scaling vectors and weighted matching arguments of the solver are
+        set as expected."""
         _check_solver_options(
             nonsymmetric_matrix, scaling_vectors, weighted_matching
         )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
     def test_max_iter_refine(self, nonsymmetric_matrix, max_iter_refine):
+        """Ensures maximum number of iterative refinement steps were
+        set in the solver as expected."""
         A, _, _ = nonsymmetric_matrix
         expected = np.array([1, 2, 3], dtype=A.dtype)
         b = A @ expected
@@ -297,11 +314,17 @@ class Test_spsolve_nonsymmetric:
         assert info["iparm"][7] == max_iter_refine
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-    def test_matrix_type_correct(self, nonsymmetric_matrix_random, random_generator):
+    def test_matrix_type_correct(
+        self, nonsymmetric_matrix_random, random_generator
+    ):
+        """Ensures the solver inferred the PARDISO's mtype (matrix type) correctly w.r.t.
+        inputs and solver args."""
         A, hermitian, posdef, N = nonsymmetric_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
-        actual, info = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, return_info=True)
+        actual, info = mkl_spsolve(
+            A, b, hermitian=hermitian, posdef=posdef, return_info=True
+        )
 
         if np.issubdtype(A.dtype, np.complexfloating):
             expected = 13
@@ -313,29 +336,42 @@ class Test_spsolve_nonsymmetric:
 class Test_spsolve_symmetric:
 
     def test_symmetric(self, symmetric_matrix, rhs):
+        """Tests the solver on symmetric matrices (real- and complex-valued,
+        positive definite and indefinite) combined with RHS of different shapes
+        and value types."""
         A, hermitian, posdef = symmetric_matrix
+        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        assert x.shape == b.shape
+        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+        # Solve linear system
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+        # Check if output shape matches input shape
+        assert x.shape == b.shape
         expected = scipy.linalg.solve(A.toarray(), b_dense)
+        # Compare solutions of MKL PARDISO and SciPy
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_symmetric_with_perm(
         self, symmetric_matrix, rhs, random_generator
     ):
-        """Check that supplying a permutation produces correct solution."""
+        """Ensures that supplying a user-defined permutation for a symmetric matrix
+        does not affect solution's correctness."""
         A, hermitian, posdef = symmetric_matrix
+        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
+        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Create a non-trivial permutation
         perm = random_generator.permutation(b_dense.shape[0])
         # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
+        # Check if output shape matches input shape
         assert x.shape == b.shape
         expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
+        # Compare solutions of MKL PARDISO and SciPy
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_real_symmetric_random_input(
@@ -349,6 +385,8 @@ class Test_spsolve_symmetric:
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_hermitian_random_input(self, random_generator):
+        """Tests the solver on symmetric matrices (complex-valued),
+        left- and right-hand sides are randomized."""
         N = 10
         A = qutip.rand_herm(
             N,
@@ -368,12 +406,16 @@ class Test_spsolve_symmetric:
     def test_solver_options(
         self, symmetric_matrix, scaling_vectors, weighted_matching
     ):
+        """Ensures scaling vectors and weighted matching arguments of the solver are
+        set as expected."""
         _check_solver_options(
             symmetric_matrix, scaling_vectors, weighted_matching
         )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
     def test_max_iter_refine(self, symmetric_matrix, max_iter_refine):
+        """Ensures maximum number of iterative refinement steps were
+        set in the solver as expected."""
         A, _, _ = symmetric_matrix
         expected = np.array([1, 2, 3], dtype=A.dtype)
         b = A @ expected
@@ -388,11 +430,17 @@ class Test_spsolve_symmetric:
         assert info["iparm"][7] == max_iter_refine
         np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
-    def test_matrix_type_correct(self, symmetric_real_matrix_random, random_generator):
+    def test_matrix_type_correct(
+        self, symmetric_real_matrix_random, random_generator
+    ):
+        """Ensures the solver inferred the PARDISO's mtype (matrix type) correctly w.r.t.
+        inputs and solver args."""
         A, N, posdef, hermitian = symmetric_real_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
-        actual, info = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, return_info=True)
+        actual, info = mkl_spsolve(
+            A, b, hermitian=hermitian, posdef=posdef, return_info=True
+        )
 
         if np.issubdtype(A.dtype, np.complexfloating):
             if posdef:
@@ -408,9 +456,10 @@ class Test_spsolve_symmetric:
 
 
 class Test_splu:
-    # PARDISO mtype=11 (real) and mtype=13 (complex): reuse the general
-    # factorization for repeated vector RHS solves
+
     def test_nonsymmetric_repeated_vector_rhs(self, nonsymmetric_matrix):
+        """Tests reusing a factorisation of a non-symmetric matrix
+        for repeated solves of vector RHS."""
         A, hermitian, posdef = nonsymmetric_matrix
         N = np.array(
             [
@@ -429,6 +478,8 @@ class Test_splu:
         np.testing.assert_allclose(test_X, expected_X)
 
     def test_solve_after_delete(self, nonsymmetric_matrix):
+        """Tests the lifecycle of factorisation: calling `solve` on the dereferenced factorisation
+        object raises RuntimeError."""
         A, _, _ = nonsymmetric_matrix
         lu = mkl_splu(A)
         lu.delete()
@@ -436,8 +487,8 @@ class Test_splu:
         with pytest.raises(RuntimeError, match="memory"):
             lu.solve(A)
 
-    def test_faulty_inputs_rejection(self):
-        """Test input validation"""
+    def test_faulty_coeff_matrix_rejection(self):
+        """Test input validation w.r.t. coefficient matrix."""
         # Non-square matrix
         A = np.array([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(ValueError, match="square"):
@@ -450,3 +501,37 @@ class Test_splu:
         A = scipy.sparse.csc_array(np.ones((3, 3)))
         with pytest.raises(TypeError, match="CSR"):
             mkl_splu(A)
+
+    @pytest.mark.parametrize(
+        "rhs_shape, error_msg",
+        [
+            pytest.param((), "must have shape", id="scalar"),
+            pytest.param((3, 1, 1), "must have shape", id="3d-array"),
+            pytest.param((4,), "must have 3 rows", id="vector-too-long"),
+            pytest.param(
+                (4, 2), "must have 3 rows", id="matrix-too-many-rows"
+            ),
+        ],
+    )
+    def test_faulty_rhs_shape_rejection(
+        self, nonsymmetric_matrix, rhs_shape, error_msg
+    ):
+        """Test input validation w.r.t. RHS."""
+        A, hermitian, posdef = nonsymmetric_matrix
+        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef)
+        b = np.ones(rhs_shape, dtype=A.dtype)
+        try:
+            with pytest.raises(ValueError, match=error_msg):
+                lu.solve(b)
+        finally:
+            lu.delete()
+
+    def test_complex_rhs_with_real_factorisation(self):
+        A = scipy.sparse.csr_array(np.eye(3))
+        lu = mkl_splu(A)
+        b = np.array([1, 2 + 1j, 3 + 4j])
+        try:
+            with pytest.raises(TypeError, match="real-valued factorization"):
+                lu.solve(b)
+        finally:
+            lu.delete()

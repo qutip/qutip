@@ -135,7 +135,7 @@ class MKLFactorization:
 
         if b.ndim not in (1, 2):
             raise ValueError(
-                f"Right-hand side must have shape ({n}, ) or ({n}, k);"
+                f"Right-hand side must have shape ({n}, ) or ({n}, k); "
                 f"got shape {b.shape}."
             )
 
