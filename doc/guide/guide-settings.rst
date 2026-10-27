@@ -64,7 +64,6 @@ MKL PARDISO availability
 ------------------------
 
 QuTiP provides MKL PARDISO support through the optional ``pydiso`` package.
-Detection is automatic; users do not need to configure an MKL library path.
 
 The current status can be inspected with:
 
