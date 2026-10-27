@@ -959,7 +959,8 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100, mkl_perm=None, mkl_verbose=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_perm=None, mkl_verbose=False,
+        mkl_scaling_vectors=True, mkl_weighted_matching=False
     ):
         """
         Compute the steady state of the system.
@@ -983,8 +984,19 @@ class HEOMSolver(Solver):
             For a complete description, see iparm[4] in
             https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
 
-        mkl_verbose : bool
+        mkl_verbose : bool, default=False
             Enable logging for MKL solver.
+
+        mkl_scaling_vectors : bool, default=True
+            Enable scaling. Default for nonsymmetric matrices.
+            For a complete description, see iparm[10] in https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+
+        mkl_weighted_matching : bool, default=False
+            MKL PARDISO can use a maximum weighted matching algorithm to
+            permute large elements close the diagonal. This strategy adds an
+            additional level of reliability to the factorization methods.
+
+            For a complete description, see iparm[12] in https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
 
         Returns
         -------
@@ -1023,6 +1035,8 @@ class HEOMSolver(Solver):
                 perm=mkl_perm,
                 verbose=mkl_verbose,
                 max_iter_refine=mkl_max_iter_refine,
+                scaling_vectors=True,
+                weighted_matching=mkl_weighted_matching
             )
         else:
             L = L.tocsc()
