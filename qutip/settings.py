@@ -4,7 +4,6 @@ tidyup functionality, etc.
 """
 import os
 import sys
-import functools
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
@@ -96,7 +95,6 @@ def available_cpu_count() -> int:
     return num_cpu or 1
 
 
-@functools.cache
 def _has_pydiso() -> bool:
     try:
         import pydiso.mkl_solver
@@ -105,9 +103,6 @@ def _has_pydiso() -> bool:
     return True
 
 def _mkl_versions() -> tuple[str | None, str | None]:
-    if not _has_pydiso():
-        return None, None
-
     from importlib.metadata import PackageNotFoundError, version
     try:
         pydiso_version = version("pydiso")
@@ -136,22 +131,33 @@ class Settings:
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+        self._has_pydiso = None
+        self._mkl_versions = None
 
     @property
     def has_mkl(self) -> bool:
         """ Checks whether the MKL Pardiso sparse solver is available.
             Requires the optional ``pydiso`` package. """
-        return _has_pydiso()
+        if self._has_pydiso is None:
+            self._has_pydiso = _has_pydiso()
+        return self._has_pydiso
+
+    def _get_mkl_versions(self) -> tuple[str | None, str | None]:
+        if self._mkl_versions is None:
+            self._mkl_versions = (
+                _mkl_versions() if self.has_mkl else (None, None)
+            )
+        return self._mkl_versions
 
     @property
     def mkl_version(self) -> str | None:
         """ Version of the Intel MKL library used by ``pydiso`` """
-        return _mkl_versions()[1]
+        return self._get_mkl_versions()[1]
     
     @property
     def pydiso_version(self) -> str | None:
         """Version of ``pydiso```, which provides the MKL Pardiso solver """
-        return _mkl_versions()[0]
+        return self._get_mkl_versions()[0]
 
     @property
     def mkl_lib_location(self) -> str | None:
