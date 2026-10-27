@@ -244,6 +244,7 @@ def mkl_splu(
         raise ValueError(f"Input matrix must be square; got shape {A.shape}.")
 
     if not np.issubdtype(A.dtype, np.inexact):
+        # Non-floating-point / complex values get converted to float64
         A = sp.csr_array(A, dtype=np.float64, copy=None)
 
     data_type = A.dtype
