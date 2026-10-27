@@ -247,7 +247,7 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install "blas=*=mkl" "pydiso>=0.3.1" $CORE_DEP
+            conda install "pydiso>=0.3.1" $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi
