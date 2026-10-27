@@ -472,7 +472,9 @@ class Test_splu:
         test_X = np.zeros((3, 3), dtype=A.dtype)
         lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
         for k in range(3):
-            test_X[:, k] = lu.solve(N[:, k])
+            x = lu.solve(N[:, k])
+            assert x.dtype == A.dtype
+            test_X[:, k] = x
         lu.delete()
         expected_X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(test_X, expected_X)
@@ -488,7 +490,7 @@ class Test_splu:
             lu.solve(A)
 
     def test_faulty_coeff_matrix_rejection(self):
-        """Test input validation w.r.t. coefficient matrix."""
+        """Tests input validation w.r.t. coefficient matrix."""
         # Non-square matrix
         A = np.array([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(ValueError, match="square"):
@@ -516,7 +518,7 @@ class Test_splu:
     def test_faulty_rhs_shape_rejection(
         self, nonsymmetric_matrix, rhs_shape, error_msg
     ):
-        """Test input validation w.r.t. RHS."""
+        """Tests input validation w.r.t. RHS."""
         A, hermitian, posdef = nonsymmetric_matrix
         lu = mkl_splu(A, hermitian=hermitian, posdef=posdef)
         b = np.ones(rhs_shape, dtype=A.dtype)
