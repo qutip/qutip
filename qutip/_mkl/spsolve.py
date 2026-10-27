@@ -111,19 +111,12 @@ class MKLFactorization:
 
         Raises
         ------
-        RuntimeError
-            If the factorization has been deleted (dereferenced).
         TypeError
             If ``b`` is sparse, or if it is complex while the factorization is
             real-valued.
         ValueError
             If the shape of ``b`` is incompatible with the factorized matrix.
         """
-
-        if self._solver is None:
-            raise RuntimeError(
-                "Solver's memory has been released. Initialise MKLFactorization again."
-            )
 
         if sp.issparse(b):
             raise TypeError(
@@ -185,15 +178,6 @@ class MKLFactorization:
             "MatrixType": self._solver.matrix_type,
             "iparm": iparm,
         }
-
-    def delete(self):
-        """
-        Release this object's reference
-        """
-
-        # Preserve the statistics info before memory deallocation
-        self._info = self.info()
-        self._solver = None
 
 
 def _mkl_matrix_type(dtype, hermitian, posdef):
@@ -349,15 +333,12 @@ def mkl_spsolve(
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
     )
-    try:
-        return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
-        if sp.issparse(b):
-            b = b.toarray(order="F")
-        x = lu.solve(b, verbose=verbose)
-        if return_sparse:
-            x = sp.csr_matrix(x)
+    return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
+    if sp.issparse(b):
+        b = b.toarray(order="F")
+    x = lu.solve(b, verbose=verbose)
+    if return_sparse:
+        x = sp.csr_matrix(x)
 
-        info = lu.info()
-    finally:
-        lu.delete()
+    info = lu.info()
     return (x, info) if return_info else x

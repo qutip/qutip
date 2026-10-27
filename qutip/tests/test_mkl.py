@@ -475,19 +475,8 @@ class Test_splu:
             x = lu.solve(N[:, k])
             assert x.dtype == A.dtype
             test_X[:, k] = x
-        lu.delete()
         expected_X = scipy.linalg.solve(A.toarray(), N)
         np.testing.assert_allclose(test_X, expected_X)
-
-    def test_solve_after_delete(self, nonsymmetric_matrix):
-        """Tests the lifecycle of factorisation: calling `solve` on the dereferenced factorisation
-        object raises RuntimeError."""
-        A, _, _ = nonsymmetric_matrix
-        lu = mkl_splu(A)
-        lu.delete()
-
-        with pytest.raises(RuntimeError, match="memory"):
-            lu.solve(A)
 
     def test_faulty_coeff_matrix_rejection(self):
         """Tests input validation w.r.t. coefficient matrix."""
@@ -522,18 +511,12 @@ class Test_splu:
         A, hermitian, posdef = nonsymmetric_matrix
         lu = mkl_splu(A, hermitian=hermitian, posdef=posdef)
         b = np.ones(rhs_shape, dtype=A.dtype)
-        try:
-            with pytest.raises(ValueError, match=error_msg):
-                lu.solve(b)
-        finally:
-            lu.delete()
+        with pytest.raises(ValueError, match=error_msg):
+            lu.solve(b)
 
     def test_complex_rhs_with_real_factorisation(self):
         A = scipy.sparse.csr_array(np.eye(3))
         lu = mkl_splu(A)
         b = np.array([1, 2 + 1j, 3 + 4j])
-        try:
-            with pytest.raises(TypeError, match="real-valued factorization"):
-                lu.solve(b)
-        finally:
-            lu.delete()
+        with pytest.raises(TypeError, match="real-valued factorization"):
+            lu.solve(b)
