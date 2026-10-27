@@ -163,10 +163,11 @@ class Settings:
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        warnings.warn("Cannot set 'mkl_lib_location': MKL library selection at runtime "
+        warnings.warn(
+            "Cannot set 'mkl_lib_location': MKL library selection at runtime "
             "is no longer supported with pydiso. To use a custom MKL "
             "installation, build pydiso from source with the appropriate "
-            "MKL configuration."),
+            "MKL configuration.",
             category=DeprecationWarning,
             stacklevel=2
         )
