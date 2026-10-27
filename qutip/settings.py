@@ -174,8 +174,11 @@ class Settings:
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        warnings.warn("The 'mkl_lib_location' setter is deprecated; it is not possible to point qutip at a libmkl_rt in a non-standard location since pydiso links it at a build time.",
-            category=DeprecationWarning,
+        warnings.warn("Cannot set 'mkl_lib_location': MKL library selection at runtime "
+            "is no longer supported with pydiso. To use a custom MKL "
+            "installation, build pydiso from source with the appropriate "
+            "MKL configuration."),
+            category=None,
             stacklevel=2
         )
 
