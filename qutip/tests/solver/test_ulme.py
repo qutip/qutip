@@ -142,7 +142,7 @@ class TestAOpsParsing:
     @pytest.mark.parametrize("a_ops, exc, msg", [
         ((sigmax(), env, 1), TypeError, "pair"),
         ("abc", TypeError, "list of"),
-        ((env, sigmax()), TypeError, "\(operator, environment\) pair")
+        ((env, sigmax()), TypeError, "operator, environment")
     ])
     def test_bad_a_ops(self, a_ops, exc, msg):
         with pytest.raises(exc, match=msg):
