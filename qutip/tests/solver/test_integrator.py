@@ -46,7 +46,7 @@ class TestIntegratorCallable:
             ])
             return out
 
-        mat = qutip.rand_herm(3, density=0.75, seed=random_generator) * -1j
+        mat = qutip.rand_herm(3, density=0.75, seed=random_generator) * -0.5j
 
         derivative_2 = qutip.QobjEvo(mat).matmul_data
 
