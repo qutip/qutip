@@ -11,11 +11,11 @@ __all__ = ["IntegratorKrylov"]
 
 class IntegratorKrylov(Integrator):
     """
-    Evolve the state ("rho0") finding a reduced form of the time evolution
-    operator of a Liouvillian ("L") by obtaining the projection on a set of
-    small dimensional Krylov subspaces (m <= dim(L)). The construction of this
-    subspace is performed by the Lanczos, fully-reorthogonalized Lanczos
-    (default) or Arnoldi algorithm.
+    Evolve the state "rho0" finding a reduced form of the time evolution
+    operator of a Hamiltonian or Liouvillian "L" by obtaining the projection
+    on a set of small dimensional Krylov subspaces. The construction of this
+    subspace is performed by the Lanczos, fully-reorthogonalized Lanczos or
+    Arnoldi algorithm.
 
     Usable with ``method="tsit5"`` and :func:`krylovsolve`
     """
