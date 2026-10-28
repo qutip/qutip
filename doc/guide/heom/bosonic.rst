@@ -1,6 +1,6 @@
-####################
+********************
 Bosonic Environments
-####################
+********************
 
 In this section we consider a simple two-level system coupled to a
 Drude-Lorentz bosonic bath. The system Hamiltonian, :math:`H_{sys}`, and the bath
@@ -42,7 +42,7 @@ A tutorial notebook containing a complete example similar to this one is the
 
 
 Describing the system and bath
-------------------------------
+==============================
 
 First, let us construct the system Hamiltonian ``H_sys`` and the initial system state ``rho0``:
 
@@ -125,7 +125,7 @@ Here, ``Nk`` is the number of terms to retain within the expansion of the bath.
 .. _heom-bosonic-system-and-bath-dynamics:
 
 System and bath dynamics
-------------------------
+========================
 
 Now we are ready to construct a solver:
 
@@ -212,7 +212,7 @@ values of the population of the system states and the coherence:
 
 
 Steady state
-------------
+============
 
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
@@ -230,7 +230,7 @@ and in the API documentation for :class:`~qutip.solver.heom.HierarchyADOsState`.
 
 
 Matsubara Terminator
---------------------
+====================
 
 When constructing the Drude-Lorentz bath we have truncated the expansion at
 ``Nk = 2`` terms and ignore the remaining terms.
@@ -297,7 +297,7 @@ coupled to the rest of the system).
 
 
 Matsubara expansion coefficients
---------------------------------
+================================
 
 So far we have relied on the built-in
 :class:`~qutip.solver.heom.DrudeLorentzBath` to construct the Drude-Lorentz
@@ -367,7 +367,7 @@ we constructed previously using the built-in Drude-Lorentz bath expansions.
 
 
 Multiple baths
---------------
+==============
 
 The :class:`~qutip.solver.heom.HEOMSolver` supports having a system interact
 with multiple reservoirs. All that is needed is to supply a list of baths or environments
@@ -445,7 +445,7 @@ occurs:
     or even a mixed list of baths and environments.
 
 Shifted-Drude-Lorentz Bath
---------------------------
+==========================
 
 As discussed in :ref:`Drude-Lorentz Environment <dl env guide>`, a Shifted-Drude-Lorentz bath
 with a shift of :math:`\Omega` can be created by combining two regular Drude-Lorentz baths.
