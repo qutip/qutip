@@ -296,7 +296,7 @@ list, with defaults, is documented in :obj:`ULMESolver.options`.
 
 
 Construction methods: eigenbasis vs. propagator
------------------------------------------------
+===============================================
 
 The jump operators and Lamb shift can be constructed in two ways, selected
 with the ``ULME_creation`` option:
@@ -306,30 +306,52 @@ with the ``ULME_creation`` option:
   time-independent Hamiltonian and coupling operator, but more stable than the
   other method.
 
-- ``"propagator"`` (the default) evaluates the convolution of Eq.
-  :eq:`ulme-jump`. This works for time-dependent Hamiltonians and coupling
-  operators as well, and is generally the faster option when the Lamb shift is included.
-  However it can be unstable and not work with every bath. This method does the
-  integration of the convolution centered on the jump correlator up to a cutoff
-  determined dynamically from the jump correlator. For time dependent systems,
-  this must be computed at each internal step of the evolution. The option
-  ``conv_tol`` can be set to stop the integration when it's detected to be
-  converged which can speed up the computation. But this detection is basic
-  and may result in increased numerical error.
+- ``"propagator"`` (the default) Compute the integral in Eq. :eq:`ulme-jump`.
+  This works for time-dependent Hamiltonians and coupling operators,
+  and is generally the faster option when the Lamb shift is included.
+  However it can be unstable and do not work with every bath.
 
-Both methods are available so that one can be used to validate the other;
-for most use cases, the default ``"propagator"`` method is the right choice.
+.. _jump_correlator:
 
-Defining a bath from its jump correlator
-----------------------------------------
+.. TODO:
 
-With the ``"propagator"`` method, the only property of the bath that is used
-is its jump correlator :math:`g(t)` (Eq. :eq:`ulme-filter`). By default it is
-computed numerically from the power spectrum, by Fourier transforming
-:math:`\sqrt{S(\omega)}` and interpolating the result. No pre-defined environment
-has an analytical jump correlator. If the Fourier transform of
-:math:`\sqrt{S(\omega)}` is known in closed form, or when :math:`g(t)` comes
-from another source, giving it directly avoids the error of the numerical estimate.
+Propagator method
+------------------
+
+This being the most general method, it is set as the default.
+It can however fail due to various numerical issues.
+
+This method use the jump correlator of the environment :math:`g(t)`
+(Eq. :eq:`ulme-filter`). This is computed numerically from the power spectrum,
+using a Fast Fourier Transform of :math:`\sqrt{S(\omega)}` and interpolating
+the result. No pre-defined environment has an analytical jump correlator implemented.
+
+This step automatically detect the FFT range and frequency step.
+However this detection can be flawed. This best example of this is the
+Drude Lorentz Environment, which, at high frequency,
+goes as :math:`\sqrt{S(\omega)} \propto 1 / \sqrt{\omega}`.
+This is converging to ``0`` very slowly, making integration range detection difficult.
+
+The range of the resulting jump correlator depend on the frequency step of the FFT.
+It estimate the desired range from the width of the correlation function,
+with the expectation that both function significative range is similar.
+This may not be always the case or the best value.
+
+This range ``tMax`` is used as the integration limit in Eq. :eq:`ulme-jump`:
+the integral in computed in the range ``g(-tMax)`` to ``g(tMax)``.
+So getting it too large will slow down the integration significatively,
+while getting it too small will result in the wrong physics.
+
+The option ``conv_tol`` can be set to stop the integration
+when it's detected to be converged which can speed up the computation.
+
+
+Custom jump correlator
+^^^^^^^^^^^^^^^^^^^^^^
+
+If the Fourier transform of :math:`\sqrt{S(\omega)}` is known in closed form,
+or when :math:`g(t)` comes from another source,
+implementing it directly avoids the error of the numerical estimate.
 :meth:`.BosonicEnvironment.from_jump_correlator` builds an environment from
 either a function or an array:
 
@@ -356,12 +378,10 @@ The jump correlator must satisfy two conditions:
 A sampled jump correlator is used for :math:`t \ge 0` only, extended to :math:`t \lt 0` by the
 Hermitian symmetry, and taken as zero beyond the end of tlist. tlist must start at 0.
 
-
-Numerical accuracy
-==================
+Custom function are not tested for those properties.
 
 Checking the jump correlator
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The jump correlator :math:`g_\alpha(t)` of Eq. :eq:`ulme-filter` can be a delicate
 function to evaluate numerically -- for some environments it decays slowly, or
@@ -384,6 +404,8 @@ decayed to a negligible value by ``g.tMax`` -- is a good sanity check on those
 options before calling :func:`.ulmesolve`.  The
 :class:`.DrudeLorentzEnvironment` is particularly slow to converge and needs
 attention.
+
+.. TODO:: Check if correlation_function tMax work better and adjust
 
 .. plot::
     :context: close-figs
@@ -428,14 +450,28 @@ correlation function is not negligible past the integration range and a larger
 ``tMax`` should be set in ``JC_options``.
 
 
+Eigen method
+------------
+
+In the ``"eigen"`` method, the dissipator and lamb shift operators are built
+from the power spectrum, which is known analytically for the pre-definied
+environment. Making it more numerically stable.
+For the jump operator, the power spectrum is only needed at Bohr frequencies,
+so it's a straight forward computation.
+
+The Lamb shift, however, is a principal value integral over frequency of the form
+:math:`\int \mathrm d \omega\, \sqrt{S(\omega - e_1)}\sqrt{S(\omega + e_2)} / \omega`.
+With :math:`e_i` difference in energy level of the Hamiltonian.
+
+... TODO:: Better limit detection.
+
+
 Truncation of the Lamb shift integral (``"eigen"`` method)
 ----------------------------------------------------------
 
 In the ``"eigen"`` method, the jump operator only needs the power spectrum at
-the Bohr frequencies, so it is not affected by this truncation. The Lamb
-shift, however, is a principal value integral over frequency of the form
-:math:`\int \mathrm d \omega\, \sqrt{S(\omega - e_1)}\sqrt{S(\omega + e_2)} / \omega`.
-With :math:`e_i` difference in energy level of the Hamiltonian.
+the Bohr frequencies, so it is not affected by this truncation.
+
 It is evaluated numerically on the finite interval
 :math:`[-\Lambda, \Lambda]`, with :math:`\Lambda` set by the option
 ``eigen_pv_integral_limits`` (default ``30``, in the units of ``H``).

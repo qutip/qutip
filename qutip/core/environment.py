@@ -120,7 +120,7 @@ class BosonicEnvironment(abc.ABC):
         t : array_like or float
             The times at which to evaluate the correlation function.
 
-        eps : optional, float            # TODO: power_spectrum? Not correlation function?
+        eps : optional, float
             Used in case the power spectrum is derived from the spectral
             density; see the documentation of
             :meth:`BosonicEnvironment.power_spectrum`.
@@ -188,7 +188,6 @@ class BosonicEnvironment(abc.ABC):
             Cutoff location, if not provided, it is chosen from the tolerances.
         """
         if wMax is None:
-            # TODO: We could find the proper wMax, the analytical formula.
             ps_max = np.max( self.power_spectrum(np.linspace(0, 1, 11) ))
             ps_target = ps_max * 1e-6
             wMax = 1.
@@ -205,17 +204,23 @@ class BosonicEnvironment(abc.ABC):
 
         if tMax is None:
             ts = np.logspace(-8, 3, 501)
-            correlator_f = _fft(
-                lambda w: self.power_spectrum(w)**0.5,
-                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
-            )
-            correlator = correlator_f(ts)
+            correlator = self.correlation_function(ts)
             jcmax = np.abs(correlator).max()
             limit = jcmax * rtol + atol
             above = np.where(np.abs(correlator) > limit)[0]
-            # TODO: is 1000 enough?
-            # Look farther if not converged yet?
-            tMax = ts[above[-1]] if above.size else 1000.
+            tm = 3
+            while not above.size and tm < 9:
+                ts = np.logspace(tm, tm+2, 101)
+                tm += 2
+                correlator = self.correlation_function(ts)
+                above = np.where(np.abs(correlator) > limit)[0]
+            if above.size:
+                tMax = ts[above[-1]]
+            else:
+                raise RuntimeError(
+                    "jump_correlator's tMax too large for detection."
+                    "Please set manually."
+                )
 
         jcs, ts = _fft(
             lambda w: self.power_spectrum(w)**0.5,
@@ -1279,17 +1284,23 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         if tMax is None:
             ts = np.logspace(-8, 3, 501)
-            correlator_f = _fft(
-                lambda w: self.power_spectrum(w)**0.5,
-                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
-            )
-            correlator = correlator_f(ts)
+            correlator = self.correlation_function(ts)
             jcmax = np.abs(correlator).max()
             limit = jcmax * rtol + atol
             above = np.where(np.abs(correlator) > limit)[0]
-            # TODO: is 1000 enough?
-            # Look farther if not converged yet?
-            tMax = ts[above[-1]] if above.size else 1000.
+            tm = 3
+            while not above.size and tm < 9:
+                ts = np.logspace(tm, tm+2, 101)
+                tm += 2
+                correlator = self.correlation_function(ts)
+                above = np.where(np.abs(correlator) > limit)[0]
+            if above.size:
+                tMax = ts[above[-1]]
+            else:
+                raise RuntimeError(
+                    "jump_correlator's tMax too large for detection."
+                    "Please set manually."
+                )
 
         jcs, ts = _fft(
             lambda w: self.power_spectrum(w)**0.5,

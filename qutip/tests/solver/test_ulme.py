@@ -507,6 +507,21 @@ def test_JC_env():
         )
 
 
+@pytest.mark.filterwarnings("ignore:DrudeLorentzEnvironment")
+@pytest.mark.filterwarnings("ignore:overflow encountered in exp:RuntimeWarning")
+def test_jump_correlator():
+    env = DrudeLorentzEnvironment(T=0.1, lam=10., gamma=1.)
+
+    jc = env.jump_correlator_function()
+    ts = np.linspace(0, 1, 11)
+    np.testing.assert_allclose(jc(ts), jc(-ts).conj(), atol=1e-14)
+
+    assert isinstance(jc(1), complex)
+
+    t2d = np.linspace(0, 1, 4).reshape((2, 2))
+    assert jc(t2d).shape == t2d.shape
+
+
 @pytest.mark.filterwarnings(
     "ignore:overflow encountered in exp:RuntimeWarning"
 )
