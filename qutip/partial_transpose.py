@@ -102,6 +102,7 @@ def _partial_transpose_reference(rho, mask):
     all states and performs the transpose. It's slow but easy to
     understand and useful for testing.
     """
+    mask = [int(i) for i in mask]
 
     A_pt = np.zeros(rho.shape, dtype=complex)
 

@@ -4,9 +4,11 @@ import pytest
 from qutip import (
     Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, destroy, rand_stochastic,
     rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
-    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, CoreOptions
+    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, MCSolver,
+    CoreOptions
 )
 import qutip.core.data as _data
+from qutip.solver._feedback import _DataFeedback, _QobjFeedback
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -705,6 +707,49 @@ def test_feedback_super(random_generator):
     checker.state = rand_dm(4, seed=random_generator)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
     qevo.matmul_data(0, checker.state.data)
+
+
+@pytest.mark.parametrize("raw_data", [False, True])
+@pytest.mark.parametrize("open", [False, True])
+def test_mc_statefeedback_open_kwarg(raw_data, open):
+    fb = MCSolver.StateFeedback(raw_data=raw_data, open=open)
+    assert fb.open is open
+    expected_type = _DataFeedback if raw_data else _QobjFeedback
+    assert isinstance(fb, expected_type)
+
+
+def test_mc_statefeedback_default_not_open():
+    fb = MCSolver.StateFeedback()
+    assert fb.open is False
+
+
+def test_mc_statefeedback_ket(random_generator):
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    qevo = QobjEvo(
+        [qeye(2), checker],
+        args={
+            "data": MCSolver.StateFeedback(raw_data=True),
+            "qobj": MCSolver.StateFeedback(),
+        },
+    )
+    checker.state = rand_ket(2, seed=random_generator)
+    qevo.matmul_data(0, checker.state.data)
+    checker.state = rand_ket(2, seed=random_generator)
+    qevo.matmul_data(0, checker.state.data)
+
+
+def test_mc_statefeedback_open(random_generator):
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "data": MCSolver.StateFeedback(raw_data=True, open=True),
+            "qobj": MCSolver.StateFeedback(open=True),
+        },
+    )
+    checker.state = rand_dm(2, seed=random_generator)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
 
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])
