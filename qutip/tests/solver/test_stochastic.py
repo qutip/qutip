@@ -91,6 +91,7 @@ def test_smesolve(heterodyne, system):
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SMESolver.avail_integrators().keys())
+@pytest.mark.requires_multiprocessing
 def test_smesolve_methods(method, heterodyne, system):
     tol = 0.05
     N = 4
@@ -195,6 +196,7 @@ def test_ssesolve(heterodyne, system):
 ])
 @pytest.mark.parametrize("heterodyne", [True, False])
 @pytest.mark.parametrize("method", SSESolver.avail_integrators().keys())
+@pytest.mark.requires_multiprocessing
 def test_ssesolve_method(method, heterodyne, system):
     "Stochastic: smesolve: homodyne, time-dependent H"
     tol = 0.1

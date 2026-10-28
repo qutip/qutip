@@ -119,7 +119,9 @@ invoke the :func:`.mcsolve` function instead of :func:`.mesolve`
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+    c_ops = [np.sqrt(0.1) * a]
+    e_ops = [a.dag() * a, sm.dag() * sm]
+    data = mcsolve(H, psi0, times, c_ops, e_ops=e_ops)
 
     plt.figure()
     plt.plot(times, data.expect[0], times, data.expect[1])
@@ -181,7 +183,7 @@ the above example, we can simply modify the call to ``mcsolve`` like:
 
 .. code-block::
 
-    data = mcsolve(H, psi0, times, c_ops e_ops=e_ops, ntraj=1000)
+    data = mcsolve(H, psi0, times, c_ops, e_ops=e_ops, ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators,
