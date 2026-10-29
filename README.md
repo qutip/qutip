@@ -89,6 +89,9 @@ All code contributions are acknowledged in the [contributors](https://qutip.read
 
 For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.readthedocs.io/en/stable/development/contributing.html).
 
+**Working on an issue—with or without AI?**\
+Start with [How to work on an issue](doc/development/working_on_an_issue.rst). It explains how to explore the code, make design decisions, and contribute a change you understand.
+
 
 Citing QuTiP
 ------------
