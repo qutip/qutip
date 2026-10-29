@@ -204,15 +204,25 @@ class BosonicEnvironment(abc.ABC):
 
         if tMax is None:
             ts = np.logspace(-8, 3, 501)
-            correlator = self.correlation_function(ts)
+            correlator_f = _fft(
+                lambda w: self.power_spectrum(w)**0.5,
+                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+            )
+            correlator = correlator_f(ts)
             jcmax = np.abs(correlator).max()
             limit = jcmax * rtol + atol
             above = np.where(np.abs(correlator) > limit)[0]
             tm = 3
-            while not above.size and tm < 9:
-                ts = np.logspace(tm, tm+2, 101)
-                tm += 2
-                correlator = self.correlation_function(ts)
+            while not above.size and tm < 6:
+                # Too large, and FFT can't allocate arrays...
+                ts = np.logspace(tm, tm+1, 101)
+                correlator_f = _fft(
+                    lambda w: self.power_spectrum(w)**0.5,
+                    ts[-1], tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+                )
+                correlator = correlator_f(ts)
+                tm += 1
+                jump_correlator = self.jump_correlator(ts)
                 above = np.where(np.abs(correlator) > limit)[0]
             if above.size:
                 tMax = ts[above[-1]]
@@ -1284,23 +1294,28 @@ class DrudeLorentzEnvironment(BosonicEnvironment):
 
         if tMax is None:
             ts = np.logspace(-8, 3, 501)
-            correlator = self.correlation_function(ts)
+            correlator_f = _fft(
+                lambda w: self.power_spectrum(w)**0.5,
+                1000, tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+            )
+            correlator = correlator_f(ts)
             jcmax = np.abs(correlator).max()
             limit = jcmax * rtol + atol
             above = np.where(np.abs(correlator) > limit)[0]
             tm = 3
-            while not above.size and tm < 9:
-                ts = np.logspace(tm, tm+2, 101)
-                tm += 2
-                correlator = self.correlation_function(ts)
+            while not above.size and tm < 6:
+                # Too large, and FFT can't allocate arrays...
+                ts = np.logspace(tm, tm+1, 101)
+                correlator_f = _fft(
+                    lambda w: self.power_spectrum(w)**0.5,
+                    ts[-1], tMax=wMax, tMin=wMin, scale=1/(2 * np.pi)
+                )
+                correlator = correlator_f(ts)
+                tm += 1
+                jump_correlator = self.jump_correlator(ts)
                 above = np.where(np.abs(correlator) > limit)[0]
             if above.size:
                 tMax = ts[above[-1]]
-            else:
-                raise RuntimeError(
-                    "jump_correlator's tMax too large for detection."
-                    "Please set manually."
-                )
 
         jcs, ts = _fft(
             lambda w: self.power_spectrum(w)**0.5,

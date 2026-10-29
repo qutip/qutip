@@ -301,19 +301,17 @@ Construction methods: eigenbasis vs. propagator
 The jump operators and Lamb shift can be constructed in two ways, selected
 with the ``ULME_creation`` option:
 
-- ``"eigen"`` diagonalizes H and builds the jump operator directly from
+- ``"eigen"`` diagonalizes ``H`` and builds the jump operator directly from
   Eq. :eq:`ulme-eigen`, using the bath's power spectrum. Only applicable to a
-  time-independent Hamiltonian and coupling operator, but more stable than the
-  other method.
+  time-independent Hamiltonian and coupling operator, but it is more
+  numerically stable than the other method.
 
-- ``"propagator"`` (the default) Compute the integral in Eq. :eq:`ulme-jump`.
+- ``"propagator"`` (the default) compute the integral in Eq. :eq:`ulme-jump`.
   This works for time-dependent Hamiltonians and coupling operators,
   and is generally the faster option when the Lamb shift is included.
   However it can be unstable and do not work with every bath.
 
 .. _jump_correlator:
-
-.. TODO:
 
 Propagator method
 ------------------
@@ -322,28 +320,32 @@ This being the most general method, it is set as the default.
 It can however fail due to various numerical issues.
 
 This method use the jump correlator of the environment :math:`g(t)`
-(Eq. :eq:`ulme-filter`). This is computed numerically from the power spectrum,
-using a Fast Fourier Transform of :math:`\sqrt{S(\omega)}` and interpolating
+(Eq. :eq:`ulme-filter`). It is computed numerically from the power spectrum,
+using a Fast Fourier Transform (FFT) of :math:`\sqrt{S(\omega)}` and interpolating
 the result. No pre-defined environment has an analytical jump correlator implemented.
 
-This step automatically detect the FFT range and frequency step.
-However this detection can be flawed. This best example of this is the
-Drude Lorentz Environment, which, at high frequency,
-goes as :math:`\sqrt{S(\omega)} \propto 1 / \sqrt{\omega}`.
-This is converging to ``0`` very slowly, making integration range detection difficult.
+The FFT range and frequency step are detected automatically, but this
+detection can be flawed.
+The best example is the :class:`.DrudeLorentzEnvironment`,
+for which :math:`\sqrt{S(\omega)}` goes as :math:`1 / \sqrt{\omega}` at high frequency.
+It converges to ``0`` very slowly, making integration range detection difficult.
 
-The range of the resulting jump correlator depend on the frequency step of the FFT.
-It estimate the desired range from the width of the correlation function,
-with the expectation that both function significative range is similar.
-This may not be always the case or the best value.
+The range of the resulting jump correlator, ``tMax``, depends on the frequency
+step of the FFT. It is estimated by first computing the jump correlator with an
+arbitrarily large ``tMax``, then shrinking the range to the time at which it
+falls below a tolerance set by ``atol`` and ``rtol`` (see
+:meth:`.BosonicEnvironment.jump_correlator_function`). The result is only a
+rough estimate, so it is worth checking it as described in :ref:`ulme_jc_range`.
 
-This range ``tMax`` is used as the integration limit in Eq. :eq:`ulme-jump`:
-the integral in computed in the range ``g(-tMax)`` to ``g(tMax)``.
-So getting it too large will slow down the integration significatively,
-while getting it too small will result in the wrong physics.
+``tMax`` is used as the integration limit in Eq. :eq:`ulme-jump`: the integral
+is computed over :math:`s \in [-t_{\max}, t_{\max}]`. A value that is too large
+slows down the integration significantly, while a value that is too small
+gives the wrong physics.
 
-The option ``conv_tol`` can be set to stop the integration
-when it's detected to be converged which can speed up the computation.
+The option ``conv_tol`` (default ``0``, which integrates over the full range)
+can be set to stop the integration when it is detected to be converged, which
+can speed up the computation. The detection is simple, however, and may not
+work for time-dependent coupling operators.
 
 
 Custom jump correlator
@@ -376,16 +378,17 @@ The jump correlator must satisfy two conditions:
   that is too small silently truncates the jump operator.
 
 A sampled jump correlator is used for :math:`t \ge 0` only, extended to :math:`t \lt 0` by the
-Hermitian symmetry, and taken as zero beyond the end of tlist. tlist must start at 0.
+Hermitian symmetry, and taken as zero beyond the end of tlist. tlist must include ``0``.
 
-Custom function are not tested for those properties.
+The environment does not check that a custom function satisfies these properties.
+
+.. _ulme_jc_range:
 
 Checking the jump correlator
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The jump correlator :math:`g_\alpha(t)` of Eq. :eq:`ulme-filter` can be a delicate
-function to evaluate numerically -- for some environments it decays slowly, or
-has structure concentrated close to t=0 -- so before running a potentially
+function to evaluate numerically. So before running a potentially
 long simulation it is worth checking that it has been resolved sensibly for
 the chosen environment and parameters.
 Every :class:`.BosonicEnvironment` can build this function directly, as a
@@ -397,15 +400,11 @@ fast, spline-interpolated callable, independently of :func:`.ulmesolve`:
         atol=1e-4, rtol=1e-3, wMax=None, wMin=None, tMax=None
     )
 
-This is the same callable used internally by the ``"propagator"`` construction
-method (and accepts the same keyword arguments as the ``JC_options`` solver
-option), so inspecting it this way -- in particular checking that it has
-decayed to a negligible value by ``g.tMax`` -- is a good sanity check on those
-options before calling :func:`.ulmesolve`.  The
-:class:`.DrudeLorentzEnvironment` is particularly slow to converge and needs
-attention.
-
-.. TODO:: Check if correlation_function tMax work better and adjust
+Internally, :func:`.ulmesolve` uses ``env.jump_correlator_function(options["JC_options"])``
+to obtain it's jump correlator when using the probagator method.
+So inspecting it this way, in particular checking that it has
+decayed to a negligible value by ``g.tMax``, is a good sanity check on those
+options before calling :func:`.ulmesolve`.
 
 .. plot::
     :context: close-figs
@@ -426,9 +425,10 @@ attention.
     plt.plot(tlist, jc(tlist).real, "k", label="real")
     plt.plot(tlist, jc(tlist).imag, "k:", label="imag")
     plt.title("Jump correlator")
+    plt.legend()
     plt.show()
 
-    # These should match for the jump_correlator to be valid.
+    # These should match for the jump correlator to be valid.
     tlist = np.linspace(-0.1, 1.2*t_Max, 2001)
     # Correlator function and power spectra defined analytically
     # for pre-defined environment.
@@ -445,60 +445,60 @@ attention.
     plt.show()
 
 
-Here we can see the cutoff is too tight and the analytical
-correlation function is not negligible past the integration range and a larger
-``tMax`` should be set in ``JC_options``.
-
+Here the cutoff is too tight: the analytical correlation function is not
+negligible beyond the integration range, so a larger ``tMax`` should be set in
+``JC_options``. Note that the ``tMax``, ``wMax``, ``wMin`` passed here replace
+the automatic range detection explained earlier.
 
 Eigen method
 ------------
 
-In the ``"eigen"`` method, the dissipator and lamb shift operators are built
-from the power spectrum, which is known analytically for the pre-definied
-environment. Making it more numerically stable.
-For the jump operator, the power spectrum is only needed at Bohr frequencies,
-so it's a straight forward computation.
-
-The Lamb shift, however, is a principal value integral over frequency of the form
-:math:`\int \mathrm d \omega\, \sqrt{S(\omega - e_1)}\sqrt{S(\omega + e_2)} / \omega`.
-With :math:`e_i` difference in energy level of the Hamiltonian.
-
-... TODO:: Better limit detection.
+In the ``"eigen"`` method, the jump operators and the Lamb shift are built
+from the power spectrum, which is known analytically for the pre-defined
+environments. This makes the method more numerically stable.
+For the jump operator, the power spectrum is only needed at the Bohr
+frequencies, so it is a straightforward computation.
 
 
-Truncation of the Lamb shift integral (``"eigen"`` method)
-----------------------------------------------------------
-
-In the ``"eigen"`` method, the jump operator only needs the power spectrum at
-the Bohr frequencies, so it is not affected by this truncation.
+The Lamb shift, however, is obtained from a principal value integral over frequency of the
+form
+:math:`\int \mathrm d \omega\, \sqrt{S(\omega - e_1)}\sqrt{S(\omega + e_2)} / \omega`,
+where the :math:`e_i` are differences between eigenenergies of the Hamiltonian.
 
 It is evaluated numerically on the finite interval
 :math:`[-\Lambda, \Lambda]`, with :math:`\Lambda` set by the option
-``eigen_pv_integral_limits`` (default ``30``, in the units of ``H``).
+``eigen_pv_integral_limits`` (default ``50``, in the units of ``H``).
 The calculation therefore assumes that :math:`S(\omega)` is effectively zero
-outside of this window, and anything beyond it is silently dropped. Take
-particular care when
+outside of this window, and anything beyond it is silently dropped.
 
-- the bath cutoff, the temperature or the system energies are not small
-  compared to ``30``;
-- the spectrum decays slowly (e.g. a Drude-Lorentz bath).
+This integral is the main cost of the ``"eigen"`` method, since it must be
+computed of the order of :math:`N^3` times, where :math:`N` is the total Hilbert space size.
+It is therefore important to find a range that includes the
+relevant physics without being too large.
 
-To check, increase the limit and see if the Lamb shift changes:
+To find the right limit, you can either determine it from the power spectrum of
+the bath, or use the same environment with a smaller system that spans a
+similar range of energy levels.
+If you can estimate the minimum and maximum
+energy levels of your Hamiltonian, first find the limit needed for a two-level
+system with the same energy span to converge, then use that limit in your
+larger simulation:
 
 .. code-block:: python
 
-    for lim in [1, 5, 15, 30, 60]:
+    # Two levels spanning the same energy range as the full Hamiltonian
+    H0 = 0.5 * (e_max - e_min) * sigmaz()
+
+    def lamb_shift(limit):
         H_eff, _ = UL_transform(
-            H, (X, env),
-            options={"ULME_creation": "eigen", "eigen_pv_integral_limits": lim},
+            H0, (sigmax(), env),
+            options={"ULME_creation": "eigen", "eigen_pv_integral_limits": limit},
         )
-        print(lim, (H_eff(0) - H).norm())
+        return H_eff(0) - H0
 
-This option has no effect when ``use_lamb_shift=False``. The Lamb shift
-integral is also the main cost of the ``"eigen"`` method, which grows quickly
-with the Hilbert space dimension (one numerical integral per distinct pair of
-Bohr frequencies).
-
+    reference = lamb_shift(500)
+    for limit in [1, 5, 15, 30, 100, 300]:
+        print(limit, (lamb_shift(limit) - reference).norm())
 
 .. plot::
     :context: reset

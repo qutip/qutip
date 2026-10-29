@@ -442,6 +442,9 @@ class TestEvolution:
         assert abs(result.e_data["z"][0] - result.e_data["z"][-1]) > 0.5
 
 
+@pytest.mark.filterwarnings(
+    "ignore:overflow encountered in exp:RuntimeWarning"
+)
 def test_UL_transform_no_lamb():
     H = sigmaz()
     env = OhmicEnvironment(T=0.1, alpha=1.0, wc=100, s=1.5)
@@ -555,6 +558,10 @@ def test_options_propagator():
 
 @pytest.mark.filterwarnings(
     "ignore:overflow encountered in exp:RuntimeWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:The maximum number of subdivisions:"
+    "scipy.integrate._quadpack_py.IntegrationWarning"
 )
 def test_options_eigen():
     H = sigmaz()

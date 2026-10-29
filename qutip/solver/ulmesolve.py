@@ -23,7 +23,7 @@ __all__ = ["ulmesolve", "ULMESolver", "UL_transform"]
 _ULME_DEFAULT_OPTIONS = {
     "ULME_creation": "propagator",
     "use_lamb_shift": True,
-    "eigen_pv_integral_limits": 30,
+    "eigen_pv_integral_limits": 50,
     "propagator_method": "tsit5",
     "propagator_ODE_options": {},
     "JC_options": {"atol": 1e-4, "rtol":1e-3},
@@ -89,7 +89,7 @@ def ulmesolve(
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
           | "propagator": Integration in the interaction picture, general.
-        - | eigen_pv_integral_limits : float, default: 30
+        - | eigen_pv_integral_limits : float, default: 50
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
         - | propagator_method: str, default: "tsit5"
@@ -255,7 +255,7 @@ class ULMESolver(MESolver):
             Whether to calculate and include the Lamb shift correction in the
             effective Hamiltonian.
 
-        eigen_pv_integral_limits : float, default: 30
+        eigen_pv_integral_limits : float, default: 50
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
 
@@ -336,7 +336,7 @@ def UL_transform(
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
           | "propagator": Integration in the interaction picture, general.
-        - | eigen_pv_integral_limits : float, default: 30
+        - | eigen_pv_integral_limits : float, default: 50
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
         - | propagator_method: str, default: "tsit5"
@@ -490,26 +490,32 @@ def _operators_eigen(
     if not use_lamb_shift:
         return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
 
-    limits = options.get("eigen_pv_integral_limits", 30)
+    limit = options.get("eigen_pv_integral_limits", 50)
 
     @functools.lru_cache(maxsize=None)
     def _integral(e1, e2):
+        # At T=0, we could cut at max(e1, e2)
+        wMin = min(e1, e2) - limit
+        wMax = max(e1, e2) + limit
         return integrate.quad(
-            lambda w: _g_w(w -e1) * _g_w(w + e2),
-            -limits, limits, weight='cauchy', wvar=0
+            lambda w: _g_w(w + e1) * _g_w(w + e2),
+            wMin, wMax, weight='cauchy', wvar=0
         )[0] * (-2 * np.pi)
 
     N = len(vals)
     fs = np.zeros((N, N, N), dtype=float)
     # This should be more presice than integrate.quad, but help with caching
-    precision = int(np.round(15 - np.log10(limits), 0))
+    if limit < 1e15:  # Avoid limit = np.inf
+        precision = int(np.round(15 - np.log10(limit), 0))
+    else:
+        precision = 10
     for i, j, k in itertools.product(range(N), repeat=3):
-        e1 = np.round(vals[j] - vals[i], precision)
+        e1 = np.round(vals[i] - vals[j], precision)
         e2 = np.round(vals[k] - vals[j], precision)
-        if np.abs(e1) < np.abs(e2):
-            # _integral(a, b) = _integral(-b, -a)
+        if e1 < e2:
+            # _integral(a, b) = _integral(b, a)
             # Swap to use cache to compute only one pair
-            e1, e2 = -e2, -e1
+            e1, e2 = e2, e1
         fs[i, j, k] = _integral(e1, e2)
 
     LL = np.einsum("ijk,ij,jk->ik", fs, X_np, X_np)
