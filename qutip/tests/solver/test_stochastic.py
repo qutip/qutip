@@ -576,7 +576,7 @@ def test_step(open, heterodyne):
 
     solver = SolverCls(
         num(5),
-        sc_ops=[destroy(5), destroy(5)**2 / 10],
+        sc_ops=[destroy(5) * 0.75, destroy(5)**2 / 10],
         heterodyne=heterodyne,
         options={"dt": 0.001},
         **kw
