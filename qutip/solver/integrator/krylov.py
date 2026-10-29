@@ -69,7 +69,7 @@ class IntegratorKrylov(Integrator):
             self.rhs = trhs
             self._hermitian = _data.isherm(trhs * 1j)
 
-    def _matmul(self, kvec):
+    def _apply_rhs(self, kvec):
         """
         Apply the generator ``1j * rhs`` to the Krylov element ``kvec``.
         """
@@ -149,13 +149,13 @@ class IntegratorKrylov(Integrator):
         Q = [psi]
 
         k = 1
-        v = self._matmul(Q[-1])
+        v = self._apply_rhs(Q[-1])
         diag[0] = self._inner(Q[-1], v) / p0
         v = _data.add(v, Q[-1], -diag[0])
         subdiag[0] = _data.norm.frobenius(v) / sp0
         while k < krylov_dim and subdiag[k-1] > self.options['sub_system_tol']:
             Q.append(_data.mul(v, 1 / subdiag[k-1]))
-            v = self._matmul(Q[-1])
+            v = self._apply_rhs(Q[-1])
             k += 1
             v, ol = self._orthogonalize(Q, v, p0, steps=max_orthog_steps)
             diag[k-1] = ol
@@ -231,13 +231,13 @@ class IntegratorKrylov(Integrator):
         Q = [psi]
 
         k = 1
-        v = self._matmul(Q[-1])
+        v = self._apply_rhs(Q[-1])
         h[0, 0] = self._inner(Q[-1], v) / p0
         v = _data.add(v, Q[-1], -h[0, 0])
         h[1, 0] = _data.norm.frobenius(v) / sp0
         while k < krylov_dim and h[k, k-1] > self.options['sub_system_tol']:
             Q.append(_data.mul(v, 1 / h[k, k-1]))
-            v = self._matmul(Q[-1])
+            v = self._apply_rhs(Q[-1])
             k += 1
             for j in range(k):  # removes projections, create upper Hessenberg
                 h[j, k-1] = self._inner(Q[j], v) / p0
