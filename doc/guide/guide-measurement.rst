@@ -10,7 +10,7 @@ Measurement of Quantum Objects
 .. _measurement-intro:
 
 Introduction
-------------
+============
 
 Measurement is a fundamental part of the standard formulation of quantum
 mechanics and is the process by which classical readings are obtained from
@@ -26,7 +26,7 @@ to handle both observable-style measurements and projective style measurements.
 .. _measurement-basic:
 
 Performing a basic measurement (Observable)
--------------------------------------------
+===========================================
 
 First we need to select some states to measure. For now, let us create an *up*
 state and a *down* state:
@@ -130,7 +130,7 @@ When `right` is chosen, the result of measurement with be `(1.0, right)`.
   :func:`~qutip.measurement.measure_observable`.
 
 Performing a basic measurement (Projective)
--------------------------------------------
+===========================================
 
 We can also choose what to measure by specifying a *list of projection operators*. For
 example, we could select the projection operators :math:`\ket{0} \bra{0}` and
@@ -202,7 +202,7 @@ Now you know how to measure quantum states in QuTiP!
 .. _measurement-statistics:
 
 Obtaining measurement statistics(Observable)
---------------------------------------------
+============================================
 
 You've just learned how to perform measurements in QuTiP, but you've also
 learned that measurements are probabilistic. What if instead of just making
@@ -296,7 +296,7 @@ its probability is `probabilities[0]`, and so on.
 
 
 Obtaining measurement statistics(Projective)
---------------------------------------------
+============================================
 
 Similarly, when we want to obtain measurement statistics for projection operators,
 we can use the `measurement_statistics` function with the second argument being a list of projectors.

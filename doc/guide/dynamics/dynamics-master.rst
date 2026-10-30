@@ -13,7 +13,7 @@ The dynamics of a closed (pure) quantum system is governed by the Schrödinger e
 .. math::
    :label: schrodinger
 
-	i\hbar\frac{\partial}{\partial t}\Psi = \hat H \Psi,
+    i\hbar\frac{\partial}{\partial t}\Psi = \hat H \Psi,
 
 where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and
 :math:`\hbar` is Planck's constant. In general, the Schrödinger equation is a
@@ -24,7 +24,7 @@ Hamiltonian, and to write the equation in matrix and vector form
 
 .. math::
 
-   i\hbar\frac{d}{dt}\left|\psi\right> = H \left|\psi\right>
+    i\hbar\frac{d}{dt}\left|\psi\right> = H \left|\psi\right>
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix
 representation of the Hamiltonian. This matrix equation can, in principle, be
@@ -165,7 +165,7 @@ matrix formalism. Here, the total Hamiltonian
 
 .. math::
 
- 	H_{\rm tot} = H_{\rm sys} + H_{\rm env} + H_{\rm int},
+    H_{\rm tot} = H_{\rm sys} + H_{\rm env} + H_{\rm int},
 
 includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian
 for the environment :math:`H_{\rm env}`, and a term representing the interaction
@@ -178,9 +178,9 @@ evolution is the Lindblad master equation for the reduced density matrix
 :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]`
 
 .. math::
-	:label: lindblad_master_equation
+    :label: lindblad_master_equation
 
-	\dot\rho(t)=-\frac{i}{\hbar}[H(t),\rho(t)]+\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^\dagger - \rho(t) C_n^\dagger C_n - C_n^\dagger C_n \rho(t)\right]
+    \dot\rho(t)=-\frac{i}{\hbar}[H(t),\rho(t)]+\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^\dagger - \rho(t) C_n^\dagger C_n - C_n^\dagger C_n \rho(t)\right]
 
 where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators,  and
 :math:`A_n` are the operators through which the environment couples to the
