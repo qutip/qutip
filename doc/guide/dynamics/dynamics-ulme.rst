@@ -450,6 +450,7 @@ negligible beyond the integration range, so a larger ``tMax`` should be set in
 ``JC_options``. Note that the ``tMax``, ``wMax``, ``wMin`` passed here replace
 the automatic range detection explained earlier.
 
+
 Eigen method
 ------------
 
@@ -458,7 +459,6 @@ from the power spectrum, which is known analytically for the pre-defined
 environments. This makes the method more numerically stable.
 For the jump operator, the power spectrum is only needed at the Bohr
 frequencies, so it is a straightforward computation.
-
 
 The Lamb shift, however, is obtained from a principal value integral over frequency of the
 form

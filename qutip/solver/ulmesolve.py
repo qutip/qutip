@@ -490,11 +490,14 @@ def _operators_eigen(
     if not use_lamb_shift:
         return QobjEvo(vecs @ Qobj(L_H) @ vecs.dag()), 0
 
+    # TODO: Find from the power_spectrum using a tolerance?
+    # Finding the range at which it's drop a factor of X.
+    # With spectrum scaling at 1/w, this can get huge rapidly...
     limit = options.get("eigen_pv_integral_limits", 50)
 
     @functools.lru_cache(maxsize=None)
     def _integral(e1, e2):
-        # At T=0, we could cut at max(e1, e2)
+        # Shift the spectrum by the energies to let a leeway of limit each side
         wMin = min(e1, e2) - limit
         wMax = max(e1, e2) + limit
         return integrate.quad(
@@ -504,11 +507,14 @@ def _operators_eigen(
 
     N = len(vals)
     fs = np.zeros((N, N, N), dtype=float)
-    # This should be more presice than integrate.quad, but help with caching
+    # The error from rounding should be less than integrate.quad's.
+    # Help with caching
     if limit < 1e15:  # Avoid limit = np.inf
         precision = int(np.round(15 - np.log10(limit), 0))
     else:
         precision = 10
+    # TODO: optimization
+    # When X is sparse, loop only on the non-zeros values
     for i, j, k in itertools.product(range(N), repeat=3):
         e1 = np.round(vals[i] - vals[j], precision)
         e2 = np.round(vals[k] - vals[j], precision)
