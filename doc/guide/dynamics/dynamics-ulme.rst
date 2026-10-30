@@ -285,18 +285,18 @@ other solvers, are:
 
 - ``use_lamb_shift`` (default ``True``): whether to compute and include the
   Lamb shift :math:`H_{\rm LS}` in Eq. :eq:`ulme-master`.
-- ``ULME_creation`` (default ``"propagator"``): the construction method, as
-  described above.
+- ``ULME_creation`` (default ``"convolution"``): the construction method, as
+  described bellow.
 
 A number of further options control the numerical details of each
 construction method (the integration limits for the ``"eigen"`` method's Lamb
-shift, the ODE integrator and convergence tolerance for the ``"propagator"``
+shift, the ODE integrator and convergence tolerance for the ``"convolution"``
 method, and the options used to build the jump correlator itself). The full
 list, with defaults, is documented in :obj:`ULMESolver.options`.
 
 
-Construction methods: eigenbasis vs. propagator
-===============================================
+Construction methods: eigenbasis vs. convolution
+================================================
 
 The jump operators and Lamb shift can be constructed in two ways, selected
 with the ``ULME_creation`` option:
@@ -306,15 +306,15 @@ with the ``ULME_creation`` option:
   time-independent Hamiltonian and coupling operator, but it is more
   numerically stable than the other method.
 
-- ``"propagator"`` (the default) compute the integral in Eq. :eq:`ulme-jump`.
+- ``"convolution"`` (the default) compute the integral in Eq. :eq:`ulme-jump`.
   This works for time-dependent Hamiltonians and coupling operators,
   and is generally the faster option when the Lamb shift is included.
   However it can be unstable and do not work with every bath.
 
 .. _jump_correlator:
 
-Propagator method
-------------------
+Convolution method
+-------------------
 
 This being the most general method, it is set as the default.
 It can however fail due to various numerical issues.

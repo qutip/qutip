@@ -21,11 +21,11 @@ __all__ = ["ulmesolve", "ULMESolver", "UL_transform"]
 
 
 _ULME_DEFAULT_OPTIONS = {
-    "ULME_creation": "propagator",
+    "ULME_creation": "convolution",
     "use_lamb_shift": True,
     "eigen_pv_integral_limits": 50,
-    "propagator_method": "tsit5",
-    "propagator_ODE_options": {},
+    "convolution_ODE_method": "tsit5",
+    "convolution_ODE_options": {},
     "JC_options": {"atol": 1e-4, "rtol":1e-3},
     "conv_tol": 0,
 }
@@ -84,22 +84,23 @@ def ulmesolve(
         - | use_lamb_shift : bool, default: True
           | Whether to calculate and include the Lamb shift correction in the
             effective Hamiltonian.
-        - | ULME_creation : str, default: "propagator"
+        - | ULME_creation : str, default: "convolution"
           | Method used to construct the Lindblad jump operators.
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
-          | "propagator": Integration in the interaction picture, general.
+          | "convolution": Integration in the interaction picture, general.
         - | eigen_pv_integral_limits : float, default: 50
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
-        - | propagator_method: str, default: "tsit5"
-          | ODE method used for the propagator ULME_creation method.
-        - | propagator_ODE_options: dict, default: {},
-          | Options for the ODE integrator used for the propagator method.
+        - | convolution_ODE_method: str, default: "tsit5"
+          | ODE method used for the convolution ULME_creation method.
+        - | convolution_ODE_options: dict, default: {},
+          | Options for the ODE integrator used for the convolution method.
         - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
-          | Options used to build the jump correlator for the propagator method.
+          | Options used to build the jump correlator for the convolution
+            method.
         - | conv_tol: float, default: 0
-          | Convergence tolerance of the operator for the propagator method.
+          | Convergence tolerance of the operator for the convolution method.
 
         All options are listed in ``ULMESolver.options``'s docstring.
 
@@ -238,7 +239,7 @@ class ULMESolver(MESolver):
             Which ODE integration method to use. All available ODE method can
             be listed with the ``avail_integrators`` method.
 
-        ULME_creation: str {"eigen", "propagator"}, default: "propagator"
+        ULME_creation: str {"eigen", "convolution"}, default: "convolution"
             Method used to construct the Lindblad jump operators:
 
             - "eigen": Constructs dissipators via the eigen-decomposition
@@ -246,7 +247,7 @@ class ULMESolver(MESolver):
               (Hamiltonian and coupling operators) and utilizes the bath's
               ``power_spectrum``.
 
-            - "propagator": Constructs dissipators by convolving the coupling
+            - "convolution": Constructs dissipators by convolving the coupling
               operator with the bath's ``jump_correlator`` in the interaction
               picture. Works for time-dependent systems and is
               generally faster than "eigen" when the Lamb shift is included.
@@ -259,25 +260,25 @@ class ULMESolver(MESolver):
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
 
-        propagator_method: str, default: "tsit5"
-            The propagator ULME_creation method require solving a set of
+        convolution_ODE_method: str, default: "tsit5"
+            The convolution ULME_creation method require solving a set of
             coupled differential equations for each dissipators until
             convergence. ODE method used for that step.
             For time dependent system this integration happen at each
             step of the ulmesolve evolution. Some scipy ODE methods, such as
             "adams" or "bdf" can only have one instance at a time, so using
-            them both for the ulmesolve evolution and the propagator evolution
+            them both for the ulmesolve evolution and the convolution evolution
             should be avoided.
 
-        propagator_ODE_options: dict, default: {}
-            Options for the ODE integrator used for the propagator ODE.
+        convolution_ODE_options: dict, default: {}
+            Options for the ODE integrator used for the convolution ODE.
 
         JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3}
-            Options used to build the jump correlator used in the propagator
+            Options used to build the jump correlator used in the convolution
             ODE.
 
         conv_tol: float, default: 0
-            Convergence tolerance of the operators for the propagator method.
+            Convergence tolerance of the operators for the convolution method.
         """
         return self._options
 
@@ -331,22 +332,23 @@ def UL_transform(
         - | use_lamb_shift : bool, default: True
           | Whether to calculate and include the Lamb shift correction in the
             effective Hamiltonian.
-        - | ULME_creation : str, default: "propagator"
+        - | ULME_creation : str, default: "convolution"
           | Method used to construct the Lindblad jump operators.
           | "eigen": eigen-decomposition of the Hamiltonian, constant system
             only.
-          | "propagator": Integration in the interaction picture, general.
+          | "convolution": Integration in the interaction picture, general.
         - | eigen_pv_integral_limits : float, default: 50
             Limit of the power_spectrum integral for the Lamb shift operator
             with the eigen method.
-        - | propagator_method: str, default: "tsit5"
-          | ODE method used for the propagator ULME_creation method.
-        - | propagator_ODE_options: dict, default: {},
-          | Options for the ODE integrator used for the propagator method.
+        - | convolution_ODE_method: str, default: "tsit5"
+          | ODE method used for the convolution ULME_creation method.
+        - | convolution_ODE_options: dict, default: {},
+          | Options for the ODE integrator used for the convolution method.
         - | JC_options: dict, default: {"atol": 1e-4, "rtol":1e-3},
-          | Options used to build the jump correlator for the propagator method.
+          | Options used to build the jump correlator for the convolution
+            method.
         - | conv_tol: float, default: 0
-          | Convergence tolerance of the operator for the propagator method.
+          | Convergence tolerance of the operator for the convolution method.
 
     Returns
     -------
@@ -430,7 +432,7 @@ def _make_operators(
     """
     # TODO: Add, coupled and Fermionic environment support?
     options = options or {}
-    method = options.get("ULME_creation", "propagator")
+    method = options.get("ULME_creation", "convolution")
 
     c_ops = []
     lamb_shifts = []
@@ -447,7 +449,7 @@ def _make_operators(
             )
             c_ops.append(L)
             lamb_shifts.append(LL)
-    elif method == "propagator":
+    elif method == "convolution":
         for op, env in a_ops:
             L, LL =  _operators_prop(H, op, env, use_lamb_shift, options)
             c_ops.append(L)
@@ -455,7 +457,7 @@ def _make_operators(
     else:
         raise ValueError(
             f"Unknown ULME_creation method {method!r}, "
-            "expected 'eigen' or 'propagator'."
+            "expected 'eigen' or 'convolution'."
         )
     return c_ops, lamb_shifts
 
@@ -473,6 +475,9 @@ def _operators_eigen(
     options: dict,
 ):
     if not X.isconstant:
+        # TODO: Not strickly needed:
+        # The dissipator could be computed at each time-step with td system
+        # The Lamb Shift only need constant H for it's derivation.
         raise TypeError(
             "ULME_creation='eigen' requires a time-independent "
             "coupling operator."
@@ -532,7 +537,7 @@ def _operators_eigen(
     )
 
 # ---------------------------------------------------------------------------
-# "propagator" method: integration in the interaction picture.
+# "convolution" method: integration in the interaction picture.
 # ---------------------------------------------------------------------------
 
 def _operators_prop(H, X, env, use_lamb_shift, options):
@@ -595,9 +600,9 @@ class ULOP():
         self._lamb = None
 
         integrator = Solver.avail_integrators()[
-            options.get("propagator_method", "tsit5")
+            options.get("convolution_ODE_method", "tsit5")
         ]
-        integrator_options = options.get("propagator_ODE_options", {})
+        integrator_options = options.get("convolution_ODE_options", {})
         self._integrator = integrator(self._rhs, integrator_options)
 
         self.g = env.jump_correlator_function(**options.get("JC_options", {}))

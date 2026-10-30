@@ -172,7 +172,7 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         L_prop, _ = _make_operators(
-            H, [(X, env)], False, {"ULME_creation": "propagator"}
+            H, [(X, env)], False, {"ULME_creation": "convolution"}
         )
         L_sum = _make_dissipator_sum(H, X, env, T=25, Nt=3000)
 
@@ -189,7 +189,7 @@ class TestMethodsAgree:
         X = self.make_X(X_td)
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         _, lamb_prop = _make_operators(
-            H, [(X, env)], True, {"ULME_creation": "propagator"}
+            H, [(X, env)], True, {"ULME_creation": "convolution"}
         )
         lamb_sum = _make_ULME_lamb_shift_sum(H, X, env, T=25, Nt=1000)
         with qutip.CoreOptions(atol=1e-5):
@@ -213,7 +213,7 @@ class TestMethodsAgree:
             },
         )
         L_prop, lamb_prop = _make_operators(
-            H, [(X, env)], lamb_shift, {"ULME_creation": "propagator"},
+            H, [(X, env)], lamb_shift, {"ULME_creation": "convolution"},
         )
         np.testing.assert_allclose(
             L_eigen[0](0.6).full(),
@@ -359,7 +359,7 @@ class TestEvolution:
             atol=0.1, rtol=0.1,
         )
 
-    @pytest.mark.parametrize("method", ["eigen", "propagator"])
+    @pytest.mark.parametrize("method", ["eigen", "convolution"])
     def test_degen_H(self, method):
         H = qutip.qdiags([-1., -0.1, -0.01, -0.01, 0, 0, 0.01, 0.01, 0.1, 1.])
         a = qutip.destroy(10)
@@ -386,7 +386,7 @@ class TestEvolution:
             result.expect[0], ref.expect[0], atol=1e-4, rtol=1e-4
         )
 
-    @pytest.mark.parametrize("method", ["eigen", "propagator"])
+    @pytest.mark.parametrize("method", ["eigen", "convolution"])
     def test_multi_bath(self, method, random_generator):
         H = qutip.rand_herm([2, 2], density=0.5, seed=random_generator)
         X0 = qeye(2) & qutip.rand_herm(2, density=0.1, seed=random_generator)
@@ -529,14 +529,14 @@ def test_jump_correlator():
 @pytest.mark.filterwarnings(
     "ignore:overflow encountered in exp:RuntimeWarning"
 )
-def test_options_propagator():
+def test_options_convolution():
     H = sigmaz()
     X = sigmax()
     options = {
-        "ULME_creation": "propagator",
+        "ULME_creation": "convolution",
         "use_lamb_shift": True,
-        "propagator_method": "vern7",
-        "propagator_ODE_options": {"atol": 1e-7},
+        "convolution_ODE_method": "vern7",
+        "convolution_ODE_options": {"atol": 1e-7},
         "JC_options": {"atol": 1e-4, "rtol":1e-3, "tMax": 10},
         "conv_tol": 1e-3,
         "matrix_form": True,
