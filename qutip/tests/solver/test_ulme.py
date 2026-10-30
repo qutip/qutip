@@ -276,7 +276,7 @@ class TestEvolution:
     def test_matches_brmesolve(self, H_td, X_td, random_generator):
         tlist = np.linspace(0, 5, 501)
         H = self.make_H(H_td, random_generator)
-        X = self.make_X(X_td, random_generator)
+        X = self.make_X(X_td, random_generator) * 0.5
         env = OhmicEnvironment(T=0.1, alpha=1.0, wc=0.5, s=1.)
         e_ops = [H(0), H, qutip.num(4), qutip.destroy(4)]
         rho0 = qutip.fock_dm(4, 2)
@@ -453,6 +453,7 @@ def test_UL_transform_no_lamb():
     assert H == H_eff(0)
 
 
+@pytest.mark.requires_multiprocessing
 def test_pickle(random_generator):
     N = 3
 
