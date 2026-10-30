@@ -13,13 +13,9 @@ __all__ = ['Distribution', 'HarmonicOscillatorWaveFunction',
 
 import numpy as np
 from numpy.typing import ArrayLike
-from numpy import pi, exp, sqrt
-
-from scipy.special import hermite, factorial
-
-from . import isket, ket2dm, state_number_index, Qobj
+from . import isket, ket2dm, Qobj
 from .wigner import wigner, qfunc
-from ._distributions import psi_n_single_fock_multiple_position_complex
+from ._distributions import psi_fock_multiple_position_complex
 
 try:
     import matplotlib as mpl
@@ -250,6 +246,12 @@ class Distribution:
                             xlabels=[self.xlabels[dim]])
 
 
+def _quadrature_functions(x, N, theta):
+    """Rows exp(-1j * theta * n) * psi_n(x) for n < N, shape (N, len(x))."""
+    return np.exp(-1j * theta * np.arange(N))[:, None] * \
+        psi_fock_multiple_position_complex(N - 1, x.astype(complex))
+
+
 class TwoModeQuadratureCorrelation(Distribution):
     """A class for representing the probability distribution for
     quadrature measurement outcomes given a two-mode wavefunction
@@ -314,24 +316,10 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         """
 
-        X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
-
-        p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
         N = psi.dims[0][0]
-
-        for n1 in range(N):
-            kn1 = exp(-1j * self.theta1 * n1) / \
-                sqrt(sqrt(pi) * 2 ** n1 * factorial(n1)) * \
-                exp(-X1 ** 2 / 2.0) * np.polyval(hermite(n1), X1)
-
-            for n2 in range(N):
-                kn2 = exp(-1j * self.theta2 * n2) / \
-                    sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
-                    exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
-                i = state_number_index([N, N], [n1, n2])
-                p += kn1 * kn2 * psi.full()[i, 0]
-
-        self.data = abs(p) ** 2
+        a1 = _quadrature_functions(self.xvecs[0], N, self.theta1)
+        a2 = _quadrature_functions(self.xvecs[1], N, self.theta2)
+        self.data = abs(a2.T @ psi.full().reshape(N, N).T @ a1) ** 2
 
     def update_rho(self, rho: Qobj):
         """Calculates the probability distribution for quadrature measurement
@@ -344,36 +332,14 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         """
 
-        X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
-
-        p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
         N = rho.dims[0][0]
-
-        M1 = np.zeros(
-            (N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
-        M2 = np.zeros(
-            (N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
-
-        for m in range(N):
-            for n in range(N):
-                M1[m, n] = exp(-1j * self.theta1 * (m - n)) / \
-                    sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
-                    exp(-X1 ** 2) * np.polyval(
-                        hermite(m), X1) * np.polyval(hermite(n), X1)
-                M2[m, n] = exp(-1j * self.theta2 * (m - n)) / \
-                    sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
-                    exp(-X2 ** 2) * np.polyval(
-                        hermite(m), X2) * np.polyval(hermite(n), X2)
-
-        for n1 in range(N):
-            for n2 in range(N):
-                i = state_number_index([N, N], [n1, n2])
-                for p1 in range(N):
-                    for p2 in range(N):
-                        j = state_number_index([N, N], [p1, p2])
-                        p += M1[n1, p1] * M2[n2, p2] * rho.full()[i, j]
-
-        self.data = p
+        a1 = _quadrature_functions(self.xvecs[0], N, self.theta1)
+        a2 = _quadrature_functions(self.xvecs[1], N, self.theta2)
+        # rho[(n1, n2), (p1, p2)] contracted with a1[n1] a1*[p1] a2[n2] a2*[p2]
+        self.data = np.einsum(
+            "abcd,aj,cj,bi,di->ij", rho.full().reshape(N, N, N, N),
+            a1, a1.conj(), a2, a2.conj(), optimize=True
+        )
 
 
 class HarmonicOscillatorWaveFunction(Distribution):
@@ -387,7 +353,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
     By extending the `Distribution` base class, this class
     provides specialized attributes and methods tailored for modeling
     the harmonic oscillator's wave function.This implementation leverages
-    the Cython function `psi_n_single_fock_multiple_position_complex`from the
+    the Cython function `psi_fock_multiple_position_complex` from the
     `_distributions.pyx` module to efficiently compute the wave function's
     contribution for each Fock state across spatial coordinates using an
     optimized recurrence relation.
@@ -459,18 +425,11 @@ class HarmonicOscillatorWaveFunction(Distribution):
             A quantum state from which the distribution is generated.
 
         """
-
-        self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
-        N = psi.shape[0]
-
-        for n in range(N):
-            self.data += (
-                psi_n_single_fock_multiple_position_complex(
-                    n, self.xvecs[0].astype(complex)
-                ) * psi[n, 0]
-            )
-
-        self.data *= pow(self.omega, 0.25)
+        psi = psi.full() if isinstance(psi, Qobj) else np.asarray(psi)
+        rows = psi_fock_multiple_position_complex(
+            psi.shape[0] - 1, self.xvecs[0].astype(complex)
+        )
+        self.data = psi[:, 0] @ rows * pow(self.omega, 0.25)
 
 
 class HarmonicOscillatorProbabilityFunction(Distribution):
@@ -514,19 +473,9 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
         if isket(rho):
             rho = ket2dm(rho)
 
-        self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
-        M, N = rho.shape
-
-        for m in range(M):
-            k_m = pow(self.omega / pi, 0.25) / \
-                sqrt(2 ** m * factorial(m)) * \
-                exp(-self.xvecs[0] ** 2 / 2.0) * \
-                np.polyval(hermite(m), self.xvecs[0])
-
-            for n in range(N):
-                k_n = pow(self.omega / pi, 0.25) / \
-                    sqrt(2 ** n * factorial(n)) * \
-                    exp(-self.xvecs[0] ** 2 / 2.0) * \
-                    np.polyval(hermite(n), self.xvecs[0])
-
-                self.data += np.conjugate(k_n) * k_m * rho.full()[m, n]
+        rows = psi_fock_multiple_position_complex(
+            rho.shape[0] - 1, self.xvecs[0].astype(complex)
+        )
+        self.data = np.einsum(
+            "mx,mn,nx->x", rows, rho.full(), rows.conj()
+        ) * pow(self.omega, 0.5)

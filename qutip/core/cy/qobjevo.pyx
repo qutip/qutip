@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
 
 import numpy as np
@@ -17,6 +16,8 @@ from qutip.settings import settings
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
+from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.mul cimport mul_dense
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 from libc.math cimport fabs
@@ -353,49 +354,52 @@ cdef class QobjEvo:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
 
-        t = self._prepare(t, None)
+        cdef object t_obj = t
 
         if self.isconstant:
             # For constant QobjEvo's, we sum the contained Qobjs directly in
             # order to retain the cached values of attributes like .isherm when
             # possible, rather than calling _call(t) which may lose this cached
             # information.
-            return sum(element.qobj(t) for element in self.elements)
+            return sum(element.qobj(t_obj) for element in self.elements)
 
         cdef _BaseElement part = self.elements[0]
-        cdef double complex coeff = part.coeff(t)
-        obj = part.qobj(t)
+        cdef double complex coeff = part._coeff_c(t)
+        obj = part.qobj(t_obj)
         cdef Data out = _data.mul(obj.data, coeff)
         cdef bint isherm = <bint> obj._isherm and coeff.imag == 0
+        
         for element in self.elements[1:]:
             part = <_BaseElement> element
-            coeff = part.coeff(t)
-            obj = part.qobj(t)
+            coeff = part._coeff_c(t)
+            obj = part.qobj(t_obj)
             isherm &= <bint> obj._isherm and coeff.imag == 0
             out = _data.add(out, obj.data, coeff)
 
         return Qobj(out, dims=self._dims, copy=False, isherm=isherm or None)
 
     cpdef Data _call(QobjEvo self, double t):
-        t = self._prepare(t, None)
-        cdef Data out
+        cdef object t_obj = t
+        cdef Py_ssize_t i
         cdef _BaseElement part = self.elements[0]
-        out = _data.mul(part.data(t),
-                        part.coeff(t))
-        for element in self.elements[1:]:
-            part = <_BaseElement> element
-
-            out = _data.add(
-                out,
-                part.data(t),
-                part.coeff(t)
-            )
+        cdef Data part_data = part.data(t_obj)
+        cdef Data out
+        if type(part_data) is Dense:
+            out = mul_dense(<Dense> part_data, part._coeff_c(t))
+        else:
+            out = _data.mul(part_data, part._coeff_c(t))
+        for i in range(1, len(self.elements)):
+            part = <_BaseElement> self.elements[i]
+            part_data = part.data(t_obj)
+            if type(out) is Dense and type(part_data) is Dense:
+                iadd_dense(<Dense> out, <Dense> part_data, part._coeff_c(t))
+            else:
+                out = _data.add(out, part_data, part._coeff_c(t))
         return out
 
-    cdef object _prepare(QobjEvo self, object t, Data state=None):
-        """ Precomputation before computing getting the element at `t`"""
-        # We keep the function for feedback eventually
-        if self._feedback_functions and state is not None:
+    cdef void _prepare(QobjEvo self, object t, Data state) except *:
+        """Precomputation before computing getting the element at `t`"""
+        if self._feedback_functions:
             new_args = {
                 key: func(t, state)
                 for key, func in self._feedback_functions.items()
@@ -405,8 +409,6 @@ cdef class QobjEvo:
                 element.replace_arguments(new_args, cache=cache)
                 for element in self.elements
             ]
-
-        return t
 
     def copy(QobjEvo self):
         """Return a copy of this :obj:`.QobjEvo`"""
@@ -641,7 +643,7 @@ cdef class QobjEvo:
     def __truediv__(self, other):
         return self.copy().__imul__(1 / other)
 
-    def __idiv__(self, other):
+    def __itruediv__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
         self *= 1 / other
@@ -1022,13 +1024,15 @@ cdef class QobjEvo:
         superoperator.  If ``state`` is an operator and ``self`` is an
         operator, then expectation is ``trace(self @ matrix)``.
         """
+        
         if type(state) is Dense:
             return self._expect_dense(t, state)
         cdef _BaseElement part
         cdef object out = 0.
         cdef Data part_data
         cdef object expect_func
-        t = self._prepare(t, state)
+
+        self._prepare(t, state)
         if self.issuper:
             if state.shape[1] != 1:
                 state = _data.column_stack(state)
@@ -1049,15 +1053,17 @@ cdef class QobjEvo:
         cdef _BaseElement part
         cdef double complex out = 0., coeff
         cdef Data part_data
-        t = self._prepare(t, state)
+        cdef object t_obj = t
+        self._prepare(t_obj, state)
+
         if self.issuper:
             if state.shape[1] != 1:
                 state = column_stack_dense(state, inplace=state.fortran)
             try:
                 for element in self.elements:
                     part = (<_BaseElement> element)
-                    coeff = part.coeff(t)
-                    part_data = part.data(t)
+                    coeff = part._coeff_c(t)
+                    part_data = part.data(t_obj)
                     out += coeff * expect_super_data_dense(part_data, state)
             finally:
                 if state.fortran:
@@ -1066,8 +1072,8 @@ cdef class QobjEvo:
         else:
             for element in self.elements:
                 part = (<_BaseElement> element)
-                coeff = part.coeff(t)
-                part_data = part.data(t)
+                coeff = part._coeff_c(t)
+                part_data = part.data(t_obj)
                 out += coeff * expect_data_dense(part_data, state)
         return out
 
@@ -1103,7 +1109,7 @@ cdef class QobjEvo:
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
         """Compute ``out += scale * self(t) @ state``"""
         cdef _BaseElement part
-        t = self._prepare(t, state)
+        self._prepare(t, state)
         if out is None and type(state) is Dense:
             out = dense.zeros(self.shape[0], state.shape[1],
                               (<Dense> state).fortran)
@@ -1118,7 +1124,7 @@ cdef class QobjEvo:
     cpdef Data adjoint_rmatmul_data(QobjEvo self, object t, Data state, Data out=None, double complex scale=1):
         """Compute ``out += scale * (state @ dag(self(t)))``"""
         cdef _BaseElement part
-        t = self._prepare(t, state)
+        self._prepare(t, state)
         if out is None and type(state) is Dense:
             out = dense.zeros(state.shape[0], self.shape[1],
                               (<Dense> state).fortran)

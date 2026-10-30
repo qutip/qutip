@@ -1,4 +1,3 @@
-#cython: language_level=3
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.data cimport Data
@@ -7,6 +6,7 @@ cdef class SpectraCoefficient(Coefficient):
     cdef Coefficient coeff_t
     cdef Coefficient coeff_w
     cdef double w
+    cdef double complex _call_w(self, double t, double w) except *
 
 cpdef Data matmul_var_data(Data left, Data right, int transleft, int transright)
 

@@ -1,5 +1,3 @@
-#cython: language_level=3
+cdef double erf(double x) noexcept nogil
 
-cdef double erf(double x)
-
-cdef double complex zerf(double complex Z)
+cdef double complex zerf(double complex Z) noexcept

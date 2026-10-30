@@ -201,6 +201,11 @@ class Test_isdiag:
         data = _data.to(datatype, _data.Dense(mat))
         assert not _data.isdiag(data)
 
+        mat[1, 0] = 1e-13
+        data = _data.to(datatype, _data.Dense(mat))
+        assert _data.isdiag(data)
+        assert not _data.isdiag(data, tol=1e-14)
+
 
 class TestIsEqual:
     @pytest.fixture(autouse=True)

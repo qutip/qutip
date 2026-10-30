@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport Dense, Data
 from qutip.core.data.base cimport idxint
 
@@ -15,7 +13,7 @@ cdef class QobjEvo:
 
     cpdef Data _call(QobjEvo self, double t)
 
-    cdef object _prepare(QobjEvo self, object t, Data state=*)
+    cdef void _prepare(QobjEvo self, object t, Data state) except *
 
     cpdef object expect_data(QobjEvo self, object t, Data state)
 
