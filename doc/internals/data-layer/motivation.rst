@@ -1,5 +1,5 @@
 Motivation
-##########
+==========
 
 We always want to use a suitable data-storage format when representing operators
 and states, even if this is not always the *same* format.  Even if there are
@@ -34,7 +34,7 @@ simply calls ``add(left, right)``, and the correct specialisation is determined.
 
 
 Why Not Just Use NumPy?
-=======================
+-----------------------
 
 NumPy is a fantastic tool for representing numerical data, but it is limited to
 dense matrices, while many operators in quantum mechanics are often much more

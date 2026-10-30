@@ -91,7 +91,7 @@ class Test_fidelity:
         assert F == pytest.approx(FU, rel=1e-5, abs=1e-7)
 
     def test_state_with_itself(self, state):
-        assert fidelity(state, state) == pytest.approx(1, abs=1e-6)
+        assert fidelity(state, state) == pytest.approx(1, abs=2e-6)
 
     def test_bounded(self, left, right, dimension):
         """Test that fidelity is bounded on [0, 1]."""

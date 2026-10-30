@@ -1,0 +1,3 @@
+Fixed ``kraus_to_choi`` and ``kraus_to_super`` swapping the input and output
+dimensions for non-square Kraus operators, which gave a superoperator of the
+wrong shape and ``iscptp == False`` for valid channels.

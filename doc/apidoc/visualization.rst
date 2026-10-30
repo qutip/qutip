@@ -3,13 +3,13 @@ Visualization and animation
 ***************************
 
 Bloch sphere
-------------
+============
 
 .. autoclass:: qutip.bloch.Bloch
     :members:
 
 Graphs and Visualization
-------------------------
+========================
 
 .. automodule:: qutip.visualization
     :members: hinton, matrix_histogram, plot_energy_levels, plot_fock_distribution, plot_wigner, plot_qfunc, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_wigner_sphere, plot_spin_distribution
@@ -26,7 +26,7 @@ Graphs and Visualization
 
 
 Pseudoprobability Functions
----------------------------
+===========================
 
 .. automodule:: qutip.wigner
     :members: qfunc, spin_q_function, spin_wigner, wigner
@@ -35,7 +35,7 @@ Pseudoprobability Functions
     :members:
 
 Quantum Process Tomography
---------------------------
+==========================
 
 .. automodule:: qutip.tomography
     :members: qpt, qpt_plot, qpt_plot_combined

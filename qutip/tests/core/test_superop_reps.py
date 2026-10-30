@@ -207,6 +207,35 @@ class TestSuperopReps:
         assert_kraus_equivalence(op2[0], kraus, tol=1e-8)
         assert abs((op3 - super).norm()) < 1e-8
 
+    @pytest.mark.parametrize('sparse', [True, False])
+    @pytest.mark.parametrize('kraus', [
+        pytest.param(
+            [Qobj(np.array([[1, 0], [0, 1], [0, 0]]), dims=[[3], [2]])],
+            id="qubit_to_qutrit_isometry",
+        ),
+        pytest.param(
+            [tensor(basis(2, i).dag(), qeye(2)) for i in range(2)],
+            id="partial_trace",
+        ),
+    ])
+    def test_NonSquareKrausToChoiAndSuper(self, kraus, sparse):
+        """
+        Superoperator: kraus_to_choi and kraus_to_super keep the input and
+        output dimensions of non-square Kraus operators.
+        """
+        expected_super = sum(sprepost(k, k.dag()) for k in kraus)
+        expected_choi = to_choi(expected_super)
+
+        choi = kraus_to_choi(kraus)
+        assert choi.dims == expected_choi.dims
+        assert (choi - expected_choi).norm() < tol
+        assert choi.iscptp
+
+        test_super = kraus_to_super(kraus, sparse=sparse)
+        assert test_super.dims == expected_super.dims
+        assert (test_super - expected_super).norm() < tol
+        assert test_super.iscptp
+
     def test_NeglectSmallKraus(self):
         """
         Superoperator: Convert Kraus to Choi matrix and back. Neglect tiny

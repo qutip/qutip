@@ -244,14 +244,14 @@ Practical Considerations
 ------------------------
 
 Non-Commuting Stochastic Operators
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Taylor expansion schemes and the ``"rouchon"`` method assume that stochastic collapse operators (``sc_ops``) commute,
 skipping anti-commuting terms and using symmetric shortcuts such as replacing :math:`A B + B A` with :math:`2 A B`.
 
 If your model features non-commuting stochastic operators, ``"euler"`` with a sufficiently small integration step size ``dt`` is strictly valid.
 
 Step-Size Sensitivity with the Rouchon Method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In standard methods (like ``"euler"`` or ``"platen"``), using a time step ``dt`` that is too large typically produces obvious numerical failures,
 such as unphysical negative probabilities or divergence to ``infinity``.
 
