@@ -475,9 +475,8 @@ def _operators_eigen(
     options: dict,
 ):
     if not X.isconstant:
-        # TODO: Not strickly needed:
-        # The dissipator could be computed at each time-step with td system
-        # The Lamb Shift only need constant H for it's derivation.
+        # TODO: Not needed for the dissipator.
+        # The dissipator could be computed at each time-step
         raise TypeError(
             "ULME_creation='eigen' requires a time-independent "
             "coupling operator."
