@@ -33,7 +33,7 @@ jobs:
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
-        case-name: ["Latest"]
+        case-name: ["Latest - MKL (pydiso)"]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -80,11 +80,12 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-4
+          - case-name: version-4
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==2.1.*"
             scipy-run: "==1.14.*"
+            nomkl: 1
             qutip-optional: "[graphics]"
 
           - case-name: version-5
@@ -139,6 +140,12 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
+          - case-name: Windows - MKL (pydiso)
+            os: windows-latest
+            python-version: "3.14"
+            qutip-optional: "[graphics]"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
           # Test 1 recent and one old
           - case-name: Windows - latest - minimal install
             os: windows-11-arm
@@ -151,6 +158,7 @@ jobs:
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
+            nomkl: 1
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
@@ -239,7 +247,7 @@ jobs:
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
           elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
+            conda install "pydiso>=0.3.1" $CORE_DEP
           else
             conda install nomkl $CORE_DEP
           fi
@@ -257,6 +265,12 @@ jobs:
           if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
+
+      - name: Verify MKL solver availability
+        if: ${{ !matrix.pypi && !matrix.nomkl }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "import pydiso.mkl_solver; import qutip; assert qutip.settings.has_mkl, 'MKL tests require a working pydiso installation'"
 
       - name: Package information
         working-directory: ${{ runner.temp }}
