@@ -31,7 +31,7 @@ def mesolve(
     args: dict[str, Any] = None,
     options: dict[str, Any] = None
 ) -> Result:
-    """
+    r"""
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
 
@@ -40,6 +40,18 @@ def mesolve(
     operators (``c_ops``), by integrating the set of ordinary differential
     equations that define the system. In the absence of collapse operators
     the system is evolved according to the unitary evolution of the Hamiltonian.
+
+    When ``H`` is a Hamiltonian, the equation solved is the Lindblad master
+    equation
+
+    .. math::
+
+        \frac{d\rho}{dt} = -i[H(t), \rho]
+        + \sum_n \left( C_n \rho C_n^\dagger
+        - \frac{1}{2} \left\{ C_n^\dagger C_n, \rho \right\} \right),
+
+    in units where :math:`\hbar = 1`. ``H`` is therefore given in units of
+    angular frequency, and ``tlist`` in the inverse of those units.
 
     The output is either the state vector at arbitrary points in time
     (``tlist``), or the expectation values of the supplied operators
