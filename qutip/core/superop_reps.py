@@ -318,7 +318,7 @@ def _chi_to_choi(q_oper):
                 copy=False)
 
 
-def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
+def _svd_u_to_kraus(U, S, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values
     S obtained from a SVD, produces the Kraus operators represented by U.
@@ -330,7 +330,12 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    data = np.array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))
+    # Each column of U is a column-stacked Kraus operator of shape
+    # (output size, input size), which need not be square.
+    shape = (outdims.size, indims.size)
+    data = (
+        np.array(U * S).reshape(shape + (dK,), order='F').transpose((2, 0, 1))
+    )
     return [
         Qobj(x,
              dims=[outdims, indims],
@@ -350,10 +355,9 @@ def _generalized_kraus(q_oper, threshold=1e-10):
             " (superrep ", repr(q_oper.superrep), ")."
         ]))
 
-    # Remember the shape of the underlying space,
-    # as we'll need this to make Kraus operators later.
-    dL, dR = int(np.sqrt(q_oper.shape[0])), int(np.sqrt(q_oper.shape[1]))
-    # Also remember the dims breakout.
+    # Remember the dims breakout, as we'll need it to make Kraus operators
+    # later. The left factor is the input space of the channel and the right
+    # factor is the output space.
     out_dims, in_dims = q_oper._dims
     out_left, out_right = out_dims.oper
     in_left, in_right = in_dims.oper
@@ -375,9 +379,8 @@ def _generalized_kraus(q_oper, threshold=1e-10):
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
-    # FIXME: does not preserve dims!
-    kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
-    kV = _svd_u_to_kraus(V, S, dL, dK, in_right, in_left)
+    kU = _svd_u_to_kraus(U, S, dK, out_left, out_right)
+    kV = _svd_u_to_kraus(V, S, dK, in_left, in_right)
 
     return kU, kV
 
@@ -388,22 +391,21 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
 
     assert len(kU) == len(kV)
     dK = len(kU)
-    dL = kU[0].shape[0]
-    dR = kV[0].shape[1]
-    # Also remember the dims breakout.
+    # Kraus operators map the input (left) space to the output (right) space,
+    # so they need not be square.
     out_dims, in_dims = q_oper._dims
     out_left, out_right = out_dims.oper
     in_left, in_right = in_dims.oper
 
     A = Qobj(
-        _data.zeros(dK * dL, dL),
-        dims=[Compound(out_left, Space(dK)), Compound(out_right, Field())],
+        _data.zeros(dK * out_right.size, out_left.size),
+        dims=[Compound(out_right, Space(dK)), Compound(out_left, Field())],
         isherm=True,
         isunitary=False,
         copy=False)
     B = Qobj(
-        _data.zeros(dK * dR, dR),
-        dims=[Compound(in_left, Space(dK)), Compound(in_right, Field())],
+        _data.zeros(dK * in_right.size, in_left.size),
+        dims=[Compound(in_right, Space(dK)), Compound(in_left, Field())],
         isherm=True,
         isunitary=False,
         copy=False)
@@ -413,8 +415,8 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
         B += tensor(KR, basis(dK, idx_kraus))
 
     # There is no input (right) Kraus index, so strip that off.
-    A.dims = [Compound(out_left, Space(dK)), out_right]
-    B.dims = [Compound(in_left, Space(dK)), in_right]
+    A.dims = [Compound(out_right, Space(dK)), out_left]
+    B.dims = [Compound(in_right, Space(dK)), in_left]
 
     return A, B
 
