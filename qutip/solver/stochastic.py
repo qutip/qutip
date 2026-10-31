@@ -423,7 +423,9 @@ def smesolve(
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
-            "mpi4py" modules to do so.
+            "mpi4py" modules to do so. Note that "parallel" cannot pickle
+            anonymous ``lambda`` functions (e.g. in time-dependent Hamiltonians);
+            use named functions or "loky" instead.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -561,7 +563,9 @@ def ssesolve(
         - | map : str {"serial", "parallel", "loky", "mpi"}
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
-            "mpi4py" modules to do so.
+            "mpi4py" modules to do so. Note that "parallel" cannot pickle
+            anonymous ``lambda`` functions (e.g. in time-dependent Hamiltonians);
+            use named functions or "loky" instead.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
