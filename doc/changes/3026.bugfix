@@ -1,0 +1,2 @@
+Improve eigenvalue-based steady-state solver selection and validate results, 
+raising an error instead of returning an invalid state when the eigensolver fails.
