@@ -334,7 +334,7 @@ jobs:
         build: [cp313, cp314]
     steps:
       - uses: actions/checkout@v7
-      - uses: pypa/cibuildwheel@v4.2.1
+      - uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_PLATFORM: pyodide
           CIBW_BUILD: ${{ matrix.build }}-*

@@ -157,7 +157,7 @@ jobs:
       - uses: actions/checkout@v7
       - if: env.OVERRIDE_VERSION != ''
         run: echo "$OVERRIDE_VERSION" > VERSION
-      - uses: pypa/cibuildwheel@v4.2.1
+      - uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_PLATFORM: pyodide
           CIBW_BUILD: "cp3{13,14}-*"
