@@ -631,6 +631,42 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
     _assert_qobjevo_equivalent(qevo, restored)
 
 
+def test_QobjEvo_to_list_ordered():
+    func = lambda t: sigmax()
+    coeff = lambda t: t
+    qevo = QobjEvo(
+        [func, [sigmaz(), coeff], num(2), [sigmax(), coeff], func],
+        compress=False
+    )
+    as_list = qevo.to_list(compress=False, always_include_cte=True)
+    assert len(as_list) == 5
+    assert as_list[0][0] is func
+    assert isinstance(as_list[2], Qobj)
+
+    as_list_sorted = qevo.to_list()  # Default is to sort
+    assert len(as_list_sorted) == 4
+    assert isinstance(as_list_sorted[0], Qobj)
+    assert as_list_sorted[2][0] is func
+    assert as_list_sorted[3][0] is func
+
+    # Last to_list call did not modify the object
+    as_list = qevo.to_list(compress=False)
+    assert len(as_list) == 5
+
+
+def test_QobjEvo_to_list_add_qzero():
+
+    coeff = lambda t: t
+    qevo = QobjEvo([sigmax(), coeff])
+
+    as_list = qevo.to_list(always_include_cte=True)
+    assert len(as_list) == 2
+    assert as_list[0] == sigmax() * 0
+
+    as_list = qevo.to_list(always_include_cte=False)
+    assert len(as_list) == 1
+
+
 class Feedback_Checker_Coefficient:
     def __init__(self, stacked=True):
         self.state = None

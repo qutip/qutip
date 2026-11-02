@@ -23,6 +23,7 @@ from libc.math cimport fabs
 
 __all__ = ['QobjEvo']
 
+
 cdef class QobjEvo:
     """
     A class for representing time-dependent quantum objects, such as quantum
@@ -860,15 +861,26 @@ cdef class QobjEvo:
             (constant_part and not _data.iszero(constant_part.data))
             or not cleaned_elements
         ):
-            cleaned_elements.append(_ConstantElement(
-                constant_part or qutip.qzero_like(self)
-            ))
+            cte = constant_part or qutip.qzero_like(self)
+            cleaned_elements = [_ConstantElement(cte)] + cleaned_elements
 
         self.elements = cleaned_elements
 
-    def to_list(QobjEvo self):
+    def to_list(QobjEvo self, *, compress=True, always_include_cte=False):
         """
         Restore the QobjEvo to a list form.
+
+        Parameters
+        ----------
+        compress: bool, default: True
+            Merge similar parts, merging Qobj with the same Coefficient or
+            merging Coefficient of part with the same Qobj.
+            When ``True`` the output will be sorted: constant part first, then
+            ``[Qobj, Coefficient]`` pairs, then function last.
+
+        always_include_cte:
+            Ensure an element of the returned list is a constant Qobj.
+            If there are none, add a zero Qobj.
 
         Returns
         -------
@@ -881,6 +893,18 @@ cdef class QobjEvo:
             original function and args (``dict``).
         """
         out = []
+        if compress:
+            self = QobjEvo(self, compress=True)
+
+        if (
+            always_include_cte
+            and not any(
+                type(element) is _ConstantElement
+                for element in self.elements
+            )
+        ):
+            out.append(qutip.qzero_like(self))
+
         for element in self.elements:
             if isinstance(element, _ConstantElement):
                 out.append(element.qobj(0))
