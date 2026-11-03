@@ -827,6 +827,9 @@ cdef class QobjEvo:
 
         The :obj:`.QobjEvo` is transformed inplace.
 
+        The components will be sorted with the constant first, then coeffients
+        elemets, and finally functions (f(t) -> Qobj) derived elements.
+
         Returns
         -------
         None
@@ -857,17 +860,13 @@ cdef class QobjEvo:
         else:
             constant_part = None
 
-        if (
-            (constant_part and not _data.iszero(constant_part.data))
-            or not cleaned_elements
-        ):
-            cte = constant_part or qutip.qzero_like(self)
-if (constant_part and not _data.iszero(constant_part.data)):
-    constant_elements = [_ConstantElement(constant_part)]
+        constant_element = []
+        if (constant_part and not _data.iszero(constant_part.data)):
+            constant_element = [_ConstantElement(constant_part)]
 
-cleaned_elements = [*constant_elements, *coeff_elements, *func_elements]
-if not cleaned_elements:
-    cleaned_elements = [_ConstantElement(qutip.qzero_like(self))]
+        cleaned_elements = [*constant_element, *coeff_elements, *func_elements]
+        if not cleaned_elements:
+            cleaned_elements = [_ConstantElement(qutip.qzero_like(self))]
 
         self.elements = cleaned_elements
 
