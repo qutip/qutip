@@ -862,7 +862,12 @@ cdef class QobjEvo:
             or not cleaned_elements
         ):
             cte = constant_part or qutip.qzero_like(self)
-            cleaned_elements = [_ConstantElement(cte)] + cleaned_elements
+if (constant_part and not _data.iszero(constant_part.data)):
+    constant_elements = [_ConstantElement(constant_part)]
+
+cleaned_elements = [*constant_elements, *coeff_elements, *func_elements]
+if not cleaned_elements:
+    cleaned_elements = [_ConstantElement(qutip.qzero_like(self))]
 
         self.elements = cleaned_elements
 
