@@ -827,8 +827,9 @@ cdef class QobjEvo:
 
         The :obj:`.QobjEvo` is transformed inplace.
 
-        The components will be sorted with the constant part first, then coefficient
-        elements, and finally function (`f(t) -> Qobj`) derived elements.
+        The components will be sorted with the constant part first, then
+        coefficient elements, and finally function (``f(t) -> Qobj``) derived
+        elements.
 
         Returns
         -------
@@ -870,17 +871,24 @@ cdef class QobjEvo:
 
         self.elements = cleaned_elements
 
-    def to_list(QobjEvo self, *, compress=True, always_include_cte=False):
+    def to_list(
+        QobjEvo self,
+        *,
+        sort=True, compress=False, always_include_cte=False
+    ):
         """
         Restore the QobjEvo to a list form.
 
         Parameters
         ----------
-        compress: bool, default: True
-            Merge similar parts, merging Qobj with the same Coefficient or
-            merging Coefficient of part with the same Qobj.
+        sort: bool, default: True
             When ``True`` the output will be sorted: constant part first, then
-            ``[Qobj, Coefficient]`` pairs, then function last.
+            ``[Qobj, Coefficient]`` pairs, then functions last.
+
+        compress: bool, default: False
+            Call :meth:`compress` before returning the list, reducing the
+            number of terms by merging similar ones. After ``compress``, the
+            list is always sorted.
 
         always_include_cte:
             Ensure an element of the returned list is a constant Qobj.
@@ -897,8 +905,23 @@ cdef class QobjEvo:
             original function and args (``dict``).
         """
         out = []
+
         if compress:
-            self = QobjEvo(self, compress=True)
+            elements = QobjEvo(self, compress=True, copy=True).elements
+        elif sort:
+            elements = []
+            order = {
+                _ConstantElement: 0,
+                _EvoElement: 1,
+                _FuncElement: 2,
+            }
+            types_codes = [
+                order.get(type(element), 3) for element in self.elements
+            ]
+            idx = np.argsort(types_codes)
+            elements = [self.elements[i] for i in idx]
+        else:
+            elements = self.elements
 
         if (
             always_include_cte
@@ -909,7 +932,7 @@ cdef class QobjEvo:
         ):
             out.append(qutip.qzero_like(self))
 
-        for element in self.elements:
+        for element in elements:
             if isinstance(element, _ConstantElement):
                 out.append(element.qobj(0))
             elif isinstance(element, _EvoElement):
