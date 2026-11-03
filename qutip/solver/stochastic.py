@@ -30,12 +30,12 @@ class StochasticTrajResult(Result):
         self.heterodyne = heterodyne
         if self.options["store_measurement"]:
             self.m_ops = []
-            self.m_expect = []
+            self._m_expect = []
             self.dW_factor = dw_factor
             for op in m_ops:
                 f = self._e_op_func(op)
-                self.m_expect.append([])
-                self.m_ops.append(ExpectOp(op, f, self.m_expect[-1].append))
+                self._m_expect.append([])
+                self.m_ops.append(ExpectOp(op, f, self._m_expect[-1].append))
                 self.add_processor(self.m_ops[-1]._store)
 
     def add(self, t, state, noise=None):
@@ -80,6 +80,46 @@ class StochasticTrajResult(Result):
         return noise
 
     @property
+    def m_expect(self):
+        r"""
+        Measurements without the random noise:
+
+            J(t) = \langle L + L^{\dagger} \rangle
+
+        The output shape is
+            (len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+
+        """
+        if not self.options["store_measurement"]:
+            return None
+        elif len(self.m_ops) == 0:
+            if self.heterodyne:
+                return np.empty(shape=(0, 2, len(self.times) - 1))
+            else:
+                return np.empty(shape=(0, len(self.times) - 1))
+        elif self.options["store_measurement"] == "start":
+            m_expect = np.array(self._m_expect)[:, :-1]
+        elif self.options["store_measurement"] == "middle":
+            m_expect = np.apply_along_axis(
+                lambda m: np.convolve(m, [0.5, 0.5], "valid"),
+                axis=1, arr=self._m_expect,
+            )
+        elif self.options["store_measurement"] in ["end", True]:
+            m_expect = np.array(self._m_expect)[:, 1:]
+        else:
+            raise ValueError(
+                "store_measurement must be in {'start', 'middle', 'end', ''}, "
+                f"not {self.options['store_measurement']}"
+            )
+
+        if self.heterodyne:
+            return m_expect.reshape(-1, 2, m_expect.shape[1])
+        return m_expect
+
+    @property
     def measurement(self) -> np.typing.NDArray[float]:
         """
         Measurements for each stochastic collapse operators.
@@ -90,35 +130,13 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        if not self.options["store_measurement"]:
-            return None
-        elif len(self.m_ops) == 0:
-            if self.heterodyne:
-                return np.empty(shape=(0, 2, len(self.times) - 1))
-            else:
-                return np.empty(shape=(0, len(self.times) - 1))
-        elif self.options["store_measurement"] == "start":
-            m_expect = np.array(self.m_expect)[:, :-1]
-        elif self.options["store_measurement"] == "middle":
-            m_expect = np.apply_along_axis(
-                lambda m: np.convolve(m, [0.5, 0.5], "valid"),
-                axis=1, arr=self.m_expect,
-            )
-        elif self.options["store_measurement"] in ["end", True]:
-            m_expect = np.array(self.m_expect)[:, 1:]
-        else:
-            raise ValueError(
-                "store_measurement must be in {'start', 'middle', 'end', ''}, "
-                f"not {self.options['store_measurement']}"
-            )
         noise = np.array(self.noise).T
         noise_scaled = np.einsum(
             "i,ij,j->ij", self.dW_factor, noise, (1 / np.diff(self.times))
         )
         if self.heterodyne:
-            m_expect = m_expect.reshape(-1, 2, m_expect.shape[1])
             noise_scaled = noise_scaled.reshape(-1, 2, noise_scaled.shape[1])
-        return m_expect + noise_scaled
+        return self.m_expect + noise_scaled
 
 
 class StochasticResult(MultiTrajResult):
@@ -137,9 +155,11 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(partial(self._reduce_attr, attr="dW"))
             self._dW = []
 
-        if not keep_runs and store_measurement:
             self.add_processor(partial(self._reduce_attr, attr="measurement"))
             self._measurement = []
+
+            self.add_processor(partial(self._reduce_attr, attr="m_expect"))
+            self._m_expect = []
 
     def _reduce_attr(self, trajectory, attr, *, rel=None, abs=None):
         """
@@ -164,7 +184,9 @@ class StochasticResult(MultiTrajResult):
     @property
     def measurement(self) -> np.typing.NDArray[float]:
         """
-        Measurements for each trajectories and stochastic collapse operators.
+        Measurements for each trajectories and stochastic collapse operators:
+
+            I(t) = \langle L + L^{\dagger} \rangle + \frac{dW}{dt}
 
         The output shape is
             (ntraj, len(sc_ops), len(tlist)-1)
@@ -189,6 +211,21 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
+    def m_expect(self) -> np.typing.NDArray[float]:
+        r"""
+        Measurements without the random noise:
+
+            J(t) = \langle L + L^{\dagger} \rangle
+
+        The output shape is
+            (ntraj, len(sc_ops), len(tlist)-1)
+        for homodyne detection, and
+            (ntraj, len(sc_ops), 2, len(tlist)-1)
+        for heterodyne detection.
+        """
+        return self._trajectories_attr("m_expect")
+
+    @property
     def wiener_process(self) -> np.typing.NDArray[float]:
         """
         Wiener processes for each trajectories and stochastic collapse
@@ -202,7 +239,9 @@ class StochasticResult(MultiTrajResult):
         """
         return self._trajectories_attr("wiener_process")
 
-    def merge(self, other: "StochasticResult", p: float = None) -> "StochasticResult":
+    def merge(
+        self, other: "StochasticResult", p: float = None
+    ) -> "StochasticResult":
         if not isinstance(other, StochasticResult):
             return NotImplemented
         if self.stats["solver"] != other.stats["solver"]:
@@ -222,6 +261,9 @@ class StochasticResult(MultiTrajResult):
         ):
             new._measurement = np.concatenate(
                 (self.measurement, other.measurement), axis=0
+            )
+            new._m_expect = np.concatenate(
+                (self.m_expect, other.m_expect), axis=0
             )
             new._wiener_process = np.concatenate(
                 (self.wiener_process, other.wiener_process), axis=0
