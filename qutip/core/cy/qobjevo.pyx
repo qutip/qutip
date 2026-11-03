@@ -827,8 +827,8 @@ cdef class QobjEvo:
 
         The :obj:`.QobjEvo` is transformed inplace.
 
-        The components will be sorted with the constant first, then coeffients
-        elemets, and finally functions (f(t) -> Qobj) derived elements.
+        The components will be sorted with the constant part first, then coefficient
+        elements, and finally function (`f(t) -> Qobj`) derived elements.
 
         Returns
         -------
