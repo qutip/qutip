@@ -30,12 +30,14 @@ class StochasticTrajResult(Result):
         self.heterodyne = heterodyne
         if self.options["store_measurement"]:
             self.m_ops = []
-            self._m_expect = []
+            self._measurement_current = []
             self.dW_factor = dw_factor
             for op in m_ops:
                 f = self._e_op_func(op)
-                self._m_expect.append([])
-                self.m_ops.append(ExpectOp(op, f, self._m_expect[-1].append))
+                self._measurement_current.append([])
+                self.m_ops.append(
+                    ExpectOp(op, f, self._measurement_current[-1].append)
+                )
                 self.add_processor(self.m_ops[-1]._store)
 
     def add(self, t, state, noise=None):
@@ -80,7 +82,7 @@ class StochasticTrajResult(Result):
         return noise
 
     @property
-    def m_expect(self):
+    def measurement_current(self):
         r"""
         Measurements without the random noise:
 
@@ -101,14 +103,14 @@ class StochasticTrajResult(Result):
             else:
                 return np.empty(shape=(0, len(self.times) - 1))
         elif self.options["store_measurement"] == "start":
-            m_expect = np.array(self._m_expect)[:, :-1]
+            measurement_current = np.array(self._measurement_current)[:, :-1]
         elif self.options["store_measurement"] == "middle":
-            m_expect = np.apply_along_axis(
+            measurement_current = np.apply_along_axis(
                 lambda m: np.convolve(m, [0.5, 0.5], "valid"),
-                axis=1, arr=self._m_expect,
+                axis=1, arr=self._measurement_current,
             )
         elif self.options["store_measurement"] in ["end", True]:
-            m_expect = np.array(self._m_expect)[:, 1:]
+            measurement_current = np.array(self._measurement_current)[:, 1:]
         else:
             raise ValueError(
                 "store_measurement must be in {'start', 'middle', 'end', ''}, "
@@ -116,8 +118,10 @@ class StochasticTrajResult(Result):
             )
 
         if self.heterodyne:
-            return m_expect.reshape(-1, 2, m_expect.shape[1])
-        return m_expect
+            return measurement_current.reshape(
+                -1, 2, measurement_current.shape[1]
+            )
+        return measurement_current
 
     @property
     def measurement(self) -> np.typing.NDArray[float]:
@@ -136,7 +140,7 @@ class StochasticTrajResult(Result):
         )
         if self.heterodyne:
             noise_scaled = noise_scaled.reshape(-1, 2, noise_scaled.shape[1])
-        return self.m_expect + noise_scaled
+        return self.measurement_current + noise_scaled
 
 
 class StochasticResult(MultiTrajResult):
@@ -158,8 +162,10 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(partial(self._reduce_attr, attr="measurement"))
             self._measurement = []
 
-            self.add_processor(partial(self._reduce_attr, attr="m_expect"))
-            self._m_expect = []
+            self.add_processor(
+                partial(self._reduce_attr, attr="measurement_current")
+            )
+            self._measurement_current = []
 
     def _reduce_attr(self, trajectory, attr, *, rel=None, abs=None):
         """
@@ -211,7 +217,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
-    def m_expect(self) -> np.typing.NDArray[float]:
+    def measurement_current(self) -> np.typing.NDArray[float]:
         r"""
         Measurements without the random noise:
 
@@ -223,7 +229,7 @@ class StochasticResult(MultiTrajResult):
             (ntraj, len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        return self._trajectories_attr("m_expect")
+        return self._trajectories_attr("measurement_current")
 
     @property
     def wiener_process(self) -> np.typing.NDArray[float]:
@@ -262,8 +268,8 @@ class StochasticResult(MultiTrajResult):
             new._measurement = np.concatenate(
                 (self.measurement, other.measurement), axis=0
             )
-            new._m_expect = np.concatenate(
-                (self.m_expect, other.m_expect), axis=0
+            new._measurement_current = np.concatenate(
+                (self.measurement_current, other.measurement_current), axis=0
             )
             new._wiener_process = np.concatenate(
                 (self.wiener_process, other.wiener_process), axis=0
