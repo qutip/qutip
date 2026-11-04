@@ -103,7 +103,8 @@ jobs:
       - name: Checkout qutip-tutorials
         run: |
           cd ..
-          git clone https://github.com/qutip/qutip-tutorials.git
+          git clone --branch fix_serialisation_brmesolve_tutorial --single-branch \
+            https://github.com/veronikakurth/qutip-tutorials.git qutip-tutorials
 
       - name: Install tutorial environment with Conda
         if: ${{ !matrix.no-conda }}
