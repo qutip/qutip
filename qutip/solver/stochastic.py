@@ -30,13 +30,13 @@ class StochasticTrajResult(Result):
         self.heterodyne = heterodyne
         if self.options["store_measurement"]:
             self.m_ops = []
-            self._measurement_current = []
+            self._signal = []
             self.dW_factor = dw_factor
             for op in m_ops:
                 f = self._e_op_func(op)
-                self._measurement_current.append([])
+                self._signal.append([])
                 self.m_ops.append(
-                    ExpectOp(op, f, self._measurement_current[-1].append)
+                    ExpectOp(op, f, self._signal[-1].append)
                 )
                 self.add_processor(self.m_ops[-1]._store)
 
@@ -82,9 +82,9 @@ class StochasticTrajResult(Result):
         return noise
 
     @property
-    def measurement_current(self):
+    def signal(self):
         r"""
-        Measurements without the random noise:
+        Signal, the measurements without the random noise:
 
             J(t) = \langle L + L^{\dagger} \rangle
 
@@ -94,6 +94,9 @@ class StochasticTrajResult(Result):
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
 
+        Is ``None`` when ``store_measurement`` is false. The signal is
+        obtained at the start, middle or end of the time interval according to
+        that options.
         """
         if not self.options["store_measurement"]:
             return None
@@ -103,14 +106,14 @@ class StochasticTrajResult(Result):
             else:
                 return np.empty(shape=(0, len(self.times) - 1))
         elif self.options["store_measurement"] == "start":
-            measurement_current = np.array(self._measurement_current)[:, :-1]
+            signal = np.array(self._signal)[:, :-1]
         elif self.options["store_measurement"] == "middle":
-            measurement_current = np.apply_along_axis(
+            signal = np.apply_along_axis(
                 lambda m: np.convolve(m, [0.5, 0.5], "valid"),
-                axis=1, arr=self._measurement_current,
+                axis=1, arr=self._signal,
             )
         elif self.options["store_measurement"] in ["end", True]:
-            measurement_current = np.array(self._measurement_current)[:, 1:]
+            signal = np.array(self._signal)[:, 1:]
         else:
             raise ValueError(
                 "store_measurement must be in {'start', 'middle', 'end', ''}, "
@@ -118,10 +121,10 @@ class StochasticTrajResult(Result):
             )
 
         if self.heterodyne:
-            return measurement_current.reshape(
-                -1, 2, measurement_current.shape[1]
+            return signal.reshape(
+                -1, 2, signal.shape[1]
             )
-        return measurement_current
+        return signal
 
     @property
     def measurement(self) -> np.typing.NDArray[float]:
@@ -133,6 +136,10 @@ class StochasticTrajResult(Result):
         for homodyne detection, and
             (len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
+
+        Is ``None`` when ``store_measurement`` is false. The measurement is
+        obtained at the start, middle or end of the time interval according to
+        that options.
         """
         noise = np.array(self.noise).T
         noise_scaled = np.einsum(
@@ -140,7 +147,7 @@ class StochasticTrajResult(Result):
         )
         if self.heterodyne:
             noise_scaled = noise_scaled.reshape(-1, 2, noise_scaled.shape[1])
-        return self.measurement_current + noise_scaled
+        return self.signal + noise_scaled
 
 
 class StochasticResult(MultiTrajResult):
@@ -163,9 +170,9 @@ class StochasticResult(MultiTrajResult):
             self._measurement = []
 
             self.add_processor(
-                partial(self._reduce_attr, attr="measurement_current")
+                partial(self._reduce_attr, attr="signal")
             )
-            self._measurement_current = []
+            self._signal = []
 
     def _reduce_attr(self, trajectory, attr, *, rel=None, abs=None):
         """
@@ -217,7 +224,7 @@ class StochasticResult(MultiTrajResult):
         return self._trajectories_attr("dW")
 
     @property
-    def measurement_current(self) -> np.typing.NDArray[float]:
+    def signal(self) -> np.typing.NDArray[float]:
         r"""
         Measurements without the random noise:
 
@@ -229,7 +236,7 @@ class StochasticResult(MultiTrajResult):
             (ntraj, len(sc_ops), 2, len(tlist)-1)
         for heterodyne detection.
         """
-        return self._trajectories_attr("measurement_current")
+        return self._trajectories_attr("signal")
 
     @property
     def wiener_process(self) -> np.typing.NDArray[float]:
@@ -268,8 +275,8 @@ class StochasticResult(MultiTrajResult):
             new._measurement = np.concatenate(
                 (self.measurement, other.measurement), axis=0
             )
-            new._measurement_current = np.concatenate(
-                (self.measurement_current, other.measurement_current), axis=0
+            new._signal = np.concatenate(
+                (self.signal, other.signal), axis=0
             )
             new._wiener_process = np.concatenate(
                 (self.wiener_process, other.wiener_process), axis=0
