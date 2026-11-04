@@ -5,3 +5,4 @@ time-evolution/017_smesolve-jc-photocurrent.ipynb
 time-evolution/018_measures-trajectories-cats-kerr.ipynb
 time-evolution/022_v5_paper-smesolve.ipynb
 time-evolution/026_v5_paper-nm_mcsolve.ipynb
+time-evolution/010_brmesolve_phonon_interaction.ipynb
