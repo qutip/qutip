@@ -110,8 +110,8 @@ jobs:
         # Each os has two instruction set (x86, arm) that needs different build.
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.11--3.14 for all OS targets.
-      CIBW_BUILD: "cp3{11,12,13,14}-*"
+      # Set up wheels matrix.  This is CPython 3.11--3.15 for all OS targets.
+      CIBW_BUILD: "cp3{11,12,13,14,15}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
@@ -129,9 +129,8 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
-          # cibuildwheel does the heavy lifting for us. >=3 is needed for
-          # python 3.14.
-          python -m pip install 'cibuildwheel==3.3.*'
+          # cibuildwheel 4.3.1 includes the final Python 3.15.0 release.
+          python -m pip install 'cibuildwheel>=4.3.1,<4.4'
 
       - name: Build wheels
         shell: bash
@@ -187,7 +186,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 26 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 30 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 

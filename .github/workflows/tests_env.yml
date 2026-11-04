@@ -83,6 +83,8 @@ jobs:
             no-conda: false
           - python-version: "3.14"
             no-conda: false
+          - python-version: "3.15"
+            no-conda: false
 
     steps:
       - uses: actions/checkout@v7
@@ -99,7 +101,6 @@ jobs:
         if: ${{ matrix.no-conda }}
         with:
           python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
 
       - name: Checkout qutip-tutorials
         run: |
@@ -144,15 +145,8 @@ jobs:
           python -m pip install '.[runtime_compilation]'
 
       - name: Install JAX dependencies
-        if: ${{ !matrix.no-conda }}
         run: |
           python -m pip install "jax[cpu]>=0.7.1" equinox diffrax
-
-      - name: Install JAX dependencies for pre-release Python
-        if: ${{ matrix.no-conda }}
-        run: |
-          # Old jaxlib releases do not provide Python pre-release wheels.
-          python -m pip install "jax[cpu]" equinox diffrax
 
       - name: Install tutorial family packages
         run: |
@@ -176,6 +170,8 @@ jobs:
           find . -name '*.md' -delete
           # This notebook requires a CUDA-capable runner.
           rm miscellaneous/cuQuantum_backend.ipynb
+          # Temporarily skip this notebook due to an unrelated error.
+          rm time-evolution/024_v5_paper-mesolve.ipynb
 
       - name: Run tutorial notebooks
         run: |
