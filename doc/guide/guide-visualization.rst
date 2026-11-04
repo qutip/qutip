@@ -177,7 +177,7 @@ are calculated and plotted for the same three states as in the previous section.
 .. _visual-cmap:
 
 Custom Color Maps
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 The main objective when plotting a Wigner function is to demonstrate that the underlying
 state is nonclassical, as indicated by negative values in the Wigner function.  Therefore,

@@ -1,7 +1,7 @@
 .. _solver_internals:
 
 Quantum Solvers and Integrators Architecture
-############################################
+============================================
 
 The solver framework in QuTiP is responsible for simulating the time-evolution of quantum systems.
 Built directly on top of the core data layer,
@@ -13,7 +13,7 @@ how data flows through it, and how to extend it.
 
 
 Core Architecture and Separation of Concerns
-============================================
+--------------------------------------------
 
 The framework decouples physical models from their numerical integration backends, dividing
 tasks between two primary base classes:
@@ -37,7 +37,7 @@ where the boundary between physical assumptions and numerical routines is intent
 
 
 User-Facing Interfaces vs. Internal Infrastructure
-==================================================
+--------------------------------------------------
 
 To maintain an intuitive user experience, QuTiP hides internal architectural complexity
 behind high-level functional wrappers:

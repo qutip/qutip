@@ -1,6 +1,6 @@
-######################
+**********************
 Fermionic Environments
-######################
+**********************
 
 Here we model a single fermion coupled to two electronic leads or reservoirs
 (e.g.,  this can describe a single quantum dot, a molecular transistor, etc).
@@ -45,7 +45,7 @@ A notebook containing a complete example similar to this one implemented in BoFi
 
 
 Describing the system and bath
-------------------------------
+==============================
 
 First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
 system state, ``rho0``:
@@ -140,7 +140,7 @@ the currents between the system and the bath.
 
 
 System and bath dynamics
-------------------------
+========================
 
 Now we are ready to construct a solver:
 
@@ -213,7 +213,7 @@ returned by the solver.
 .. _heom-determining-currents:
 
 Determining currents
---------------------
+====================
 
 The currents between the system and a fermionic bath may be calculated from the
 first level auxiliary density operators (ADOs) associated with the exponents
@@ -298,7 +298,7 @@ In the next section, we will calculate the steady state currents directly.
 
 
 Steady state currents
----------------------
+=====================
 
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
@@ -354,7 +354,7 @@ steady state is reached!
 .. _heom-fermionic-pade-expansion-coefficients:
 
 Padé expansion coefficients
----------------------------
+===========================
 
 As in the bosonic case, we can also use manually calculated correlation function
 coefficients of fermionic environments with the HEOM solver. In the section on

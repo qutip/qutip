@@ -3,10 +3,10 @@
 *****************************************************
 Superoperators, Pauli Basis and Channel Contraction
 *****************************************************
-written by `Christopher Granade <http://www.cgranade.com>`, Institute for Quantum Computing
+written by `Christopher Granade <http://www.cgranade.com>`_, Institute for Quantum Computing
 
 
-In this guide, we will demonstrate the :func:`.tensor_contract` function, which contracts one or more pairs of indices of a Qobj. This functionality can be used to find rectangular superoperators that implement the partial trace channel :math:S(\rho) = \Tr_2(\rho)`, for instance. Using this functionality, we can quickly turn a system-environment representation of an open quantum process into a superoperator representation.
+In this guide, we will demonstrate the :func:`.tensor_contract` function, which contracts one or more pairs of indices of a Qobj. This functionality can be used to find rectangular superoperators that implement the partial trace channel :math:`S(\rho) = \Tr_2(\rho)`, for instance. Using this functionality, we can quickly turn a system-environment representation of an open quantum process into a superoperator representation.
 
 .. _super-representation-plotting:
 
@@ -59,7 +59,7 @@ As an example of tensor contraction, we now consider the map
 
     S(\rho)=\Tr_2 (\scriptstyle \rm CNOT (\rho \otimes \ket{0}\bra{0}) \scriptstyle \rm CNOT^\dagger)
 
-We can think of the :math:`\scriptstyle \rm CNOT` here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state :math:`\rho_{\text{anc}}`, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of `Wood diagrams <http://arxiv.org/abs/1111.6950>`, this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
+We can think of the :math:`\scriptstyle \rm CNOT` here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state :math:`\rho_{\text{anc}}`, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of `Wood diagrams <http://arxiv.org/abs/1111.6950>`_, this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
 
 .. figure:: figures/sprep-wood-diagram.png
    :align: center

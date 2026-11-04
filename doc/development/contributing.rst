@@ -99,7 +99,7 @@ Generally the low-level linear algebra routines that QuTiP uses are written in t
 
 
 Build options
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 You can pass build options through ``pip`` using ``--config-settings`` (``-C`` for short):
 
@@ -220,7 +220,7 @@ In this file, you should add a short description of the changes that the PR intr
 A pull request can add multiple towncrier entries.
 
 Internal change types
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 
 The following change types are for internal changes.
 Entries of these types are not included in the changelog,

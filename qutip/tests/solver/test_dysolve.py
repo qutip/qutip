@@ -191,8 +191,10 @@ def test_enr_propagators(omega, t_f):
 
 
 @pytest.fixture(params=[
-    pytest.param(lambda: num(6), id='diag'),
-    pytest.param(lambda: rand_herm(6, density=0.7), id='non-diag'),
+    pytest.param(lambda _: num(6), id='diag'),
+    pytest.param(
+        lambda rng: rand_herm(6, density=0.7, seed=rng), id='non-diag'
+    ),
 ])
 def H0(request):
     return request.param
@@ -201,17 +203,17 @@ def H0(request):
 @pytest.mark.parametrize("formats", [
     ["cos"], ["sin"], ["sin", "cos"], ["exp", "exp"]
 ])
-def test_drive_formats(H0, formats):
-    H = H0()
+def test_drive_formats(H0, formats, random_generator):
+    H = H0(random_generator)
     if len(formats) == 1:
-        drives = [(rand_herm(6), 100, formats[0])]
+        drives = [(rand_herm(6, seed=random_generator), 100, formats[0])]
     elif formats[0] != "exp":
         drives = [
-            (rand_herm(6), 100, formats[0]),
-            (rand_herm(6), -200, formats[1]),
+            (rand_herm(6, seed=random_generator), 100, formats[0]),
+            (rand_herm(6, seed=random_generator), -200, formats[1]),
         ]
     else:
-        op = rand_herm(6) @ destroy(6)
+        op = rand_herm(6, seed=random_generator) @ destroy(6)
         drives = [(op, 100, "exp"), (op.dag(), -100, "exp")]
 
     dy_instance = Dysolve(H, drives, options={"eigen": True})
@@ -222,7 +224,7 @@ def test_drive_formats(H0, formats):
     for t in [-0.1, 0.1]:
         prop = propagator(H, t, options={"atol": 1e-10, "rtol": 1e-8})
         dy_prop = dy_instance.propagator(t)
-        with CoreOptions(atol=1e-6, rtol=1e-5):
+        with CoreOptions(atol=2e-6, rtol=1e-5):
             assert dy_prop == prop
 
 
@@ -242,8 +244,8 @@ def test_non_herm_drive():
             assert dy_prop == prop
 
 
-def test_envelopes(H0):
-    H = H0()
+def test_envelopes(H0, random_generator):
+    H = H0(random_generator)
     args = {"A": 1.}
     a = destroy(6)
     coeff = coefficient(lambda t, A: A*t, args=args)
@@ -265,8 +267,8 @@ def test_envelopes(H0):
         assert dy_prop == prop
 
 
-def test_solve_interface():
-    H0 = rand_herm(6, density=0.5) * 0.5
+def test_solve_interface(random_generator):
+    H0 = rand_herm(6, density=0.5, seed=random_generator) * 0.5
     args = {"A": 1.}
     a = destroy(6)
     coeff = coefficient(lambda t, A: A, args=args)

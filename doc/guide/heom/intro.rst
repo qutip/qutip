@@ -1,6 +1,6 @@
-############
+************
 Introduction
-############
+************
 
 The Hierarchical Equations of Motion (HEOM) method was originally developed by
 Tanimura and Kubo :cite:`Tanimura_1989` in the context of physical chemistry to
@@ -9,7 +9,7 @@ encapsulated in the Hamiltonian:
 
 .. math::
 
-	H = H_s + \sum_k \omega_k a_k^{\dagger}a_k + \hat{Q} \sum_k g_k \left(a_k + a_k^{\dagger}\right).
+    H = H_s + \sum_k \omega_k a_k^{\dagger}a_k + \hat{Q} \sum_k g_k \left(a_k + a_k^{\dagger}\right).
 
 As in other solutions to this problem, the properties of the bath are
 encapsulated by its temperature and its spectral density,

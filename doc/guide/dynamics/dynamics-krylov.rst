@@ -18,9 +18,9 @@ Then, the :math:`N`-dimensional Krylov subspace associated with that state and
 Hamiltonian is given by
 
 .. math::
-	:label: krylovsubspace
+    :label: krylovsubspace
 
-	\mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
+    \mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
 
 where the dimension :math:`N<D` is a parameter of choice. To construct an
 orthonormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithm
@@ -28,9 +28,9 @@ is the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt proce
 Written in this basis the time-evolved state can be approximated as
 
 .. math::
-	:label: lanczoskrylov
+    :label: lanczoskrylov
 
-	|\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle,
+    |\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle,
 
 where  :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian
 reduced to the Krylov subspace (which takes a tridiagonal matrix form), and
@@ -55,7 +55,7 @@ but also in the computing speed-up it presents.
 For exceptional cases, the Lanczos algorithm might arrive at the exact evolution
 of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy
 breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`,
-then the algorithm will optimize using the value math:`M_{hb}<M`:, at which the
+then the algorithm will optimize using the value :math:`M_{hb}<M`:, at which the
 evolution is not only exact but also cheap.
 
 Krylov for Mixed States
@@ -69,9 +69,9 @@ In these cases, the subspace is spanned by repeated application of the
 Liouvillian onto the vectorized form of the density operator, thereby forming
 
 .. math::
-	:label: krylovsubspace_mixed
+    :label: krylovsubspace_mixed
 
-	\mathcal{K}_{N}=\operatorname{span}\left\{|\rho), H|\psi\rangle, \ldots, \mathcal{L}^{N-1}|\psi\rangle\right\}.
+    \mathcal{K}_{N}=\operatorname{span}\left\{|\rho), H|\psi\rangle, \ldots, \mathcal{L}^{N-1}|\psi\rangle\right\}.
 
 Same as for the pure states mentioned above, the Krylov basis vectors are
 calculated using the Lanczos algorithm (or alternative - see below).
