@@ -23,6 +23,7 @@ from libc.math cimport fabs
 
 __all__ = ['QobjEvo']
 
+
 cdef class QobjEvo:
     """
     A class for representing time-dependent quantum objects, such as quantum
@@ -826,6 +827,10 @@ cdef class QobjEvo:
 
         The :obj:`.QobjEvo` is transformed inplace.
 
+        The components will be sorted with the constant part first, then
+        coefficient elements, and finally function (``f(t) -> Qobj``) derived
+        elements.
+
         Returns
         -------
         None
@@ -856,19 +861,38 @@ cdef class QobjEvo:
         else:
             constant_part = None
 
-        if (
-            (constant_part and not _data.iszero(constant_part.data))
-            or not cleaned_elements
-        ):
-            cleaned_elements.append(_ConstantElement(
-                constant_part or qutip.qzero_like(self)
-            ))
+        constant_element = []
+        if (constant_part and not _data.iszero(constant_part.data)):
+            constant_element = [_ConstantElement(constant_part)]
+
+        cleaned_elements = [*constant_element, *coeff_elements, *func_elements]
+        if not cleaned_elements:
+            cleaned_elements = [_ConstantElement(qutip.qzero_like(self))]
 
         self.elements = cleaned_elements
 
-    def to_list(QobjEvo self):
+    def to_list(
+        QobjEvo self,
+        *,
+        sort=True, compress=False, always_include_cte=False
+    ):
         """
         Restore the QobjEvo to a list form.
+
+        Parameters
+        ----------
+        sort: bool, default: True
+            When ``True`` the output will be sorted: constant part first, then
+            ``[Qobj, Coefficient]`` pairs, then functions last.
+
+        compress: bool, default: False
+            Call :meth:`compress` before returning the list, reducing the
+            number of terms by merging similar ones. After ``compress``, the
+            list is always sorted.
+
+        always_include_cte:
+            Ensure an element of the returned list is a constant Qobj.
+            If there are none, add a zero Qobj.
 
         Returns
         -------
@@ -881,7 +905,34 @@ cdef class QobjEvo:
             original function and args (``dict``).
         """
         out = []
-        for element in self.elements:
+
+        if compress:
+            elements = QobjEvo(self, compress=True, copy=True).elements
+        elif sort:
+            elements = []
+            order = {
+                _ConstantElement: 0,
+                _EvoElement: 1,
+                _FuncElement: 2,
+            }
+            types_codes = [
+                order.get(type(element), 3) for element in self.elements
+            ]
+            idx = np.argsort(types_codes)
+            elements = [self.elements[i] for i in idx]
+        else:
+            elements = self.elements
+
+        if (
+            always_include_cte
+            and not any(
+                type(element) is _ConstantElement
+                for element in self.elements
+            )
+        ):
+            out.append(qutip.qzero_like(self))
+
+        for element in elements:
             if isinstance(element, _ConstantElement):
                 out.append(element.qobj(0))
             elif isinstance(element, _EvoElement):
