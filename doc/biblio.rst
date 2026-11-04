@@ -69,3 +69,6 @@ Bibliography
 
 .. |theory-qi| replace:: *Theory of Quantum Information*
 .. _theory-qi: https://cs.uwaterloo.ca/~watrous/TQI-notes/
+
+.. [Nathan20]
+   \F. Nathan, M. S. Rudner, *Universal Lindblad equation for open quantum systems*, Phys. Rev. B **102**, 115109 (2020), :doi:`10.1103/PhysRevB.102.115109`
