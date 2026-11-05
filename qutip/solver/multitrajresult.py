@@ -11,7 +11,7 @@ import scipy.stats
 import warnings
 
 from ..core.numpy_backend import np
-from .result import _BaseResult
+from .result import _BaseResult, _prepare_axes, _decorate_panels
 from ..core import qzero_like
 
 if TYPE_CHECKING:
@@ -709,7 +709,7 @@ class MultiTrajResult(_BaseResult):
         times = self.times
         avg = np.array(self.average_e_data[key])
         std = np.array(self.std_e_data[key])
-        traj = self.runs_e_data[key]
+        traj = self.runs_e_data.get(key, None)
 
         if show_average:
             avg_label = f"{label} (avg)" if n_traj_shown else label
@@ -770,7 +770,7 @@ class MultiTrajResult(_BaseResult):
         show_legend: bool = True,
         show_average: bool = True,
         show_trajectories: int = 0,
-        show_error_bar: bool = True,
+        show_error_bar: bool = False,
         show_std_band: bool = False,
         show_percentile: Sequence[float] | None = None,
         percentile_source: Literal["std", "traj"] = "std",
@@ -821,7 +821,7 @@ class MultiTrajResult(_BaseResult):
             Number of individual trajectories to overlay. Requires
             ``options={"keep_runs_results": True}``.
 
-        show_error_bar : bool, default: True
+        show_error_bar : bool, default: False
             Error bar (standard error) of the average. Needs at least 2
             trajectories.
 
@@ -1399,10 +1399,13 @@ class McResult(_McBaseResult):
         xlabel: str = "Time",
         ylabel: str = "Photocurrent",
         show_trajectories: int = 0,
+        shift_size: float = 0.02,
+        show_violin: bool = False,
         show_error_bar: bool = False,
         show_legend: bool = True,
         separate_axes: bool = False,
         trajectory_kwargs: dict[str, Any] | None = None,
+        violin_kwargs: dict[str, Any] | None = None,
         **plot_kwargs: Any,
     ) -> tuple[Figure, Axes | Sequence[Axes]]:
         """
@@ -1446,6 +1449,13 @@ class McResult(_McBaseResult):
         show_trajectories : int, default: 0
             Number of individual trajectories to overlay.
 
+        shift_size : float: default=0.02
+            Size of the shift to add to the trajectories markers location.
+            Avoid marker stacking on each others.
+
+        show_violin : bool: default: False
+            Show the distribution of photocurrent as violin plot.
+
         show_error_bar : bool, default: False
             Show the standard error of the average photocurrent, estimated
             from the spread over trajectories. Needs at least 2
@@ -1460,7 +1470,12 @@ class McResult(_McBaseResult):
 
         trajectory_kwargs : dict, optional
             Style of the trajectories, passed to ``Axes.plot``. Default:
-            ``{"alpha": 0.3, "linewidth": 0.5}`` in the color of the curve.
+            ``{"alpha": 0.3, "linewidth": 0.5, "linestyle":"none", "marker":"+",}``
+            in the color of the curve.
+
+        violin_kwargs: dict: optional
+            Style of the violin, passed to ``Axes.violinplot``. Default:
+            ``{"showextrema": False}`` in the color of the curve.
 
         **plot_kwargs
             Additional keyword arguments forwarded to
@@ -1514,19 +1529,35 @@ class McResult(_McBaseResult):
             )
             show_error_bar = False
 
+        n_traj_shown = min(show_trajectories, self.num_trajectories)
+        times = (np.array(self.times)[:-1] + np.array(self.times[1:])) / 2
 
-        n_traj_shown = min(show_trajectories, len(self.trajectories))
-        times = self.times[:-1]
-
-        if n_traj_shown or show_error_bar:
+        if n_traj_shown or show_error_bar or show_violin:
             runs = np.asarray(self.runs_photocurrent)
+            dts = np.diff(self.times)
             if show_error_bar:
                 # Check weight scaling with no jump run
                 weights = len(runs) * np.asarray(self.runs_weights)
                 error = scipy.stats.sem(runs * weights[:, None, None], axis=0)
+            if n_traj_shown == 1 or shift_size == 0:
+                shifts_x = [0] * n_traj_shown
+                shifts_y = [0] * n_traj_shown
+            elif n_traj_shown:
+                # Individual photocurrent comes integers multiple of 1/dt.
+                # Add a shift to show individual trajectories counts
+                shifts_x = np.linspace(-shift_size, shift_size, n_traj_shown)
+                shifts_y = (
+                    np.linspace(0, 100 * shift_size, n_traj_shown)
+                    % (2 * shift_size) - shift_size
+                )
 
-        traj_kw = {"alpha": 0.3, "linewidth": 0.5, **(trajectory_kwargs or {})}
+        traj_kw = {
+            "alpha": 0.3, "linewidth": 0.5,
+            "linestyle":"none", "marker":"+",
+            **(trajectory_kwargs or {})
+        }
         err_kw = {**plot_kwargs, "linewidth": 0.5, "linestyle": "none"}
+        violin_kw = {"showextrema": False, **(violin_kwargs or {})}
 
         fig, axes, panels, owned = _prepare_axes(
             fig, axes, len(photocurrent), separate_axes
@@ -1539,16 +1570,23 @@ class McResult(_McBaseResult):
             )
             for j in range(n_traj_shown):
                 ax.plot(
-                    times, runs[j, i],
+                    times + shifts_x[j] * dts,
+                    runs[j, i] + shifts_y[j] / dts,
                     **{"color": color, **traj_kw},
                     label=f"{label} (traj)" if j == 0 else None,
                 )
             if show_error_bar:
-                err = 0 # jackknife? bootstrap?
                 ax.errorbar(
                     times, self.photocurrent[i], error[i],
-                    **{"color":color, **err_kw}
+                    **{"color": color, **err_kw}
                 )
+            if show_violin:
+                parts = ax.violinplot(
+                    runs[:, i, :], times, **{"widths": dts * 0.8, **violin_kw}
+                )
+                for pc in parts["bodies"]:
+                    # settings colors in violinplot only available from 3.11
+                    pc.set_facecolor(color)
 
         if title is None:
             title = self.solver
@@ -1876,78 +1914,3 @@ def _to_dm(state):
     if state.type == "ket":
         state = state.proj()
     return state
-
-
-def _import_pyplot():
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError as err:
-        raise ImportError(
-            "matplotlib is required for plotting. "
-            "Install it with:  pip install matplotlib"
-        ) from err
-    return plt
-
-
-def _prepare_axes(fig, axes, n_plots, separate_axes):
-    """
-    Create or validate the matplotlib figure / axes.
-
-    Returns
-    -------
-    fig, axes, panels, owned
-        ``panels`` is a list of length ``n_plots`` giving, for each curve, the
-        Axes it is drawn on (all the same Axes when ``separate_axes=False``).
-        ``owned`` is True when the axes were created here, in which case only
-        the first/last panel get a title / x-label.
-    """
-    plt = _import_pyplot()
-    owned = axes is None
-
-    if not separate_axes:
-        if fig is None and axes is None:
-            fig, axes = plt.subplots()
-        elif axes is None:
-            axes = fig.add_subplot(111)
-        elif fig is None:
-            fig = axes.get_figure()
-        return fig, axes, [axes] * n_plots, owned
-
-    if fig is None and axes is None:
-        fig, axes = plt.subplots(
-            n_plots, 1, sharex=True, figsize=(6, 3 * n_plots), squeeze=False,
-        )
-        panels = list(axes.ravel())
-    elif axes is None:
-        panels = [fig.add_subplot(n_plots, 1, i + 1) for i in range(n_plots)]
-        axes = panels
-    else:
-        panels = list(np.asarray(axes, dtype=object).ravel())
-        if len(panels) < n_plots:
-            raise ValueError(
-                f"separate_axes=True needs {n_plots} axes, "
-                f"got {len(panels)}."
-            )
-        if fig is None:
-            fig = panels[0].get_figure()
-    return fig, axes, panels[:n_plots], owned
-
-
-def _decorate_panels(
-    panels, owned, separate, *, title, xlabel, ylabel, show_legend
-):
-    """Set title / axis labels. Shared by all multi-trajectory plots."""
-    unique = list(dict.fromkeys(panels))
-    for ax in unique:
-        ax.set_ylabel(ylabel)
-        if show_legend:
-            ax.legend()
-    if separate and owned:
-        # Shared x-axis: title on top panel, x-label on bottom panel only.
-        unique[0].set_title(title)
-        unique[-1].set_xlabel(xlabel)
-    else:
-        for ax in unique:
-            ax.set_title(title)
-            ax.set_xlabel(xlabel)
-    return unique
