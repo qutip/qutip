@@ -683,7 +683,7 @@ class TestMcResultPlotExpect:
         )
         assert len(axes.get_lines()) == 1
         assert any(
-            isinstance(coll, matplotlib.collections.FillBetweenPolyCollection)
+            isinstance(coll, matplotlib.collections.PolyCollection)
             for coll in axes.collections
         )
         assert not any(
@@ -707,7 +707,7 @@ class TestMcResultPlotExpect:
             for cont in axes.containers
         )
         assert not any(
-            isinstance(coll, matplotlib.collections.FillBetweenPolyCollection)
+            isinstance(coll, matplotlib.collections.PolyCollection)
             for coll in axes.collections
         )  # No std band per default
 
@@ -899,5 +899,5 @@ class TestMcResultPlotPhotocurrent:
         assert len([
             1
             for coll in axes.collections
-            if isinstance(coll, collections.FillBetweenPolyCollection)
+            if isinstance(coll, collections.PolyCollection)
         ])
