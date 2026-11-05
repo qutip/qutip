@@ -398,6 +398,25 @@ bound methods.
     H = QobjEvo([H0, [H1, coeff]], args=args)
 
 
+.. _time-coefficients-parallel:
+
+.. note::
+
+    When using function coefficients with solvers that execute in parallel (such as
+    :func:`.mcsolve` or stochastic solvers with ``options={"map": "parallel"}``),
+    worker processes use Python's ``multiprocessing`` module and ``pickle`` for serialization.
+    Anonymous functions (``lambda``) and functions defined in local scopes cannot be pickled
+    by Python's standard library and will raise a ``PicklingError``.
+
+    To avoid this issue:
+
+    * Define coefficient functions as named functions at the top level of your module
+      or script using ``def``.
+    * Use string-based coefficients instead (see below).
+    * Alternatively, use ``options={"map": "loky"}``, which relies on ``cloudpickle`` and
+      supports serializing ``lambda`` functions (requires the ``loky`` package).
+
+
 **String coefficients** :
 Use a string containing a simple Python expression.
 The variable ``t``, common mathematical functions such as ``sin`` or ``exp`` an
