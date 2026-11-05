@@ -12,6 +12,7 @@ a roadmap for upcoming releases and ideas for future improvements.
 
    contributing.rst
    contribution_guidelines.rst
+   working_on_an_issue.rst
    roadmap.rst
    ideas.rst
    docs.rst

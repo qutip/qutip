@@ -1,7 +1,7 @@
 .. _integrator_internal:
 
 Integrator Architecture and Design
-##################################
+==================================
 
 The numerical solution of differential equations is a cornerstone of QuTiP's
 time-evolution solvers. Because different quantum systems present varying behaviours,
@@ -14,7 +14,7 @@ interchangeable class.
 
 
 Motivation
-==========
+----------
 
 While Python packages like SciPy offer a robust collection of integration routines,
 they present several architectural limitations when applied directly to quantum dynamics:
@@ -35,20 +35,20 @@ a GPU-accelerated backend requires only changing a configuration string.
 
 
 Core Design
-===========
+-----------
 
 The abstract base class :class:`Integrator` serves as the common template for all
 numerical integration backends.
 
 Deterministic Time-Evolution
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For standard solvers, the integrator acts sequentially. Given an initial time $t_0$
 and an initial state vector or density matrix, it propagates the state forward to
 requested target times. This behaviour is governed by four core methods:
 
 * :meth:`set_state(t, state)`: Configures the initial conditions of the
   integrator, seeding it with the starting time and the state array.
-* :meth:`get_state()`: Returns the current internal numerical state of the integration
+* :meth:`get_state`: Returns the current internal numerical state of the integration
   loop as a tuple of ``(t, state)``.
 * :meth:`integrate(t)`: Steps the numerical solver explicitly to the target time ``t``
   using the internal state configuration.
@@ -69,7 +69,7 @@ requested target times. This behaviour is governed by four core methods:
    to a dense format during setup, and will subsequently return only dense states.
 
 Monte Carlo Trajectories
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 To support Quantum Monte Carlo simulations (:func:`mcsolve`), integrators must provide
 hook interfaces capable of handling non-continuous, conditional integration steps:
 
@@ -86,7 +86,7 @@ ODE providers.
 
 
 Configuration and State Resetting
-=================================
+---------------------------------
 
 Numerical routines depend on parameters (such as tolerance limits
 ``atol``/``rtol``, step limits ``nsteps``, etc.) that must be tuned to achieve
@@ -97,13 +97,13 @@ the configuration state.
 
 Because used libraries maintain internal state for their ODE solvers,
 modifying values within the ``options`` dictionary does not always take effect immediately.
-Activating the newly assigned options requires an explicit call to :meth:`reset()`.
+Activating the newly assigned options requires an explicit call to :meth:`reset`.
 This tears down the active backend instance and restarts it with the new options
 while preserving the active state and time.
 
 
 Derivative Format
-=================
+-----------------
 
 While ordinary ODE interfaces strictly expect functions to represent the right-hand side (RHS),
 quantum solvers in QuTiP can profit from alternative formats.
@@ -124,7 +124,7 @@ the type of RHS object required during initialization:
 
 
 Class Attributes Reference
-==========================
+--------------------------
 
 Every subclass inheriting from :class:`Integrator` must define the following class-level attributes:
 
@@ -147,7 +147,7 @@ Every subclass inheriting from :class:`Integrator` must define the following cla
 
 
 Creating New Integrators
-========================
+------------------------
 
 To implement a custom numerical backend, create a subclass derived from :class:`Integrator`.
 At a minimum, your class must override :meth:`integrate`, :meth:`set_state`, :meth:`get_state`,
@@ -207,7 +207,7 @@ Registering the class with the parent :class:`Solver` base class makes it global
 
 
 The RHS class
--------------
+^^^^^^^^^^^^^
 To optimize performance, certain Cython-backed integrators reuse memory when
 computing derivatives by supporting an in-place functional signature:
 

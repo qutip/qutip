@@ -423,6 +423,7 @@ class TestCorrelationSpeedup:
         serial = self._corr_3op(map='serial')
         np.testing.assert_allclose(serial, default, atol=1e-12)
 
+    @pytest.mark.requires_multiprocessing
     def test_parallel_matches_serial(self):
         """Parallel map must give the same result as serial_map."""
         serial = self._corr_3op()
@@ -431,6 +432,7 @@ class TestCorrelationSpeedup:
         )
         np.testing.assert_allclose(parallel, serial, atol=1e-10)
 
+    @pytest.mark.requires_multiprocessing
     def test_parallel_with_max_t_plus_tau(self):
         """Both optimisations combined must be correct."""
         max_tp = 4.0
@@ -444,7 +446,10 @@ class TestCorrelationSpeedup:
     # --- passthrough tests ---
 
     @pytest.mark.parametrize("max_tp", [None, 4.0])
-    @pytest.mark.parametrize("map_str", ['serial', 'parallel'])
+    @pytest.mark.parametrize("map_str", [
+        'serial',
+        pytest.param('parallel', marks=pytest.mark.requires_multiprocessing),
+    ])
     def test_2op_passthrough(self, max_tp, map_str):
         """New kwargs must work through correlation_2op_2t."""
         kwargs = {'map': map_str, 'map_kw': {'num_cpus': 2}}
@@ -459,6 +464,7 @@ class TestCorrelationSpeedup:
         else:
             np.testing.assert_allclose(result, full, atol=1e-10)
 
+    @pytest.mark.requires_multiprocessing
     def test_direct_solver_call(self):
         """correlation_3op with a solver instance and new kwargs."""
         from qutip.solver.mesolve import MESolver

@@ -941,7 +941,7 @@ class MCSolver(MultiTrajSolver):
         cls,
         default: Qobj | _data.Data = None,
         raw_data: bool = False,
-        prop: bool = False
+        open: bool = False
     ):
         """
         State of the evolution to be used in a time-dependent operator.

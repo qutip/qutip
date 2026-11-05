@@ -891,7 +891,7 @@ class StochasticSolver(MultiTrajSolver):
 
         Parameters
         ----------
-        state : :obj:`.Qobj`
+        state0 : :obj:`.Qobj`
             Initial state of the evolution.
 
         t0 : double

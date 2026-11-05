@@ -50,7 +50,7 @@ Liouvillian super operator in Lindblad form, or alternatively, a Liouvillian
 passed by the user.
 
 Both the ``"direct"`` and ``"power"`` method need to solve a linear equation
-system. To do so, there are multiple solvers available: ``
+system. To do so, there are multiple solvers available:
 
 .. cssclass:: table-striped
 

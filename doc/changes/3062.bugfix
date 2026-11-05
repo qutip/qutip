@@ -1,0 +1,1 @@
+Fixed ``MCSolver.StateFeedback`` to accept the documented ``open`` keyword; the signature previously named it ``prop``, which was silently ignored.

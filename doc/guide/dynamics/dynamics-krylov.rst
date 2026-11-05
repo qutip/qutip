@@ -17,9 +17,9 @@ time-independent Hamiltonian :math:`H`. Then, the :math:`N`-dimensional Krylov
 subspace associated with that initial state and Hamiltonian is given by
 
 .. math::
-	:label: krylovsubspace
+    :label: krylovsubspace
 
-	\mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
+    \mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
 
 where the dimension :math:`N<D` is a parameter of choice. To construct an
 orthonormal basis for :math:`\mathcal{K}_{N}`, the simplest algorithm is the
@@ -28,9 +28,9 @@ and casts the Hamiltonian in a tridiagonal form. Written in this basis the
 time-evolved state can be calculated as
 
 .. math::
-	:label: lanczoskrylov
+    :label: lanczoskrylov
 
-	|\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle,
+    |\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle,
 
 where :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian
 reduced to the Krylov subspace, and :math:`\mathbb{V}_{N}^{\dagger}` is the

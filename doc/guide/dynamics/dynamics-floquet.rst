@@ -25,7 +25,7 @@ The Schrödinger equation with a time-dependent Hamiltonian :math:`H(t)` is
 .. math::
    :label: eq_td_schrodinger
 
-	H(t)\Psi(t) = i\hbar\frac{\partial}{\partial t}\Psi(t),
+   H(t)\Psi(t) = i\hbar\frac{\partial}{\partial t}\Psi(t),
 
 where :math:`\Psi(t)` is the wave function solution. Here we are interested in problems with periodic time-dependence, i.e., the Hamiltonian satisfies :math:`H(t) = H(t+T)` where :math:`T` is the period. According to the Floquet theorem, there exist solutions to :eq:`eq_td_schrodinger` of the form
 

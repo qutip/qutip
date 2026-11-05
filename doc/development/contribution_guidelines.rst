@@ -1,5 +1,14 @@
 .. _development-tests:
 
+*********************
+Writing Documentation
+*********************
+
+QuTiP uses the suggested convention for reStructuredText headers:
+``#``, ``*`` with overline, followed by ``=``, ``-``, ``^``, ``"`` without overline.
+It is possible to start from ``#``, ``*``, ``=`` in any files, but once the top header is chosen, please follow the convention from there.
+
+
 *************
 Writing tests
 *************

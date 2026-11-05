@@ -6,6 +6,8 @@ All code contributions are acknowledged in the [contributors](https://qutip.read
 
 For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.readthedocs.io/en/stable/development/contributing.html).
 
+Want to work on an issue? See our guide on [how to get started](doc/development/working_on_an_issue.rst).
+
 
 ## AI Tools Usage Policy
 We acknowledge the use of AI tools to improve efficiency and enhance quality of work. Contributors may use such tools, provided they adhere to the following guidelines:

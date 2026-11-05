@@ -2,11 +2,13 @@ import operator
 
 import pytest
 from qutip import (
-    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, destroy, rand_stochastic,
-    rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
-    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, CoreOptions
+    Qobj, QobjEvo, coefficient, Coefficient, qeye, sigmax, sigmaz, num,
+    destroy, rand_stochastic, rand_herm, rand_ket, liouvillian, basis, spre,
+    spost, to_choi, expect, rand_ket, rand_dm, operator_to_vector, SESolver,
+    MESolver, MCSolver, CoreOptions
 )
 import qutip.core.data as _data
+from qutip.solver._feedback import _DataFeedback, _QobjFeedback
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -629,6 +631,50 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
     _assert_qobjevo_equivalent(qevo, restored)
 
 
+def test_QobjEvo_to_list_ordered():
+    func = lambda t: sigmax()
+    coeff = lambda t: t
+    qevo = QobjEvo(
+        [func, [sigmaz(), coeff], num(2), [sigmax(), coeff], func],
+        compress=False
+    )
+    as_list = qevo.to_list(sort=False, always_include_cte=True)
+    assert len(as_list) == 5
+    assert as_list[0][0] is func
+    assert isinstance(as_list[2], Qobj)
+
+    as_list_compressed = qevo.to_list(compress=True)
+    assert len(as_list_compressed) == 4
+    assert isinstance(as_list_compressed[0], Qobj)
+    assert isinstance(as_list_compressed[1][1], Coefficient)
+    assert as_list_compressed[2][0] is func
+    assert as_list_compressed[3][0] is func
+
+    as_list_sorted = qevo.to_list()  # Default is to sort
+    assert isinstance(as_list_sorted[0], Qobj)
+    assert isinstance(as_list_sorted[1][1], Coefficient)
+    assert isinstance(as_list_sorted[2][1], Coefficient)
+    assert as_list_sorted[3][0] is func
+    assert as_list_sorted[4][0] is func
+
+    # Last to_list call did not modify the object
+    as_list = qevo.to_list(sort=False)
+    assert len(as_list) == 5
+    assert as_list[0][0] is func
+
+
+def test_QobjEvo_to_list_add_qzero():
+    coeff = lambda t: t
+    qevo = QobjEvo([sigmax(), coeff])
+
+    as_list = qevo.to_list(always_include_cte=True)
+    assert len(as_list) == 2
+    assert as_list[0] == sigmax() * 0
+
+    as_list = qevo.to_list(always_include_cte=False)
+    assert len(as_list) == 1
+
+
 class Feedback_Checker_Coefficient:
     def __init__(self, stacked=True):
         self.state = None
@@ -705,6 +751,49 @@ def test_feedback_super(random_generator):
     checker.state = rand_dm(4, seed=random_generator)
     checker.state.dims = [[[2],[2]], [[2],[2]]]
     qevo.matmul_data(0, checker.state.data)
+
+
+@pytest.mark.parametrize("raw_data", [False, True])
+@pytest.mark.parametrize("open", [False, True])
+def test_mc_statefeedback_open_kwarg(raw_data, open):
+    fb = MCSolver.StateFeedback(raw_data=raw_data, open=open)
+    assert fb.open is open
+    expected_type = _DataFeedback if raw_data else _QobjFeedback
+    assert isinstance(fb, expected_type)
+
+
+def test_mc_statefeedback_default_not_open():
+    fb = MCSolver.StateFeedback()
+    assert fb.open is False
+
+
+def test_mc_statefeedback_ket(random_generator):
+    checker = Feedback_Checker_Coefficient(stacked=False)
+    qevo = QobjEvo(
+        [qeye(2), checker],
+        args={
+            "data": MCSolver.StateFeedback(raw_data=True),
+            "qobj": MCSolver.StateFeedback(),
+        },
+    )
+    checker.state = rand_ket(2, seed=random_generator)
+    qevo.matmul_data(0, checker.state.data)
+    checker.state = rand_ket(2, seed=random_generator)
+    qevo.matmul_data(0, checker.state.data)
+
+
+def test_mc_statefeedback_open(random_generator):
+    checker = Feedback_Checker_Coefficient()
+    qevo = QobjEvo(
+        [spre(qeye(2)), checker],
+        args={
+            "data": MCSolver.StateFeedback(raw_data=True, open=True),
+            "qobj": MCSolver.StateFeedback(open=True),
+        },
+    )
+    checker.state = rand_dm(2, seed=random_generator)
+    qevo.expect(0, operator_to_vector(checker.state))
+    qevo.matmul_data(0, operator_to_vector(checker.state).data)
 
 
 @pytest.mark.parametrize('dtype', ["CSR", "Dense"])

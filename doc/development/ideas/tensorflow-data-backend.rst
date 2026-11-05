@@ -18,7 +18,7 @@ and we would like to add a backend that implements the necessary operations
 using TensorFlow [1]_.
 
 Why a TensorFlow backend?
--------------------------
+=========================
 
 TensorFlow supports distributing matrix operations across multiple GPUs and
 multiple machines, and abstracts away some of the complexities of doing so
@@ -30,7 +30,7 @@ There is particular interest in trying the new backend with the
 BoFiN HEOM (Hierarchical Equations of Motion) solver [2]_.
 
 Challenges
-----------
+==========
 
 TensorFlow is a very different kind of computational framework to the existing
 dense and sparse matrix backends. It uses flow graphs to describe operations,
@@ -42,7 +42,7 @@ differences, and it is possible that this will prove challenging or even
 that we will not find a reasonable way to achieve the desired performance.
 
 Expected outcomes
-=================
+-----------------
 
 * Add a ``qutip.core.data.tensorflow`` data type.
 * Implement specialisations for some important operations (e.g. ``add``,
@@ -54,26 +54,26 @@ Expected outcomes
   backend and benchmark that (stretch goal).
 
 Skills
-======
+------
 
 * Git, Python and familiarity with the Python scientific computing stack
 * Familiarity with TensorFlow (beneficial, but not required)
 * Familiarity with Cython (beneficial, but not required)
 
 Difficulty
-==========
+----------
 
 * Medium
 
 Mentors
-=======
+-------
 
 * Simon Cross (hodgestar@gmail.com)
 * Jake Lishman (jake@binhbar.com)
 * Alex Pitchford (alex.pitchford@gmail.com)
 
 References
-==========
+----------
 
 .. [1] https://www.tensorflow.org/
 .. [2] https://github.com/tehruhn/bofin
