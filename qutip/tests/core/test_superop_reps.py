@@ -376,6 +376,33 @@ class TestSuperopReps:
         assert A.dims == [[2, dimension, 1], [2, dimension]]
         assert B.dims == [[2, dimension, 1], [2, dimension]]
 
+    @pytest.mark.parametrize('kraus', [
+        pytest.param(
+            [Qobj(np.array([[1, 0], [0, 1], [0, 0]]), dims=[[3], [2]])],
+            id="qubit_to_qutrit_isometry",
+        ),
+        pytest.param(
+            [tensor(basis(2, i).dag(), qeye(2)) for i in range(2)],
+            id="partial_trace",
+        ),
+    ])
+    def test_stinespring_non_square(self, kraus):
+        """
+        Stinespring: channels whose input and output dimensions differ.
+        """
+        chan = sum(sprepost(k, k.dag()) for k in kraus)
+        out_dims, in_dims = chan.dims[0][0], chan.dims[1][0]
+        A, B = to_stinespring(chan)
+
+        assert A.dims == [out_dims + [len(kraus)], in_dims]
+        assert B.dims == [out_dims + [len(kraus)], in_dims]
+        assert (A - B).norm() < tol
+
+        state = rand_dm(in_dims, seed=1)
+        expected = vector_to_operator(chan * operator_to_vector(state))
+        result = (A * state * B.dag()).ptrace(list(range(len(out_dims))))
+        assert (result - expected).norm('tr') <= tol
+
     @pytest.mark.parametrize('dimension', [2, 4, 8])
     def test_chi_choi_roundtrip(self, dimension, random_generator):
 
