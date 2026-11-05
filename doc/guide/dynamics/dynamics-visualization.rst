@@ -116,9 +116,9 @@ Give each a label and a color to tell them apart:
 Monte Carlo Trajectories
 =========================
 
-Results from :func:`~qutip.solver.mcsolve.mcsolve`
-(:class:`~qutip.solver.multitrajresult.McResult`) average over many
-trajectories.
+Results from :func:`~qutip.solver.mcsolve.mcsolve` and other trajectory solvers
+(:class:`~qutip.solver.multitrajresult.MultiTrajResult`) average over many
+trajectories with :meth:`~qutip.solver.MultiTrajResult.plot_expect`:
 
 .. plot::
     :context: close-figs
@@ -179,7 +179,8 @@ distribution ``percentile_source="std"`` (default) or actual data
 Photocurrent
 ============
 
-Monte Carlo results also support plotting the photocurrent:
+Monte Carlo results also support plotting the
+:meth:`photocurrent <.McResult.plot_photocurrent>`:
 
 .. plot::
     :context: close-figs
