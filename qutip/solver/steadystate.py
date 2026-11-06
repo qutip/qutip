@@ -11,6 +11,11 @@ from warnings import warn
 __all__ = ["steadystate", "steadystate_fourier", "steadystate_floquet", "pseudo_inverse"]
 
 
+# Estimated memory for a dense N×N complex128 matrix.
+# Above this limit, use the sparse eigensolver to avoid excessive memory use.
+_EIGEN_DENSE_MEMORY_LIMIT = 512 * 1024**2
+
+
 def _permute_wbm(L, b):
     perm = np.argsort(
         scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
@@ -277,13 +282,10 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
 
 def choose_dense_or_sparse(L):
     """Choose the eigensolver based on representation and dense memory cost."""
-    eigen_dense_memory_limit = 512 * 1024**2
     if not isinstance(L.data, _data.CSR):
         return False
-    dimension = L.shape[0]
-    itemsize = L.data.as_scipy().dtype.itemsize
-    dense_memory = dimension * dimension * itemsize
-    return dense_memory > eigen_dense_memory_limit
+    dense_memory = L.shape[0] ** 2 * 16
+    return dense_memory > _EIGEN_DENSE_MEMORY_LIMIT
 
 
 def _steadystate_eigen(L, **kw):
@@ -298,9 +300,7 @@ def _steadystate_eigen(L, **kw):
     )
     rho = vector_to_operator(vec[0])
     rho = rho / rho.tr()
-    residual = (L * operator_to_vector(rho)).norm("max")
-    tol = 100 * settings.core["atol"] * max(1, L.norm("max"))
-    if residual > tol:
+    if val[0] > settings.core["atol"] * max(1, L.norm("max")):
         raise RuntimeError("Eigenvalue solver did not find a valid steady state.")
     return rho
 
