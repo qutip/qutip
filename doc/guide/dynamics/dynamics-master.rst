@@ -49,6 +49,10 @@ or the function :func:`.sesolve`. It evolves the state vector and evaluates the
 expectation values for a set of operators ``e_ops`` at the points in time in
 the list ``times``, using an ordinary differential equation solver.
 
+.. note::
+
+    All of QuTiP's quantum solvers work in units where :math:`\hbar = 1`.
+
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 0.1 that initially is in the up state is calculated, and the expectation values
 of the :math:`\sigma_z` operator evaluated, with the following code
