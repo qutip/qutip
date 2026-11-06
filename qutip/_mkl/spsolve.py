@@ -221,9 +221,6 @@ def mkl_splu(
     if not (sp.issparse(A) and A.format == "csr"):
         raise TypeError("Input matrix must be in sparse CSR format.")
 
-    if A.shape[0] != A.shape[1]:
-        raise ValueError(f"Input matrix must be square; got shape {A.shape}.")
-
     if not np.issubdtype(A.dtype, np.inexact):
         # Non-floating-point / complex values get converted to float64
         A = sp.csr_array(A, dtype=np.float64, copy=None)
