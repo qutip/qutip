@@ -42,7 +42,7 @@ jobs:
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
-        conda-extra-pkgs: '"pydiso>=0.3.1"'
+        conda-extra-pkgs: ['"pydiso>=0.3.1"']
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
