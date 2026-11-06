@@ -7,6 +7,7 @@ __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'mpi_pmap']
 
 import multiprocessing
 import os
+import sys
 import time
 import threading
 import concurrent.futures
