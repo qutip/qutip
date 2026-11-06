@@ -139,7 +139,7 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          # Test recent and old Conda environments, plus native ARM with pip
+          # Test 1 recent and one old
           - case-name: Windows - latest - minimal install
             os: windows-latest
             python-version: "3.15"
