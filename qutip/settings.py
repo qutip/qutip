@@ -8,7 +8,6 @@ from ctypes import cdll, CDLL
 import platform
 from glob import glob
 from pathlib import Path
-import warnings
 import numpy as np
 import scipy
 
@@ -161,21 +160,18 @@ class Settings:
 
     @property
     def mkl_lib_location(self) -> str | None:
-        warnings.warn("The 'mkl_lib_location' property is deprecated.",
-            category=DeprecationWarning,
-            stacklevel=2
+        raise AttributeError(
+            "qutip.settings.mkl_lib_location is no longer supported. "
+            "QuTiP uses pydiso for MKL PARDISO; MKL library selection is "
+            "controlled by the pydiso installation."
         )
-        return ""
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        warnings.warn(
-            "Cannot set 'mkl_lib_location': MKL library selection at runtime "
-            "is no longer supported with pydiso. To use a custom MKL "
-            "installation, build pydiso from source with the appropriate "
-            "MKL configuration.",
-            category=DeprecationWarning,
-            stacklevel=2
+        raise AttributeError(
+            "Cannot set qutip.settings.mkl_lib_location: runtime MKL library "
+            "selection is no longer supported. Configure the MKL library "
+            "through your pydiso installation instead."
         )
 
     @property
