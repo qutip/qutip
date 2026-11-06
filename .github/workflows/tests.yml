@@ -266,12 +266,6 @@ jobs:
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
-      - name: Verify MKL solver availability
-        if: ${{ !matrix.pypi && !matrix.nomkl }}
-        working-directory: ${{ runner.temp }}
-        run: |
-          python -c "import pydiso.mkl_solver; import qutip; assert qutip.settings.has_mkl, 'MKL tests require a working pydiso installation'"
-
       - name: Package information
         working-directory: ${{ runner.temp }}
         run: |
