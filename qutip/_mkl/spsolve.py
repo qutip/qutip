@@ -97,8 +97,8 @@ class MKLFactorization:
 
         Parameters
         ----------
-        b : array_like
-            Dense right-hand side with shape ``(n,)`` or ``(n, k)``.
+        b : array_like, scipy.sparse.csr_matrix or scipy.sparse.csr_array
+            Dense right-hand side with shape ``(n,)`` or ``(n, k)``
         verbose : bool
 
         Returns
@@ -116,9 +116,8 @@ class MKLFactorization:
             If the shape of ``b`` is incompatible with the factorized matrix.
         """
         if sp.issparse(b):
-            raise TypeError(
-                "Right-hand side must be dense. Use mkl_spsolve() for sparse right-hand sides."
-            )
+            b = b.toarray(order="F")
+
         b = np.asarray(b)
 
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
@@ -263,9 +262,8 @@ def mkl_spsolve(
     ----------
     A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Sparse input matrix.
-    b : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
-        Vector or matrix representing the right-hand side. A vector must have
-        shape ``(n,)`` or ``(n, 1)``.
+    b : array_like, scipy.sparse.csr_matrix or scipy.sparse.csr_array
+        Dense right-hand side with shape ``(n,)`` or ``(n, k)``
     perm : array_like, optional
         User-defined permutation.
     verbose : bool, default: False
@@ -309,8 +307,6 @@ def mkl_spsolve(
         weighted_matching=weighted_matching,
     )
     return_sparse = sp.issparse(b) and b.ndim == 2 and b.shape[1] != 1
-    if sp.issparse(b):
-        b = b.toarray(order="F")
     x = lu.solve(b, verbose=verbose)
     if return_sparse:
         x = sp.csr_matrix(x)
