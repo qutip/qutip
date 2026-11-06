@@ -139,6 +139,10 @@ def test_smesolve_methods(method, heterodyne, system):
             m.shape == (len(sc_ops), 2, len(times)-1)
             for m in res.measurement
         ])
+        assert all([
+            m.shape == (len(sc_ops), 2, len(times)-1)
+            for m in res.signal
+        ])
     else:
         assert all([
             dw.shape == (len(sc_ops), len(times)-1)
@@ -151,6 +155,10 @@ def test_smesolve_methods(method, heterodyne, system):
         assert all([
             m.shape == (len(sc_ops), len(times)-1)
             for m in res.measurement
+        ])
+        assert all([
+            m.shape == (len(sc_ops), len(times)-1)
+            for m in res.signal
         ])
 
 
@@ -187,6 +195,7 @@ def test_ssesolve(heterodyne, system):
         )
 
     assert res.measurement is None
+    assert res.signal is None
     assert res.wiener_process is None
     assert res.dW is None
 
@@ -230,6 +239,7 @@ def test_ssesolve_method(method, heterodyne, system):
         )
 
     assert len(res.measurement) == ntraj
+    assert len(res.signal) == ntraj
 
     if heterodyne:
         assert all([
@@ -244,6 +254,10 @@ def test_ssesolve_method(method, heterodyne, system):
             m.shape == (len(sc_ops), 2, len(times)-1)
             for m in res.measurement
         ])
+        assert all([
+            m.shape == (len(sc_ops), 2, len(times)-1)
+            for m in res.signal
+        ])
     else:
         assert all([
             dw.shape == (len(sc_ops), len(times)-1)
@@ -256,6 +270,10 @@ def test_ssesolve_method(method, heterodyne, system):
         assert all([
             m.shape == (len(sc_ops), len(times)-1)
             for m in res.measurement
+        ])
+        assert all([
+            m.shape == (len(sc_ops), len(times)-1)
+            for m in res.signal
         ])
 
 
@@ -324,9 +342,15 @@ def test_measurements(heterodyne):
 
     diff = np.sum(np.abs(res_end.measurement[0] - res_start.measurement[0]))
     assert diff > 0.1 # Each measurement should be different by ~dt
+    diff = np.sum(np.abs(res_end.signal[0] - res_start.signal[0]))
+    assert diff > 0.1 # Each measurement should be different by ~dt
     np.testing.assert_allclose(
         res_middle.measurement[0] * 2,
         res_start.measurement[0] + res_end.measurement[0],
+    )
+    np.testing.assert_allclose(
+        res_middle.signal[0] * 2,
+        res_start.signal[0] + res_end.signal[0],
     )
 
     np.testing.assert_allclose(
@@ -358,9 +382,13 @@ def test_m_ops(heterodyne):
     if heterodyne:
         np.testing.assert_allclose(res.expect[0][1:], res.measurement[0][0][0])
         np.testing.assert_allclose(res.expect[1][1:], res.measurement[0][0][1])
+        np.testing.assert_allclose(res.expect[0][1:], res.signal[0][0][0])
+        np.testing.assert_allclose(res.expect[1][1:], res.signal[0][0][1])
     else:
         np.testing.assert_allclose(res.expect[0][1:], res.measurement[0][0])
         np.testing.assert_allclose(res.expect[1][1:], res.measurement[0][1])
+        np.testing.assert_allclose(res.expect[0][1:], res.signal[0][0])
+        np.testing.assert_allclose(res.expect[1][1:], res.signal[0][1])
 
     solver.dW_factors = [1.] * len(m_ops)
     # With dW_factors=0, measurements are computed as expectation values.
@@ -551,6 +579,7 @@ def test_merge_results(store_measurement, keep_runs_results):
 
     if store_measurement:
         assert len(result_merged.measurement) == 15
+        assert len(result_merged.signal) == 15
         assert len(result_merged.dW) == 15
         assert all(
             dw.shape == result_merged.dW[0].shape
