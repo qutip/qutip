@@ -13,8 +13,8 @@ def _prepare_pydiso_args(
     scaling_vectors=True,
     weighted_matching=True,
 ):
-    """
-    Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for the pydiso solver.
+    """Maps QuTiP's PARDISO ``iparm`` overrides to keyword-named arguments for
+    the pydiso solver.
 
     Parameters
     ----------
@@ -61,8 +61,7 @@ def _prepare_pydiso_args(
 
 
 class MKLFactorization:
-    """
-    Factorization of a sparse matrix using Intel oneMKL PARDISO.
+    """Factorization of a sparse matrix using Intel oneMKL PARDISO.
 
     This class adapts :class:`pydiso.mkl_solver.MKLPardisoSolver` to QuTiP's sparse-factorization interface. The factorization can be reused to solve systems with multiple right-hand sides.
 
@@ -94,8 +93,7 @@ class MKLFactorization:
         self._info = None
 
     def solve(self, b, verbose=False):
-        """
-        Solve a sparse linear system using the stored factorization.
+        """Solve a sparse linear system using the stored factorization.
 
         Parameters
         ----------
@@ -117,7 +115,6 @@ class MKLFactorization:
         ValueError
             If the shape of ``b`` is incompatible with the factorized matrix.
         """
-
         if sp.issparse(b):
             raise TypeError(
                 "Right-hand side must be dense. Use mkl_spsolve() for sparse right-hand sides."
@@ -133,9 +130,7 @@ class MKLFactorization:
             )
 
         if b.shape[0] != n:
-            raise ValueError(
-                f"Right-hand side must have {n} rows; got shape {b.shape}"
-            )
+            raise ValueError(f"Right-hand side must have {n} rows; got shape {b.shape}")
 
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
             raise TypeError(
@@ -153,8 +148,7 @@ class MKLFactorization:
         return x
 
     def info(self):
-        """
-        Return statistics for the most recent factorization and solve.
+        """Return statistics for the most recent factorization and solve.
 
         Returns
         -------
@@ -165,7 +159,6 @@ class MKLFactorization:
             of iterative refinement steps. ``SolveTime`` is ``None`` before
             the first solve.
         """
-
         if self._solver is None:
             return self._info
         iparm = self._solver.iparm
@@ -181,7 +174,8 @@ class MKLFactorization:
 
 
 def _mkl_matrix_type(dtype, hermitian, posdef):
-    """Select PARDISO's matrix type from the dtype and caller-supplied flags."""
+    """Select PARDISO's matrix type from the dtype and caller-supplied
+    flags."""
     is_complex = np.issubdtype(dtype, np.complexfloating)
     if not hermitian:
         return 13 if is_complex else 11
@@ -200,8 +194,7 @@ def mkl_splu(
     scaling_vectors=True,
     weighted_matching=True,
 ):
-    """
-    Returns the LU factorization of the sparse matrix A.
+    """Returns the LU factorization of the sparse matrix A.
 
     Parameters
     ----------
@@ -235,7 +228,6 @@ def mkl_splu(
     lu : MKLFactorization
         Returns object containing LU factorization with a
         solve method for solving with a given RHS vector.
-
     """
     if not (sp.issparse(A) and A.format == "csr"):
         raise TypeError("Input matrix must be in sparse CSR format.")
@@ -260,9 +252,7 @@ def mkl_splu(
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
     )
-    solver = MKLPardisoSolver(
-        A, matrix_type=matrix_type, verbose=verbose, **iparms
-    )
+    solver = MKLPardisoSolver(A, matrix_type=matrix_type, verbose=verbose, **iparms)
     _factor_time = time.perf_counter() - _factor_start
     return MKLFactorization(solver, matrix_type, data_type, _factor_time)
 
@@ -280,9 +270,8 @@ def mkl_spsolve(
     scaling_vectors=True,
     weighted_matching=True,
 ):
-    """
-    Solves a sparse linear system of equations using the
-    Intel MKL Pardiso solver.
+    """Solves a sparse linear system of equations using the Intel MKL Pardiso
+    solver.
 
     Parameters
     ----------
@@ -321,7 +310,6 @@ def mkl_spsolve(
         The solution of the sparse linear equation.
         If b is a vector, then x is a vector of size A.shape[1]
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
-
     """
     A = sp.csr_array(A)
     lu = mkl_splu(
