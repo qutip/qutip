@@ -51,13 +51,13 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | Package                  | Version      | Details                                             |
 +==========================+==============+=====================================================+
-| ``matplotlib``           | 3.6+         | Needed for all visualisation tasks.                 |
+| ``matplotlib``           | 3.9+         | Needed for all visualisation tasks.                 |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cython``               | 0.29.34+     | Needed for compiling some time-dependent            |
 | ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``cvxpy``                | 1.0+         | Needed to calculate diamond norms.                  |
+| ``cvxpy``                | 1.3+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``pytest``,              | 7.2+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
@@ -201,7 +201,7 @@ If you want to build from source or use runtime compilation with Cython, you wil
 
 On Windows, the recommended compiler is the Microsoft Visual C++ compiler (MSVC), distributed with Visual Studio IDE and the standalone Visual Studio Build Tools.
 
-You can `download Visual Studio IDE from Microsoft <https://visualstudio.microsoft.com/downloads/>_`. The free Community edition provides everything required to compile QuTiP.
+You can `download Visual Studio IDE from Microsoft <https://visualstudio.microsoft.com/downloads/>`_. The free Community edition provides everything required to compile QuTiP.
 When running the Visual Studio Installer, select the:
 
 - Desktop development with C++ workload
@@ -212,19 +212,19 @@ and ensure that the following components are installed:
 - a recent Windows SDK, such as the Windows 10 SDK or Windows 11 SDK
 
 If you do not need the full Visual Studio IDE, you can instead install the
-Visual Studio Build Tools <https://visualstudio.microsoft.com/visual-cpp-build-tools/>_.
+`Visual Studio Build Tools <https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_.
 In the Build Tools installer, select the same Desktop development with C++
 workload. This installs the MSVC compiler, Windows SDK and associated build
 tools without installing the complete Visual Studio IDE.
 
-You can verify that the compiler is available by running::
+You can verify that the compiler is available by running:
 
 .. code-block::
 
    cl
 
 If MSVC is configured correctly, this should print the Microsoft C++ compiler version and usage information.
-You can then follow the installation from source <install-from-source_>_ section as normal.
+You can then follow the :ref:`installation from source <install-from-source>` section as normal.
 
 
 .. _install-verify:

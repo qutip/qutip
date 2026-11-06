@@ -20,7 +20,8 @@ def _func2(x, a, b, c, d=0, e=0, f=0):
     return x**2
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -28,7 +29,7 @@ def _func2(x, a, b, c, d=0, e=0, f=0):
 @pytest.mark.parametrize('num_cpus',
                          [1, 2],
                          ids=['1', '2'])
-def test_map(map, num_cpus):
+def test_map(map, num_cpus, with_seeded_random):
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
@@ -49,7 +50,8 @@ def test_map(map, num_cpus):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -57,7 +59,7 @@ def test_map(map, num_cpus):
 @pytest.mark.parametrize('num_cpus',
                          [1, 2],
                          ids=['1', '2'])
-def test_map_accumulator(map, num_cpus):
+def test_map_accumulator(map, num_cpus, with_seeded_random):
     if map is loky_pmap:
         pytest.importorskip("loky")
     if map is mpi_pmap:
@@ -89,7 +91,8 @@ def func(i):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -109,7 +112,8 @@ def test_map_pass_error(map):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -139,7 +143,8 @@ def test_map_store_error(map):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),

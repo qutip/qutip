@@ -18,7 +18,7 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     rate = gamma2
     if rate > 0.0: c_op_list.append(np.sqrt(rate) * sz)
     # evolve and calculate expectation values
-    output = qutip.mesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])
+    output = qutip.mesolve(H, psi0, tlist, c_op_list, e_ops=[sx, sy, sz])
     return output.expect[0], output.expect[1], output.expect[2]
 
 ## calculate the dynamics

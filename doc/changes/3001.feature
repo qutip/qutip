@@ -1,0 +1,1 @@
+Allow `coefficient * number` operations

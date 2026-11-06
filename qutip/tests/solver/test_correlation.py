@@ -317,13 +317,13 @@ def test_G1():
     np.testing.assert_allclose(G1, expected * scale**2, rtol=2e-5)
 
 
-def test_G2():
+def test_G2(random_generator):
     N = 10
-    H = qutip.rand_dm(N)
-    psi0 = qutip.rand_ket(N)
+    H = qutip.rand_dm(N, seed=random_generator)
+    psi0 = qutip.rand_ket(N, seed=random_generator)
     taus = np.linspace(0, 1, 11)
     scale = 2
-    a_op = qutip.rand_unitary(N) * scale
+    a_op = qutip.rand_unitary(N, seed=random_generator) * scale
     g1, G1 = qutip.coherence_function_g2(H, psi0, taus, [], a_op)
     expected = np.ones(11)
     np.testing.assert_allclose(g1, expected, rtol=2e-5)
@@ -423,6 +423,7 @@ class TestCorrelationSpeedup:
         serial = self._corr_3op(map='serial')
         np.testing.assert_allclose(serial, default, atol=1e-12)
 
+    @pytest.mark.requires_multiprocessing
     def test_parallel_matches_serial(self):
         """Parallel map must give the same result as serial_map."""
         serial = self._corr_3op()
@@ -431,6 +432,7 @@ class TestCorrelationSpeedup:
         )
         np.testing.assert_allclose(parallel, serial, atol=1e-10)
 
+    @pytest.mark.requires_multiprocessing
     def test_parallel_with_max_t_plus_tau(self):
         """Both optimisations combined must be correct."""
         max_tp = 4.0
@@ -444,7 +446,10 @@ class TestCorrelationSpeedup:
     # --- passthrough tests ---
 
     @pytest.mark.parametrize("max_tp", [None, 4.0])
-    @pytest.mark.parametrize("map_str", ['serial', 'parallel'])
+    @pytest.mark.parametrize("map_str", [
+        'serial',
+        pytest.param('parallel', marks=pytest.mark.requires_multiprocessing),
+    ])
     def test_2op_passthrough(self, max_tp, map_str):
         """New kwargs must work through correlation_2op_2t."""
         kwargs = {'map': map_str, 'map_kw': {'num_cpus': 2}}
@@ -459,6 +464,7 @@ class TestCorrelationSpeedup:
         else:
             np.testing.assert_allclose(result, full, atol=1e-10)
 
+    @pytest.mark.requires_multiprocessing
     def test_direct_solver_call(self):
         """correlation_3op with a solver instance and new kwargs."""
         from qutip.solver.mesolve import MESolver
@@ -474,3 +480,52 @@ class TestCorrelationSpeedup:
             max_t_plus_tau=4.0, map='parallel', map_kw={'num_cpus': 2},
         )
         self._check_truncation(trunc, full, 4.0)
+
+
+def test_spectrum_correlation_fft_missing_zero():
+    tlist = np.array([1.0, 2.0, 3.0, 4.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(
+        ValueError, match="tlist must contain zero"
+    ):
+        qutip.spectrum_correlation_fft(tlist, g_tau)
+
+
+def test_spectrum_correlation_fft_asymmetric_error():
+    # Asymmetric grid around zero
+    tlist = np.array([-2.0, -1.0, 0.0, 1.0, 3.0])
+    g_tau = np.ones_like(tlist)
+    with pytest.raises(
+        ValueError, match="tlist must be symmetric around zero"
+    ):
+        qutip.spectrum_correlation_fft(tlist, g_tau)
+
+
+@pytest.mark.parametrize("t_mode", ["symmetric", "single_sided"])
+def test_spectrum_correlation_fft_lorentzian(t_mode):
+    w0 = 1.0 * 2 * np.pi
+    gamma = 0.2
+    N = 2000
+    T = 100.0
+
+    if t_mode == "symmetric":
+        tlist = np.linspace(-T / 2, T / 2, N+1)
+    else:  # single_sided
+        tlist = np.linspace(0, T / 2, (N // 2) + 1)
+
+    # Damped oscillator correlation function
+    g_tau = np.exp(-gamma * np.abs(tlist) / 2) * np.exp(1j * w0 * tlist)
+
+    # Compute spectrum via FFT
+    w_fft, s_fft = qutip.spectrum_correlation_fft(tlist, g_tau)
+
+    dw = w_fft - w0
+    s_analytical = (
+        (gamma / (dw ** 2 + (gamma / 2) ** 2))
+        * (1 - np.exp(-gamma * T / 4)
+           * (np.cos(dw * T / 2) - (2 * dw / gamma)
+              * np.sin(dw * T / 2)))
+    )
+    atol_threshold = 1e-2
+    # Verify numerical match
+    np.testing.assert_allclose(s_fft, s_analytical, atol=atol_threshold)

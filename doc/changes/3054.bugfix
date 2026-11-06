@@ -1,0 +1,2 @@
+Normalize the complex trace before symmetrizing inverse-power steady-state
+iterates, preventing cancellation when the iterate has an imaginary phase.

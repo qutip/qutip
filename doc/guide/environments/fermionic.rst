@@ -1,10 +1,10 @@
 .. _fermionic environments guide:
 
 Fermionic Environments
-----------------------
+======================
 
 Theory
-~~~~~~
+------
 
 The implementation of fermionic environments in QuTiP is not yet as advanced as the bosonic environments.
 Currently, user-defined fermionic environments and fitting are not implemented.
@@ -32,7 +32,7 @@ or equivalently by two correlation functions or by two power spectra. The correl
 
 .. math::
     C^\sigma(t) = \langle B^\sigma(t) B^{-\sigma} \rangle
-    = \int_{-\infty}^\infty \frac{\mathrm d\omega}{2\pi}\, J(\omega)\, 
+    = \int_{-\infty}^\infty \frac{\mathrm d\omega}{2\pi}\, J(\omega)\,
         \mathrm e^{\sigma \mathrm i\omega t}\, f_F(\sigma \beta[\omega - \mu]) ,
 
 where :math:`\sigma = \pm 1`, :math:`B^+ = B^\dagger` and :math:`B^- = B`.
@@ -59,7 +59,7 @@ Since :math:`f_F(x) + f_F(-x) = 1`, we have :math:`S^+(\omega) + S^-(\omega) = J
 .. _lorentzian env guide:
 
 Lorentzian Environment
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Fermionic Lorentzian environments are represented by the class :class:`.LorentzianEnvironment`.
 They are characterized by spectral densities of the form
@@ -119,7 +119,7 @@ This approach results in the exponents
 
 
 Multi-Exponential Fermionic Environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------
 
 Analogous to the :class:`.ExponentialBosonicEnvironment` in the bosonic case, the :class:`.ExponentialFermionicEnvironment` describes fermionic environments
 where the correlation functions are given by multi-exponential decompositions,

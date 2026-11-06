@@ -234,6 +234,23 @@ def test_CoeffOperation(style_left, style_right, oper):
     )
 
 
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog"),
+    pytest.param("const", id="constant"),
+])
+def test_CoeffMul_number(style):
+    coeff = coeff_generator(style, "f")
+    expected = lambda t: coeff(t) * np.pi
+
+    _assert_eq_over_interval(np.pi * coeff, expected, rtol=1e-14)
+    _assert_eq_over_interval(coeff * np.pi,expected, rtol=1e-14)
+
+
 @pytest.mark.requires_cython
 def test_CoeffReuse():
     coeff1 = coefficient("cos(w * t * pi)", args={'w': 3.})

@@ -6,6 +6,8 @@ All code contributions are acknowledged in the [contributors](https://qutip.read
 
 For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.readthedocs.io/en/stable/development/contributing.html).
 
+Want to work on an issue? See our guide on [how to get started](doc/development/working_on_an_issue.rst).
+
 
 ## AI Tools Usage Policy
 We acknowledge the use of AI tools to improve efficiency and enhance quality of work. Contributors may use such tools, provided they adhere to the following guidelines:
@@ -34,7 +36,7 @@ By submitting a contribution to qutip, you agree to
 
 ### 4. Good Use Cases
 
-- **Understand the codebase:** AI can be used to explore unfamiliar parts of the repository, summarize modules and clarify how components interact. It helps build the mental model of the project faster. 
+- **Understand the codebase:** AI can be used to explore unfamiliar parts of the repository, summarize modules and clarify how components interact. It helps build the mental model of the project faster.
 
 - **Brainstorming and Design:**  AI may assist in generating ideas, evaluating different approaches and structuring designs. However, all final decisions regarding design and architecture should be independently validated and be made by the contributor.
 
@@ -53,3 +55,12 @@ The following use cases are prohibited:
 ### 6. Enforcement
 
 Maintainers reserve the right to close any Pull Request that violates this Policy. Maintainers may restrict participation or report users to GitHub for repeated violations of this policy.
+
+
+## Minimum quality enforcement
+
+Pull requests that are missing the AI disclosure, the towncrier entry, or show no effort for tests and formatting (as per pull requests template), will be immediately closed without review. Using the following template when doing so is encouraged:
+
+```
+Thanks for the PR. We're closing it because it doesn't meet our contribution requirements: [template not completed / AI use not disclosed / no towncrier entry / no tests]. See CONTRIBUTING.md. You're welcome to resubmit once these are addressed. We prioritize PRs where the author can discuss and defend the change.
+```

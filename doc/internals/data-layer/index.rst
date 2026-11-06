@@ -1,5 +1,5 @@
 Data Layer
-##########
+==========
 
 The bulk of mathematical heavy lifting in QuTiP is handled by functions on the
 "data layer".  The term "data layer" is used to refer to all linear algebra

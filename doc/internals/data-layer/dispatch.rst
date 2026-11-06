@@ -1,5 +1,5 @@
 Dispatch Operations: :obj:`~qutip.core.data.Dispatcher`
-#######################################################
+=======================================================
 
 The user most commonly interacts with the data layer by calling mathematical
 operations on :obj:`Qobj` instances, which verify that the operation makes
@@ -35,7 +35,7 @@ inputs and outputs with :obj:`~qutip.core.data.to`: ::
 
 
 Basic Usage
-===========
+-----------
 
 A :obj:`Dispatcher` provides a single mathematical function for *all*
 combinations of types known by :obj:`~qutip.core.data.to`, regardless of whether
@@ -77,7 +77,7 @@ inputs match the types stated.
 
 
 Adding New Specialisations
-==========================
+--------------------------
 
 New specialisations can be added to a pre-existing dispatcher with the
 :meth:`qutip.data.Dispatcher.add_specialisations` method.  This is very similar
@@ -116,7 +116,7 @@ has a low conversion weight.
 
 
 Adding New Types
-================
+----------------
 
 Now let's say the user wants to add a new ``NewDataType`` type all across QuTiP.
 The only action they *must* take is to tell :obj:`qutip.data.to` about this new
@@ -156,7 +156,7 @@ subsection, they do this by calling
 
 
 Creating a New Dispatcher
-=========================
+-------------------------
 
 In most user-defined functions which operate on :attr:`qutip.Qobj.data` it will
 be completely sufficient for them to simply call
@@ -220,7 +220,7 @@ dispatcher by directly writing to the ``__doc__`` attribute of the object.  We
 
 
 Arbitrary data types
-====================
+--------------------
 Dispatched functions can be register with any data types. For this, the parent
 ``Data`` is used as the types of the specialization::
 
@@ -234,7 +234,7 @@ higher that any that would require conversion.
 
 
 Other Features
-==============
+--------------
 
 The :obj:`~qutip.data.Dispatcher` can operate on a function with any call
 signature (except ones which use ``*args`` or ``**kwargs``), even if not all of
@@ -245,7 +245,7 @@ arguments are passed through like normal.
 
 
 How It Works
-============
+------------
 
 Calling a :obj:`~qutip.data.Dispatcher` happens in five stages:
 
@@ -297,7 +297,7 @@ given the defined rules.
 
 
 Implementation Details
-======================
+----------------------
 
 The backing specialisations can be found in
 :attr:`qutip.Dispatcher._specialisations`, and the complete lookup table is in
@@ -327,7 +327,7 @@ already initialised to a minimum degree.
 
 
 Efficiency Notes
-================
+----------------
 
 The specialisations returned by the ``__getitem__`` lookups are not
 significantly faster than just calling the dispatcher directly, because the bulk

@@ -5,6 +5,12 @@ from copy import copy
 from qutip.solver.mcsolve import mcsolve, MCSolver
 
 
+@pytest.fixture(autouse=True)
+def fix_mtsolver_seed(random_generator):
+    seed = random_generator.integers(2**63)
+    MCSolver.seed_sequence = np.random.SeedSequence(seed)
+
+
 def _return_constant(t, constant):
     return constant
 
@@ -563,6 +569,32 @@ def test_feedback(func, kind):
         psi0, np.linspace(0, 3, 31), e_ops=[qutip.num(10)], ntraj=10
     )
     assert np.all(result.expect[0] > 4. - tol)
+
+
+def test_statefeedback_ket_run():
+    # MCSolver.StateFeedback defaults to a closed system: the coefficient
+    # must receive the state as a ket during the run.
+    received = []
+
+    def coeff(t, state=None):
+        if state is not None:
+            received.append(state)
+        return 1.0
+
+    psi0 = qutip.basis(2, 0)
+    a = qutip.destroy(2)
+    H = qutip.QobjEvo(qutip.sigmax())
+    solver = qutip.MCSolver(
+        H,
+        c_ops=[qutip.QobjEvo(
+            [a, coeff], args={"state": qutip.MCSolver.StateFeedback()}
+        )],
+        options={"map": "serial"},
+    )
+    solver.run(psi0, np.linspace(0, 1, 3), ntraj=1)
+    assert received, "feedback coefficient was never called"
+    for state in received:
+        assert state.isket
 
 
 @pytest.mark.parametrize(["initial_state", "ntraj"], [

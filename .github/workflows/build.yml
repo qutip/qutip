@@ -146,9 +146,29 @@ jobs:
           path: ./wheelhouse/*.whl
 
 
+  build_pyodide:
+    name: Build Pyodide wheels
+    needs: deploy_test
+    runs-on: ubuntu-latest
+    env:
+      OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
+    steps:
+      - uses: actions/checkout@v7
+      - if: env.OVERRIDE_VERSION != ''
+        run: echo "$OVERRIDE_VERSION" > VERSION
+      - uses: pypa/cibuildwheel@v4.3.5
+        env:
+          CIBW_PLATFORM: pyodide
+          CIBW_BUILD: "cp3{13,14}-*"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-pyodide
+          path: wheelhouse/*.whl
+
+
   deploy:
     name: "Deploy to PyPI if desired"
-    needs: [deploy_test, build_sdist, build_wheels]
+    needs: [deploy_test, build_sdist, build_wheels, build_pyodide]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: __token__

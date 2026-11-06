@@ -41,26 +41,26 @@ def density(request): return request.param
 
 
 @pytest.fixture(scope='function')
-def scipy_dia(shape, density):
-    return random_data.random_scipy_dia(shape, density)
+def scipy_dia(shape, density, random_generator):
+    return random_data.random_scipy_dia(shape, density, gen=random_generator)
 
 
-def _valid_scipy():
+def _valid_scipy(gen=None):
     """Arbitrary valid scipy Dia"""
-    return random_data.random_scipy_dia((10, 10), 0.5)
+    return random_data.random_scipy_dia((10, 10), 0.5, gen)
 
 
-def _valid_arg():
+def _valid_arg(gen=None):
     """
     Arbitrary valid 3-tuple which is a valid `arg` parameter for __init__.
     """
-    sci = _valid_scipy()
+    sci = _valid_scipy(gen)
     return (sci.data, sci.offsets)
 
 
 @pytest.fixture(scope='function')
-def data_diag(shape, density):
-    return random_data.random_diag(shape, density)
+def data_diag(shape, density, random_generator):
+    return random_data.random_diag(shape, density, gen=random_generator)
 
 
 class TestClassMethods:
@@ -84,12 +84,14 @@ class TestClassMethods:
         _dtype_complex + _dtype_float + _dtype_int + _dtype_uint
     ))
     @pytest.mark.parametrize('o_type', _dtype_int + _dtype_uint)
-    def test_init_from_tuple_allowed_dtypes(self, d_type, o_type):
+    def test_init_from_tuple_allowed_dtypes(
+        self, d_type, o_type, random_generator
+    ):
         """
         Test that initialisation can use a variety of dtypes and converts into
         the correct type.
         """
-        sci = _valid_scipy()
+        sci = _valid_scipy(random_generator)
         data = sci.data.real.astype(d_type, casting='unsafe')
         offsets = sci.offsets.astype(o_type, casting='unsafe')
         scipy_dia = scipy.sparse.dia_matrix((data, offsets), shape=sci.shape)

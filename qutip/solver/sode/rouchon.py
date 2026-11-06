@@ -27,6 +27,8 @@ class RouchonSODE(SIntegrator):
     methods that will return unphysical state (negative eigenvalues, Nans)
     when the time step is too large, this method will return state that
     seems normal.
+
+    Set ``options={"method":"rouchon"}`` to use.
     """
     integrator_options = {
         "dt": 0.0001,

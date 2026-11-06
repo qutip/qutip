@@ -63,6 +63,7 @@ class MultiTrajSolver(Solver):
     _resultclass = MultiTrajResult
     _trajectory_resultclass = Result
     _avail_integrators = {}
+    seed_sequence = SeedSequence()
 
     # Class of option used by the solver
     solver_options = {
@@ -87,7 +88,6 @@ class MultiTrajSolver(Solver):
         else:
             raise TypeError("The system should be a QobjEvo")
         self.options = options
-        self.seed_sequence = SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()

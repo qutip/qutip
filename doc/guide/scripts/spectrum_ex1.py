@@ -23,7 +23,7 @@ c_ops = [
 
 # calculate the correlation function using the mesolve solver, and then fft to
 # obtain the spectrum. Here we need to make sure to evaluate the correlation
-# function for a sufficient long time and sufficiently high sampling rate so 
+# function for a sufficient long time and sufficiently high sampling rate so
 # that the discrete Fourier transform (FFT) captures all the features in the
 # resulting spectrum.
 tlist = np.linspace(0, 100, 5000)
@@ -45,4 +45,4 @@ ax.set_xlabel('Frequency')
 ax.set_ylabel('Power spectrum')
 ax.set_title('Vacuum Rabi splitting')
 ax.set_xlim(wlist2[0]/(2*np.pi), wlist2[-1]/(2*np.pi))
-plt.show()
+pyplot.show()

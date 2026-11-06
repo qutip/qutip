@@ -1,0 +1,3 @@
+Prevent SciPy ODE integrators from retaining themselves through callback
+parameters, allowing temporary solvers to be released without waiting for
+cyclic garbage collection.

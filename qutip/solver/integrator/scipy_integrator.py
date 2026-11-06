@@ -1,5 +1,7 @@
 """ODE integrator from scipy."""
 
+import warnings
+
 __all__ = [
     'IntegratorScipyAdams',
     'IntegratorScipyBDF',
@@ -14,7 +16,6 @@ from qutip.core import data as _data
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
-import warnings
 
 
 class IntegratorScipyAdams(Integrator):
@@ -52,7 +53,6 @@ class IntegratorScipyAdams(Integrator):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver.set_f_params(self)
         self._ode_solver._integrator = self._zvode(
             method=self.method,
             **self.options,
@@ -60,13 +60,13 @@ class IntegratorScipyAdams(Integrator):
         self.name = "scipy zvode " + self.method
 
     @staticmethod
-    def _mul_np_vec(t, vec, self):
+    def _mul_np_vec(t, vec, derivative, size):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
         state = _data.dense.fast_from_numpy(vec)
-        state = column_unstack_dense(state, self._size, inplace=True)
-        out = _data.to(_data.Dense, self.derivative(t, state))
+        state = column_unstack_dense(state, size, inplace=True)
+        out = _data.to(_data.Dense, derivative(t, state))
         out = column_stack_dense(out, inplace=out.fortran)
         return out.as_ndarray().ravel()
 
@@ -76,6 +76,7 @@ class IntegratorScipyAdams(Integrator):
         self._front = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+        self._ode_solver.set_f_params(self.derivative, self._size)
         if self._mat_state:
             state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(state0.to_array().ravel(), t)
@@ -244,17 +245,16 @@ class IntegratorScipyDop853(Integrator):
         # scipy 1.17 does not convert automatically anymore
         self.options["nsteps"] = int(self.options["nsteps"])
         self._ode_solver.set_integrator('dop853', **self.options)
-        self._ode_solver.set_f_params(self)
         self.name = "scipy ode dop853"
 
     @staticmethod
-    def _mul_np_vec(t, vec, self):
+    def _mul_np_vec(t, vec, derivative, size):
         """
         Interface between scipy which use numpy and the driver, which use data.
         """
         state = _data.dense.fast_from_numpy(vec.view(np.complex128))
-        column_unstack_dense(state, self._size, inplace=True)
-        out = _data.to(_data.Dense, self.derivative(t, state))
+        column_unstack_dense(state, size, inplace=True)
+        out = _data.to(_data.Dense, derivative(t, state))
         out = column_stack_dense(out, inplace=out.fortran)
         return out.as_ndarray().ravel().view(np.float64)
 
@@ -303,6 +303,7 @@ class IntegratorScipyDop853(Integrator):
         self._is_set = True
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+        self._ode_solver.set_f_params(self.derivative, self._size)
         if self._mat_state:
             state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(
@@ -385,7 +386,6 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('lsoda', **self.options)
-        self._ode_solver.set_f_params(self)
         self.name = "scipy lsoda"
 
     def _check_handle(self):
