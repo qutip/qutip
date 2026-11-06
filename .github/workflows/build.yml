@@ -168,7 +168,7 @@ jobs:
 
   deploy:
     name: "Deploy to PyPI if desired"
-    needs: [deploy_test, build_sdist, build_wheels, build_pyodide]
+    needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: __token__

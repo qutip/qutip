@@ -10,6 +10,8 @@ from glob import glob
 from pathlib import Path
 import numpy as np
 import scipy
+import multiprocessing
+from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
 
@@ -182,9 +184,25 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
+        self._mp_context = multiprocessing.get_context()
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+
+
+
+    @property
+    def mp_context(self) -> BaseContext:
+        return self._mp_context
+
+    @mp_context.setter
+    def mp_context(
+        self, new_context: str | BaseContext | None
+    ) -> None:
+        if isinstance(new_context, BaseContext):
+            self._mp_context = new_context
+        else:
+            self._mp_context = multiprocessing.get_context(new_context)
 
     @property
     def has_mkl(self) -> bool:
