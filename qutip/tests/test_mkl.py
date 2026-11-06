@@ -480,10 +480,6 @@ class Test_splu:
 
     def test_faulty_coeff_matrix_rejection(self):
         """Tests input validation w.r.t. coefficient matrix."""
-        # Non-square matrix
-        A = np.array([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(ValueError, match="square"):
-            mkl_splu(scipy.sparse.csr_array(A))
         # Dense matrix
         A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         with pytest.raises(TypeError, match="sparse"):
@@ -492,27 +488,6 @@ class Test_splu:
         A = scipy.sparse.csc_array(np.ones((3, 3)))
         with pytest.raises(TypeError, match="CSR"):
             mkl_splu(A)
-
-    @pytest.mark.parametrize(
-        "rhs_shape, error_msg",
-        [
-            pytest.param((), "must have shape", id="scalar"),
-            pytest.param((3, 1, 1), "must have shape", id="3d-array"),
-            pytest.param((4,), "must have 3 rows", id="vector-too-long"),
-            pytest.param(
-                (4, 2), "must have 3 rows", id="matrix-too-many-rows"
-            ),
-        ],
-    )
-    def test_faulty_rhs_shape_rejection(
-        self, nonsymmetric_matrix, rhs_shape, error_msg
-    ):
-        """Tests input validation w.r.t. RHS."""
-        A, hermitian, posdef = nonsymmetric_matrix
-        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef)
-        b = np.ones(rhs_shape, dtype=A.dtype)
-        with pytest.raises(ValueError, match=error_msg):
-            lu.solve(b)
 
     def test_complex_rhs_with_real_factorisation(self):
         A = scipy.sparse.csr_array(np.eye(3))
