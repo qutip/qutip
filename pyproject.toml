@@ -71,7 +71,7 @@ full = [
   "qutip[graphics,runtime_compilation,semidefinite,ipython,extras]",
 ]
 mkl = [
-    "pydiso"
+    "pydiso>=0.3.1"
 ]
 
 [dependency-groups]
