@@ -245,6 +245,10 @@ jobs:
             conda install $CORE_DEP
           fi
 
+          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
+          fi
+
           cp "${{ github.workspace }}"/qutip*.whl .
           WHEEL=$( echo qutip*.whl )
           echo $WHEEL
@@ -253,10 +257,6 @@ jobs:
 
           if [[ -n "${{ matrix.pypi-extra-pkgs }}" ]]; then
             python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
-          fi
-
-          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
-            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
       - name: Package information
