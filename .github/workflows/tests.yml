@@ -33,7 +33,7 @@ jobs:
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
-        case-name: ["Latest - MKL"]
+        case-name: ["Latest"]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -136,10 +136,11 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          - case-name: Windows - MKL (pydiso)
+          - case-name: Windows
             os: windows-latest
             python-version: "3.14"
             qutip-optional: "[graphics]"
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           # Test 1 recent and one old
