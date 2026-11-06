@@ -121,17 +121,6 @@ class MKLFactorization:
             )
         b = np.asarray(b)
 
-        n = self._solver.shape[0]
-
-        if b.ndim not in (1, 2):
-            raise ValueError(
-                f"Right-hand side must have shape ({n}, ) or ({n}, k); "
-                f"got shape {b.shape}."
-            )
-
-        if b.shape[0] != n:
-            raise ValueError(f"Right-hand side must have {n} rows; got shape {b.shape}")
-
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
             raise TypeError(
                 "A real-valued factorization cannot solve a complex right-hand side. Factorize a complex-valued matrix instead."
