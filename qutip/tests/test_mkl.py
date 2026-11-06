@@ -205,16 +205,14 @@ class Test_spsolve_nonsymmetric:
         A, hermitian, posdef = nonsymmetric_matrix
         # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
-        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         # Check if output shape matches input shape
         assert x.shape == b.shape
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         # Compare solutions of mkl pardiso and scipy
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_with_perm(
         self, nonsymmetric_matrix, rhs, random_generator
@@ -224,7 +222,6 @@ class Test_spsolve_nonsymmetric:
         A, hermitian, posdef = nonsymmetric_matrix
         # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
-        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Create a non-trivial permutation
         perm = random_generator.permutation(b_dense.shape[0])
@@ -232,10 +229,9 @@ class Test_spsolve_nonsymmetric:
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
         # Check if output shape matches input shape
         assert x.shape == b.shape
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         # Check if output shape matches input shape
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_random_input(
         self, nonsymmetric_matrix_random, random_generator
@@ -245,9 +241,8 @@ class Test_spsolve_nonsymmetric:
         A, hermitian, posdef, N = nonsymmetric_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
-        expected = scipy.linalg.solve(A.toarray(), b)
         actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
 
     def test_posdef_ignored_for_nonhermitian_input(
         self, nonsymmetric_matrix, rhs
@@ -261,8 +256,6 @@ class Test_spsolve_nonsymmetric:
         b = rhs(A.dtype)
         # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
 
         # Solve linear system
         x, info = mkl_spsolve(
@@ -278,11 +271,9 @@ class Test_spsolve_nonsymmetric:
         assert not posdef
         # Ensure the solver inferred the matrix type correctly based on provided solver args
         assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
-        # Compare solutions
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
         # Ensure the linear system holds
         np.testing.assert_allclose(
-            A.toarray() @ actual, b_dense, rtol=1e-10, atol=1e-12
+            A @ actual, b_dense, rtol=1e-10, atol=1e-12
         )
 
     @pytest.mark.parametrize("scaling_vectors", [False, True])
@@ -342,16 +333,13 @@ class Test_spsolve_symmetric:
         A, hermitian, posdef = symmetric_matrix
         # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
-        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Solve linear system
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         # Check if output shape matches input shape
         assert x.shape == b.shape
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
-        # Compare solutions of MKL PARDISO and SciPy
         actual = x.toarray() if scipy.sparse.issparse(x) else x
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_symmetric_with_perm(
         self, symmetric_matrix, rhs, random_generator
@@ -361,7 +349,6 @@ class Test_spsolve_symmetric:
         A, hermitian, posdef = symmetric_matrix
         # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
-        # RHS must be dense for SciPy's solver
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
         # Create a non-trivial permutation
         perm = random_generator.permutation(b_dense.shape[0])
@@ -369,10 +356,8 @@ class Test_spsolve_symmetric:
         x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
         # Check if output shape matches input shape
         assert x.shape == b.shape
-        expected = scipy.linalg.solve(A.toarray(), b_dense)
         actual = x.toarray() if scipy.sparse.issparse(x) else x
-        # Compare solutions of MKL PARDISO and SciPy
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_real_symmetric_random_input(
         self, symmetric_real_matrix_random, random_generator
@@ -380,9 +365,8 @@ class Test_spsolve_symmetric:
         A, N, posdef, hermitian = symmetric_real_matrix_random
         x = random_generator.standard_normal(N)
         b = A @ x
-        expected = scipy.linalg.solve(A.toarray(), b)
         actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
 
     def test_hermitian_random_input(self, random_generator):
         """Tests the solver on symmetric matrices (complex-valued),
@@ -397,9 +381,8 @@ class Test_spsolve_symmetric:
         )
         x = qutip.rand_ket(N, seed=random_generator)
         b = A.full() @ x.full()
-        expected = scipy.linalg.solve(A.full(), b)
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
 
     @pytest.mark.parametrize("scaling_vectors", [False, True])
     @pytest.mark.parametrize("weighted_matching", [False, True])
