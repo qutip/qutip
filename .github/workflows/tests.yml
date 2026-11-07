@@ -32,7 +32,7 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.14"]
+        python-version: ["3.15"]
         case-name: ["Latest"]
         numpy-build: [""]
         scipy-build: [""]
@@ -41,7 +41,7 @@ jobs:
         scipy-run: [""]
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
-        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""]
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
@@ -122,10 +122,10 @@ jobs:
           # Mac has issues with MKL since september 2022.
           - case-name: macos - latest
             os: macos-latest
-            python-version: "3.14"
+            python-version: "3.15"
             nomkl: 1
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
@@ -141,12 +141,20 @@ jobs:
           # Windows
           # Test 1 recent and one old
           - case-name: Windows - latest - minimal install
-            os: windows-11-arm
-            python-version: "3.14"
-            pypi: 1
+            os: windows-latest
+            python-version: "3.15"
             qutip-optional: ""
             # matplotlib not installed
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
+
+          - case-name: Windows ARM - latest - minimal install
+            os: windows-11-arm
+            python-version: "3.15"
+            pypi: 1
+            qutip-optional: ""
+            no-conda: 1
+            # matplotlib not installed
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
           - case-name: Windows - numpy fallback
             os: windows-latest
@@ -161,7 +169,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
-        if: matrix.os != 'windows-11-arm'
+        if: ${{ !matrix.no-conda }}
         # Currently miniconda doesn't support window-11 arms
         with:
           auto-update-conda: true
@@ -169,13 +177,13 @@ jobs:
           channels: conda-forge
 
       - name: Install pip
-        if: matrix.os != 'windows-11-arm'
+        if: ${{ !matrix.no-conda }}
         shell: bash -l {0}
         run: conda install pip -y -n test
 
-      # TODO remove this once conda supports windows arm
+      # Miniconda/Miniforge do not yet provide a native Windows ARM installer.
       - uses: actions/setup-python@v7
-        if: matrix.os == 'windows-11-arm'
+        if: matrix.no-conda
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -209,6 +217,10 @@ jobs:
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
+            PYTHON_INCLUDE=$(python -c "import pathlib, sys; print(pathlib.Path(sys.base_prefix) / 'include' / 'python')")
+            if [ -f "$PYTHON_INCLUDE/Python.h" ]; then
+              export INCLUDE="$PYTHON_INCLUDE${INCLUDE:+;$INCLUDE}"
+            fi
           else
             source ./build_env/bin/activate
           fi
@@ -261,7 +273,7 @@ jobs:
       - name: Package information
         working-directory: ${{ runner.temp }}
         run: |
-          if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
+          if [[ "${{ matrix.no-conda }}" ]]; then
             pip list
           else
             conda list

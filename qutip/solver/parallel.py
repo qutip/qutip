@@ -14,15 +14,9 @@ import concurrent.futures
 import warnings
 from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
+import qutip.settings as settings
 
-if sys.platform == 'darwin':
-    mp_context = multiprocessing.get_context('fork')
-elif sys.platform == 'linux':
-    # forkserver would handle threads better, but is much slower at starting
-    # the executor and spawning tasks
-    mp_context = multiprocessing.get_context('fork')
-else:
-    mp_context = multiprocessing.get_context()
+mp_context = settings.mp_context
 
 
 default_map_kw = {
@@ -314,8 +308,9 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
             "parallel_map is not available on emscripten, use serial_map")
 
     map_kw = _read_map_kw(map_kw)
-    ctx_kw = {"mp_context": mp_context}
-
+    if sys.platform in ("darwin", "linux"):
+        settings.mp_context = multiprocessing.get_context('fork')
+    ctx_kw = {"mp_context": settings.mp_context}
     def setup_executor():
         return concurrent.futures.ProcessPoolExecutor(
             max_workers=map_kw['num_cpus'], **ctx_kw,
