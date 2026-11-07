@@ -2,37 +2,39 @@ cimport cython
 from cython cimport double, complex
 cimport numpy as np
 import numpy as np
-from libc.math cimport pi 
-from cmath import exp as cexp, sqrt as csqrt, pi as cpi
+from libc.math cimport pi
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex cexp "exp" (double complex x)
+    double complex csqrt "sqrt" (double complex x)
 
-@cython.nogil
-@cython.cfunc
 @cython.locals(x_size=np.npy_intp, j=int, i=int, k=int, temp1=complex, temp2=complex)
 @cython.boundscheck(False)
-cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_complex(int n, np.ndarray[np.complex128_t, ndim=1] x):
+@cython.wraparound(False)
+cpdef np.ndarray psi_fock_multiple_position_complex(int n_max, double complex[::1] x):
 
     """
-    Compute the wavefunction to a complex vector x using adapted recurrence relation.
+    Compute the Fock-state wavefunctions psi_0 ... psi_{n_max} at complex
+    positions x using an adapted recurrence relation.
 
     Parameters
     ----------
-    n : int
-        Quantum state number.
+    n_max : int
+        Highest Fock state number.
     x : np.ndarray[np.complex128_t]
-        Position(s) at which to evaluate the wavefunction.
-
+        C-contiguous position(s) at which to evaluate the wavefunctions.
 
     Returns
     -------
-        np.ndarray[np.complex128_t]
-        The evaluated wavefunction.
+    np.ndarray[np.complex128_t]
+        Array of shape ``(n_max + 1, len(x))`` whose row ``n`` is psi_n(x).
 
     Examples
     --------
     ```python
-    >>> psi_n_single_fock_multiple_position_complex(0, np.array([1.0 + 1.0j, 2.0 + 2.0j]))
-    array([ 0.40583486-0.63205035j, -0.49096842+0.56845369j])
-    >>> psi_n_single_fock_multiple_position_complex(61, np.array([1.0 + 1.0j, 2.0 + 2.0j]))
+    >>> psi_fock_multiple_position_complex(1, np.array([1.0 + 1.0j, 2.0 + 2.0j]))
+    array([[ 0.40583486-0.63205035j, -0.49096842+0.56845369j],
+           [ 1.46779135-0.31991701j, -2.99649822+0.21916143j]])
+    >>> psi_fock_multiple_position_complex(61, np.array([1.0 + 1.0j, 2.0 + 2.0j]))[-1]
     array([-7.56548941e+03+9.21498621e+02j, -1.64189542e+08-3.70892077e+08j])
     ```
 
@@ -43,13 +45,13 @@ cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_co
     """
     
     x_size = x.shape[0]
-    cdef np.ndarray[np.complex128_t, ndim=2] result = np.zeros((n + 1, x_size), dtype=np.complex128)
-    pi_025 = pi ** (-0.25)
+    cdef double complex[:, ::1] result = np.zeros((n_max + 1, x_size), dtype=np.complex128)
+    cdef double pi_025 = pi ** (-0.25)
 
     for j in range(x_size):
-        result[0, j] = pi_025 * cexp(-(x[j] ** 2) / 2)
+        result[0, j] = pi_025 * cexp(-(x[j] * x[j]) / 2)
 
-    for i in range(n):
+    for i in range(n_max):
         temp1 = csqrt(2 * (i + 1))
         temp2 = csqrt(i / (i + 1))
         if(i == 0):
@@ -59,6 +61,6 @@ cpdef np.ndarray[np.complex128_t, ndim=1] psi_n_single_fock_multiple_position_co
             for k in range(x_size):
                 result[i + 1, k] = 2 * x[k] * (result[i, k] / temp1) - temp2 * result[i - 1, k]
 
-    return result[-1, :]
+    return np.asarray(result)
 
 

@@ -77,12 +77,10 @@ class PreSetWiener(Wiener):
                     f"{(n_sc_ops, len(tlist)-1)}"
                 )
 
-        print(noise.shape)
         self.t0 = tlist[0]
         self.dt = tlist[1] - tlist[0]
         self.shape = noise.shape[1:]
         self.noise = noise.T[:, np.newaxis, :].copy()
-        print(self.noise.shape)
         self.idx_last_0 = 0
         self.num_diffusion = n_sc_ops
         self.is_measurement = is_measurement

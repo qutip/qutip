@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -346,10 +345,10 @@ cpdef inline base.idxint nnz(CSR matrix) noexcept nogil:
     return matrix.row_index[matrix.shape[0]]
 
 
-cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) nogil:
+cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) noexcept nogil:
     return i[0] < j[0]
 
-cdef bool _sorter_cmp_struct(_data_col x, _data_col y) nogil:
+cdef bool _sorter_cmp_struct(_data_col x, _data_col y) noexcept nogil:
     return x.col < y.col
 
 ctypedef fused _swap_data:
@@ -368,7 +367,7 @@ cdef class Sorter:
     def __init__(self, size_t size):
         self.size = size
 
-    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) nogil:
+    cdef void inplace(self, CSR matrix, base.idxint ptr, size_t size) except * nogil:
         cdef size_t n
         cdef base.idxint col0, col1, col2
         # Fast paths for tridiagonal matrices.  These fast paths minimise the
@@ -403,15 +402,24 @@ cdef class Sorter:
                 _sorter_swap(matrix.col_index + ptr, matrix.col_index + ptr+2)
                 _sorter_swap(matrix.data + ptr, matrix.data + ptr+2)
             return
+
+
         # Now we actually have to do the sort properly.  It's easiest just to
         # copy the data into a temporary structure.
+        cdef size_t realloc_size
         if size > self.size or self.sort == NULL:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
-            self.size = size if size > self.size else self.size
+            realloc_size = size if size > self.size else self.size
             with gil:
-                self.sort = <_data_col *> mem.PyMem_Realloc(self.sort,
-                                                            self.size * sizeof(_data_col))
+                realloc_sort = <_data_col *> mem.PyMem_Realloc(self.sort,
+                                                            realloc_size * sizeof(_data_col))
+                if realloc_sort == NULL:
+                    raise MemoryError
+
+                self.sort = realloc_sort
+                self.size = realloc_size
+
         for n in range(size):
             self.sort[n].data = matrix.data[ptr + n]
             self.sort[n].col = matrix.col_index[ptr + n]
@@ -423,7 +431,7 @@ cdef class Sorter:
     cdef void copy(self,
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
-                   size_t size) nogil:
+                   size_t size) except * nogil:
         cdef size_t n, ptr
         # Fast paths for small sizes.  Not pretty, but it speeds things up a
         # lot for up to triadiaongal systems (which are pretty common).
@@ -488,16 +496,24 @@ cdef class Sorter:
                     dest_cols[0] = src_cols[2]
                     dest_data[0] = src_data[2]
             return
+
         # Now we're left with the full case, and we have to sort properly.
+        cdef size_t realloc_size
         if size > self.size or self.argsort == NULL:
             # realloc(NULL, size) is equivalent to malloc(size), so there's no
             # problem if cols and argsort weren't allocated before.
-            self.size = size if size > self.size else self.size
+            realloc_size = size if size > self.size else self.size
             with gil:
-                self.argsort = (
+                realloc_argsort = (
                     <base.idxint **>
-                    mem.PyMem_Realloc(self.argsort, self.size * sizeof(base.idxint *))
+                    mem.PyMem_Realloc(self.argsort, realloc_size * sizeof(base.idxint *))
                 )
+                if realloc_argsort == NULL:
+                    raise MemoryError
+
+                self.argsort = realloc_argsort
+                self.size = realloc_size
+
         # We do the argsort with two levels of indirection to minimise memory
         # allocation and copying requirements when this function is being used
         # to assemble a CSR matrix under an operation which may change the
@@ -732,7 +748,7 @@ cpdef CSR from_dia(Dia matrix):
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
-) nogil:
+) noexcept nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset

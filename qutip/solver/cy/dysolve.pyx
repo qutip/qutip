@@ -1,8 +1,5 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 import numpy as np
-cimport cython
-from libc.math cimport fabs as abs
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex exp(double complex x)
@@ -46,66 +43,64 @@ cpdef complex cy_compute_integrals(
         by parts.
 
     """
-    return cy_compute_core(ws[1:], dt, a_tol, ws[0])
+    return _compute_integrals(ws, 0, 0., dt, a_tol)
 
 
-cdef complex cy_compute_core(
-    double[:] ws, double dt, double a_tol, double w0
-) noexcept nogil:
-    if ws.shape[0] == 0:
+# Recursion helpers work on the effective omega array
+# [ws[s] + carry, ws[s + 1], ..., ws[-1]], so no sub-array is ever copied.
+cdef complex _compute_integrals(double[:] ws, Py_ssize_t s, double carry, double dt, double a_tol) noexcept nogil:
+    cdef double w0 = ws[s] + carry
+    if s == ws.shape[0] - 1:
         if abs(w0) < a_tol:
             return dt
-        else:
-            return (-1.j / w0) * (exp(1j * w0 * dt) - 1.)
-    else:
-        if abs(w0) < a_tol:
-            return cy_compute_tn_integrals(ws, 1, dt, a_tol, 0.)
-        else:
-            return (-1j / w0) * (
-                cy_compute_core(ws[1:], dt, a_tol, w0 + ws[0])
-                - cy_compute_core(ws[1:], dt, a_tol, ws[0])
-            )
+        return (-1.j / w0) * (exp(1j * w0 * dt) - 1.)
+
+    if abs(w0) < a_tol:
+        return cy_compute_tn_integrals(ws, s + 1, 0., 1, dt, a_tol)
+
+    return (-1j / w0) * (
+        _compute_integrals(ws, s + 1, w0, dt, a_tol)
+        - _compute_integrals(ws, s + 1, 0., dt, a_tol)
+    )
 
 
-cdef complex cy_compute_tn_integrals(
-    double[:] ws, int n, double dt, double a_tol, double cum_shift
-) noexcept nogil:
+cdef complex cy_compute_tn_integrals(double[:] ws, Py_ssize_t s, double carry, int n, double dt, double a_tol) noexcept nogil:
     """
-        Helper function to compute nested integrals when the function to
-        integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
-        some effective omegas are 0. In that case, the recursion differs a
-        bit from cy_compute_integrals().
+    Helper function to compute nested integrals when the function to
+    integrate is t^n/factorial(n) * exp(1j*omega*t). This happens when
+    some effective omegas are 0. In that case, the recursion differs a
+    bit from _compute_integrals(). See eq. (7) in Ref.
+
+    Note: Integrals are done analytically from right to left with integration
+    by parts.
     """
-    cdef complex factor, term1, term2, inv, acc
+    cdef complex factor, term1, term2
+    cdef double w0
     cdef int j
 
     if n == 0:
-        return cy_compute_core(ws[1:], dt, a_tol, ws[0] + cum_shift)
+        return _compute_integrals(ws, s, carry, dt, a_tol)
 
     if n == 20:
         # Max supported n, order of 1e-18
         return 0.
 
-    cdef double w0 = ws[0] + cum_shift
-
-    if ws.shape[0] == 1:
+    w0 = ws[s] + carry
+    if s == ws.shape[0] - 1:
         if abs(w0) < a_tol:
             return (dt ** (n + 1)) * inv_factorial[n + 1]
         else:
-            inv = (1j / w0)
-            acc = 1.
-            factor = -inv * exp(1j * w0 * dt)
+            factor = (-1j/w0) * exp(1j*w0*dt)
             term1 = 0
-            for j in range(n + 1):
-                term1 += acc * (dt**(n-j) * inv_factorial[n-j])
-                acc *= inv
-            term2 = acc
+            for j in range(n+1):
+                term1 += ((1j/w0)**j) * (dt**(n-j) * inv_factorial[n-j])
+            term2 = (1j / w0)**(n+1)
             return factor * term1 + term2
     else:
         if abs(w0) < a_tol:
-            return cy_compute_tn_integrals(ws[1:], n + 1, dt, a_tol, 0.)
+            return cy_compute_tn_integrals(ws, s + 1, 0., n + 1, dt, a_tol)
         else:
             factor = -1j / w0
-            term1 = cy_compute_tn_integrals(ws[1:], n, dt, a_tol, w0)
-            term2 = cy_compute_tn_integrals(ws, n - 1, dt, a_tol, cum_shift)
+            term1 = cy_compute_tn_integrals(ws, s + 1, w0, n, dt, a_tol)
+            term2 = cy_compute_tn_integrals(ws, s, carry, n - 1, dt, a_tol)
             return factor * (term1 - term2)
