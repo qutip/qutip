@@ -42,6 +42,7 @@ jobs:
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
         qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        conda-extra-pkgs: ['"pydiso>=0.3.1"']
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
@@ -80,7 +81,7 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-4
+          - case-name: version-4
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==2.1.*"
@@ -92,16 +93,14 @@ jobs:
             python-version: "3.11"
             numpy-run: "==2.0.*"
             scipy-run: "==1.13.*"
-            nomkl: 1
             qutip-optional: "[semidefinite]"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
-          - case-name: numpy fallback, nomkl
+          - case-name: numpy fallback
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
-            nomkl: 1
             qutip-optional: "[runtime_compilation,ipython,extras]"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
@@ -123,7 +122,6 @@ jobs:
           - case-name: macos - latest
             os: macos-latest
             python-version: "3.14"
-            nomkl: 1
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
@@ -133,12 +131,18 @@ jobs:
             numpy-build: "==2.0.*"
             numpy-run: "==1.25.*"
             scipy-run: "==1.16.*"
-            nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
+          - case-name: Windows
+            os: windows-latest
+            python-version: "3.14"
+            qutip-optional: "[graphics]"
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+
           # Test 1 recent and one old
           - case-name: Windows - latest - minimal install
             os: windows-11-arm
@@ -238,10 +242,12 @@ jobs:
           CORE_DEP="numpy${{ matrix.numpy-run }} scipy${{ matrix.scipy-run }}"
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
-          elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
           else
-            conda install nomkl $CORE_DEP
+            conda install $CORE_DEP
+          fi
+
+          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
           cp "${{ github.workspace }}"/qutip*.whl .
@@ -252,10 +258,6 @@ jobs:
 
           if [[ -n "${{ matrix.pypi-extra-pkgs }}" ]]; then
             python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
-          fi
-
-          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
-            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
       - name: Package information

@@ -1,0 +1,1 @@
+Migrates the wrapper around Intel's PARDISO solver to the usage of ``pydiso``. Adopts usage of ``csr_array`` in the HEOM solver.
