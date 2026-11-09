@@ -237,6 +237,25 @@ def test_solver_options(solver_matrix, scaling_vectors, weighted_matching):
         assert info["iparm"][12] == int(weighted_matching)
 
 
+@pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
+def test_max_iter_refine(solver_matrix, max_iter_refine):
+    """Ensures maximum number of iterative refinement steps were
+    set in the solver as expected."""
+    A, _, _ = solver_matrix
+    expected = np.array([1, 2, 3], dtype=A.dtype)
+    b = A @ expected
+
+    actual, info = mkl_spsolve(
+        scipy.sparse.csr_array(A),
+        b,
+        max_iter_refine=max_iter_refine,
+        return_info=True,
+    )
+
+    assert info["iparm"][7] == max_iter_refine
+    np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+
 class Test_spsolve_nonsymmetric:
 
     def test_nonsymmetric_random_input(
@@ -283,24 +302,6 @@ class Test_spsolve_nonsymmetric:
             A @ actual, b_dense, rtol=1e-10, atol=1e-12
         )
 
-    @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
-    def test_max_iter_refine(self, nonsymmetric_matrix, max_iter_refine):
-        """Ensures maximum number of iterative refinement steps were
-        set in the solver as expected."""
-        A, _, _ = nonsymmetric_matrix
-        expected = np.array([1, 2, 3], dtype=A.dtype)
-        b = A @ expected
-
-        actual, info = mkl_spsolve(
-            scipy.sparse.csr_array(A),
-            b,
-            max_iter_refine=max_iter_refine,
-            return_info=True,
-        )
-
-        assert info["iparm"][7] == max_iter_refine
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
-
     def test_matrix_type_correct(
         self, nonsymmetric_matrix_random, random_generator
     ):
@@ -346,24 +347,6 @@ class Test_spsolve_symmetric:
         b = A.full() @ x.full()
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
         np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
-
-    @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
-    def test_max_iter_refine(self, symmetric_matrix, max_iter_refine):
-        """Ensures maximum number of iterative refinement steps were
-        set in the solver as expected."""
-        A, _, _ = symmetric_matrix
-        expected = np.array([1, 2, 3], dtype=A.dtype)
-        b = A @ expected
-
-        actual, info = mkl_spsolve(
-            scipy.sparse.csr_array(A),
-            b,
-            max_iter_refine=max_iter_refine,
-            return_info=True,
-        )
-
-        assert info["iparm"][7] == max_iter_refine
-        np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
     def test_matrix_type_correct(
         self, symmetric_real_matrix_random, random_generator
