@@ -34,6 +34,7 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
         case-name: ["Latest"]
+        python-abi: ["python_abi=3.14=*_cp314"]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -262,7 +263,7 @@ jobs:
           fi
 
           if [[ -n "$CONDA_EXTRA_PKGS" ]]; then
-            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
+            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP ${{ matrix.python-abi }}
           fi
 
       - name: Package information
