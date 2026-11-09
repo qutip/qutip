@@ -38,10 +38,16 @@ def _prepare_pydiso_args(
     Notes
     -----
     QuTiP overrides the following iparm arguments:
-        - ``iparm[7]`` (maximum iterative refinement steps) is user-provided. Set via ``max_iterative_refinement_steps`` argument of MKLPardisoSolver
-        - ``iparm[23]`` (parallel factorization) is set to 1 via ``parallel_factorization=True`` argument of MKLPardisoSolver
-        - ``iparm[1]`` (fill-in reducing permutation) is set to 3 via ``fill_reducing_ordering`` argument of MKLPardisoSolver
-          - Note: if a user-defined permutation is passed via ``perm``, value for ``iparm[1]`` will be ignored in pydiso.
+        - ``iparm[7]`` (maximum iterative refinement steps) is user-provided.
+          Set via ``max_iterative_refinement_steps`` argument of
+          MKLPardisoSolver.
+        - ``iparm[23]`` (parallel factorization) is set to 1 via
+          ``parallel_factorization=True`` argument of MKLPardisoSolver.
+        - ``iparm[1]`` (fill-in reducing permutation) is set to 3 via
+          ``fill_reducing_ordering`` argument of MKLPardisoSolver.
+
+          - Note: if a user-defined permutation is passed via ``perm``,
+            value for ``iparm[1]`` will be ignored in pydiso.
 
     For non-Hermitian matrices, ``scaling_vectors`` and ``weighted_matching``
     control ``iparm[10]`` and ``iparm[12]`` through pydiso's ``scaling`` and
@@ -63,7 +69,9 @@ def _prepare_pydiso_args(
 class MKLFactorization:
     """Factorization of a sparse matrix using Intel oneMKL PARDISO.
 
-    This class adapts :class:`pydiso.mkl_solver.MKLPardisoSolver` to QuTiP's sparse-factorization interface. The factorization can be reused to solve systems with multiple right-hand sides.
+    This class adapts :class:`pydiso.mkl_solver.MKLPardisoSolver` to QuTiP's
+    sparse-factorization interface. The factorization can be reused to solve
+    systems with multiple right-hand sides.
 
     Parameters
     ----------
@@ -122,7 +130,8 @@ class MKLFactorization:
 
         if np.issubdtype(b.dtype, np.complexfloating) and not self._is_complex:
             raise TypeError(
-                "A real-valued factorization cannot solve a complex right-hand side. Factorize a complex-valued matrix instead."
+                "A real-valued factorization cannot solve a complex "
+                "right-hand side. Factorize a complex-valued matrix instead."
             )
 
         if b.dtype != self._dtype:
@@ -237,7 +246,9 @@ def mkl_splu(
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
     )
-    solver = MKLPardisoSolver(A, matrix_type=matrix_type, verbose=verbose, **iparms)
+    solver = MKLPardisoSolver(
+        A, matrix_type=matrix_type, verbose=verbose, **iparms
+    )
     _factor_time = time.perf_counter() - _factor_start
     return MKLFactorization(solver, matrix_type, data_type, _factor_time)
 
@@ -288,6 +299,7 @@ def mkl_spsolve(
     weighted_matching : bool, default: True
         Enable weighted matching for non-Hermitian matrices.
         Ignored when ``hermitian=True``.
+
     Returns
     -------
     x : ndarray, scipy.sparse.csr_matrix or scipy.sparse.csr_array
