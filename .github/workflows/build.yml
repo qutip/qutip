@@ -101,6 +101,32 @@ jobs:
           if-no-files-found: error
 
 
+  test_sdist:
+    name: Test source installation on Python 3.15
+    needs: build_sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.15"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: sdist
+          path: dist
+
+      - name: Install from source distribution
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-rerunfailures
+          python -m pip install dist/*.tar.gz
+
+      - name: Test installed package
+        working-directory: ${{ runner.temp }}
+        run: python -m pytest --pyargs qutip
+
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     needs: deploy_test
@@ -168,7 +194,7 @@ jobs:
 
   deploy:
     name: "Deploy to PyPI if desired"
-    needs: [deploy_test, build_sdist, build_wheels, build_pyodide]
+    needs: [deploy_test, build_sdist, test_sdist, build_wheels, build_pyodide]
     runs-on: ubuntu-latest
     env:
       TWINE_USERNAME: __token__
