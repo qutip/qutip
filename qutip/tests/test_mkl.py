@@ -119,8 +119,8 @@ def _symmetric_matrix(dtype, posdef):
 
 @pytest.fixture(
     params=[
-        pytest.param((True,), id="real-symmetric-posdef"),
-        pytest.param((False,), id="real-symmetric-indef"),
+        pytest.param(True, id="real-symmetric-posdef"),
+        pytest.param(False, id="real-symmetric-indef"),
     ]
 )
 def symmetric_real_matrix_random(request, random_generator):
@@ -272,78 +272,77 @@ def test_matrix_type_correct(solver_matrix):
     assert info["MatrixType"] == expected
 
 
-class Test_spsolve_nonsymmetric:
 
-    def test_nonsymmetric_random_input(
-        self, nonsymmetric_matrix_random, random_generator
-    ):
-        """Tests the solver on non-symmetric matrices (real- and complex-valued),
-        left- and right-hand sides are randomized."""
-        A, hermitian, posdef, N = nonsymmetric_matrix_random
-        x = random_generator.standard_normal(N)
-        b = A @ x
-        actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
-    
-    # todo: add a test: posdef matrix with posdef=False (default value)
-    def test_posdef_ignored_for_nonhermitian_input(
-        self, nonsymmetric_matrix, rhs
-    ):
-        """Ensures that the solution of the sparse solver is still correct despite
-        posdef solver argument having a wrong value.
-        Checks that the matrix type is determined
-        correctly nevertheless."""
-        A, hermitian, posdef = nonsymmetric_matrix
-        # Choose RHS of a value type matching to A
-        b = rhs(A.dtype)
-        # RHS must be dense for SciPy's solver
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+def test_spsolve_nonsymmetric_random_input(
+    nonsymmetric_matrix_random, random_generator
+):
+    """Tests the solver on non-symmetric matrices (real- and complex-valued),
+    left- and right-hand sides are randomized."""
+    A, hermitian, posdef, N = nonsymmetric_matrix_random
+    x = random_generator.standard_normal(N)
+    b = A @ x
+    actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+    np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
 
-        # Solve linear system
-        x, info = mkl_spsolve(
-            A,
-            b,
-            hermitian=hermitian,
-            posdef=True,  # Deliberately inconsistent with the input
-            return_info=True,
-        )
-        # For comparison with SciPy output,
-        # convert to dense in case the sparse solver returned sparse solution
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        assert not posdef
-        # Ensure the solver inferred the matrix type correctly based on provided solver args
-        assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
-        # Ensure the linear system holds
-        np.testing.assert_allclose(
-            A @ actual, b_dense, rtol=1e-10, atol=1e-12
-        )
+# todo: add a test: posdef matrix with posdef=False (default value)
+def test_spsolve_posdef_ignored_for_nonhermitian_input(
+    nonsymmetric_matrix, rhs
+):
+    """Ensures that the solution of the sparse solver is still correct despite
+    posdef solver argument having a wrong value.
+    Checks that the matrix type is determined
+    correctly nevertheless."""
+    A, hermitian, posdef = nonsymmetric_matrix
+    # Choose RHS of a value type matching to A
+    b = rhs(A.dtype)
+    # RHS must be dense for SciPy's solver
+    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
 
-class Test_spsolve_symmetric:
+    # Solve linear system
+    x, info = mkl_spsolve(
+        A,
+        b,
+        hermitian=hermitian,
+        posdef=True,  # Deliberately inconsistent with the input
+        return_info=True,
+    )
+    # For comparison with SciPy output,
+    # convert to dense in case the sparse solver returned sparse solution
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    assert not posdef
+    # Ensure the solver inferred the matrix type correctly based on provided solver args
+    assert info["MatrixType"] == (13 if A.dtype == np.complex128 else 11)
+    # Ensure the linear system holds
+    np.testing.assert_allclose(
+        A @ actual, b_dense, rtol=1e-10, atol=1e-12
+    )
 
-    def test_real_symmetric_random_input(
-        self, symmetric_real_matrix_random, random_generator
-    ):
-        A, N, posdef, hermitian = symmetric_real_matrix_random
-        x = random_generator.standard_normal(N)
-        b = A @ x
-        actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
 
-    def test_hermitian_random_input(self, random_generator):
-        """Tests the solver on symmetric matrices (complex-valued),
-        left- and right-hand sides are randomized."""
-        N = 10
-        A = qutip.rand_herm(
-            N,
-            density=0.8,
-            dtype="csr",
-            distribution="pos_def",
-            seed=random_generator,
-        )
-        x = qutip.rand_ket(N, seed=random_generator)
-        b = A.full() @ x.full()
-        actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
-        np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
+def test_spsolve_real_symmetric_random_input(
+    symmetric_real_matrix_random, random_generator
+):
+    A, N, posdef, hermitian = symmetric_real_matrix_random
+    x = random_generator.standard_normal(N)
+    b = A @ x
+    actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+    np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
+
+def test_spsolve_hermitian_random_input(random_generator):
+    """Tests the solver on symmetric matrices (complex-valued),
+    left- and right-hand sides are randomized."""
+    N = 10
+    A = qutip.rand_herm(
+        N,
+        density=0.8,
+        dtype="csr",
+        distribution="pos_def",
+        seed=random_generator,
+    )
+    x = qutip.rand_ket(N, seed=random_generator)
+    b = A.full() @ x.full()
+    actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
+    np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
+
 
 class Test_splu:
 
