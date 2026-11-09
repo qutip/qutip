@@ -63,9 +63,10 @@ jobs:
             # Both mpich and openmpi version 4 have caused problems in the past
             # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
             # version of mpi4py are currently only available on conda-forge:
-            conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
+            conda-extra-pkgs: '"openmpi>=5.0" mpi4py "pydiso>=0.3.1"'
 
           - case-name: no conda, version-2
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.14"
             numpy-run: "==2.3.*"
@@ -74,6 +75,7 @@ jobs:
             pypi: 1
 
           - case-name: version-3
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-24.04-arm
             python-version: "3.13"
             numpy-run: "==2.2.*"
@@ -82,6 +84,7 @@ jobs:
             pypi: 1
 
           - case-name: version-4
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==2.1.*"
@@ -89,6 +92,7 @@ jobs:
             qutip-optional: "[graphics]"
 
           - case-name: version-5
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.11"
             numpy-run: "==2.0.*"
@@ -97,6 +101,7 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: numpy fallback
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==1.26.*"
@@ -105,6 +110,7 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: Oldest officially supported
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.11"
             numpy-build: "==2.0.*"
@@ -153,6 +159,7 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
 
           - case-name: Windows - numpy fallback
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: windows-latest
             python-version: "3.11"
             numpy-build: "==2.0.*"
