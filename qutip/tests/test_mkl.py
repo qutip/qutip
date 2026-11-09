@@ -213,6 +213,25 @@ def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
     actual = x.toarray() if scipy.sparse.issparse(x) else x
     np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
+@pytest.mark.parametrize(
+    "dia_type",
+    [scipy.sparse.dia_matrix, scipy.sparse.dia_array],
+    ids=["dia-matrix", "dia-array"],
+)
+def test_spsolve_dia_input(solver_matrix, dia_type):
+    """Check that he wrapper accepts Dia input and converts it for MKL."""
+    A, hermitian, posdef = solver_matrix
+    A = dia_type(A)
+    expected = np.array([1, -2, 3], dtype=A.dtype)
+    b = A @ expected
+
+    actual = mkl_spsolve(
+        A, b, hermitian=hermitian, posdef=posdef
+    )
+
+    np.testing.assert_allclose(
+        actual, expected, rtol=1e-10, atol=1e-12
+    )
 
 @pytest.mark.parametrize("scaling_vectors", [False, True])
 @pytest.mark.parametrize("weighted_matching", [False, True])
@@ -388,7 +407,6 @@ def test_splu_faulty_coeff_matrix_rejection():
     A = scipy.sparse.csc_array(np.ones((3, 3)))
     with pytest.raises(TypeError, match="CSR"):
         mkl_splu(A)
-
 
 def test_splu_complex_rhs_with_real_factorisation():
     A = scipy.sparse.csr_array(np.eye(3))
