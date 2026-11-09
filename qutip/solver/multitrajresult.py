@@ -869,15 +869,15 @@ class MultiTrajResult(_BaseResult):
         all_keys = list(self.average_e_data.keys())
         if which is None:
             keys = all_keys
+        elif which in all_keys:
+            keys = [which]
+        elif isinstance(which, int):
+            keys = [all_keys[which]]
         else:
-            if isinstance(which, (str, int)):
-                which = [which]
-            keys = []
-            for item in which:
-                if item in all_keys:
-                    keys.append(item)
-                else:
-                    keys.append(keys[item])
+            keys = [
+                (item if item in all_keys else all_keys[item])
+                for item in which
+            ]
 
         if not keys:
             raise ValueError(

@@ -655,6 +655,28 @@ class TestResultPlotExpect:
         texts = [line.get_color() for line in axes.get_lines()]
         assert texts == ["r", "g"]
 
+    def test_fancy_e_ops_keys(self):
+        a = qutip.destroy(5)
+        result = _make_plot_result({
+            (): a.dag() * a,
+            10: a.dag() * a,
+            None: a.dag() * a,
+        })
+        # Empty tuple is a keys
+        fig, axes = result.plot_expect(which=())
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=((), None))
+        assert len(axes.get_lines()) == 2
+        fig, axes = result.plot_expect(which=10)
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=(None, 0, 1, 2))
+        assert len(axes.get_lines()) == 4
+        # None default to all take priority
+        fig, axes = result.plot_expect(which=None)
+        assert len(axes.get_lines()) == 3
+        # Can repeat which.
+        fig, axes = result.plot_expect(which=[0] * 10, separate_axes=True)
+        assert len(axes) == 10
 
 @pytest.mark.usefixtures("_close_figures")
 class TestMcResultPlotExpect:
@@ -812,6 +834,29 @@ class TestMcResultPlotExpect:
         result = self._run_mc()
         fig, axes = result.plot_expect(show_legend=False)
         assert axes.get_legend() is None
+
+    def test_fancy_e_ops_keys(self):
+        a = qutip.destroy(3)
+        result = self._run_mc(e_ops = {
+            (): a.dag() * a,
+            10: a.dag() * a,
+            None: a.dag() * a,
+        })
+        # Empty tuple is a keys
+        fig, axes = result.plot_expect(which=())
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=((), None))
+        assert len(axes.get_lines()) == 2
+        fig, axes = result.plot_expect(which=10)
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=(None, 0, 1, 2))
+        assert len(axes.get_lines()) == 4
+        # None default to all take priority
+        fig, axes = result.plot_expect(which=None)
+        assert len(axes.get_lines()) == 3
+        # Can repeat which
+        fig, axes = result.plot_expect(which=[0] * 10, separate_axes=True)
+        assert len(axes) == 10
 
 
 @pytest.mark.usefixtures("_close_figures")
