@@ -395,7 +395,7 @@ class Result(_BaseResult):
             when *e_ops* was passed as a ``dict``, otherwise
             ``"e_ops[0]"``, ``"e_ops[1]"``, …).
 
-        colors : list of color, optional
+        colors : list of colors, optional
             One color per plotted expectation value. Used consistently for
             the average, error bar, band and percentile lines. Default: the
             matplotlib cycle (``C0``, ``C1``, ...).

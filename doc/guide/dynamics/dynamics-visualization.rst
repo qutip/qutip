@@ -131,7 +131,7 @@ trajectories with :meth:`~qutip.solver.MultiTrajResult.plot_expect`:
     result.plot_expect(show_error_bar=True)
 
 
-Error bar are the error on the average, not the spread of individual trajectories.
+Each error bars is the error of the average, not the spread of individual trajectories.
 
 Individual trajectories can be overlaid on the average.  This requires
 ``keep_runs_results=True``:
