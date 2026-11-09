@@ -284,7 +284,19 @@ def test_spsolve_nonsymmetric_random_input(
     actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
     np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
 
-# todo: add a test: posdef matrix with posdef=False (default value)
+@pytest.mark.parametrize("dtype", [np.float64, np.complex128], ids=["real", "complex"])
+def test_spsolve_posdef_matrix_with_default_posdef(dtype, rhs):
+    """A positive-definite matrix can be solved with the default posdef flag."""
+    A, hermitian, _ = _symmetric_matrix(dtype, True)
+    b = rhs(A.dtype)
+    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+    x, info = mkl_spsolve(A, b, hermitian=hermitian, return_info=True)
+    assert x.shape == b.shape
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    assert info["MatrixType"] == (-4 if dtype == np.complex128 else -2)
+    np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
+
+
 def test_spsolve_posdef_ignored_for_nonhermitian_input(
     nonsymmetric_matrix, rhs
 ):
