@@ -276,7 +276,9 @@ class Settings:
     def __str__(self) -> str:
         lines = ["Qutip settings:"]
         for attr in self.__dir__():
-            if not attr.startswith('_') and attr not in ["core", "compile"]:
+            if not attr.startswith('_') and attr not in [
+                "core", "compile", "mkl_lib_location"
+            ]:
                 lines.append(f"    {attr}: {self.__getattribute__(attr)}")
         lines.append(f"    compile: {self.compile.__repr__(full=False)}")
         return '\n'.join(lines)
