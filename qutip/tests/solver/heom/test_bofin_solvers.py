@@ -793,7 +793,7 @@ class TestHEOMSolver:
         if use_perm:
             # Ensure steady state solution is preserved despite reordering
             # Recompute without MKL (reference result)
-            rho_ref, ados_ref = hsolver.steady_state(use_mkl=False, mkl_perm=perm)
+            rho_ref, ados_ref = hsolver.steady_state(use_mkl=False)
             np.testing.assert_allclose(rho_final.full(), rho_ref.full(), rtol=1e-7, atol=1e-9)
             # Ensure the solution is returned in the original ordering via comparing ADOs
             for label in hsolver.ados.labels:
