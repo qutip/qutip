@@ -214,10 +214,11 @@ def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
     np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
 
-def _check_solver_options(matrix, scaling_vectors, weighted_matching):
-    # Helper function for test_solver_options tests;
-    # checks if scaling_vectors and weighted_matching arguments are set correctly in the solver
-    A, hermitian, posdef = matrix
+@pytest.mark.parametrize("scaling_vectors", [False, True])
+@pytest.mark.parametrize("weighted_matching", [False, True])
+def test_solver_options(solver_matrix, scaling_vectors, weighted_matching):
+    """Check the solver settings for scaling and weighted matching."""
+    A, hermitian, posdef = solver_matrix
     # Obtain RHS in a simple way; using `rhs` fixture would unflate number of tests unnecessarily
     expected = np.array([1, 2, 3], dtype=A.dtype)
 
@@ -280,17 +281,6 @@ class Test_spsolve_nonsymmetric:
         # Ensure the linear system holds
         np.testing.assert_allclose(
             A @ actual, b_dense, rtol=1e-10, atol=1e-12
-        )
-
-    @pytest.mark.parametrize("scaling_vectors", [False, True])
-    @pytest.mark.parametrize("weighted_matching", [False, True])
-    def test_solver_options(
-        self, nonsymmetric_matrix, scaling_vectors, weighted_matching
-    ):
-        """Ensures scaling vectors and weighted matching arguments of the solver are
-        set as expected."""
-        _check_solver_options(
-            nonsymmetric_matrix, scaling_vectors, weighted_matching
         )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
@@ -356,17 +346,6 @@ class Test_spsolve_symmetric:
         b = A.full() @ x.full()
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
         np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
-
-    @pytest.mark.parametrize("scaling_vectors", [False, True])
-    @pytest.mark.parametrize("weighted_matching", [False, True])
-    def test_solver_options(
-        self, symmetric_matrix, scaling_vectors, weighted_matching
-    ):
-        """Ensures scaling vectors and weighted matching arguments of the solver are
-        set as expected."""
-        _check_solver_options(
-            symmetric_matrix, scaling_vectors, weighted_matching
-        )
 
     @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
     def test_max_iter_refine(self, symmetric_matrix, max_iter_refine):
