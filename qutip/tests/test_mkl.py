@@ -256,6 +256,22 @@ def test_max_iter_refine(solver_matrix, max_iter_refine):
     np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 
+def test_matrix_type_correct(solver_matrix):
+    """Check the PARDISO matrix type inferred from the solver arguments."""
+    A, hermitian, posdef = solver_matrix
+    b = A @ np.ones(A.shape[0], dtype=A.dtype)
+    _, info = mkl_spsolve(
+        A, b, hermitian=hermitian, posdef=posdef, return_info=True
+    )
+    if hermitian:
+        expected = (4 if np.issubdtype(A.dtype, np.complexfloating) else 2)
+        if not posdef:
+            expected = -expected
+    else:
+        expected = 13 if np.issubdtype(A.dtype, np.complexfloating) else 11
+    assert info["MatrixType"] == expected
+
+
 class Test_spsolve_nonsymmetric:
 
     def test_nonsymmetric_random_input(
@@ -302,25 +318,6 @@ class Test_spsolve_nonsymmetric:
             A @ actual, b_dense, rtol=1e-10, atol=1e-12
         )
 
-    def test_matrix_type_correct(
-        self, nonsymmetric_matrix_random, random_generator
-    ):
-        """Ensures the solver inferred the PARDISO's mtype (matrix type) correctly w.r.t.
-        inputs and solver args."""
-        A, hermitian, posdef, N = nonsymmetric_matrix_random
-        x = random_generator.standard_normal(N)
-        b = A @ x
-        actual, info = mkl_spsolve(
-            A, b, hermitian=hermitian, posdef=posdef, return_info=True
-        )
-
-        if np.issubdtype(A.dtype, np.complexfloating):
-            expected = 13
-        else:
-            expected = 11
-        assert info["MatrixType"] == expected
-
-
 class Test_spsolve_symmetric:
 
     def test_real_symmetric_random_input(
@@ -347,31 +344,6 @@ class Test_spsolve_symmetric:
         b = A.full() @ x.full()
         actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
         np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
-
-    def test_matrix_type_correct(
-        self, symmetric_real_matrix_random, random_generator
-    ):
-        """Ensures the solver inferred the PARDISO's mtype (matrix type) correctly w.r.t.
-        inputs and solver args."""
-        A, N, posdef, hermitian = symmetric_real_matrix_random
-        x = random_generator.standard_normal(N)
-        b = A @ x
-        actual, info = mkl_spsolve(
-            A, b, hermitian=hermitian, posdef=posdef, return_info=True
-        )
-
-        if np.issubdtype(A.dtype, np.complexfloating):
-            if posdef:
-                expected = 4
-            else:
-                expected = -4
-        else:
-            if posdef:
-                expected = 2
-            else:
-                expected = -2
-        assert info["MatrixType"] == expected
-
 
 class Test_splu:
 
