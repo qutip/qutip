@@ -196,7 +196,7 @@ class StochasticResult(MultiTrajResult):
 
     @property
     def measurement(self) -> np.typing.NDArray[float]:
-        """
+        r"""
         Measurements for each trajectories and stochastic collapse operators:
 
             I(t) = \langle L + L^{\dagger} \rangle + \frac{dW}{dt}
