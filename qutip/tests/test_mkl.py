@@ -96,7 +96,10 @@ def symmetric_matrix(request):
     3. mtype = 4 - complex-valued Hermitian positive definite
     4. mtype = -4 - complex-valued Hermitian indefinite
     """
-    dtype, posdef = request.param
+    return _symmetric_matrix(*request.param)
+
+
+def _symmetric_matrix(dtype, posdef):
     hermitian = True
     is_complex = np.issubdtype(dtype, np.complexfloating)
     diagonal = [4.0, 4.0, 3.0] if posdef else [2.0, -2.0, 3.0]
@@ -159,7 +162,10 @@ def nonsymmetric_matrix(request):
     1. mtype = 11 - real-valued nonsymmetric
     2. mtype = 13 - complex-valued nonsymmetric
     """
-    dtype = request.param
+    return _nonsymmetric_matrix(request.param)
+
+
+def _nonsymmetric_matrix(dtype):
     hermitian = False
     posdef = False
 
@@ -173,6 +179,39 @@ def nonsymmetric_matrix(request):
     )
     assert not np.allclose(A, A.conj().T)
     return scipy.sparse.csr_array(A), hermitian, posdef
+
+
+@pytest.fixture(
+    params=[
+        pytest.param((dtype, hermitian, posdef), id=f"{name}-{kind}")
+        for dtype, name in [(np.float64, "real"), (np.complex128, "complex")]
+        for hermitian, posdef, kind in [
+            (False, False, "nonsymmetric"),
+            (True, True, "symmetric-posdef"),
+            (True, False, "symmetric-indef"),
+        ]
+    ]
+)
+def solver_matrix(request):
+    dtype, hermitian, posdef = request.param
+    if hermitian:
+        return _symmetric_matrix(dtype, posdef)
+    return _nonsymmetric_matrix(dtype)
+
+
+@pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
+def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
+    """Solve with different matrices and RHS formats, with and without a permutation."""
+    A, hermitian, posdef = solver_matrix
+    b = rhs(A.dtype)
+    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+    options = {}
+    if use_perm:
+        options["perm"] = random_generator.permutation(A.shape[0])
+    x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
+    assert x.shape == b.shape
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
 
 def _check_solver_options(matrix, scaling_vectors, weighted_matching):
@@ -198,20 +237,6 @@ def _check_solver_options(matrix, scaling_vectors, weighted_matching):
 
 
 class Test_spsolve_nonsymmetric:
-
-    @pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
-    def test_nonsymmetric(self, nonsymmetric_matrix, rhs, random_generator, use_perm):
-        """Solve with different RHS formats, with and without a permutation."""
-        A, hermitian, posdef = nonsymmetric_matrix
-        b = rhs(A.dtype)
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        options = {}
-        if use_perm:
-            options["perm"] = random_generator.permutation(A.shape[0])
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
-        assert x.shape == b.shape
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_random_input(
         self, nonsymmetric_matrix_random, random_generator
@@ -306,20 +331,6 @@ class Test_spsolve_nonsymmetric:
 
 
 class Test_spsolve_symmetric:
-
-    @pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
-    def test_symmetric(self, symmetric_matrix, rhs, random_generator, use_perm):
-        """Solve with different RHS formats, with and without a permutation."""
-        A, hermitian, posdef = symmetric_matrix
-        b = rhs(A.dtype)
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        options = {}
-        if use_perm:
-            options["perm"] = random_generator.permutation(A.shape[0])
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
-        assert x.shape == b.shape
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_real_symmetric_random_input(
         self, symmetric_real_matrix_random, random_generator
