@@ -186,9 +186,8 @@ def mkl_splu(
 
     Parameters
     ----------
-    A : scipy.sparse.csr_matrix/scipy.sparse.csr_array,
-        or scipy.sparse.dia_matrix/scipy.sparse.dia_array
-        Sparse input matrix in CSR or Dia format.
+    A : scipy.sparse matrix or array
+        Square coefficient matrix. CSR, CSC, and DIA formats are supported.
     perm : None, optional
         User-defined permutations.
     verbose : bool, default: False
@@ -261,9 +260,8 @@ def mkl_spsolve(
 
     Parameters
     ----------
-    A : scipy.sparse.csr_matrix/scipy.sparse.csr_array,
-        or scipy.sparse.dia_matrix/scipy.sparse.dia_array
-        Sparse input matrix in CSR or Dia format.
+    A : scipy.sparse matrix or array
+        Square coefficient matrix. CSR, CSC, and DIA formats are supported.
     b : array_like, scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Dense right-hand side with shape ``(n,)`` or ``(n, k)``
     perm : array_like, optional
