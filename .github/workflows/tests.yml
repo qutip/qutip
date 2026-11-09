@@ -75,7 +75,6 @@ jobs:
             pypi: 1
 
           - case-name: version-3
-            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-24.04-arm
             python-version: "3.13"
             numpy-run: "==2.2.*"
