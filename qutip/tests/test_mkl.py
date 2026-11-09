@@ -356,43 +356,43 @@ def test_spsolve_hermitian_random_input(random_generator):
     np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
 
 
-class Test_splu:
+def test_splu_nonsymmetric_repeated_vector_rhs(nonsymmetric_matrix):
+    """Tests reusing a factorisation of a non-symmetric matrix
+    for repeated solves of vector RHS."""
+    A, hermitian, posdef = nonsymmetric_matrix
+    N = np.array(
+        [
+            [3, 0, 1],
+            [0, 2, 0],
+            [0, 0, 0],
+        ],
+        dtype=A.dtype,
+    )
+    test_X = np.zeros((3, 3), dtype=A.dtype)
+    lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
+    for k in range(3):
+        x = lu.solve(N[:, k])
+        assert x.dtype == A.dtype
+        test_X[:, k] = x
+    expected_X = scipy.linalg.solve(A.toarray(), N)
+    np.testing.assert_allclose(test_X, expected_X)
 
-    def test_nonsymmetric_repeated_vector_rhs(self, nonsymmetric_matrix):
-        """Tests reusing a factorisation of a non-symmetric matrix
-        for repeated solves of vector RHS."""
-        A, hermitian, posdef = nonsymmetric_matrix
-        N = np.array(
-            [
-                [3, 0, 1],
-                [0, 2, 0],
-                [0, 0, 0],
-            ],
-            dtype=A.dtype,
-        )
-        test_X = np.zeros((3, 3), dtype=A.dtype)
-        lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
-        for k in range(3):
-            x = lu.solve(N[:, k])
-            assert x.dtype == A.dtype
-            test_X[:, k] = x
-        expected_X = scipy.linalg.solve(A.toarray(), N)
-        np.testing.assert_allclose(test_X, expected_X)
 
-    def test_faulty_coeff_matrix_rejection(self):
-        """Tests input validation w.r.t. coefficient matrix."""
-        # Dense matrix
-        A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        with pytest.raises(TypeError, match="sparse"):
-            mkl_splu(A)
-        # CSC instead of CSR
-        A = scipy.sparse.csc_array(np.ones((3, 3)))
-        with pytest.raises(TypeError, match="CSR"):
-            mkl_splu(A)
+def test_splu_faulty_coeff_matrix_rejection():
+    """Tests input validation w.r.t. coefficient matrix."""
+    # Dense matrix
+    A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    with pytest.raises(TypeError, match="sparse"):
+        mkl_splu(A)
+    # CSC instead of CSR
+    A = scipy.sparse.csc_array(np.ones((3, 3)))
+    with pytest.raises(TypeError, match="CSR"):
+        mkl_splu(A)
 
-    def test_complex_rhs_with_real_factorisation(self):
-        A = scipy.sparse.csr_array(np.eye(3))
-        lu = mkl_splu(A)
-        b = np.array([1, 2 + 1j, 3 + 4j])
-        with pytest.raises(TypeError, match="real-valued factorization"):
-            lu.solve(b)
+
+def test_splu_complex_rhs_with_real_factorisation():
+    A = scipy.sparse.csr_array(np.eye(3))
+    lu = mkl_splu(A)
+    b = np.array([1, 2 + 1j, 3 + 4j])
+    with pytest.raises(TypeError, match="real-valued factorization"):
+        lu.solve(b)
