@@ -199,38 +199,18 @@ def _check_solver_options(matrix, scaling_vectors, weighted_matching):
 
 class Test_spsolve_nonsymmetric:
 
-    def test_nonsymmetric(self, nonsymmetric_matrix, rhs):
-        """Tests the solver on non-symmetric matrices (real- and complex-valued)
-        combined with RHS of different shapes and value types."""
+    @pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
+    def test_nonsymmetric(self, nonsymmetric_matrix, rhs, random_generator, use_perm):
+        """Solve with different RHS formats, with and without a permutation."""
         A, hermitian, posdef = nonsymmetric_matrix
-        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        # Solve linear system
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        # Check if output shape matches input shape
+        options = {}
+        if use_perm:
+            options["perm"] = random_generator.permutation(A.shape[0])
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
         assert x.shape == b.shape
         actual = x.toarray() if scipy.sparse.issparse(x) else x
-        # Compare solutions of mkl pardiso and scipy
-        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
-
-    def test_nonsymmetric_with_perm(
-        self, nonsymmetric_matrix, rhs, random_generator
-    ):
-        """Ensures that supplying a user-defined permutation for a non-symmetric matrix
-        does not affect solution's correctness."""
-        A, hermitian, posdef = nonsymmetric_matrix
-        # Choose RHS of a value type matching to A
-        b = rhs(A.dtype)
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        # Create a non-trivial permutation
-        perm = random_generator.permutation(b_dense.shape[0])
-        # Solve linear system
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
-        # Check if output shape matches input shape
-        assert x.shape == b.shape
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        # Check if output shape matches input shape
         np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
     def test_nonsymmetric_random_input(
@@ -243,7 +223,8 @@ class Test_spsolve_nonsymmetric:
         b = A @ x
         actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
         np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
-
+    
+    # todo: add a test: posdef matrix with posdef=False (default value)
     def test_posdef_ignored_for_nonhermitian_input(
         self, nonsymmetric_matrix, rhs
     ):
@@ -326,35 +307,16 @@ class Test_spsolve_nonsymmetric:
 
 class Test_spsolve_symmetric:
 
-    def test_symmetric(self, symmetric_matrix, rhs):
-        """Tests the solver on symmetric matrices (real- and complex-valued,
-        positive definite and indefinite) combined with RHS of different shapes
-        and value types."""
+    @pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
+    def test_symmetric(self, symmetric_matrix, rhs, random_generator, use_perm):
+        """Solve with different RHS formats, with and without a permutation."""
         A, hermitian, posdef = symmetric_matrix
-        # Choose RHS of a value type matching to A
         b = rhs(A.dtype)
         b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        # Solve linear system
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-        # Check if output shape matches input shape
-        assert x.shape == b.shape
-        actual = x.toarray() if scipy.sparse.issparse(x) else x
-        np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
-
-    def test_symmetric_with_perm(
-        self, symmetric_matrix, rhs, random_generator
-    ):
-        """Ensures that supplying a user-defined permutation for a symmetric matrix
-        does not affect solution's correctness."""
-        A, hermitian, posdef = symmetric_matrix
-        # Choose RHS of a value type matching to A
-        b = rhs(A.dtype)
-        b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-        # Create a non-trivial permutation
-        perm = random_generator.permutation(b_dense.shape[0])
-        # Solve linear system
-        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, perm=perm)
-        # Check if output shape matches input shape
+        options = {}
+        if use_perm:
+            options["perm"] = random_generator.permutation(A.shape[0])
+        x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
         assert x.shape == b.shape
         actual = x.toarray() if scipy.sparse.issparse(x) else x
         np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
