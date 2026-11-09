@@ -230,6 +230,8 @@ jobs:
 
       - name: Install QuTiP and dependencies
         working-directory: ${{ runner.temp }}
+        env:
+          CONDA_EXTRA_PKGS: ${{ matrix.conda-extra-pkgs }}
         run: |
           # Install the extra requirement
           python -m pip install pytest pytest-rerunfailures
@@ -259,7 +261,7 @@ jobs:
             python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
           fi
 
-          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+          if [[ -n "$CONDA_EXTRA_PKGS" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
