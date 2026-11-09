@@ -92,7 +92,6 @@ jobs:
             qutip-optional: "[graphics]"
 
           - case-name: version-5
-            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.11"
             numpy-run: "==2.0.*"
@@ -110,7 +109,6 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: Oldest officially supported
-            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: ubuntu-latest
             python-version: "3.11"
             numpy-build: "==2.0.*"
@@ -159,7 +157,6 @@ jobs:
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
 
           - case-name: Windows - numpy fallback
-            conda-extra-pkgs: '"pydiso>=0.3.1"'
             os: windows-latest
             python-version: "3.11"
             numpy-build: "==2.0.*"
