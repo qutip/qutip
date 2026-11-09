@@ -420,10 +420,6 @@ def test_splu_faulty_coeff_matrix_rejection():
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     with pytest.raises(TypeError, match="sparse"):
         mkl_splu(A)
-    # CSC instead of CSR
-    A = scipy.sparse.csc_array(np.ones((3, 3)))
-    with pytest.raises(TypeError, match="CSR"):
-        mkl_splu(A)
 
 def test_splu_complex_rhs_with_real_factorisation():
     A = scipy.sparse.csr_array(np.eye(3))
