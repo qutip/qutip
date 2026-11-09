@@ -34,7 +34,6 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.14"]
         case-name: ["Latest"]
-        python-abi: ["python_abi=3.14=*_cp314"]
         numpy-build: [""]
         scipy-build: [""]
         cython-build: [""]
@@ -176,6 +175,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge
 
+      - name: Pin Python ABI
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: |
+          echo 'python_abi 3.14.* *_cp314' >> "$CONDA_PREFIX/conda-meta/pinned"
+
       - name: Install pip
         if: matrix.os != 'windows-11-arm'
         shell: bash -l {0}
@@ -263,7 +267,7 @@ jobs:
           fi
 
           if [[ -n "$CONDA_EXTRA_PKGS" ]]; then
-            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP ${{ matrix.python-abi }}
+            conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
       - name: Package information
