@@ -61,7 +61,7 @@ Environment settings
 
 
 MKL PARDISO availability
-------------------------
+========================
 
 QuTiP provides MKL PARDISO support through the optional ``pydiso`` package.
 
