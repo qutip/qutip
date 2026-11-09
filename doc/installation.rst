@@ -124,6 +124,30 @@ This will install the minimum set of dependences, but none of the optional packa
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
 
 
+.. _install-pydiso:
+
+Installing pydiso for Intel MKL PARDISO
+=====================================
+
+QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
+optional ``pydiso`` package. Intel MKL and ``pydiso`` are available only on
+supported x86-64 platforms.
+
+On a supported platform, the recommended installation method is to install
+``pydiso`` and MKL from conda-forge, with QuTiP installed in the same
+environment:
+
+.. code-block:: bash
+
+   conda install --channel conda-forge pydiso
+   python -m pip install qutip
+
+If you prefer installing ``pydiso`` from source, refer to the
+`pydiso source installation instructions <https://github.com/simpeg/pydiso/blob/main/README.md#installing-from-source>`_.
+
+See :ref:`steady-mkl` for checking availability and using the solver.
+
+
 .. _install-from-source:
 
 Installing from Source
