@@ -212,7 +212,7 @@ jobs:
       - name: Check wheels
         run: |
           ls -R wheels
-          if ! [[ $(ls wheels/*.whl | wc -l) == 30 ]]; then exit 1; fi
+          if ! [[ $(ls wheels/*.whl | wc -l) == 32 ]]; then exit 1; fi
           if ! ls wheels/*.tar.gz 1> /dev/null 2>&1; then exit 1; fi
           if ! ls wheels/*.zip 1> /dev/null 2>&1; then exit 1; fi
 
