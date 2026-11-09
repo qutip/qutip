@@ -83,6 +83,8 @@ setup = ["--vsenv"]
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
+test-groups = ["tests"]
+test-command = "python -m pytest --pyargs qutip"
 
 [tool.towncrier]
 directory = "doc/changes"
