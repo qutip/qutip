@@ -186,8 +186,9 @@ def mkl_splu(
 
     Parameters
     ----------
-    A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
-        Sparse input matrix in CSR format.
+    A : scipy.sparse.csr_matrix/scipy.sparse.csr_array,
+        or scipy.sparse.dia_matrix/scipy.sparse.dia_array
+        Sparse input matrix in CSR or Dia format.
     perm : None, optional
         User-defined permutations.
     verbose : bool, default: False
@@ -217,9 +218,9 @@ def mkl_splu(
         Returns object containing LU factorization with a
         solve method for solving with a given RHS vector.
     """
-    if not (sp.issparse(A) and A.format == "csr"):
-        raise TypeError("Input matrix must be in sparse CSR format.")
-
+    if not sp.issparse(A):
+        raise TypeError("Input matrix must be sparse.")
+    A = sp.csr_array(A)
     if not np.issubdtype(A.dtype, np.inexact):
         # Non-floating-point / complex values get converted to float64
         A = sp.csr_array(A, dtype=np.float64, copy=None)
@@ -260,8 +261,9 @@ def mkl_spsolve(
 
     Parameters
     ----------
-    A : scipy.sparse.csr_matrix or scipy.sparse.csr_array
-        Sparse input matrix.
+    A : scipy.sparse.csr_matrix/scipy.sparse.csr_array,
+        or scipy.sparse.dia_matrix/scipy.sparse.dia_array
+        Sparse input matrix in CSR or Dia format.
     b : array_like, scipy.sparse.csr_matrix or scipy.sparse.csr_array
         Dense right-hand side with shape ``(n,)`` or ``(n, k)``
     perm : array_like, optional
@@ -295,7 +297,6 @@ def mkl_spsolve(
         If b is a vector, then x is a vector of size A.shape[1]
         If b is a matrix, then x is a matrix of size (A.shape[1], b.shape[1])
     """
-    A = sp.csr_array(A)
     lu = mkl_splu(
         A,
         perm=perm,
