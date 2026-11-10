@@ -3,7 +3,8 @@ import scipy
 import pytest
 import qutip
 import warnings
-from qutip.solver.steadystate import _permute_rcm, _permute_wbm
+import unittest.mock
+from qutip.solver.steadystate import _permute_rcm, _permute_wbm, choose_dense_or_sparse
 import qutip.core.data as _data
 
 
@@ -259,6 +260,43 @@ def test_steadystate_fourier(sparse):
 
     np.testing.assert_allclose(average_ex, expect_ss, atol=1e-2)
     assert rho_ss.tr() == pytest.approx(1, abs=1e-15)
+
+
+def test_choose_dense_or_sparse():
+    # small system: dense matrix fits in memory
+    small = qutip.liouvillian(qutip.destroy(10), [qutip.destroy(10)])
+    assert choose_dense_or_sparse(small) == False
+
+    dense_L = small.to("dense")
+    assert choose_dense_or_sparse(dense_L) == False
+    
+    small = small.to("csr")
+    target = f"{choose_dense_or_sparse.__module__}._EIGEN_DENSE_MEMORY_LIMIT"
+
+    with unittest.mock.patch(target, 1):
+        result = choose_dense_or_sparse(small)
+        assert result == True
+
+
+def test_eigen_steadystate_is_valid():
+    N = 4
+    a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
+    sm = qutip.tensor(qutip.qeye(N), qutip.sigmam())
+    H = (
+        a.dag() * a
+        + 0.5 * qutip.tensor(qutip.qeye(N), qutip.sigmaz())
+        + 0.1 * (a.dag() * sm + a * sm.dag())
+    )
+    c_ops = [np.sqrt(0.05) * a, np.sqrt(0.02) * sm]
+
+    rho = qutip.steadystate(H, c_ops, method="eigen", sparse=None)
+    rho_direct = qutip.steadystate(H, c_ops, method="direct")
+    L = qutip.liouvillian(H, c_ops)
+
+    assert abs(rho.tr() - 1) < 1e-12
+    assert (rho - rho.dag()).norm("max") < 1e-10
+    assert (L * qutip.operator_to_vector(rho)).norm("max") < 1e-10
+    assert (rho - rho_direct).norm("max") < 1e-10
 
 
 def test_rcm():

@@ -11,6 +11,11 @@ from warnings import warn
 __all__ = ["steadystate", "steadystate_fourier", "steadystate_floquet", "pseudo_inverse"]
 
 
+# Estimated memory for a dense N×N complex128 matrix.
+# Above this limit, use the sparse eigensolver to avoid excessive memory use.
+_EIGEN_DENSE_MEMORY_LIMIT = 512 * 1024**2
+
+
 def _permute_wbm(L, b):
     perm = np.argsort(
         scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
@@ -103,9 +108,10 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     power_eps: double, default: 1e-15
         Small weight used in the "power" method.
 
-    sparse: bool, default: True
-        Whether to use the sparse eigen solver with the "eigen" method
-        (default sparse).  With "direct" and "power" method, when the solver is
+    sparse: bool or None, default: None
+        With the "eigen" method, "True" forces the sparse eigensolver, "False" forces
+        the dense eigensolver, and "None" selects automatically based on the datatype and
+        estimated memory cost. With "direct" and "power" method, when the solver is
         not specified, it is used to set whether "solve" or "spsolve" is
         used as default solver.
 
@@ -274,15 +280,29 @@ def _steadystate_direct(A: Qobj, weight: float, **kw):
     return Qobj(rho_ss, dims=A._dims[0].oper, isherm=True)
 
 
+def choose_dense_or_sparse(L):
+    """Choose the eigensolver based on representation and dense memory cost."""
+    if not isinstance(L.data, _data.CSR):
+        return False
+    dense_memory = L.shape[0] ** 2 * 16
+    return dense_memory > _EIGEN_DENSE_MEMORY_LIMIT
+
+
 def _steadystate_eigen(L, **kw):
+    sparse = kw.pop("sparse", None)
+    if sparse is None:
+        sparse = choose_dense_or_sparse(L)
     val, vec = (L.dag() @ L).eigenstates(
         eigvals=1,
         sort="low",
         # v4's implementation only uses sparse eigen solver
-        sparse=kw.pop("sparse", True)
+        sparse=sparse,
     )
     rho = vector_to_operator(vec[0])
-    return rho / rho.tr()
+    rho = rho / rho.tr()
+    if val[0] > settings.core["atol"] * max(1, L.norm("max")):
+        raise RuntimeError("Eigenvalue solver did not find a valid steady state.")
+    return rho
 
 
 def _steadystate_svd(L, **kw):
