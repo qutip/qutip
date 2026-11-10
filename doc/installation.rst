@@ -127,7 +127,7 @@ You can also install any more optional packages you want with ``conda install``,
 .. _install-pydiso:
 
 Installing pydiso for Intel MKL PARDISO
-=====================================
+=======================================
 
 QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
 optional ``pydiso`` package. Intel MKL and ``pydiso`` are available only on
