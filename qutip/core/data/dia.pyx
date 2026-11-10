@@ -251,6 +251,8 @@ cdef class Dia(base.Data):
 
     cdef bint _is_sorted(Dia mat):
         cdef base.idxint i
+        if mat.num_diag <= 1:
+            return True
         for i in range(mat.num_diag - 1):
             if mat.offsets[i] > mat.offsets[i + 1]:
                 return False
