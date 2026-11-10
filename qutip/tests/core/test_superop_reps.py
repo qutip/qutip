@@ -390,7 +390,7 @@ class TestSuperopReps:
         """
         Stinespring: channels whose input and output dimensions differ.
         """
-        chan = sum(sprepost(k, k.dag()) for k in kraus)
+        chan = sum(to_super(k) for k in kraus)
         out_dims, in_dims = chan.dims[0][0], chan.dims[1][0]
         A, B = to_stinespring(chan)
 
@@ -399,7 +399,7 @@ class TestSuperopReps:
         assert (A - B).norm() < tol
 
         state = rand_dm(in_dims, seed=1)
-        expected = vector_to_operator(chan * operator_to_vector(state))
+        expected = chan(state)
         result = (A * state * B.dag()).ptrace(list(range(len(out_dims))))
         assert (result - expected).norm('tr') <= tol
 
