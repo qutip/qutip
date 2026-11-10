@@ -131,7 +131,7 @@ jobs:
       - name: Install cibuildwheel
         run: |
           # cibuildwheel>= 4.3.1 is needed for Python 3.15
-          python -m pip install 'cibuildwheel>=4.3.1,<4.4'
+          python -m pip install 'cibuildwheel==4.3.*'
 
       - name: Build wheels
         shell: bash

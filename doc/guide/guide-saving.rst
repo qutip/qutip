@@ -38,7 +38,7 @@ We can for example store a list of density matrices as returned by :func:`.mesol
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
     >>> psi0 = rand_ket(10)
     >>> times = np.linspace(0, 10, 10)
-    >>> dm_list = mesolve(H, psi0, times, c_ops, [])
+    >>> dm_list = mesolve(H, psi0, times, c_ops)
     >>> qsave(dm_list, 'density_matrix_vs_time')
 
 And it can then be loaded and used again, for example in an other program ::

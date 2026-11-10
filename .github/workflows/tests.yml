@@ -139,7 +139,7 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          # Test recent and old Conda environments, plus native ARM with pip
+          # Conda environment with runtime compilation dependencies
           - case-name: Windows - latest - runtime compilation
             os: windows-latest
             python-version: "3.15"
@@ -147,15 +147,27 @@ jobs:
             # matplotlib not installed
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
-          - case-name: Windows ARM - latest - minimal install
-            os: windows-11-arm
+          # x64 pip environment without optional QuTiP extras
+          - case-name: Windows - latest - minimal install
+            os: windows-latest
             python-version: "3.15"
-            pypi: 1
             qutip-optional: ""
             no-conda: 1
+            pypi: 1
             # matplotlib not installed
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
+          # ARM pip environment without optional QuTiP extras
+          - case-name: Windows ARM - latest - minimal install
+            os: windows-11-arm
+            python-version: "3.15"
+            no-conda: 1
+            pypi: 1
+            qutip-optional: ""
+            # matplotlib not installed
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
+
+          # Conda: build against NumPy 2 and test against NumPy 1.26
           - case-name: Windows - numpy fallback
             os: windows-latest
             python-version: "3.11"
@@ -170,7 +182,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
         if: ${{ !matrix.no-conda }}
-        # Native Windows ARM uses setup-python below.
+        # Currently miniconda doesn't support Windows 11 ARM
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
