@@ -128,16 +128,18 @@ jobs:
 
 
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build cp${{ matrix.python }} wheels on ${{ matrix.os }}
     needs: deploy_test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         # Each os has two instruction set (x86, arm) that needs different build.
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
+        python: ["311", "312", "313", "314", "315"]
     env:
       # Set up wheels matrix.  This is CPython 3.11--3.15 for all OS targets.
-      CIBW_BUILD: "cp3{11,12,13,14,15}-*"
+      CIBW_BUILD: "cp${{ matrix.python }}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
@@ -168,7 +170,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}-cp${{ matrix.python }}
           path: ./wheelhouse/*.whl
 
 
