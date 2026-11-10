@@ -1,0 +1,1 @@
+Fixed ``rcsolve`` failing with a ``TypeError`` because it passed ``e_ops`` positionally to ``mesolve()`` instead of using a keyword argument.
