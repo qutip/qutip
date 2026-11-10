@@ -89,7 +89,7 @@ jobs:
 
           - case-name: version-5
             os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-run: "==2.0.*"
             scipy-run: "==1.13.*"
             nomkl: 1
@@ -107,14 +107,14 @@ jobs:
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             scipy-build: "==1.13.*"
             cython-build: "==3.0.*"
-            numpy-run: "==1.23.*"
+            numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
             qutip-optional: ""
-            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock matplotlib==3.9.*"
+            pypi-extra-pkgs: "cython==0.29.37 setuptools filelock matplotlib==3.9.*"
             pypi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
@@ -129,9 +129,9 @@ jobs:
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
-            numpy-run: "==1.25.*"
+            numpy-run: "==1.26.*"
             scipy-run: "==1.16.*"
             nomkl: 1
             qutip-optional: "[ipython,extras]"
@@ -170,7 +170,7 @@ jobs:
           # Conda: build against NumPy 2 and test against NumPy 1.26
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
