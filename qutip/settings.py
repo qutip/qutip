@@ -188,7 +188,10 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
-        self._mp_context = get_default_os_context()
+        if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
+            self._mp_context = multiprocessing.get_context('fork')
+        else:
+            self._mp_context = get_default_os_context()
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
