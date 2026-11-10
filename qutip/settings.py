@@ -170,17 +170,10 @@ def _find_mkl():
         return mkl_libs[0]
     return ""
 
-def get_context():
-    if sys.platform == 'darwin':
-        mp_context = multiprocessing.get_context('fork')
-    elif sys.platform == 'linux':
-        # forkserver would handle threads better, but is much slower at starting
-        # the executor and spawning tasks
-        mp_context = multiprocessing.get_context('fork')
-    else:
-        mp_context = multiprocessing.get_context()
-    return mp_context
 
+def get_default_os_context():
+    mp_context = multiprocessing.get_context()
+    return mp_context
 
 class Settings:
     """
@@ -195,7 +188,7 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
-        self._mp_context = get_context()
+        self._mp_context = get_default_os_context()
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False

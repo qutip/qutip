@@ -14,6 +14,9 @@ import concurrent.futures
 import warnings
 from qutip.ui.progressbar import progress_bars
 from qutip.settings import available_cpu_count
+import qutip.settings as settings
+
+mp_context = settings.mp_context
 
 if sys.platform == 'darwin':
     mp_context = multiprocessing.get_context('fork')
@@ -309,6 +312,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         list will be returned.
 
     """
+    if sys.platform in ("darwin", "linux"):
+        settings.mp_context = multiprocessing.get_context('fork')
+
+    ctx_kw = {"mp_context": settings.mp_context}
+
     if sys.platform == "emscripten":
         raise NotImplementedError(
             "parallel_map is not available on emscripten, use serial_map")
