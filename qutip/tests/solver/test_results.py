@@ -572,6 +572,8 @@ class TestResultPlotExpect:
         result = _make_plot_result([a.dag() * a, a + a.dag()])
         fig, axes = result.plot_expect()
         assert len(axes.get_lines()) == 2
+        fig, axes = result.plot_expect(which=0)
+        assert len(axes.get_lines()) == 1
 
     def test_auto_labels_from_list(self):
         a = qutip.destroy(5)
@@ -589,6 +591,11 @@ class TestResultPlotExpect:
         texts = [t.get_text() for t in axes.get_legend().get_texts()]
         assert "number" in texts
         assert "field" in texts
+
+        fig, axes = result.plot_expect(which="number")
+        texts = [t.get_text() for t in axes.get_legend().get_texts()]
+        assert "number" in texts
+        assert "field" not in texts
 
     def test_solver_name_as_title(self):
         a = qutip.destroy(5)
@@ -641,6 +648,35 @@ class TestResultPlotExpect:
         texts = [t.get_text() for t in axes.get_legend().get_texts()]
         assert texts == ["photon #", "quadrature"]
 
+    def test_colors(self):
+        a = qutip.destroy(5)
+        result = _make_plot_result([a.dag() * a, a + a.dag()])
+        fig, axes = result.plot_expect(colors=["r", "g"])
+        texts = [line.get_color() for line in axes.get_lines()]
+        assert texts == ["r", "g"]
+
+    def test_fancy_e_ops_keys(self):
+        a = qutip.destroy(5)
+        result = _make_plot_result({
+            (): a.dag() * a,
+            10: a.dag() * a,
+            None: a.dag() * a,
+        })
+        # Empty tuple is a keys
+        fig, axes = result.plot_expect(which=())
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=((), None))
+        assert len(axes.get_lines()) == 2
+        fig, axes = result.plot_expect(which=10)
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=(None, 0, 1, 2))
+        assert len(axes.get_lines()) == 4
+        # None default to all take priority
+        fig, axes = result.plot_expect(which=None)
+        assert len(axes.get_lines()) == 3
+        # Can repeat which.
+        fig, axes = result.plot_expect(which=[0] * 10, separate_axes=True)
+        assert len(axes) == 10
 
 @pytest.mark.usefixtures("_close_figures")
 class TestMcResultPlotExpect:
@@ -660,20 +696,42 @@ class TestMcResultPlotExpect:
         return qutip.mcsolve(**defaults)
 
     def test_average_only(self):
+        import matplotlib
         result = self._run_mc()
         fig, axes = result.plot_expect(
-            show_average=True, show_trajectories=0,
+            show_average=True,
+            show_trajectories=0,
+            show_std_band=True,
         )
         assert len(axes.get_lines()) == 1
+        assert any(
+            isinstance(coll, matplotlib.collections.PolyCollection)
+            for coll in axes.collections
+        )
+        assert not any(
+            isinstance(cont, matplotlib.container.ErrorbarContainer)
+            for cont in axes.containers
+        )  # No errorbar per default
 
     def test_trajectories_and_average(self):
+        import matplotlib
         result = self._run_mc(
             options={"keep_runs_results": True},
         )
         fig, axes = result.plot_expect(
-            show_average=True, show_trajectories=3,
+            show_average=True,
+            show_trajectories=3,
+            show_error_bar=True,
         )
-        assert len(axes.get_lines()) == 4
+        assert len(axes.get_lines()) == 1 + 3 + 1
+        assert any(
+            isinstance(cont, matplotlib.container.ErrorbarContainer)
+            for cont in axes.containers
+        )
+        assert not any(
+            isinstance(coll, matplotlib.collections.PolyCollection)
+            for coll in axes.collections
+        )  # No std band per default
 
     def test_trajectories_only(self):
         result = self._run_mc(
@@ -693,6 +751,34 @@ class TestMcResultPlotExpect:
         )
         assert len(axes.get_lines()) == 3
 
+    def test_percentile(self):
+        a = qutip.destroy(3)
+        result = self._run_mc(
+            ntraj=20,
+            options={"keep_runs_results": False},
+            e_ops=[a @ a.dag(), a.dag() @ a]
+        )
+        fig, axes = result.plot_expect(
+            which=[0],
+            show_average=True,
+            show_percentile=[0.2, 0.4, 0.7],
+        )
+        assert len(axes.get_lines()) == 4
+
+    def test_percentile_traj(self):
+        a = qutip.destroy(3)
+        result = self._run_mc(
+            ntraj=20,
+            options={"keep_runs_results": True},
+            e_ops=[a @ a.dag(), a.dag() @ a]
+        )
+        fig, axes = result.plot_expect(
+            show_average=True,
+            show_percentile=[0.2, 0.4, 0.7],
+            percentile_source="traj",
+        )
+        assert len(axes.get_lines()) == 8
+
     def test_nothing_to_plot_raises(self):
         result = self._run_mc()
         with pytest.raises(ValueError, match="Nothing to plot"):
@@ -711,20 +797,66 @@ class TestMcResultPlotExpect:
             options={"keep_runs_results": True},
         )
         fig, axes = result.plot_expect(
-            show_average=True, show_trajectories=2,
+            show_average=True,
+            show_trajectories=2,
+            show_percentile=[0.1, 0.9],
         )
         texts = [t.get_text() for t in axes.get_legend().get_texts()]
         assert any("(avg)" in t for t in texts)
         assert any("(traj)" in t for t in texts)
+        assert any("(percentiles)" in t for t in texts)
+        assert len(texts) == 3
 
     def test_dict_labels_mc(self):
         a = qutip.destroy(3)
         result = self._run_mc(
-            e_ops={"photons": a.dag() * a},
+            e_ops={"photons": a.dag() * a, "norm": qutip.qeye(3)},
         )
-        fig, axes = result.plot_expect()
+        fig, axes = result.plot_expect(which="photons")
         texts = [t.get_text() for t in axes.get_legend().get_texts()]
         assert texts == ["photons"]
+
+    def test_colors_and_labels(self):
+        a = qutip.destroy(3)
+        result = self._run_mc(
+            e_ops={"photons": a.dag() * a, "norm": a.dag() + a},
+        )
+        fig, axes = result.plot_expect(
+            labels=["photon #", "quadrature"],
+            colors=["g", "r"],
+        )
+        texts = [t.get_text() for t in axes.get_legend().get_texts()]
+        assert texts == ["photon #", "quadrature"]
+        colors = [t.get_color() for t in axes.get_lines()]
+        assert colors == ["g", "r"]
+
+    def test_legend_off(self):
+        result = self._run_mc()
+        fig, axes = result.plot_expect(show_legend=False)
+        assert axes.get_legend() is None
+
+    def test_fancy_e_ops_keys(self):
+        a = qutip.destroy(3)
+        result = self._run_mc(e_ops = {
+            (): a.dag() * a,
+            10: a.dag() * a,
+            None: a.dag() * a,
+        })
+        # Empty tuple is a keys
+        fig, axes = result.plot_expect(which=())
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=((), None))
+        assert len(axes.get_lines()) == 2
+        fig, axes = result.plot_expect(which=10)
+        assert len(axes.get_lines()) == 1
+        fig, axes = result.plot_expect(which=(None, 0, 1, 2))
+        assert len(axes.get_lines()) == 4
+        # None default to all take priority
+        fig, axes = result.plot_expect(which=None)
+        assert len(axes.get_lines()) == 3
+        # Can repeat which
+        fig, axes = result.plot_expect(which=[0] * 10, separate_axes=True)
+        assert len(axes) == 10
 
 
 @pytest.mark.usefixtures("_close_figures")
@@ -735,7 +867,7 @@ class TestMcResultPlotPhotocurrent:
         H = 2 * np.pi * qutip.num(3)
         psi0 = qutip.basis(3, 2)
         tlist = np.linspace(0, 0.5, 21)
-        c_ops = [0.5 * qutip.destroy(3)]
+        c_ops = [0.5 * qutip.destroy(3), 0.1 * qutip.create(3)]
         return qutip.mcsolve(H, psi0, tlist, c_ops, ntraj=5)
 
     def test_returns_fig_and_axes(self, plt):
@@ -746,9 +878,14 @@ class TestMcResultPlotPhotocurrent:
         assert isinstance(axes, matplotlib.axes.Axes)
 
     def test_one_line_per_c_op(self):
+        import matplotlib
         result = self._run_mc()
         fig, axes = result.plot_photocurrent()
-        assert len(axes.get_lines()) == 1
+        assert len(axes.get_lines()) == 2
+        assert not any(
+            isinstance(cont, matplotlib.container.ErrorbarContainer)
+            for cont in axes.containers
+        )  # No errorbar per default
 
     def test_correct_time_length(self):
         result = self._run_mc()
@@ -766,3 +903,46 @@ class TestMcResultPlotPhotocurrent:
         fig_in, ax_in = plt.subplots()
         fig_out, ax_out = result.plot_photocurrent(axes=ax_in)
         assert ax_out is ax_in
+
+    def test_error_bars(self):
+        import matplotlib
+        result = self._run_mc()
+        fig, axes = result.plot_photocurrent(which=0, show_error_bar=True)
+        assert any(
+            isinstance(cont, matplotlib.container.ErrorbarContainer)
+            for cont in axes.containers
+        )
+        assert len(axes.get_lines()) == 2  # data + error bar
+
+    def test_trajectories(self):
+        result = self._run_mc()
+        fig, axes = result.plot_photocurrent(which=[0], show_trajectories=3)
+        assert len(axes.get_lines()) == 4
+        fig, axes = result.plot_photocurrent(which=0, show_trajectories=100)
+        assert len(axes.get_lines()) == 6
+
+    def test_legend_off(self):
+        result = self._run_mc()
+        fig, axes = result.plot_photocurrent(show_legend=False)
+        assert axes.get_legend() is None
+
+    def test_colors_and_labels(self):
+        result = self._run_mc()
+        fig, axes = result.plot_photocurrent(
+            labels=["destroy", "create"],
+            colors=["r", "g"],
+        )
+        texts = [t.get_text() for t in axes.get_legend().get_texts()]
+        assert texts == ["destroy", "create"]
+        colors = [t.get_color() for t in axes.get_lines()]
+        assert colors == ["r", "g"]
+
+    def test_violin_plot(self):
+        import matplotlib.collections as collections
+        result = self._run_mc()
+        fig, axes = result.plot_photocurrent(show_violin=True)
+        assert len([
+            1
+            for coll in axes.collections
+            if isinstance(coll, collections.PolyCollection)
+        ])

@@ -364,14 +364,16 @@ class Result(_BaseResult):
     def plot_expect(
         self,
         *,
-        fig=None,
-        axes=None,
-        labels=None,
-        title=None,
-        xlabel="Time",
-        ylabel="Expectation value",
-        show_legend=True,
-        separate_axes=False,
+        fig: Figure | None = None,
+        axes: Axes | Sequence[Axes] | None = None,
+        which: str | int | Sequence[str | int] | None = None,
+        labels: Sequence[str] | None = None,
+        colors: Sequence[ColorType] | None = None,
+        title: str | None = None,
+        xlabel: str = "Time",
+        ylabel: str = "Expectation value",
+        show_legend: bool = True,
+        separate_axes: bool = False,
         **plot_kwargs,
     ):
         """
@@ -379,13 +381,13 @@ class Result(_BaseResult):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure, optional
-            User-provided figure. If ``None`` and *axes* is also ``None``,
-            a new figure is created.
+        fig, axes : matplotlib Figure / Axes, optional
+            User-provided figure and/or axes. With ``separate_axes=True``,
+            ``axes`` must contain one Axes per plotted expectation value.
 
-        axes : matplotlib.axes.Axes, optional
-            User-provided axes. If ``None`` and *fig* is also ``None``,
-            new axes are created.
+        which : key, int or list of these, optional
+            Subset of the ``e_ops`` to plot, given by their key (for dict
+            ``e_ops``) or their position. Default: all.
 
         labels : list of str, optional
             Labels for each expectation-value curve. When ``None``, labels
@@ -393,22 +395,27 @@ class Result(_BaseResult):
             when *e_ops* was passed as a ``dict``, otherwise
             ``"e_ops[0]"``, ``"e_ops[1]"``, …).
 
+        colors : list of colors, optional
+            One color per plotted expectation value. Used consistently for
+            the average, error bar, band and percentile lines. Default: the
+            matplotlib cycle (``C0``, ``C1``, ...).
+
         title : str, optional
             Title for the plot. When ``None``, the solver name stored in
             the result is used.
 
-        xlabel : str, optional
-            Label for the *x*-axis. Default ``"Time"``.
+        xlabel : str, default: "Time"
+            Label for the *x*-axis.
 
-        ylabel : str, optional
-            Label for the *y*-axis. Default ``"Expectation value"``.
+        ylabel : str, default: "Expectation value"
+            Label for the *y*-axis.
 
-        show_legend : bool, optional
-            Whether to display the legend. Default ``True``.
+        show_legend : bool, default: True
+            Whether to display the legend.
 
-        separate_axes : bool, optional
+        separate_axes : bool, default: False
             If ``True``, each expectation value is plotted in its own
-            subplot. Default ``False``.
+            subplot.
 
         **plot_kwargs
             Additional keyword arguments forwarded to
@@ -427,85 +434,60 @@ class Result(_BaseResult):
         ValueError
             If no expectation-value data is available.
         """
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError as err:
-            raise ImportError(
-                "matplotlib is required for plotting. "
-                "Install it with:  pip install matplotlib"
-            ) from err
+        all_keys = list(self.e_data.keys())
+        if which is None:
+            keys = all_keys
+        elif which in all_keys:
+            keys = [which]
+        elif isinstance(which, int):
+            keys = [all_keys[which]]
+        else:
+            keys = [
+                (item if item in all_keys else all_keys[item])
+                for item in which
+            ]
 
-        if not self.e_data:
+        if not keys:
             raise ValueError(
                 "No expectation-value data to plot. "
                 "Ensure that e_ops were supplied to the solver."
             )
 
+        n_curves = len(keys)
+
         if labels is None:
             labels = [
-                key if isinstance(key, str) else f"e_ops[{key}]"
-                for key in self.e_data.keys()
+                k if isinstance(k, str) else f"e_ops[{k}]" for k in keys
             ]
-
-        n_e_ops = len(self.expect)
-
+        if len(labels) != n_curves:
+            raise ValueError("`labels` must have one entry per curve")
+        if colors is None:
+            colors = [f"C{i % 10}" for i in range(n_curves)]
+        if len(colors) != n_curves:
+            raise ValueError("`colors` must have one entry per curve")
         if title is None:
             title = self.solver
 
-        if separate_axes:
-            custom_axes = True
-            if fig is None and axes is None:
-                fig, axes = plt.subplots(
-                    n_e_ops, 1, sharex=True,
-                    figsize=(6, 3 * n_e_ops),
-                    squeeze=False,
-                )
-                axes = axes.flatten()
-                custom_axes = False
-            elif axes is None:
-                axes = np.array([
-                    fig.add_subplot(n_e_ops, 1, i + 1)
-                    for i in range(n_e_ops)
-                ])
-                custom_axes = False
-            elif fig is None:
-                if not hasattr(axes, '__len__'):
-                    axes = np.array([axes])
-                fig = axes[0].get_figure()
+        fig, axes, panels, owned = _prepare_axes(
+            fig, axes, n_curves, separate_axes
+        )
 
-            for ax, expectation, label in zip(axes, self.expect, labels):
-                ax.plot(
-                    self.times, expectation, label=label, **plot_kwargs
-                )
-                ax.set_ylabel(ylabel)
-                if show_legend:
-                    ax.legend()
-                if custom_axes:
-                    ax.set_xlabel(xlabel)
-                    ax.set_title(title)
-            if not custom_axes:
-                axes[0].set_title(title)
-                axes[-1].set_xlabel(xlabel)
+        for key, label, color, ax in zip(keys, labels, colors, panels):
 
-        else:
-            if fig is None and axes is None:
-                fig, axes = plt.subplots()
-            elif axes is None:
-                axes = fig.add_subplot(111)
-            elif fig is None:
-                fig = axes.get_figure()
+            ax.plot(
+                self.times, self.e_data[key], label=label,
+                **{"color": color, **plot_kwargs}
+            )
 
-            for label, expectation in zip(labels, self.expect):
-                axes.plot(
-                    self.times, expectation, label=label, **plot_kwargs
-                )
-
-            axes.set_xlabel(xlabel)
-            axes.set_ylabel(ylabel)
-            axes.set_title(title)
-
-            if show_legend:
-                axes.legend()
+        _decorate_panels(
+            panels,
+            owned,
+            separate_axes,
+            title=title,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            show_legend=show_legend
+        )
 
         return fig, axes
 
@@ -520,3 +502,74 @@ class Result(_BaseResult):
         if self.states:
             return self.states[-1]
         return None
+
+
+def _prepare_axes(fig, axes, n_plots, separate_axes):
+    """
+    Create or validate the matplotlib figure / axes.
+
+    Returns
+    -------
+    fig, axes, panels, owned
+        ``panels`` is a list of length ``n_plots`` giving, for each curve, the
+        Axes it is drawn on (all the same Axes when ``separate_axes=False``).
+        ``owned`` is True when the axes were created here, in which case only
+        the first/last panel get a title / x-label.
+    """
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as err:
+        raise ImportError(
+            "matplotlib is required for plotting. "
+            "Install it with:  pip install matplotlib"
+        ) from err
+
+    owned = axes is None
+
+    if not separate_axes:
+        if fig is None and axes is None:
+            fig, axes = plt.subplots()
+        elif axes is None:
+            axes = fig.add_subplot(111)
+        elif fig is None:
+            fig = axes.get_figure()
+        return fig, axes, [axes] * n_plots, owned
+
+    if fig is None and axes is None:
+        fig, axes = plt.subplots(
+            n_plots, 1, sharex=True, figsize=(6, 3 * n_plots), squeeze=False,
+        )
+        panels = list(axes.ravel())
+    elif axes is None:
+        panels = [fig.add_subplot(n_plots, 1, i + 1) for i in range(n_plots)]
+        axes = panels
+    else:
+        panels = list(np.asarray(axes, dtype=object).ravel())
+        if len(panels) < n_plots:
+            raise ValueError(
+                f"separate_axes=True needs {n_plots} axes, "
+                f"got {len(panels)}."
+            )
+        if fig is None:
+            fig = panels[0].get_figure()
+    return fig, axes, panels[:n_plots], owned
+
+
+def _decorate_panels(
+    panels, owned, separate, *, title, xlabel, ylabel, show_legend
+):
+    """Set title / axis labels. Shared by all multi-trajectory plots."""
+    unique = list(dict.fromkeys(panels))
+    for ax in unique:
+        ax.set_ylabel(ylabel)
+        if show_legend:
+            ax.legend()
+    if separate and owned:
+        # Shared x-axis: title on top panel, x-label on bottom panel only.
+        unique[0].set_title(title)
+        unique[-1].set_xlabel(xlabel)
+    else:
+        for ax in unique:
+            ax.set_title(title)
+            ax.set_xlabel(xlabel)
+    return unique
