@@ -7,8 +7,8 @@ from .. import QobjEvo, Qobj
 from .mesolve import mesolve
 from .result import Result
 from numpy.typing import ArrayLike
-from qutip.typing import QobjEvoLike
-from typing import Any, Callable
+from ..typing import EopsLike, QobjEvoLike
+from typing import Any
 
 
 def krylovsolve(
@@ -19,7 +19,7 @@ def krylovsolve(
     algorithm: str = "auto",
     c_ops: Qobj | QobjEvo | list[QobjEvoLike] = None,
     *,
-    e_ops: dict[Any, Qobj | QobjEvo | Callable[[float, Qobj], Any]] = None,
+    e_ops: EopsLike | list[EopsLike] | dict[Any, EopsLike] = None,
     args: dict[str, Any] = None,
     options: dict[str, Any] = None,
 ) -> Result:
@@ -27,24 +27,21 @@ def krylovsolve(
     Master equation evolution of a (density) operator or pure state for time
     independent Hamiltonians using the Krylov method.
 
-    Evolve the state vector or density matrix ("rho0") finding an
-    approximation for the time evolution operator of Hamiltonian ("H") by
+    Evolve the state vector or density matrix ("rho0") finding a reduced form
+    of the time evolution operator of the Hamiltonian or Liouvillian ("H") by
     obtaining the projection of the time evolution operator on a set of small
-    dimensional Krylov subspaces (m << dim(H)).
+    dimensional Krylov subspaces (``krylov_dim`` << dim(H)).
 
-    The output is either the state vector or unitary matrix at arbitrary points
-    in time (`tlist`), or the expectation values of the supplied operators
-    (`e_ops`). If e_ops is a callback function, it is invoked for each
-    time in `tlist` with time and the state as arguments, and the function
-    does not use any return values. e_ops cannot be used in conjunction
-    with solving the Schrodinger operator equation
+    The output is either the state vector or density matrix at arbitrary
+    points in time (`tlist`), or the expectation values of the supplied
+    operators (`e_ops`). If e_ops is a callback function, it is invoked for
+    each time in `tlist` with time and the state as arguments, and the
+    function does not use any return values.
 
     Parameters
     ----------
-    H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent
-        Hamiltonians. List of [:obj:`.Qobj`, :obj:`.Coefficient`] or callable
-        that can be made into :obj:`.QobjEvo` are also accepted.
+    H : :obj:`.Qobj`
+        System Hamiltonian or Liouvillian. It must be time-independent.
 
     rho0 : :class:`.Qobj`
         Initial density matrix or state vector (ket).
@@ -53,20 +50,29 @@ def krylovsolve(
         list of times for :math:`t`.
 
     krylov_dim: int
-        Dimension of Krylov subspaces used for the time evolution approximation.
+        Dimension of Krylov subspaces used for the time evolution calculation.
         Note that for mixed states, the Krylov dimension can be larger than the
-        dimension of the Hamltonian since we are computing the Liouvillian.
+        dimension of the Hamiltonian since we are computing the Liouvillian.
 
     algorithm: str, default: "auto"
-        The algorithm to use for Krylov space construction. Options are:
-        - "auto": automatically choose the best algorithm.
-        - "lanczos": use the Lanczos algorithm.
-        - "lanczos_fro": use the fully reorthogonalized Lanczos algorithm.
+        The algorithm to use for Krylov space construction. If
+        ``options["algorithm"]`` is set, it takes precedence over this
+        argument. Options are:
+
+        - "auto": use "lanczos_fro" for closed (Hermitian) systems and
+          "arnoldi" for open (non-Hermitian) systems.
+        - "lanczos": use the Lanczos algorithm (closed systems only).
+        - "lanczos_fro": use the fully reorthogonalized Lanczos algorithm
+          (closed systems only).
         - "arnoldi": use the Arnoldi iteration.
 
-    e_ops : :class:`.Qobj`, callable, or list, optional
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
+    c_ops : list of :obj:`.Qobj`, optional
+        Single collapse operator, or list of collapse operators. They must be
+        time-independent. None is equivalent to an empty list.
+
+    e_ops : :obj:`.Qobj`, callable, list or dict, optional
+        Single operator, or list or dict of operators, for which to evaluate
+        expectation values. Operators can be Qobj, QobjEvo or callables.
         Callable signature must be, `f(t: float, state: Qobj)`.
         See :func:`~qutip.core.expect.expect` for more detail of operator
         expectation.
@@ -94,20 +100,25 @@ def krylovsolve(
         - | progress_kwargs : dict
           | kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
         - | atol: float
-          | Absolute tolerance of the ODE integrator.
+          | Absolute tolerance of the integrator. It bounds the estimated
+            error of each Krylov step and thereby sets the maximal step
+            length.
         - | nsteps : int
           | Maximum number of (internally defined) steps allowed in one
             ``tlist`` step.
         - | min_step, max_step : float
-          | Miniumum and maximum lenght of one internal step.
+          | Minimum and maximum length of one internal step.
         - | always_compute_step: bool
-          | If True, the step lenght is computed each time a new Krylov
-            subspace is computed. Otherwise it is computed only once when
-            creating the integrator.
+          | If True, the step length is computed each time a new Krylov
+            subspace is computed. Otherwise it is computed only once, for the
+            first Krylov subspace.
         - | sub_system_tol: float
-          | Tolerance to detect an happy breakdown. An happy breakdown happens
-            when the initial ket is in a subspace of the Hamiltonian smaller
-            than ``krylov_dim``.
+          | Tolerance to detect a happy breakdown. A happy breakdown happens
+            when the initial state is in a subspace of the Hamiltonian or
+            Liouvillian smaller than ``krylov_dim``.
+        - | matrix_form : bool
+          | Use matrix-form Lindblad solver instead of superoperator form.
+            Only used for density matrix evolution. Default: False.
 
     Returns
     -------
@@ -117,11 +128,14 @@ def krylovsolve(
         a *list of array* ``result.expect`` of expectation values for the times
         specified by ``tlist``, and/or a *list* ``result.states`` of state
         vectors or density matrices corresponding to the times in ``tlist`` [if
-        ``e_ops`` is an empty list of ``store_states=True`` in options].
+        ``e_ops`` is an empty list or ``store_states=True`` in options].
     """
-    options = options or {}
+    options = dict(options or {})
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
-    options["algorithm"] = algorithm
+    # option setting overwrites argument
+    options.setdefault("algorithm", algorithm)
 
-    return mesolve(H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options)
+    return mesolve(
+        H, rho0, tlist, c_ops=c_ops, e_ops=e_ops, args=args, options=options
+    )
