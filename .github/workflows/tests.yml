@@ -229,24 +229,15 @@ jobs:
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
+            # Temporary workaround till conda-forge/python-feedstock#970 gets solved
+            PYTHON_INCLUDE=$(python -c "import pathlib, sys; print(pathlib.Path(sys.base_prefix) / 'include' / 'python')")
+            if [ -f "$PYTHON_INCLUDE/Python.h" ]; then
+              export INCLUDE="$PYTHON_INCLUDE${INCLUDE:+;$INCLUDE}"
+            fi
           else
             source ./build_env/bin/activate
           fi
           cd qutip
-          python - <<'PYTHON_DIAGNOSTICS'
-          import sys
-          import sysconfig
-          from pathlib import Path
-
-          base = Path(sys.base_prefix)
-          include = Path(sysconfig.get_path("include"))
-          print("Python:", sys.version)
-          print("Executable:", sys.executable)
-          print("Base:", base)
-          print("Configured include:", include)
-          print("Python.h in configured include:", (include / "Python.h").is_file())
-          print("Headers found:", sorted(str(path) for path in base.rglob("Python.h")))
-          PYTHON_DIAGNOSTICS
           python -m pip install meson-python meson ninja # build
           python -m pip install "cython${{ matrix.cython-build }}"
           python -m pip install "numpy${{ matrix.numpy-build }}"
