@@ -1,0 +1,3 @@
+Fixed ``to_stinespring`` raising a ``ValueError`` for channels whose input and
+output dimensions differ, such as a qubit-to-qutrit isometry or a partial
+trace.
