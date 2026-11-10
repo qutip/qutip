@@ -10,6 +10,8 @@ from glob import glob
 from pathlib import Path
 import numpy as np
 import scipy
+import multiprocessing
+from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
 
@@ -168,6 +170,17 @@ def _find_mkl():
         return mkl_libs[0]
     return ""
 
+def get_context():
+    if sys.platform == 'darwin':
+        mp_context = multiprocessing.get_context('fork')
+    elif sys.platform == 'linux':
+        # forkserver would handle threads better, but is much slower at starting
+        # the executor and spawning tasks
+        mp_context = multiprocessing.get_context('fork')
+    else:
+        mp_context = multiprocessing.get_context()
+    return mp_context
+
 
 class Settings:
     """
@@ -182,9 +195,23 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
+        self._mp_context = get_context()
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+
+    @property
+    def mp_context(self) -> BaseContext:
+        return self._mp_context
+
+    @mp_context.setter
+    def mp_context(
+        self, new_context: str | BaseContext | None
+    ) -> None:
+        if isinstance(new_context, BaseContext):
+            self._mp_context = new_context
+        else:
+            self._mp_context = multiprocessing.get_context(new_context)
 
     @property
     def has_mkl(self) -> bool:
