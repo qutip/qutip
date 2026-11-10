@@ -12,7 +12,7 @@ name = "qutip"
 dynamic = ["version"]
 description = "QuTiP: The Quantum Toolbox in Python"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "BSD-3-Clause"
 keywords = ["quantum", "physics", "dynamics"]
 authors = [
