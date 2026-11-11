@@ -18,7 +18,7 @@ by taking the tensor product with identities, then multiply it with the state.
 This works, but the cost grows quickly with the number of subsystems, and for
 a single application most of that work is wasted on identities.
 
-QuTiP provides several tools for this.
+QuTiP provides several tools for perform such operations more efficiently.
 They differ in what they accept (kets, density matrices, superoperators),
 how they perform the computation (sparse, dense, Python or Cython) and how
 mature the interface is.
@@ -99,10 +99,10 @@ subsystems and the result is permuted so that it acts on the requested
 
 .. note::
 
-    Per default :func:`expand_operator` create operator in ``CSR`` format.
-    This format is optimized for ``CSR @ Dense`` operations, but quite slow for
+    By default :func:`expand_operator` creates an operator in ``CSR`` format.
+    This format is optimized for ``CSR @ Dense`` operations, but is quite slow for
     ``Dense @ CSR`` operations. Avoiding that operation, (for example, but using
-    ``full_gate @ (full_gate @ rho)dag()`` instead) is recommended.
+    ``full_gate @ (full_gate @ rho).dag()`` instead) is recommended.
 
 .. _subsystem-einsum:
 
@@ -314,8 +314,8 @@ Which one should I use?
 
 As a rule of thumb:
 
-- Need the big operator itself, or reuse it many times: :func:`.expand_operator`.
-- Operation on mulitple object at once or contraction not limited to matrix multiplication:
+- If you need the big operator itself, or reuse it many times:, use :func:`.expand_operator`.
+- If operating on mulitple objects at once or contraction is not limited to matrix multiplication:, use
   :func:`.einsum`.
-- Apply an operator to a dense state, or a superoperator on a few
-  modes of a density matrix: ``local_matmul``.
+- If applying an operator to a dense state, or a superoperator on a few
+  modes of a density matrix:, use ``local_matmul``.
