@@ -133,8 +133,16 @@ QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
 optional ``pydiso`` package. Intel MKL and ``pydiso`` are available only on
 supported x86-64 platforms.
 
-On a supported platform, the recommended installation method is to install
-``pydiso`` and MKL from conda-forge, with QuTiP installed in the same
+On a supported platform, install QuTiP with the ``mkl`` extra:
+
+.. code-block:: bash
+
+   python -m pip install "qutip[mkl]"
+
+This installs ``pydiso`` and its Intel MKL runtime dependency.
+
+On Intel macOS, install ``pydiso`` and MKL from conda-forge instead. This is
+also an alternative on Linux and Windows. Install QuTiP in the same
 environment:
 
 .. code-block:: bash
