@@ -80,7 +80,9 @@ def solve_csr_dense(matrix: Union[CSR, Dia], target: Dense, method=None,
 
     options = options.copy()
     M = matrix.as_scipy()
-    if options.pop("csc", False) or (isinstance(matrix, Dia) and method != "mkl_spsolve"):
+    if options.pop("csc", False) or (
+        isinstance(matrix, Dia) and method != "mkl_spsolve"
+    ):
         M = M.tocsc()
 
     with warnings.catch_warnings():

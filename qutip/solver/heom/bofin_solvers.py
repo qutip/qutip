@@ -975,28 +975,34 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm[7] in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[7]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
         mkl_perm : array_like
             Fill-in reducing permutation.
 
-            For a complete description, see iparm[4] in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[4]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
         mkl_verbose : bool, default=False
             Enable logging for MKL solver.
 
         mkl_scaling_vectors : bool, default=True
             Enable scaling. Default for nonsymmetric matrices.
-            For a complete description, see iparm[10] in https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[10]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
         mkl_weighted_matching : bool, default=False
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
 
-            For a complete description, see iparm[12] in https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2026-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[12]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
         Returns
         -------
