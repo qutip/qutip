@@ -85,10 +85,10 @@ Superoperators and Liouvillians
 Subsystems product and contraction
 ==================================
 
-..automodule:: qutip.core.einsum
+.. automodule:: qutip.core.einsum
     :members: einsum
 
-..automodule:: qutip.core.local_matmul
+.. automodule:: qutip.core.local_matmul
     :members: local_matmul
 
 .. automodule:: qutip.core.qobj
