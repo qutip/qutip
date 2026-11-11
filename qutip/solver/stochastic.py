@@ -50,11 +50,9 @@ class StochasticTrajResult(Result):
         """
         Wiener processes for each stochastic collapse operators.
 
-        The output shape is
-            (len(sc_ops), len(tlist))
-        for homodyne detection, and
-            (len(sc_ops), 2, len(tlist))
-        for heterodyne detection.
+        The output shape is ``(len(sc_ops), len(tlist))`` for homodyne
+        detection, and ``(len(sc_ops), 2, len(tlist))`` for heterodyne
+        detection.
         """
         W = np.zeros(
             (self.noise[0].shape[0], len(self.times)),
@@ -70,11 +68,9 @@ class StochasticTrajResult(Result):
         """
         Wiener increment for each stochastic collapse operators.
 
-        The output shape is
-            (len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(len(sc_ops), len(tlist)-1)`` for homodyne
+        detection, and ``(len(sc_ops), 2, len(tlist)-1)`` for heterodyne
+        detection.
         """
         noise = np.array(self.noise).T
         if self.heterodyne:
@@ -86,13 +82,13 @@ class StochasticTrajResult(Result):
         r"""
         Signal, the measurements without the random noise:
 
+        .. math::
+
             J(t) = \langle L + L^{\dagger} \rangle
 
-        The output shape is
-            (len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(len(sc_ops), len(tlist)-1)`` for homodyne
+        detection, and ``(len(sc_ops), 2, len(tlist)-1)`` for heterodyne
+        detection.
 
         Is ``None`` when ``store_measurement`` is false. The signal is
         obtained at the start, middle or end of the time interval according to
@@ -131,11 +127,9 @@ class StochasticTrajResult(Result):
         """
         Measurements for each stochastic collapse operators.
 
-        The output shape is
-            (len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(len(sc_ops), len(tlist)-1)`` for homodyne
+        detection, and ``(len(sc_ops), 2, len(tlist)-1)`` for heterodyne
+        detection.
 
         Is ``None`` when ``store_measurement`` is false. The measurement is
         obtained at the start, middle or end of the time interval according to
@@ -199,13 +193,13 @@ class StochasticResult(MultiTrajResult):
         r"""
         Measurements for each trajectories and stochastic collapse operators:
 
+        .. math::
+
             I(t) = \langle L + L^{\dagger} \rangle + \frac{dW}{dt}
 
-        The output shape is
-            (ntraj, len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (ntraj, len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(ntraj, len(sc_ops), len(tlist)-1)`` for
+        homodyne detection, and ``(ntraj, len(sc_ops), 2, len(tlist)-1)`` for
+        heterodyne detection.
         """
         return self._trajectories_attr("measurement")
 
@@ -215,11 +209,9 @@ class StochasticResult(MultiTrajResult):
         Wiener increment for each trajectories and stochastic collapse
         operators.
 
-        The output shape is
-            (ntraj, len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (ntraj, len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(ntraj, len(sc_ops), len(tlist)-1)`` for
+        homodyne detection, and ``(ntraj, len(sc_ops), 2, len(tlist)-1)`` for
+        heterodyne detection.
         """
         return self._trajectories_attr("dW")
 
@@ -228,13 +220,13 @@ class StochasticResult(MultiTrajResult):
         r"""
         Measurements without the random noise:
 
+        .. math::
+
             J(t) = \langle L + L^{\dagger} \rangle
 
-        The output shape is
-            (ntraj, len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (ntraj, len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(ntraj, len(sc_ops), len(tlist)-1)`` for
+        homodyne detection, and ``(ntraj, len(sc_ops), 2, len(tlist)-1)`` for
+        heterodyne detection.
         """
         return self._trajectories_attr("signal")
 
@@ -244,11 +236,9 @@ class StochasticResult(MultiTrajResult):
         Wiener processes for each trajectories and stochastic collapse
         operators.
 
-        The output shape is
-            (ntraj, len(sc_ops), len(tlist)-1)
-        for homodyne detection, and
-            (ntraj, len(sc_ops), 2, len(tlist)-1)
-        for heterodyne detection.
+        The output shape is ``(ntraj, len(sc_ops), len(tlist))`` for
+        homodyne detection, and ``(ntraj, len(sc_ops), 2, len(tlist))`` for
+        heterodyne detection.
         """
         return self._trajectories_attr("wiener_process")
 
