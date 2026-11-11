@@ -213,19 +213,22 @@ def test_max_iter_refine(solver_matrix, max_iter_refine):
     np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 
-def test_matrix_type_correct(solver_matrix):
-    """Check the PARDISO matrix type inferred from the solver arguments."""
+@pytest.mark.parametrize("is_complex", [False, True], ids=["real", "complex"])
+def test_matrix_type_correct(solver_matrix, is_complex):
+    """Check that QuTiP's dtype and flags select the expected PARDISO type."""
     A, hermitian, posdef = solver_matrix
+    if not is_complex:
+        A = A.real.copy()
     b = A @ np.ones(A.shape[0], dtype=A.dtype)
     _, info = mkl_spsolve(
         A, b, hermitian=hermitian, posdef=posdef, return_info=True
     )
     if hermitian:
-        expected = 4
+        expected = 4 if is_complex else 2
         if not posdef:
             expected = -expected
     else:
-        expected = 13
+        expected = 13 if is_complex else 11
     assert info["MatrixType"] == expected
 
 
