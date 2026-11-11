@@ -11,7 +11,7 @@ if not qutip.settings.has_mkl:
     )
 
 if qutip.settings.has_mkl:
-    from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
+    from qutip._mkl.spsolve import _prepare_pydiso_args, mkl_splu, mkl_spsolve
 
 
 @pytest.fixture(
@@ -173,46 +173,33 @@ def test_spsolve_csc_input(solver_matrix, csc_type):
     np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
 
 
+@pytest.mark.parametrize("hermitian", [False, True])
 @pytest.mark.parametrize("scaling_vectors", [False, True])
 @pytest.mark.parametrize("weighted_matching", [False, True])
-def test_solver_options(solver_matrix, scaling_vectors, weighted_matching):
-    """Check the solver settings for scaling and weighted matching."""
-    A, hermitian, posdef = solver_matrix
-    # Obtain RHS in a simple way; using `rhs` fixture would unflate number of tests unnecessarily
-    expected = np.array([1, 2, 3], dtype=A.dtype)
-
-    _, info = mkl_spsolve(
-        A,
-        A @ expected,
+def test_solver_options(hermitian, scaling_vectors, weighted_matching):
+    """Check QuTiP's mapping of scaling and matching options to pydiso."""
+    options = _prepare_pydiso_args(
+        max_iter_refine=10,
         hermitian=hermitian,
-        posdef=posdef,
         scaling_vectors=scaling_vectors,
         weighted_matching=weighted_matching,
-        return_info=True,
     )
 
-    if not hermitian:
-        assert info["iparm"][10] == int(scaling_vectors)
-        assert info["iparm"][12] == int(weighted_matching)
+    if hermitian:
+        # Leave these settings to pydiso's defaults for Hermitian matrices
+        assert "scaling" not in options
+        assert "weighted_matching" not in options
+    else:
+        assert options["scaling"] == scaling_vectors
+        assert options["weighted_matching"] == weighted_matching
 
 
 @pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
-def test_max_iter_refine(solver_matrix, max_iter_refine):
-    """Ensures maximum number of iterative refinement steps were
-    set in the solver as expected."""
-    A, _, _ = solver_matrix
-    expected = np.array([1, 2, 3], dtype=A.dtype)
-    b = A @ expected
+def test_max_iter_refine(max_iter_refine):
+    """Check that QuTiP forwards the iterative refinement limit to pydiso."""
+    options = _prepare_pydiso_args(max_iter_refine=max_iter_refine)
 
-    actual, info = mkl_spsolve(
-        scipy.sparse.csr_array(A),
-        b,
-        max_iter_refine=max_iter_refine,
-        return_info=True,
-    )
-
-    assert info["iparm"][7] == max_iter_refine
-    np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+    assert options["max_iterative_refinement_steps"] == max_iter_refine
 
 
 @pytest.mark.parametrize("is_complex", [False, True], ids=["real", "complex"])
