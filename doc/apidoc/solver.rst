@@ -110,7 +110,7 @@ Stochastic Schrödinger Equation and Master Equation
 .. autoclass:: qutip.solver.stochastic.StochasticResult
     :members:
     :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+    :exclude-members: add_processor, add, add_end_condition, add_deterministic
 
 .. autoclass:: qutip.solver.stochastic.StochasticTrajResult
     :members:
