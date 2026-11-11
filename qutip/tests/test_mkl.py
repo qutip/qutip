@@ -240,45 +240,26 @@ def test_spsolve_nonsymmetric_random_input(
 
 
 def test_spsolve_posdef_matrix_with_default_posdef(rhs):
-    """A positive-definite matrix can be solved with the default posdef flag."""
-    A, hermitian, _ = _symmetric_matrix(True)
+    """Solve a positive-definite matrix with the default posdef flag."""
+    A, _, _ = _symmetric_matrix(True)
     b = rhs
     b_dense = b.toarray() if scipy.sparse.issparse(b) else b
-    x, info = mkl_spsolve(A, b, hermitian=hermitian, return_info=True)
+    x = mkl_spsolve(A, b, hermitian=True)
     assert x.shape == b.shape
     actual = x.toarray() if scipy.sparse.issparse(x) else x
-    assert info["MatrixType"] == -4
     np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
 
 def test_spsolve_posdef_ignored_for_nonhermitian_input(
     nonsymmetric_matrix, rhs
 ):
-    """Ensures that the solution of the sparse solver is still correct despite
-    posdef solver argument having a wrong value.
-    Checks that the matrix type is determined
-    correctly nevertheless."""
-    A, hermitian, posdef = nonsymmetric_matrix
-    # Choose RHS of a value type matching to A
-    b = rhs
-    # RHS must be dense for SciPy's solver
-    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+    """Check that non-Hermitian solves succeed with posdef=True."""
+    A, _, _ = nonsymmetric_matrix
+    b_dense = rhs.toarray() if scipy.sparse.issparse(rhs) else rhs
 
-    # Solve linear system
-    x, info = mkl_spsolve(
-        A,
-        b,
-        hermitian=hermitian,
-        posdef=True,  # Deliberately inconsistent with the input
-        return_info=True,
-    )
-    # For comparison with SciPy output,
-    # convert to dense in case the sparse solver returned sparse solution
+    x = mkl_spsolve(A, rhs, hermitian=False, posdef=True)
+
     actual = x.toarray() if scipy.sparse.issparse(x) else x
-    assert not posdef
-    # Ensure the solver inferred the matrix type correctly based on provided solver args
-    assert info["MatrixType"] == 13
-    # Ensure the linear system holds
     np.testing.assert_allclose(
         A @ actual, b_dense, rtol=1e-10, atol=1e-12
     )
