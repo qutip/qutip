@@ -134,6 +134,7 @@ def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
     actual = x.toarray() if scipy.sparse.issparse(x) else x
     np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
+
 @pytest.mark.parametrize(
     "dia_type",
     [scipy.sparse.dia_matrix, scipy.sparse.dia_array],
@@ -153,6 +154,7 @@ def test_spsolve_dia_input(solver_matrix, dia_type):
     np.testing.assert_allclose(
         actual, expected, rtol=1e-10, atol=1e-12
     )
+
 
 @pytest.mark.parametrize(
     "csc_type",
@@ -232,7 +234,6 @@ def test_matrix_type_correct(solver_matrix, is_complex):
     assert info["MatrixType"] == expected
 
 
-
 def test_spsolve_nonsymmetric_random_input(
     nonsymmetric_matrix_random, random_generator
 ):
@@ -243,6 +244,7 @@ def test_spsolve_nonsymmetric_random_input(
     b = A @ x
     actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
     np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
+
 
 def test_spsolve_posdef_matrix_with_default_posdef(rhs):
     """A positive-definite matrix can be solved with the default posdef flag."""
