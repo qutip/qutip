@@ -72,3 +72,96 @@ jobs:
         run: |
           cd ../${{ matrix.repo }}
           pytest tests -vv -W "ignore::DeprecationWarning"
+
+  tutorials:
+    name: Parallel tutorials, ${{ matrix.os }}, python${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/checkout@v7
+        with:
+          repository: qutip/qutip-tutorials
+          path: tutorial-source
+
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          activate-environment: test-tutorials
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge
+          conda-remove-defaults: "true"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
+
+      - name: Remove GNU linker that shadows MSVC under bash
+        if: runner.os == 'Windows'
+        run: rm -f /usr/bin/link.exe /usr/bin/link
+
+      - name: Install tutorial dependencies
+        run: |
+          # Match upstream's v5 notebook tools. The selected tutorials do not
+          # require its JAX/family packages, LaTeX, or animation tools.
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=2.0.0" "scipy>=1.9" "matplotlib>=3.9" "mpmath>=1.2.1" "pytest>=7.1.2" "jupytext>=1.13.8" "jupyter>=1.0.0" "ipykernel>=6.17.1"
+          # Use PyPI nbmake: older versions are incompatible with pytest 9,
+          # and Conda's nbmake package can constrain nbclient to <0.7.
+          python -m pip install "nbmake>=1.5.5" "nbclient>=0.10.1"
+          python -m pip install ".[runtime_compilation]" -v
+          python -m ipykernel install --sys-prefix --name python3
+
+      - name: Show environment
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m pip list
+          python -c "import qutip; qutip.about()"
+
+      - name: Prepare selected tutorials
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          notebooks = Path(os.environ["RUNNER_TEMP"]) / "parallel-notebooks"
+          selected = (workspace / "tools/parallel-tutorials.txt").read_text().splitlines()
+          shutil.copytree(workspace / "tutorial-source/tutorials-v5", notebooks)
+          # Preserve supporting assets, but collect only the listed notebooks.
+          for notebook in notebooks.rglob("*.ipynb"):
+              if notebook.relative_to(notebooks).as_posix() not in selected:
+                  notebook.unlink()
+          for name in selected:
+              subprocess.run(
+                  [sys.executable, "-m", "jupytext", "--to", "notebook",
+                   str((notebooks / name).with_suffix(".md"))], check=True,
+              )
+          for markdown in notebooks.rglob("*.md"):
+              markdown.unlink()
+
+      - name: Run selected tutorials
+        working-directory: ${{ runner.temp }}/parallel-notebooks
+        run: |
+          python -m pytest --nbmake --overwrite --nbmake-timeout=900 --nbmake-kernel=python3 --junitxml=../tutorial-results.xml -vv
+
+      - name: Upload executed notebooks and test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: parallel-tutorials-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            ${{ runner.temp }}/parallel-notebooks/**/*.ipynb
+            ${{ runner.temp }}/tutorial-results.xml
