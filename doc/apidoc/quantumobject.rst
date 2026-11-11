@@ -83,7 +83,7 @@ Superoperators and Liouvillians
     :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator, lindblad_dissipator
 
 Subsystems product and contraction
-=================================
+==================================
 
 ..automodule:: qutip.core.einsum
     :members: einsum
