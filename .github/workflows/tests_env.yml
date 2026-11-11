@@ -128,8 +128,9 @@ jobs:
           python -c "import qutip; qutip.about()"
 
       - name: Prepare selected tutorials
-        shell: python
+        # Use the default login shell to activate the Conda environment.
         run: |
+          python - <<'PYTHON'
           import os
           from pathlib import Path
           import shutil
@@ -151,6 +152,7 @@ jobs:
               )
           for markdown in notebooks.rglob("*.md"):
               markdown.unlink()
+          PYTHON
 
       - name: Run selected tutorials
         working-directory: ${{ runner.temp }}/parallel-notebooks
