@@ -107,10 +107,15 @@ Stochastic Schrödinger Equation and Master Equation
     :inherited-members:
     :exclude-members: add_integrator
 
-.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
+.. autoclass:: qutip.solver.stochastic.StochasticResult
     :members:
     :inherited-members:
     :exclude-members: add_processor, add, add_end_condition
+
+.. autoclass:: qutip.solver.stochastic.StochasticTrajResult
+    :members:
+    :inherited-members:
+    :exclude-members: add_processor, add
 
 Non-Markovian Solvers
 =====================

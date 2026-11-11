@@ -61,11 +61,11 @@ quantum systems and indicates the type of object returned by the solver:
    * - Stochastic Schrödinger equation
      - :func:`~qutip.solver.stochastic.ssesolve`
      - :obj:`~qutip.solver.stochastic.SSESolver`
-     - :obj:`~qutip.solver.multitrajresult.MultiTrajResult`
+     - :obj:`~qutip.solver.stochastic.StochasticResult`
    * - Stochastic master equation
      - :func:`~qutip.solver.stochastic.smesolve`
      - :obj:`~qutip.solver.stochastic.SMESolver`
-     - :obj:`~qutip.solver.multitrajresult.MultiTrajResult`
+     - :obj:`~qutip.solver.stochastic.StochasticResult`
    * - Transfer Tensor Method time-evolution
      - :func:`~qutip.solver.nonmarkov.transfertensor.ttmsolve`
      - None
