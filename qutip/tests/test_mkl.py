@@ -55,16 +55,12 @@ def nonsymmetric_matrix_random(random_generator):
 
 @pytest.fixture(
     params=[
-        pytest.param(True, id="mtype=4"),
-        pytest.param(False, id="mtype=-4"),
+        pytest.param(True, id="positive-definite"),
+        pytest.param(False, id="indefinite"),
     ]
 )
 def symmetric_matrix(request):
-    """Return a sparse symmetric/Hermitian CSR matrix and its solver flags.
-    Generated matrices correspond to the following PARDISO mtypes:
-    1. mtype = 4 - complex-valued Hermitian positive definite
-    2. mtype = -4 - complex-valued Hermitian indefinite
-    """
+    """Return a sparse Hermitian CSR matrix and its solver flags."""
     return _symmetric_matrix(request.param)
 
 
@@ -87,10 +83,7 @@ def _symmetric_matrix(posdef):
 
 @pytest.fixture
 def nonsymmetric_matrix():
-    """Return a nonsymmetric CSR matrix and its solver flags.
-    Generated matrices correspond to the following PARDISO mtypes:
-    1. mtype = 13 - complex-valued nonsymmetric
-    """
+    """Return a nonsymmetric CSR matrix and its solver flags."""
     return _nonsymmetric_matrix()
 
 
