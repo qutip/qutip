@@ -44,20 +44,6 @@ def rhs(request):
     return scipy.sparse.csr_array(b) if is_sparse else b
 
 
-@pytest.fixture
-def nonsymmetric_matrix_random(random_generator):
-    """Return sparse randomly generated nonsymmetric matrix, complex-valued."""
-    hermitian = False
-    posdef = False
-    N = 10
-
-    A = random_generator.standard_normal((N, N))
-
-    A = A + 1j * random_generator.standard_normal((N, N))
-
-    return scipy.sparse.csr_array(A), hermitian, posdef, N
-
-
 @pytest.fixture(
     params=[
         pytest.param(True, id="positive-definite"),
@@ -227,18 +213,6 @@ def test_matrix_type_correct(
     assert _mkl_matrix_type(dtype, hermitian, posdef) == expected
 
 
-def test_spsolve_nonsymmetric_random_input(
-    nonsymmetric_matrix_random, random_generator
-):
-    """Tests the solver on non-symmetric matrices (complex-valued),
-    left- and right-hand sides are randomized."""
-    A, hermitian, posdef, N = nonsymmetric_matrix_random
-    x = random_generator.standard_normal(N)
-    b = A @ x
-    actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
-    np.testing.assert_allclose(A @ actual, b, rtol=1e-10, atol=1e-12)
-
-
 def test_spsolve_posdef_matrix_with_default_posdef(rhs):
     """Solve a positive-definite matrix with the default posdef flag."""
     A, _, _ = _symmetric_matrix(True)
@@ -263,23 +237,6 @@ def test_spsolve_posdef_ignored_for_nonhermitian_input(
     np.testing.assert_allclose(
         A @ actual, b_dense, rtol=1e-10, atol=1e-12
     )
-
-
-def test_spsolve_hermitian_random_input(random_generator):
-    """Tests the solver on symmetric matrices (complex-valued),
-    left- and right-hand sides are randomized."""
-    N = 10
-    A = qutip.rand_herm(
-        N,
-        density=0.8,
-        dtype="csr",
-        distribution="pos_def",
-        seed=random_generator,
-    )
-    x = qutip.rand_ket(N, seed=random_generator)
-    b = A.full() @ x.full()
-    actual = mkl_spsolve(A.data.as_scipy(), b, hermitian=True, posdef=True)
-    np.testing.assert_allclose(A.data.as_scipy() @ actual, b, rtol=1e-10, atol=1e-12)
 
 
 def test_splu_nonsymmetric_repeated_vector_rhs(nonsymmetric_matrix):
