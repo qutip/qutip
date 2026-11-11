@@ -123,6 +123,21 @@ class TestMatVec:
         rho2 = qutip.vector_to_operator(rho2_vec)
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
+    def testLindbladDissipatorAppl(self, random_generator):
+        """
+        Superoperator: apply lindblad dissipator with a != b
+        """
+        N = 3
+        rho = qutip.rand_dm(N, seed=random_generator)
+        a = qutip.rand_unitary(N, seed=random_generator)
+        b = qutip.rand_unitary(N, seed=random_generator)
+        rho1 = a * rho * b.dag() - 0.5 * (b.dag() * a * rho
+                                          + rho * b.dag() * a)
+        rho2_vec = qutip.lindblad_dissipator(a, b) * \
+            qutip.operator_to_vector(rho)
+        rho2 = qutip.vector_to_operator(rho2_vec)
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
+
     def testOperatorUnitaryTransform(self, random_generator):
         """
         Superoperator: Unitary transformation with operators and superoperators
