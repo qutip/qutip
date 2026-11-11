@@ -153,6 +153,18 @@ by qutip solvers. Their options are added to the solver options:
 .. autoclass:: qutip.solver.integrator.krylov.IntegratorKrylov
     :members: options
 
+PETSc Integrator
+~~~~~~~~~~~~~~~~
+
+.. note::
+   :class:`IntegratorPETSc` requires ``petsc4py`` and ``mpi4py``.
+   It is used automatically when ``backend="petsc"`` is passed to
+   :class:`~qutip.solver.heom.HEOMSolver`. For the full option reference
+   see :ref:`heom-petsc`.
+
+.. autoclass:: qutip.solver.heom.backend_petsc.IntegratorPETSc
+    :members: options
+
 
 .. _classes-sode:
 

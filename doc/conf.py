@@ -365,6 +365,15 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+# Optional heavy dependencies that are not available in the doc-build
+# environment. Sphinx will replace them with stub modules so that
+# autoclass/automodule directives for PETScHEOMSolver and IntegratorPETSc
+# still work without petsc4py / mpi4py being installed.
+autodoc_mock_imports = [
+    "petsc4py",
+    "mpi4py",
+]
+
 autodoc_member_order = 'alphabetical'
 
 # Type hint are already in the parameter section of the documentation in
