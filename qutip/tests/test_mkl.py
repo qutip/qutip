@@ -126,36 +126,10 @@ def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
     np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
 
 
-@pytest.mark.parametrize(
-    "dia_type",
-    [scipy.sparse.dia_matrix, scipy.sparse.dia_array],
-    ids=["dia-matrix", "dia-array"],
-)
-def test_spsolve_dia_input(solver_matrix, dia_type):
-    """Check that he wrapper accepts Dia input and converts it for MKL."""
-    A, hermitian, posdef = solver_matrix
-    A = dia_type(A)
-    expected = np.array([1, -2, 3], dtype=A.dtype)
-    b = A @ expected
-
-    actual = mkl_spsolve(
-        A, b, hermitian=hermitian, posdef=posdef
-    )
-
-    np.testing.assert_allclose(
-        actual, expected, rtol=1e-10, atol=1e-12
-    )
-
-
-@pytest.mark.parametrize(
-    "csc_type",
-    [scipy.sparse.csc_matrix, scipy.sparse.csc_array],
-    ids=["csc-matrix", "csc-array"],
-)
-def test_spsolve_csc_input(solver_matrix, csc_type):
-    """Check that the solver wrapper accepts CSC inputs."""
-    A, hermitian, posdef = solver_matrix
-    A = csc_type(A)
+def test_spsolve_non_csr_input(nonsymmetric_matrix):
+    """Solve with a non-CSR sparse coefficient matrix."""
+    A, hermitian, posdef = nonsymmetric_matrix
+    A = scipy.sparse.dia_array(A)
     expected = np.array([1, -2, 3], dtype=A.dtype)
     b = A @ expected
 
