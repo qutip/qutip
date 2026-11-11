@@ -11,7 +11,12 @@ if not qutip.settings.has_mkl:
     )
 
 if qutip.settings.has_mkl:
-    from qutip._mkl.spsolve import _prepare_pydiso_args, mkl_splu, mkl_spsolve
+    from qutip._mkl.spsolve import (
+        _mkl_matrix_type,
+        _prepare_pydiso_args,
+        mkl_splu,
+        mkl_spsolve,
+    )
 
 
 @pytest.fixture(
@@ -202,23 +207,24 @@ def test_max_iter_refine(max_iter_refine):
     assert options["max_iterative_refinement_steps"] == max_iter_refine
 
 
+@pytest.mark.parametrize(
+    "hermitian, posdef, expected_real, expected_complex",
+    [
+        (False, False, 11, 13),
+        (False, True, 11, 13),
+        (True, False, -2, -4),
+        (True, True, 2, 4),
+    ],
+)
 @pytest.mark.parametrize("is_complex", [False, True], ids=["real", "complex"])
-def test_matrix_type_correct(solver_matrix, is_complex):
-    """Check that QuTiP's dtype and flags select the expected PARDISO type."""
-    A, hermitian, posdef = solver_matrix
-    if not is_complex:
-        A = A.real.copy()
-    b = A @ np.ones(A.shape[0], dtype=A.dtype)
-    _, info = mkl_spsolve(
-        A, b, hermitian=hermitian, posdef=posdef, return_info=True
-    )
-    if hermitian:
-        expected = 4 if is_complex else 2
-        if not posdef:
-            expected = -expected
-    else:
-        expected = 13 if is_complex else 11
-    assert info["MatrixType"] == expected
+def test_matrix_type_correct(
+    hermitian, posdef, expected_real, expected_complex, is_complex
+):
+    """Check QuTiP's mapping of dtype and matrix flags to PARDISO types."""
+    dtype = np.dtype(np.complex128 if is_complex else np.float64)
+    expected = expected_complex if is_complex else expected_real
+
+    assert _mkl_matrix_type(dtype, hermitian, posdef) == expected
 
 
 def test_spsolve_nonsymmetric_random_input(
