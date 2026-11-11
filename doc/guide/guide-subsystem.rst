@@ -18,7 +18,7 @@ by taking the tensor product with identities, then multiply it with the state.
 This works, but the cost grows quickly with the number of subsystems, and for
 a single application most of that work is wasted on identities.
 
-QuTiP provides several tools for perform such operations more efficiently.
+QuTiP provides several tools to perform such operations more efficiently.
 They differ in what they accept (kets, density matrices, superoperators),
 how they perform the computation (sparse, dense, Python or Cython) and how
 mature the interface is.
@@ -109,8 +109,6 @@ subsystems and the result is permuted so that it acts on the requested
 Einstein summation: :func:`.einsum`
 ===================================
 
-.. versionadded:: 5.4.0
-
 :func:`.einsum` is the :class:`.Qobj` counterpart of :func:`numpy.einsum`.
 It contracts the indices of the operands directly, so the small
 operator is never expanded to the full size of the system.
@@ -185,10 +183,8 @@ operators that is awkward to write as a chain of tensor products.
 
 .. _subsystem-local-matmul:
 
-Local product: ``local_matmul``
-===============================
-
-.. versionadded:: 5.3.0
+Local product: :func:`.local_matmul`
+====================================
 
 :func:`.local_matmul` multiplies a small ``operator`` into the given ``modes``
 of a larger ``state``, using a Cython implementation that keeps the operator
@@ -250,12 +246,11 @@ Compared to :func:`.expand_operator`, there is no construction step; compared to
 
 .. _subsystem-legacy:
 
-Legacy function: :func:`.subsystem_apply`
+Legacy function: ``subsystem_apply``
 =========================================
 
-:func:`.subsystem_apply` predates the other tools.
-It is kept for backward compatibility but has a few peculiarities that make it
-a poor fit for the "apply a gate to some qubits" task:
+``subsystem_apply`` predates the other tools.
+It has a few peculiarities that make it a poor fit for the "apply a gate to some qubits" task:
 
 .. testcode::
 
@@ -265,20 +260,22 @@ a poor fit for the "apply a gate to some qubits" task:
 
 - The ``mask`` selects *which* subsystems are affected, with one boolean per
   subsystem. The ``channel`` must act on a **single** subsystem, and is applied
-  separately to each selected subsystem. It cannot apply a genuinely
-  two-qubit operator such as the gate above.
-- All selected subsystems must have the same dimension.
+  separately to each selected subsystem. It cannot apply two-qubit operators
+  such as the cnot gate in other examples.
 - ``channel`` can be an operator (unitary) or a superoperator.
 - The input can be a ket or a density matrix, but the output is always a
   density matrix (a ket is converted with ``state.proj()``).
 - The implementation works on dense blocks in Python loops,
   so it is slow for large systems.
-- ``reference=True`` uses a slower construction based on tensor products
-  and Kraus operators; it is mainly useful for testing.
 
-Its strength is the ability to apply a *channel* given as a superoperator
-to selected subsystems without writing down Kraus operators.
-For multi-qubit gates prefer one of the other methods.
+Its strength is the ability to apply a *channel* to multiple selected subsystems
+at once.
+
+.. note::
+
+    ``subsystem_apply`` is a legacy function, kept for backward compatibility.
+    It is not part of the documented API and may be removed in a future
+    release.
 
 
 .. _subsystem-choosing:
@@ -297,16 +294,15 @@ Which one should I use?
     * - :func:`.expand_operator`
       - operator, any ``targets``
       - sparse, builds the full operator
-      - Hamiltonians, collapse operators, repeated application
+      - Building quantum system, repeated application
     * - :func:`.einsum`
-      - kets, operators, several operands
+      - Any non-super
       - dense, no full-size operator
       - Circuit-like simulation, custom contractions
     * - :func:`.local_matmul`
-      - kets, density matrices, rectangular operators, superoperators on
-        density matrices
+      - Any operator, non-super state
       - sparse operator, dense state, Cython
-      - Applying sparse multi-mode operators to dense states
+      - Fast target mode matmul.
     * - :func:`.subsystem_apply`
       - density matrix
       - dense blocks, Python
@@ -315,7 +311,7 @@ Which one should I use?
 As a rule of thumb:
 
 - If you need the big operator itself, or reuse it many times:, use :func:`.expand_operator`.
-- If operating on mulitple objects at once or contraction is not limited to matrix multiplication:, use
+- If operating on multiple objects at once or contraction is not limited to matrix multiplication:, use
   :func:`.einsum`.
 - If applying an operator to a dense state, or a superoperator on a few
   modes of a density matrix:, use ``local_matmul``.

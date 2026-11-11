@@ -47,6 +47,11 @@ def subsystem_apply(
         according to the specified channel.
     """
     state._dims._require_pure_dims("subsystem_apply")
+    if state.isket:
+        # The ket version is not tested and bugged...
+        # Since local_matmul and einsum can both do the same task more
+        # efficiently
+        state = state.proj()
 
     # TODO: Include sparse/dense methods a la partial_transpose.
     if not (state.isket or state.isoper):
