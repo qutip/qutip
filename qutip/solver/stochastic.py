@@ -962,7 +962,7 @@ class StochasticSolver(MultiTrajSolver):
         When using step evolution, only one trajectory can be computed at once.
         """
         if isinstance(seed, Wiener):
-            wiener = generator
+            wiener = seed
         else:
             seeds = self._read_seed(seed, 1)
             generator = self._get_generator(seeds[0])
