@@ -171,11 +171,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge
 
-      - name: Pin Python ABI
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
-        run: |
-          echo 'python_abi 3.14.* *_cp314' >> "$CONDA_PREFIX/conda-meta/pinned"
-
       - name: Install pip
         if: matrix.os != 'windows-11-arm'
         shell: bash -l {0}
