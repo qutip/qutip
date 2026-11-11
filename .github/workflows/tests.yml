@@ -117,7 +117,7 @@ jobs:
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
           # Mac
-          # Mac has issues with MKL since september 2022.
+          # MKL on Intel macOS requires conda-forge packaging.
           - case-name: macos - latest
             os: macos-latest
             python-version: "3.14"
@@ -126,6 +126,7 @@ jobs:
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             python-version: "3.11"
             numpy-build: "==2.0.*"
             numpy-run: "==1.25.*"
