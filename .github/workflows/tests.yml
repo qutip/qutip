@@ -136,12 +136,6 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          - case-name: Windows
-            os: windows-latest
-            python-version: "3.14"
-            qutip-optional: "[graphics,mkl]"
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
-
           # Test 1 recent and one old
           - case-name: Windows - latest - minimal install
             os: windows-11-arm
@@ -157,7 +151,7 @@ jobs:
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
-            qutip-optional: "[ipython,extras]"
+            qutip-optional: "[ipython,extras,mkl]"
             pypi-extra-pkgs: "matplotlib==3.9.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
