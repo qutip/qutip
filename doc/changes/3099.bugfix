@@ -1,0 +1,1 @@
+Fixed ``qutip.testing.get_test_generator`` raising a ``NameError`` for full test IDs and returning a different generator from the ``random_generator`` fixture.
