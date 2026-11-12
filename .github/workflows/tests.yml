@@ -139,19 +139,11 @@ jobs:
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          # Conda environment with runtime compilation dependencies
+          # x64 pip environment with runtime compilation dependencies
           - case-name: Windows - latest - runtime compilation
             os: windows-latest
             python-version: "3.15"
             qutip-optional: "[runtime_compilation]"
-            # matplotlib not installed
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
-
-          # x64 pip environment
-          - case-name: Windows - latest - minimal install
-            os: windows-latest
-            python-version: "3.15"
-            qutip-optional: ""
             no-conda: 1
             pypi: 1
             # matplotlib not installed
@@ -229,11 +221,6 @@ jobs:
           python -m venv build_env
           if [ "$RUNNER_OS" = "Windows" ]; then
             source ./build_env/Scripts/activate
-            # Temporary workaround till conda-forge/python-feedstock#970 gets solved
-            PYTHON_INCLUDE=$(python -c "import pathlib, sys; print(pathlib.Path(sys.base_prefix) / 'include' / 'python')")
-            if [ -f "$PYTHON_INCLUDE/Python.h" ]; then
-              export INCLUDE="$PYTHON_INCLUDE${INCLUDE:+;$INCLUDE}"
-            fi
           else
             source ./build_env/bin/activate
           fi
