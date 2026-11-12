@@ -73,9 +73,6 @@ Tensor
 .. automodule:: qutip.core.tensor
     :members: tensor, super_tensor, composite, tensor_swap, tensor_contract, expand_operator
 
-.. automodule:: qutip.core.qobj
-    :members: ptrace
-
 .. automodule:: qutip.partial_transpose
     :members: partial_transpose
 
@@ -83,7 +80,19 @@ Superoperators and Liouvillians
 ===============================
 
 .. automodule:: qutip.core.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator,lindblad_dissipator
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, scommutator, santicommutator, lindblad_dissipator
+
+Subsystems product and contraction
+==================================
+
+.. automodule:: qutip.core.einsum
+    :members: einsum
+
+.. automodule:: qutip.core.local_matmul
+    :members: local_matmul
+
+.. automodule:: qutip.core.qobj
+    :members: ptrace
 
 Bloch-Redfield Tensors
 ======================
@@ -108,7 +117,7 @@ Operators and Superoperator Dimensions
 ======================================
 
 .. automodule:: qutip.core.dimensions
-    :members: to_tensor_rep, from_tensor_rep, einsum
+    :members: to_tensor_rep, from_tensor_rep
 
 Miscellaneous
 =============
