@@ -1,3 +1,0 @@
-Add support for Python 3.15, including release wheels and CI coverage on
-Linux, macOS, and Windows. Enable testing of installed wheels and
-runtime compilation on Windows x64.
