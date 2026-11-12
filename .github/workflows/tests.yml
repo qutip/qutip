@@ -56,7 +56,7 @@ jobs:
             scipy-run: "==1.17.*"
             pypi: 1
 
-            qutip-optional: "[full,mkl]"
+            qutip-optional: "[full]"
             # Install mpi4py to test mpi_pmap
             # Should be enough to include this in one of the runs
             # Both mpich and openmpi version 4 have caused problems in the past
@@ -69,7 +69,7 @@ jobs:
             python-version: "3.14"
             numpy-run: "==2.3.*"
             scipy-run: "==1.16.*"
-            qutip-optional: "[full,mkl]"
+            qutip-optional: "[full]"
             pypi: 1
 
           - case-name: version-3
@@ -226,7 +226,7 @@ jobs:
 
       - name: Install QuTiP and dependencies
         working-directory: ${{ runner.temp }}
-        env:
+        env: # Use env var to avoid issue with embedded quotes
           CONDA_EXTRA_PKGS: ${{ matrix.conda-extra-pkgs }}
         run: |
           # Install the extra requirement
