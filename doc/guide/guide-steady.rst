@@ -124,7 +124,14 @@ When sparse solving is requested without an explicit solver, QuTiP uses
 SciPy's ``spsolve``.
 
 Solver-specific options can be passed as keyword arguments to
-:func:`.steadystate`. For example, ``max_iter_refine`` specifies the maximum number of iterative refinement steps that the solver performs.
+:func:`.steadystate`. For example, ``max_iter_refine`` specifies the maximum
+number of iterative refinement steps that the MKL solver performs:
+
+.. code-block:: python
+
+   rho_ss = qutip.steadystate(
+       H, c_ops, solver="mkl_spsolve", max_iter_refine=5
+   )
 
 
 .. _steady-usage:
