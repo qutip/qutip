@@ -60,32 +60,6 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 
 
-MKL PARDISO availability
-========================
-
-QuTiP provides MKL PARDISO support through the optional ``pydiso`` package.
-
-The current status can be inspected with:
-
-.. code-block:: python
-
-   import qutip
-
-   print(qutip.settings.has_mkl)
-   print(qutip.settings.pydiso_version)
-   print(qutip.settings.mkl_version)
-
-See :ref:`steady-mkl` for installation and steady-state solver usage.
-
-
-It may be needed to update ``coeffroot`` if the default HOME is not writable. It can be done with:
-
->>> qutip.settings.coeffroot = "path/to/string/coeff/directory"
-
-In QuTiP version 5 and later, strings compiled in a session are kept for future sessions.
-As long as the same ``coeffroot`` is used, each string will only be compiled once.
-
-
 *********************************
 Modifying Internal QuTiP Settings
 *********************************
