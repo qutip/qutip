@@ -101,7 +101,7 @@ subsystems and the result is permuted so that it acts on the requested
 
     By default :func:`expand_operator` creates an operator in ``CSR`` format.
     This format is optimized for ``CSR @ Dense`` operations, but is quite slow for
-    ``Dense @ CSR`` operations. Avoiding that operation, (for example, but using
+    ``Dense @ CSR`` operations. Avoiding that operation, (for example, by using
     ``full_gate @ (full_gate @ rho).dag()`` instead) is recommended.
 
 .. _subsystem-einsum:
@@ -300,7 +300,7 @@ Which one should I use?
       - dense, no full-size operator
       - Circuit-like simulation, custom contractions
     * - :func:`.local_matmul`
-      - Any operator, non-super state
+      - Any operator, non-super operator state
       - sparse operator, dense state, Cython
       - Fast target mode matmul.
     * - :func:`.subsystem_apply`
@@ -310,8 +310,8 @@ Which one should I use?
 
 As a rule of thumb:
 
-- If you need the big operator itself, or reuse it many times:, use :func:`.expand_operator`.
-- If operating on multiple objects at once or contraction is not limited to matrix multiplication:, use
+- If you need the big operator itself, or reuse it many times: use :func:`.expand_operator`.
+- If operating on multiple objects at once, or contraction is not limited to matrix multiplication: use
   :func:`.einsum`.
 - If applying an operator to a dense state, or a superoperator on a few
-  modes of a density matrix:, use ``local_matmul``.
+  modes of a density matrix: use ``local_matmul``.
