@@ -147,7 +147,7 @@ jobs:
 
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
