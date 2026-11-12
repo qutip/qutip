@@ -171,7 +171,7 @@ def lindblad_dissipator(
     .. math::
 
         \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
-        \\frac{1}{2}a^\\dagger b\\rho - \\frac{1}{2}\\rho a^\\dagger b
+        \\frac{1}{2}b^\\dagger a\\rho - \\frac{1}{2}\\rho b^\\dagger a
 
     Parameters
     ----------
@@ -211,7 +211,7 @@ def lindblad_dissipator(
                          " collapse of a QobjEvo")
     if b is None:
         b = a
-    ad_b = a.dag() * b
+    ad_b = b.dag() * a
     if chi:
         D = (
             spre(a) * spost(b.dag()) * np.exp(1j * chi)
