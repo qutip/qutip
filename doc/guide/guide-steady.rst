@@ -94,7 +94,7 @@ optional `pydiso <https://github.com/simPEG/pydiso>`_ package. PARDISO can
 provide substantially better performance than SciPy's SuperLU solver for
 large sparse systems.
 
-See :ref:`install-pydiso` for supported platforms and installation instructions.
+See :ref:`pydiso installation <install-pydiso>` for supported platforms and installation instructions.
 
 QuTiP detects MKL support automatically; no runtime activation is required.
 Availability and version information can be checked with:

@@ -46,6 +46,8 @@ The following packages are currently required:
 
 In addition, there are several optional packages that provide additional functionality:
 
+.. _install-pydiso:
+
 .. cssclass:: table-striped
 
 +--------------------------+--------------+-----------------------------------------------------+
@@ -66,6 +68,13 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | ``tqdm``                 |              | Extra progress bars back-end.                       |
 +--------------------------+--------------+-----------------------------------------------------+
+| ``pydiso``               |              | Intel oneMKL PARDISO sparse direct solver           |
+|                          |              | for supported x86-64 platforms. See the             |
+|                          |              | `pydiso installation documentation`_ and            |
+|                          |              | :ref:`steady-mkl` for availability and usage.       |
++--------------------------+--------------+-----------------------------------------------------+
+
+.. _pydiso installation documentation: https://github.com/simpeg/pydiso#installation
 
 In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
 `IPython <https://ipython.org/>`_ provides an improved text-based Python interpreter that is far more full-featured that the default interpreter, and runs in a terminal.
@@ -122,38 +131,6 @@ If you already have your conda environment set up, and have the ``conda-forge`` 
 
 This will install the minimum set of dependences, but none of the optional packages.
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
-
-
-.. _install-pydiso:
-
-Installing pydiso for Intel MKL PARDISO
-=======================================
-
-QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
-optional ``pydiso`` package. Intel MKL and ``pydiso`` are available only on
-supported x86-64 platforms.
-
-On a supported platform, install QuTiP with the ``mkl`` extra:
-
-.. code-block:: bash
-
-   python -m pip install "qutip[mkl]"
-
-This installs ``pydiso`` and its Intel MKL runtime dependency.
-
-On Intel macOS, install ``pydiso`` and MKL from conda-forge instead. This is
-also an alternative on Linux and Windows. Install QuTiP in the same
-environment:
-
-.. code-block:: bash
-
-   conda install --channel conda-forge pydiso
-   python -m pip install qutip
-
-If you prefer installing ``pydiso`` from source, refer to the
-`pydiso source installation instructions <https://github.com/simpeg/pydiso/blob/main/README.md#installing-from-source>`_.
-
-See :ref:`steady-mkl` for checking availability and using the solver.
 
 
 .. _install-from-source:
