@@ -659,8 +659,8 @@ def test_step_with_wiener_seed(open, heterodyne):
     state2 = run(42)
     state3 = run(123)
 
-    np.testing.assert_allclose(state1.full(), state2.full())
-    assert not np.allclose(state1.full(), state3.full())
+    assert state1 == state2
+    assert state1 != state3
 
 
 def test_smesolve_caches_isherm_for_operator_hamiltonian():
