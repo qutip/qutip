@@ -60,6 +60,14 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 
 
+It may be needed to update ``coeffroot`` if the default HOME is not writable. It can be done with:
+
+>>> qutip.settings.coeffroot = "path/to/string/coeff/directory"
+
+In QuTiP version 5 and later, strings compiled in a session are kept for future sessions.
+As long as the same ``coeffroot`` is used, each string will only be compiled once.
+
+
 *********************************
 Modifying Internal QuTiP Settings
 *********************************
