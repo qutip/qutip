@@ -264,6 +264,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
+    For parallelization guidance, see :ref:`guide-parallel`.
+
     Parameters
     ----------
     task : a Python function
