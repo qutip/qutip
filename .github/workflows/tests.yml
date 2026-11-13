@@ -270,6 +270,26 @@ jobs:
             python -m threadpoolctl -i numpy scipy.linalg pydiso.mkl_solver
           fi
 
+      - name: Diagnose Windows MKL hang
+        if: matrix.os == 'windows-latest'
+        working-directory: ${{ runner.temp }}
+        timeout-minutes: 10
+        run: |
+          # Run each comparison even if the preceding command fails.
+          status=0
+
+          python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_qpt || status=1
+
+          python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
+
+          MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+            python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
+
+          exit "$status"
+
       - name: Run tests
         working-directory: ${{ runner.temp }}
         # If our tests are running for longer than an hour, _something_ is wrong
