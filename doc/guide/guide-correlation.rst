@@ -44,6 +44,10 @@ QuTiP provides a family of functions that assists in the process of calculating 
 | :func:`qutip.correlation_3op`    | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
 +----------------------------------+--------------------------------------------------+
 
+Some correlation functions can distribute their calculations using a ``map``
+argument. See :ref:`guide-parallel` for the available backends and
+:ref:`parallel-interactive-troubleshooting` for interactive use.
+
 
 The most common use-case is to calculate the two time correlation function :math:`\left<A(\tau)B(0)\right>`. :func:`.correlation_2op_1t` performs this task with sensible default values, but only allows using the :func:`.mesolve` solver. From QuTiP 5.0 we added :func:`.correlation_3op`. This function can also calculate correlation functions with two or three operators and with one or two times. Most importantly, this function accepts alternative solvers such as :func:`.brmesolve`.
 
