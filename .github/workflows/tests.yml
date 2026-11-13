@@ -40,12 +40,12 @@ jobs:
         numpy-run: [""]
         scipy-run: [""]
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
-        qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
+        qutip-optional: ["[graphics,runtime_compilation,ipython,extras,mkl]"]
         pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
-        # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
+        # be a truth-y value (for example, 'pypi: 1'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
@@ -80,29 +80,27 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-4
+          - case-name: version-4
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==2.1.*"
             scipy-run: "==1.14.*"
-            qutip-optional: "[graphics]"
+            qutip-optional: "[graphics,mkl]"
 
           - case-name: version-5
             os: ubuntu-latest
             python-version: "3.11"
             numpy-run: "==2.0.*"
             scipy-run: "==1.13.*"
-            nomkl: 1
             qutip-optional: "[semidefinite]"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
-          - case-name: numpy fallback, nomkl
+          - case-name: numpy fallback
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
-            nomkl: 1
-            qutip-optional: "[runtime_compilation,ipython,extras]"
+            qutip-optional: "[runtime_compilation,ipython,extras,mkl]"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: Oldest officially supported
@@ -119,21 +117,20 @@ jobs:
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
           # Mac
-          # Mac has issues with MKL since september 2022.
+          # MKL on Intel macOS requires conda-forge packaging.
           - case-name: macos - latest
             os: macos-latest
             python-version: "3.14"
-            nomkl: 1
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
-            python-version: "3.11"
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
+            python-version: "3.12"
             numpy-build: "==2.0.*"
-            numpy-run: "==1.25.*"
+            numpy-run: "==1.26.*"
             scipy-run: "==1.16.*"
-            nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
             pypi-extra-pkgs: "matplotlib==3.9.*"
@@ -150,13 +147,14 @@ jobs:
 
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
-            pypi-extra-pkgs: "matplotlib==3.9.*"
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            conda-extra-pkgs: '"pydiso>=0.3.1" "libblas=*=*mkl"'
+            pypi-extra-pkgs: "matplotlib==3.9.* threadpoolctl pytest-timeout"
+            pytest-extra-options: "--timeout=300 --timeout-method=thread -W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
       - uses: actions/checkout@v7
@@ -223,6 +221,8 @@ jobs:
 
       - name: Install QuTiP and dependencies
         working-directory: ${{ runner.temp }}
+        env: # Use env var to avoid issue with embedded quotes
+          CONDA_EXTRA_PKGS: ${{ matrix.conda-extra-pkgs }}
         run: |
           # Install the extra requirement
           python -m pip install pytest pytest-rerunfailures
@@ -238,10 +238,8 @@ jobs:
           CORE_DEP="numpy${{ matrix.numpy-run }} scipy${{ matrix.scipy-run }}"
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
-          elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
           else
-            conda install nomkl $CORE_DEP
+            conda install $CORE_DEP
           fi
 
           cp "${{ github.workspace }}"/qutip*.whl .
@@ -254,7 +252,7 @@ jobs:
             python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
           fi
 
-          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+          if [[ -n "$CONDA_EXTRA_PKGS" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
@@ -268,6 +266,29 @@ jobs:
           fi
           python -c "import qutip; qutip.about()"
           python -c "import qutip; print(qutip.settings)"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            python -m threadpoolctl -i numpy scipy.linalg pydiso.mkl_solver
+          fi
+
+      - name: Diagnose Windows MKL hang
+        if: matrix.os == 'windows-latest'
+        working-directory: ${{ runner.temp }}
+        timeout-minutes: 10
+        run: |
+          # Run each comparison even if the preceding command fails.
+          status=0
+
+          python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_qpt || status=1
+
+          python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
+
+          MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+            python -m pytest -vv --timeout=120 --timeout-method=thread \
+            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
+
+          exit "$status"
 
       - name: Run tests
         working-directory: ${{ runner.temp }}

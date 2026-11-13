@@ -67,8 +67,11 @@ extras = [
   "mpmath",
 ]
 mpi = ["mpi4py"]
+mkl = [
+    "pydiso>=0.3.1"
+]
 full = [
-  "qutip[graphics,runtime_compilation,semidefinite,ipython,extras]",
+  "qutip[graphics,runtime_compilation,semidefinite,ipython,extras,mkl]",
 ]
 
 [dependency-groups]

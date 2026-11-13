@@ -80,16 +80,58 @@ system. To do so, there are multiple solvers available:
      - ``scipy.sparse.linalg.bicgstab``
      - BIConjugate Gradient STABilized iterative solver.
    * - "mkl_spsolve"
-     - ``pardiso``
-     - Intel Pardiso LU solver from MKL
+     - ``pydiso``
+     - Intel oneMKL PARDISO sparse direct solver
 
 
-QuTiP can take advantage of the Intel Pardiso LU solver in the Intel Math
-Kernel library that comes with the Anacoda (2.5+) and Intel Python
-distributions.  This gives a substantial increase in performance compared with
-the standard SuperLU method used by SciPy.  To verify that QuTiP can find the
-necessary libraries, one can check for ``INTEL MKL Ext: True`` in the QuTiP
-about box (:func:`.about`).
+.. _steady-mkl:
+
+Intel MKL PARDISO
+-----------------
+
+QuTiP can use the Intel oneMKL PARDISO sparse direct solver through the
+optional `pydiso <https://github.com/simPEG/pydiso>`_ package. PARDISO can
+provide substantially better performance than SciPy's SuperLU solver for
+large sparse systems.
+
+See :ref:`pydiso installation <install-pydiso>` for supported platforms and installation instructions.
+
+QuTiP detects MKL support automatically; no runtime activation is required.
+Availability and version information can be checked with:
+
+.. code-block:: python
+
+   import qutip
+
+   print(qutip.settings.has_mkl)
+   print(qutip.settings.pydiso_version)
+   print(qutip.settings.mkl_version)
+
+The MKL solver can be selected explicitly for a steady-state calculation:
+
+.. code-block:: python
+
+   rho_ss = qutip.steadystate(
+       H,
+       c_ops,
+       method="direct",
+       solver="mkl_spsolve",
+   )
+
+Requesting ``mkl_spsolve`` when MKL support is unavailable raises an error.
+When sparse solving is requested without an explicit solver, QuTiP uses
+``mkl_spsolve`` automatically if it is available and otherwise falls back to
+SciPy's ``spsolve``.
+
+Solver-specific options can be passed as keyword arguments to
+:func:`.steadystate`. For example, ``max_iter_refine`` specifies the maximum
+number of iterative refinement steps that the MKL solver performs:
+
+.. code-block:: python
+
+   rho_ss = qutip.steadystate(
+       H, c_ops, solver="mkl_spsolve", max_iter_refine=5
+   )
 
 
 .. _steady-usage:

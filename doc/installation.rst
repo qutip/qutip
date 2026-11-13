@@ -46,6 +46,8 @@ The following packages are currently required:
 
 In addition, there are several optional packages that provide additional functionality:
 
+.. _install-pydiso:
+
 .. cssclass:: table-striped
 
 +--------------------------+--------------+-----------------------------------------------------+
@@ -66,6 +68,13 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | ``tqdm``                 |              | Extra progress bars back-end.                       |
 +--------------------------+--------------+-----------------------------------------------------+
+| ``pydiso``               |              | Intel oneMKL PARDISO sparse direct solver           |
+|                          |              | for supported x86-64 platforms. See the             |
+|                          |              | `pydiso installation documentation`_ and            |
+|                          |              | :ref:`steady-mkl` for availability and usage.       |
++--------------------------+--------------+-----------------------------------------------------+
+
+.. _pydiso installation documentation: https://github.com/simpeg/pydiso#installation
 
 In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
 `IPython <https://ipython.org/>`_ provides an improved text-based Python interpreter that is far more full-featured that the default interpreter, and runs in a terminal.
