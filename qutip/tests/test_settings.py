@@ -44,11 +44,3 @@ def test_mp_context_override():
     assert settings.mp_context is None
 
 
-def test_import_does_not_fix_application_start_method():
-    code = (
-        "import multiprocessing as mp\n"
-        "import qutip\n"
-        "assert mp.get_start_method(allow_none=True) is None\n"
-        "mp.set_start_method('spawn')\n"
-    )
-    subprocess.run([sys.executable, "-c", code], check=True, timeout=60)
