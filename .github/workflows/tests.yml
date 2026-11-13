@@ -80,13 +80,6 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-4
-            os: ubuntu-latest
-            python-version: "3.13"
-            numpy-run: "==2.1.*"
-            scipy-run: "==1.14.*"
-            qutip-optional: "[graphics]"
-
           - case-name: version-5
             os: ubuntu-latest
             python-version: "3.12"
