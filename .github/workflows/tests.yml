@@ -70,6 +70,7 @@ jobs:
             numpy-run: "==2.3.*"
             scipy-run: "==1.16.*"
             qutip-optional: "[full]"
+            no-conda: 1
             pypi: 1
 
           - case-name: version-3
