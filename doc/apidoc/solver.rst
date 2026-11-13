@@ -194,6 +194,9 @@ Stochastic Integrator
 Parallelization
 ===============
 
+For backend choices, multiprocessing context selection, and interactive use,
+see :ref:`guide-parallel`.
+
 .. automodule:: qutip.solver.parallel
     :members: parallel_map, serial_map, loky_pmap, mpi_pmap
 

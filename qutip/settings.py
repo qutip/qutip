@@ -10,6 +10,8 @@ from glob import glob
 from pathlib import Path
 import numpy as np
 import scipy
+import multiprocessing
+from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
 
@@ -169,6 +171,7 @@ def _find_mkl():
     return ""
 
 
+
 class Settings:
     """
     Qutip's settings and options.
@@ -182,9 +185,36 @@ class Settings:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
+        if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
+            self._mp_context = multiprocessing.get_context('fork')
+        else:
+            self._mp_context = None
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+
+    @property
+    def mp_context(self) -> BaseContext | None:
+        """Context for QuTiP's multiprocessing backend.
+
+        ``None`` uses the application's default when a worker pool is created.
+        Assign a start-method name or a multiprocessing context to override it.
+        """
+        return self._mp_context
+
+    @mp_context.setter
+    def mp_context(
+        self, new_context: str | BaseContext | None
+    ) -> None:
+        if new_context is None or isinstance(new_context, BaseContext):
+            self._mp_context = new_context
+        elif isinstance(new_context, str):
+            self._mp_context = multiprocessing.get_context(new_context)
+        else:
+            raise TypeError(
+                "mp_context must be None, a start-method name, "
+                "or a multiprocessing context"
+            )
 
     @property
     def has_mkl(self) -> bool:

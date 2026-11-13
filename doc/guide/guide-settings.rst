@@ -55,6 +55,9 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | `num_cpus`        | True      | Detected number of cpus.                                 |
 +-------------------+-----------+----------------------------------------------------------+
+| `mp_context`      | False     | Context for multiprocessing-backed operations; see       |
+|                   |           | :ref:`multiprocessing-context`.                          |
++-------------------+-----------+----------------------------------------------------------+
 | `colorblind_safe` | False     | Control the default cmap in visualization functions.     |
 +-------------------+-----------+----------------------------------------------------------+
 

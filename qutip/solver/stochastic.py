@@ -469,6 +469,7 @@ def smesolve(
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
+            See :ref:`guide-parallel` for parallelization guidance.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -607,6 +608,7 @@ def ssesolve(
           | How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
+            See :ref:`guide-parallel` for parallelization guidance.
         - | num_cpus : NoneType, int
           | Number of cpus to use when running in parallel. ``None`` detect the
             number of available cpus.
@@ -1068,6 +1070,7 @@ class StochasticSolver(MultiTrajSolver):
             How to run the trajectories. "parallel" uses the multiprocessing
             module to run in parallel while "loky" and "mpi" use the "loky" and
             "mpi4py" modules to do so.
+            See :ref:`guide-parallel` for parallelization guidance.
 
         mpi_options: dict, default: {}
             Only applies if map is "mpi". This dictionary will be passed as

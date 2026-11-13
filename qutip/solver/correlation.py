@@ -183,6 +183,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
         ``'parallel'``, ``'loky'``).
+        See :ref:`guide-parallel` for parallelization guidance.
     map_kw : dict, optional
         Keyword arguments passed to the map function via its ``map_kw``
         parameter, e.g. ``{'num_cpus': 4}``.
@@ -329,6 +330,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
         ``'parallel'``, ``'loky'``).
+        See :ref:`guide-parallel` for parallelization guidance.
     map_kw : dict, optional
         Keyword arguments passed to the map function via its ``map_kw``
         parameter, e.g. ``{'num_cpus': 4}``.
@@ -543,6 +545,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None, *,
         How to run the loop over *tlist*. A string is looked up in
         ``qutip.solver.parallel._maps`` (e.g. ``'serial'``,
         ``'parallel'``, ``'loky'``).
+        See :ref:`guide-parallel` for parallelization guidance.
     map_kw : dict, optional
         Keyword arguments passed to the map function via its ``map_kw``
         parameter, e.g. ``{'num_cpus': 4}``.

@@ -214,7 +214,7 @@ def wigner(psi, xvec, yvec=None, method='clenshaw', g=sqrt(2),
 
     parfor : bool, optional
         Flag for calculating the Laguerre polynomial based Wigner function
-        method='laguerre' in parallel using the parfor function.
+        method='laguerre' in parallel using :func:`.parallel_map`.
 
     offset : int, default: 0
         The lowest number state that is included in the finite number state

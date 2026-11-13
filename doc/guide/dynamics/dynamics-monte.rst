@@ -455,12 +455,10 @@ Running trajectories in parallel
 --------------------------------
 
 Monte-Carlo evolutions often need hundreds of trajectories to obtain sufficient
-statistics. Since all trajectories are independent of each other, they can be computed
-in parallel. The option ``map`` can take ``"serial"``, ``"parallel"``, ``"loky"`` or ``"mpi"``.
-Both ``"parallel"`` and ``"loky"`` compute trajectories on multiple CPUs using
-respectively the `multiprocessing <https://docs.python.org/3/library/multiprocessing.html>`_
-and `loky <https://loky.readthedocs.io/en/stable/index.html>`_ python modules.
-The ``"mpi"`` option is for computing trajectories in a computing cluster, see the :ref:`MPI section<monte-mpi>` below.
+statistics. Since trajectories are independent, they can be computed in parallel.
+Use the solver's ``map`` option to select a backend; see :ref:`guide-parallel`
+for backend choices, :ref:`parallel-interactive-troubleshooting` for notebook
+and interactive use, and :ref:`monte-mpi` for a distributed trajectory example.
 
 .. code-block::
 
