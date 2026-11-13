@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 cimport cython
@@ -89,7 +88,7 @@ cpdef CSR kron_dense_csr_csr(Dense left, CSR right):
 cdef inline void _vec_kron(
     double complex * ptr_l, double complex * ptr_r, double complex * ptr_out,
     idxint size_l, idxint size_r, idxint step
-):
+) noexcept nogil:
     cdef idxint i, j
     for i in range(size_l):
         for j in range(size_r):

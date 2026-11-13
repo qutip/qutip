@@ -1,5 +1,6 @@
 import numpy as np
-from qutip import basis, tensor
+from scipy.special import factorial, hermite
+from qutip import basis, tensor, rand_dm
 import pytest
 from qutip.distributions import (
     TwoModeQuadratureCorrelation, HarmonicOscillatorWaveFunction,
@@ -209,3 +210,23 @@ def test_two_mode_quadrature_correlation_update(two_mode_wavefunction):
     dx2 = corr.xvecs[1][1] - corr.xvecs[1][0]
     integral = corr.data.sum() * dx1 * dx2
     assert np.isclose(integral, 1.0, atol=1e-2)
+
+
+def test_two_mode_quadrature_correlation_matches_direct():
+    N, theta1, theta2 = 3, 0.3, -0.7
+    rho = rand_dm([N, N], seed=3)
+    corr = TwoModeQuadratureCorrelation(rho, theta1, theta2, steps=21)
+    X1, X2 = np.meshgrid(*corr.xvecs)
+
+    def a(n, x, theta):
+        return (np.exp(-1j * theta * n - x ** 2 / 2) * hermite(n)(x)
+                / np.sqrt(np.sqrt(np.pi) * 2 ** n * factorial(n)))
+
+    expected = sum(
+        rho.full()[n1 * N + n2, p1 * N + p2]
+        * a(n1, X1, theta1) * a(p1, X1, theta1).conj()
+        * a(n2, X2, theta2) * a(p2, X2, theta2).conj()
+        for n1 in range(N) for n2 in range(N)
+        for p1 in range(N) for p2 in range(N)
+    )
+    np.testing.assert_allclose(corr.data, expected, atol=1e-12)

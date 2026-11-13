@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport CSR, Dense, Data, Dia
 
 cpdef CSR imul_csr(CSR matrix, double complex value)

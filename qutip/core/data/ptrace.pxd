@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from qutip.core.data cimport CSR, Dense
 
 cpdef CSR ptrace_csr(CSR matrix, object dims, object sel)
