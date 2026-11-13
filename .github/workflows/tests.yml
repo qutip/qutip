@@ -80,14 +80,12 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: version-5
+          - case-name: mkl, version-4
             os: ubuntu-latest
-            python-version: "3.12"
-            numpy-run: "==2.0.*"
-            scipy-run: "==1.13.*"
-            nomkl: 1
-            qutip-optional: "[semidefinite]"
-            pypi-extra-pkgs: "matplotlib==3.10.*"
+            python-version: "3.13"
+            numpy-run: "==2.1.*"
+            scipy-run: "==1.14.*"
+            qutip-optional: "[graphics]"
 
           - case-name: numpy fallback, nomkl
             os: ubuntu-latest
