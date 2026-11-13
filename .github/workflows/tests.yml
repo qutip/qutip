@@ -119,6 +119,13 @@ jobs:
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
+          - case-name: macos - Python 3.14
+            os: macos-latest
+            python-version: "3.14"
+            nomkl: 1
+            qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
+
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
             python-version: "3.12"
