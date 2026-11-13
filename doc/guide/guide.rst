@@ -23,6 +23,7 @@ Users Guide
    guide-distributions.rst
    guide-saving.rst
    guide-random.rst
+   guide-parallel.rst
    guide-settings.rst
    guide-measurement.rst
    guide-family.rst
