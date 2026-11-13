@@ -305,11 +305,10 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
             "parallel_map is not available on emscripten, use serial_map")
 
     map_kw = _read_map_kw(map_kw)
-    ctx_kw = {"mp_context": settings.mp_context}
 
     def setup_executor():
         return concurrent.futures.ProcessPoolExecutor(
-            max_workers=map_kw['num_cpus'], **ctx_kw,
+            max_workers=map_kw['num_cpus'], mp_context=settings.mp_context,
         )
 
     def extract_result(future: concurrent.futures.Future):

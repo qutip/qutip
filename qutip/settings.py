@@ -171,9 +171,6 @@ def _find_mkl():
     return ""
 
 
-def get_default_os_context():
-    mp_context = multiprocessing.get_context()
-    return mp_context
 
 class Settings:
     """
@@ -191,23 +188,33 @@ class Settings:
         if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
             self._mp_context = multiprocessing.get_context('fork')
         else:
-            self._mp_context = get_default_os_context()
+            self._mp_context = None
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
 
     @property
-    def mp_context(self) -> BaseContext:
+    def mp_context(self) -> BaseContext | None:
+        """Context for QuTiP's multiprocessing backend.
+
+        ``None`` uses the application's default when a worker pool is created.
+        Assign a start-method name or a multiprocessing context to override it.
+        """
         return self._mp_context
 
     @mp_context.setter
     def mp_context(
         self, new_context: str | BaseContext | None
     ) -> None:
-        if isinstance(new_context, BaseContext):
+        if new_context is None or isinstance(new_context, BaseContext):
             self._mp_context = new_context
-        else:
+        elif isinstance(new_context, str):
             self._mp_context = multiprocessing.get_context(new_context)
+        else:
+            raise TypeError(
+                "mp_context must be None, a start-method name, "
+                "or a multiprocessing context"
+            )
 
     @property
     def has_mkl(self) -> bool:
