@@ -152,7 +152,7 @@ jobs:
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
-            conda-extra-pkgs: '"pydiso>=0.3.1" "libblas=*=*mkl"'
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
             pypi-extra-pkgs: "matplotlib==3.9.* threadpoolctl pytest-timeout"
             pytest-extra-options: "--timeout=300 --timeout-method=thread -W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 

@@ -226,7 +226,7 @@ def test_splu_nonsymmetric_repeated_vector_rhs(nonsymmetric_matrix):
         dtype=A.dtype,
     )
     test_X = np.zeros((3, 3), dtype=A.dtype)
-    lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=True)
+    lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=False)
     for k in range(3):
         x = lu.solve(N[:, k])
         assert x.dtype == A.dtype
