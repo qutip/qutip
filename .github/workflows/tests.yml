@@ -153,8 +153,8 @@ jobs:
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
             conda-extra-pkgs: '"pydiso>=0.3.1" "libblas=*=*mkl"'
-            pypi-extra-pkgs: "matplotlib==3.9.*"
-            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            pypi-extra-pkgs: "matplotlib==3.9.* threadpoolctl pytest-timeout"
+            pytest-extra-options: "--timeout=300 --timeout-method=thread -W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
       - uses: actions/checkout@v7
@@ -266,6 +266,9 @@ jobs:
           fi
           python -c "import qutip; qutip.about()"
           python -c "import qutip; print(qutip.settings)"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            python -m threadpoolctl -i numpy scipy.linalg pydiso.mkl_solver
+          fi
 
       - name: Run tests
         working-directory: ${{ runner.temp }}
