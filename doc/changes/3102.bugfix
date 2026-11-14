@@ -1,0 +1,1 @@
+Fixed ``clebsch`` raising a ``ValueError`` for invalid inputs instead of returning 0.
