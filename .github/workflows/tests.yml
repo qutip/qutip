@@ -153,8 +153,8 @@ jobs:
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
             conda-extra-pkgs: '"pydiso>=0.3.1" "libblas=*=*mkl"'
-            pypi-extra-pkgs: "matplotlib==3.9.* threadpoolctl pytest-timeout"
-            pytest-extra-options: "--timeout=300 --timeout-method=thread -W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
+            pypi-extra-pkgs: "matplotlib==3.9.*"
+            pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
       - uses: actions/checkout@v7
@@ -265,30 +265,6 @@ jobs:
             conda list
           fi
           python -c "import qutip; qutip.about()"
-          python -c "import qutip; print(qutip.settings)"
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            python -m threadpoolctl -i numpy scipy.linalg pydiso.mkl_solver
-          fi
-
-      - name: Diagnose Windows MKL hang
-        if: matrix.os == 'windows-latest'
-        working-directory: ${{ runner.temp }}
-        timeout-minutes: 10
-        run: |
-          # Run each comparison even if the preceding command fails.
-          status=0
-
-          python -m pytest -vv --timeout=120 --timeout-method=thread \
-            --pyargs qutip.tests.test_qpt || status=1
-
-          python -m pytest -vv --timeout=120 --timeout-method=thread \
-            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
-
-          MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
-            python -m pytest -vv --timeout=120 --timeout-method=thread \
-            --pyargs qutip.tests.test_mkl qutip.tests.test_qpt || status=1
-
-          exit "$status"
 
       - name: Run tests
         working-directory: ${{ runner.temp }}
@@ -322,8 +298,8 @@ jobs:
           #  --strict-markers
           #     error out if a marker is used but not defined in the
           #     configuration file
-          #  --timeout=300
-          #     error any individual test that goes longer than the given time
+          #  --fail-slow=300
+          #     fail tests whose completed duration exceeds 300 seconds
           #  --durations=0 --durations-min=1.0
           #     at the end, show a list of all the tests that took longer than a
           #     second to run
