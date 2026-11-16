@@ -108,14 +108,10 @@ Stochastic Schrödinger Equation and Master Equation
     :exclude-members: add_integrator
 
 .. autoclass:: qutip.solver.stochastic.StochasticResult
-    :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition, add_deterministic
+    :members: steady_state, merge, plot_expect, measurement, signal, dW, wiener_process
 
 .. autoclass:: qutip.solver.stochastic.StochasticTrajResult
-    :members:
-    :inherited-members:
-    :exclude-members: add_processor, add
+    :members: plot_expect, measurement, signal, dW, wiener_process
 
 Non-Markovian Solvers
 =====================
