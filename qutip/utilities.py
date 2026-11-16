@@ -97,6 +97,10 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     """
     if m3 != m1 + m2:
         return 0
+    if not abs(j1 - j2) <= j3 <= j1 + j2:
+        return 0
+    if abs(m1) > j1 or abs(m2) > j2 or abs(m3) > j3:
+        return 0
     vmin = round(max(-j1 + j2 + m3, -j1 + m1, 0))
     vmax = round(min(j2 + j3 + m1, j3 - j1 + j2, j3 + m3))
 
