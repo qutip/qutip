@@ -49,6 +49,12 @@ QuTiP selects a multiprocessing context as follows:
   default on all platforms. The application can select this default; otherwise
   Python chooses it according to the platform and Python version.
 
+.. note::
+
+   To override the default for QuTiP, see how to
+   :ref:`configure the multiprocessing context <parallel-context-override>`
+   with ``qutip.settings.mp_context``.
+
 .. _parallel-interactive-troubleshooting:
 
 Troubleshooting notebook and interactive parallelization
@@ -75,6 +81,8 @@ following options:
   module. When running from a script with ``spawn`` or ``forkserver``, protect
   the code that starts parallel work with ``if __name__ == "__main__":``.
 * Use ``"serial"`` if the calculation does not need to run in parallel.
+
+.. _parallel-context-override:
 
 You can also explicitly select a multiprocessing context before starting a
 calculation. For example, on a platform that supports it, the following
