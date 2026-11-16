@@ -55,10 +55,13 @@ QuTiP selects a multiprocessing context as follows:
    :ref:`configure the multiprocessing context <parallel-context-override>`
    with ``qutip.settings.mp_context``.
 
+Troubleshooting
+===============
+
 .. _parallel-interactive-troubleshooting:
 
-Troubleshooting notebook and interactive parallelization
-========================================================
+Parallel execution in notebooks and interactive sessions
+--------------------------------------------------------
 
 Some parallel calculations in notebooks or other interactive sessions may
 depend on state or functions defined in the session. With ``spawn`` or
