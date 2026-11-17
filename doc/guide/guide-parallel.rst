@@ -40,7 +40,7 @@ documentation for its supported options.
 Starting workers and transferring data have overhead, so parallel execution
 is not necessarily faster for small calculations.
 
-If a parallel calculation fails in a notebook or interactive session, see
+If a multiprocessing calculation fails in a notebook or interactive session, see
 :ref:`parallel-interactive-troubleshooting`.
 
 .. _multiprocessing-context:
@@ -242,16 +242,17 @@ Troubleshooting
 Parallel execution in notebooks and interactive sessions
 --------------------------------------------------------
 
-Some parallel calculations in notebooks or other interactive sessions may
-depend on state or functions defined in the session. With ``spawn`` or
-``forkserver``, workers must be able to reconstruct the work sent to them;
+Some multiprocessing calculations in notebooks or other interactive sessions
+may depend on state or functions defined in the session. With the
+multiprocessing ``spawn`` or ``forkserver`` start method, workers must be able
+to reconstruct the work sent to them;
 functions defined interactively are not always importable by the workers.
 Consequently, a calculation that worked with ``fork`` may fail when the
 default context changes. This depends on the calculation and its inputs, not
 just on whether it runs in a notebook. See Python's documentation on
 `contexts and start methods <https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods>`_.
 
-If a parallel calculation fails in an interactive session, consider the
+If a multiprocessing calculation fails in an interactive session, consider the
 following options:
 
 * Try the ``"loky"`` backend, which supports many interactively defined
