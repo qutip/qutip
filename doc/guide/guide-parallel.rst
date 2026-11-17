@@ -83,6 +83,66 @@ Setting it to ``None`` selects the application default even on older Python
 versions; it does not restore QuTiP's legacy ``fork`` selection. Set it before
 starting the parallel calculation.
 
+.. _monte-mpi:
+
+Distributed Simulations Using MPI
+=================================
+
+..
+    adapted from the `nm_mcsolve` tutorial notebook
+
+Sometimes, many trajectories are needed to see the convergence of the trajectory average.
+Using QuTiP's MPI capabilities, large numbers of trajectories can be computed in parallel
+on multiple nodes of a computing cluster. On the QuTiP side, running Monte Carlo simulations
+through MPI is as easy as replacing ``"map": "parallel"`` by ``"map": "mpi"`` in the provided options.
+In addition, one should always provide the ``"num_cpus"`` option, which in this case specifies
+the number of available worker processes. The number of available worker processes is typically one
+less than the total number of processes assigned to the task.
+
+The call to the Monte Carlo solver might look like this (for a more detailed example, see e.g.
+`this tutorial notebook <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.ipynb>`_):
+
+.. code-block:: python
+
+    qutip.mcsolve(H, psi0, times, c_ops, ntraj=NTRAJ,
+                  options={'store_states': True,
+                           'progress_bar': False,
+                           'map': 'mpi',
+                           'num_cpus': NUM_WORKER_PROCESSES})
+
+To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
+For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
+be created and communicate across nodes, we generally refer to the
+`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_ and to your system administrator.
+
+Below, we provide an example batch script that can be submitted to a SLURM workload manager. The authors of this guide
+used this script to perform a parallel calculation on 500 CPUs distributed over 5 nodes of the supercomputer
+`HOKUSAI <https://www.r-ccs.riken.jp/exhibit_contents/SC20/hokusai.html>`_, using the `MPICH <https://www.mpich.org>`_
+implementation of the MPI standard. However, one should expect that adjustments to the script are required depending
+on the available MPI implementations and their versions, as well as the workload manager and its version and configuration.
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #SBATCH --partition=XXXXX
+    #SBATCH --account=XXXXX
+
+    #SBATCH --nodes=5
+    #SBATCH --ntasks=501
+    #SBATCH --mem-per-cpu=1G
+
+    #SBATCH --time=0-10:00
+
+    source ~/.bashrc
+
+    module purge
+    module load mpi/mpich-x86_64
+    conda activate qutip-environment
+
+    mpirun -np $SLURM_NTASKS -bind-to core python -m mpi4py.futures XXXXX.py
+
+
+
 Troubleshooting
 ===============
 
