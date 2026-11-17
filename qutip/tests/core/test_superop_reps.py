@@ -111,6 +111,29 @@ class TestSuperopReps:
         with pytest.raises(ValueError, match="must be a square."):
             superpauli_to_super(non_square)
 
+    def test_non_square_map_raises_ValueError(self):
+        """
+        Superoperator: Ensure to_chi and to_superpauli raise a clear
+        ValueError for maps whose input and output dimensions differ, e.g.
+        the partial trace over the second qubit of a two-qubit system.
+        """
+        bra0, bra1 = basis(2, 0).dag(), basis(2, 1).dag()
+        partial_trace = kraus_to_super(
+            [tensor(qeye(2), bra0), tensor(qeye(2), bra1)]
+        )
+        # isometric embedding of one qubit into two qubits
+        embedding = tensor(qeye(2), basis(2, 0))
+        # same total size on both sides, but different tensor structure
+        reshape = Qobj(np.eye(4), dims=[[2, 2], [4]])
+
+        for channel in [partial_trace, embedding, reshape]:
+            with pytest.raises(ValueError, match="same dimension"):
+                to_chi(channel)
+            with pytest.raises(ValueError, match="same dimension"):
+                to_chi(to_choi(channel))
+            with pytest.raises(ValueError, match="same dimension"):
+                to_superpauli(channel)
+
     def test_to_choi_to_chi_unsupported_type_raises_TypeError(self):
         """
         Superoperator: Ensure to_choi and to_chi raise TypeError (not
