@@ -46,7 +46,7 @@ The following packages are currently required:
 
 In addition, there are several optional packages that provide additional functionality:
 
-.. _install-pydiso:
+.. _install-optional:
 
 .. cssclass:: table-striped
 
