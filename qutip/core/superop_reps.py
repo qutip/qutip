@@ -75,10 +75,10 @@ def _is_power_of_two(x):
 
 
 def _nq(dims):
-    if np.prod(dims[0][0]) != np.prod(dims[0][1]):
+    if dims[0][0] != dims[0][1]:
         raise ValueError(
             "The chi representation is only defined for maps whose input "
-            "and output spaces have the same dimension."
+            "and output spaces have the same dimensions."
         )
     dim = np.prod(dims[0][0])
     nq = _int_log_two(dim)
@@ -127,10 +127,10 @@ def to_superpauli(q_oper):
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
-    if sqobj.shape[0] != sqobj.shape[1]:
+    if sqobj.dims[0] != sqobj.dims[1]:
         raise ValueError(
             "Pauli basis is only defined for maps whose input and output "
-            "spaces have the same dimension."
+            "spaces have the same dimensions."
         )
     if not isqubitdims(sqobj._dims):
         raise ValueError("Pauli basis is only defined for qubits.")
