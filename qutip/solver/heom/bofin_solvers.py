@@ -1041,7 +1041,7 @@ class HEOMSolver(Solver):
                 perm=mkl_perm,
                 verbose=mkl_verbose,
                 max_iter_refine=mkl_max_iter_refine,
-                scaling_vectors=True,
+                scaling_vectors=mkl_scaling_vectors,
                 weighted_matching=mkl_weighted_matching
             )
         else:
