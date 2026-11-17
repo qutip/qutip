@@ -171,7 +171,6 @@ def _find_mkl():
     return ""
 
 
-
 class Settings:
     """
     Qutip's settings and options.
