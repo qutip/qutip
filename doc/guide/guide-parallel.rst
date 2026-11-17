@@ -4,30 +4,41 @@
 Parallelization
 ***************
 
-QuTiP provides several ways to run independent calculations concurrently. The
-interface depends on the function being called:
+QuTiP provides several ways to run independent calculations concurrently.
+Choose an interface based on the work you want to distribute:
 
-* Trajectory solvers :func:`.mcsolve`, :func:`.nm_mcsolve`,
-  :func:`.smesolve`, and :func:`.ssesolve` accept a ``map`` solver option.
-  For example, use ``options={"map": "parallel"}`` or
-  ``options={"map": "loky"}``. The corresponding solver classes also accept
-  this option. See :ref:`monte-parallel` for a trajectory example.
-* :func:`.correlation_2op_2t`, :func:`.correlation_3op_2t`, and
-  :func:`.correlation_3op` accept ``map`` and ``map_kw`` directly, for
-  example ``map="parallel"`` and ``map_kw={"num_cpus": 2}``.
-* For a general mapping operation, use :func:`.parallel_map`,
-  :func:`.loky_pmap`, :func:`.mpi_pmap`, or :func:`.serial_map` directly.
-* Some functions expose a separate switch for parallel work. For example,
-  :func:`.wigner` uses ``parfor=True`` with ``method="laguerre"`` to use
-  :func:`.parallel_map`.
+.. list-table::
+   :header-rows: 1
+   :widths: 25 35 40
 
-``parallel`` uses Python's multiprocessing module, ``loky`` uses the optional
-`loky <https://loky.readthedocs.io/en/stable/index.html>`_ package, and ``mpi``
-uses MPI for distributed computation. The ``serial`` option runs without a
-process pool. Availability and supported options vary by caller; consult the
-function's documentation. For MPI setup and trajectory execution, see
-:ref:`monte-mpi`. Starting workers and transferring data have overhead, so
-parallel execution is not necessarily faster for small calculations.
+   * - Work
+     - Interface
+     - Examples and documentation
+   * - Trajectories
+     - The solver's ``map`` option
+     - :ref:`Monte Carlo guide <monte-parallel>`; :ref:`MPI example <mpi-trajectories>`
+   * - Two-time correlations
+     - ``map`` and ``map_kw`` arguments
+     - :ref:`Correlation guide <correlation>`; :ref:`MPI example <mpi-correlations>`
+   * - Independent calculations
+     - :func:`.parallel_map`, :func:`.loky_pmap`, :func:`.mpi_pmap`, or :func:`.serial_map`
+     - :ref:`MPI parameter sweep <mpi-independent>`
+   * - Laguerre-method Wigner calculation
+     - :func:`.wigner` with ``method="laguerre"`` and ``parfor=True``
+     - :func:`.wigner` API documentation
+
+Choosing a backend
+==================
+
+The available backends depend on the interface. ``serial`` runs tasks in the
+current process; ``parallel`` uses Python's :ref:`multiprocessing
+<multiprocessing-context>`; ``loky`` uses the optional `loky
+<https://loky.readthedocs.io/en/stable/index.html>`_ package; and ``mpi`` uses
+:ref:`MPI <monte-mpi>` for distributed calculations. For direct mapping,
+choose the corresponding mapping function instead. See each function's
+documentation for its supported options.
+Starting workers and transferring data have overhead, so parallel execution
+is not necessarily faster for small calculations.
 
 If a parallel calculation fails in a notebook or interactive session, see
 :ref:`parallel-interactive-troubleshooting`.
@@ -70,8 +81,10 @@ requests the ``fork`` method:
 
     qutip.settings.mp_context = None  # Follow the application default again
 
-``fork`` is unavailable on Windows. It can cause hangs or crashes when the
-parent process has multiple threads, and Python considers it unsafe on macOS.
+``fork`` is unavailable on Windows. On POSIX systems, using it in a
+multithreaded process is unsafe and can cause hangs or crashes. On macOS,
+system libraries may start threads, so ``fork`` can cause subprocess crashes
+even when the application does not explicitly create threads.
 Notebook kernels and numerical libraries may start threads, so use this
 override only after considering those risks. It also does not remove the need
 to serialize tasks submitted to :func:`.parallel_map`.
@@ -101,6 +114,8 @@ Install ``mpi4py`` and a compatible MPI implementation in the environment
 used by all workers. Specify the number of workers explicitly with
 ``num_cpus``.
 
+.. _mpi-trajectories:
+
 Trajectory solvers
 ------------------
 
@@ -120,6 +135,8 @@ For more on trajectory simulations and parallel execution, see the
 The same options work with :func:`.nm_mcsolve`, :func:`.smesolve`, and
 :func:`.ssesolve`.
 
+.. _mpi-correlations:
+
 Two-time correlations
 ---------------------
 
@@ -133,6 +150,8 @@ pass the map arguments directly:
         H, rho0, tlist, taulist, c_ops, a.dag(), a,
         map="mpi", map_kw={"num_cpus": 4},
     )
+
+.. _mpi-independent:
 
 Independent calculations
 ------------------------
