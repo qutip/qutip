@@ -85,22 +85,26 @@ starting the parallel calculation.
 
 .. _monte-mpi:
 
-Distributed Simulations Using MPI
-=================================
+Distributed calculations using MPI
+===================================
 
 ..
     adapted from the `nm_mcsolve` tutorial notebook
 
-Sometimes, many trajectories are needed to see the convergence of the trajectory average.
-Using QuTiP's MPI capabilities, large numbers of trajectories can be computed in parallel
-on multiple nodes of a computing cluster. On the QuTiP side, running Monte Carlo simulations
-through MPI is as easy as replacing ``"map": "parallel"`` by ``"map": "mpi"`` in the provided options.
-In addition, one should always provide the ``"num_cpus"`` option, which in this case specifies
-the number of available worker processes. The number of available worker processes is typically one
-less than the total number of processes assigned to the task.
+MPI distributes independent tasks across worker processes, potentially on
+multiple nodes. Trajectory solvers distribute trajectories, two-time
+correlation functions distribute work over ``tlist``, and :func:`.mpi_pmap`
+distributes calls to a user-defined function. A single :func:`.mesolve`
+integration, for example, is not itself distributed across MPI processes.
 
-The call to the Monte Carlo solver might look like this (for a more detailed example, see e.g.
-`this tutorial notebook <https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v5/time-evolution/013_nonmarkovian_monte_carlo.ipynb>`_):
+Install ``mpi4py`` and a compatible MPI implementation in the environment
+used by all workers. Specify the number of workers explicitly with
+``num_cpus``.
+
+Trajectory solvers
+------------------
+
+For trajectory solvers, select MPI in the solver options:
 
 .. code-block:: python
 
@@ -110,10 +114,78 @@ The call to the Monte Carlo solver might look like this (for a more detailed exa
                            'map': 'mpi',
                            'num_cpus': NUM_WORKER_PROCESSES})
 
+For more on trajectory simulations and parallel execution, see the
+:ref:`Monte Carlo guide <monte-parallel>`.
+
+The same options work with :func:`.nm_mcsolve`, :func:`.smesolve`, and
+:func:`.ssesolve`.
+
+Two-time correlations
+---------------------
+
+For two-time correlations, given a Hamiltonian ``H``,
+initial state ``rho0``, collapse operators ``c_ops``, and operator ``a``,
+pass the map arguments directly:
+
+.. code-block:: python
+
+    corr = qutip.correlation_2op_2t(
+        H, rho0, tlist, taulist, c_ops, a.dag(), a,
+        map="mpi", map_kw={"num_cpus": 4},
+    )
+
+Independent calculations
+------------------------
+
+Use :func:`.mpi_pmap` to distribute independent calculations. The following
+parameter sweep calculates the final population for several damping rates:
+
+.. code-block:: python
+
+    import numpy as np
+    import qutip as qt
+
+    def simulate(gamma):
+        a = qt.destroy(2)
+        rho0 = qt.basis(2, 1).proj()
+        result = qt.mesolve(
+            0.5 * qt.sigmaz(), rho0, np.linspace(0, 5, 101),
+            c_ops=[np.sqrt(gamma) * a], e_ops=[a.dag() * a],
+        )
+        return result.expect[0][-1]
+
+    if __name__ == "__main__":
+        rates = [0.1, 0.2, 0.5, 1.0]
+        populations = qt.mpi_pmap(simulate, rates, map_kw={"num_cpus": 2})
+        print(list(zip(rates, populations)))
+
+Run this as a Python script if your MPI installation supports dynamic worker
+spawning. The main guard prevents workers from starting another pool. Tasks and
+their results must be serializable. See the mpi4py documentation linked below
+for launcher examples.
+
+MPI configuration and cluster execution
+---------------------------------------
+
+For trajectory solvers, ``mpi_options`` can pass additional keyword arguments
+to ``MPIPoolExecutor``. For correlations and :func:`.mpi_pmap`, use
+``map_kw``. If a worker count is not supplied to :func:`.mpi_pmap`, QuTiP
+uses ``QUTIP_NUM_PROCESSES`` when set to a nonzero value; otherwise, it
+detects a default process count. Set the environment variable before starting
+Python.
+
 To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
 For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
-be created and communicate across nodes, we generally refer to the
-`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_ and to your system administrator.
+be created and communicate across nodes, see the
+`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_.
+
+Direct script execution normally starts workers dynamically. The cluster
+example below instead launches ``mpi4py.futures`` with a fixed set of MPI
+processes: one is the master and the remaining processes are workers. The MPI
+launcher creates the worker pool; set ``NUM_WORKER_PROCESSES`` to the number
+of launched processes minus one so QuTiP's setting matches the available
+workers. Launch requirements and support for dynamic spawning depend on the
+MPI installation and scheduler.
 
 Below, we provide an example batch script that can be submitted to a SLURM workload manager. The authors of this guide
 used this script to perform a parallel calculation on 500 CPUs distributed over 5 nodes of the supercomputer
