@@ -123,6 +123,7 @@ jobs:
             os: macos-latest
             python-version: "3.14"
             nomkl: 1
+            conda-pre-pkgs: "cvxopt"
             qutip-optional: "[graphics,runtime_compilation,ipython,extras,semidefinite]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
@@ -253,6 +254,11 @@ jobs:
             conda install blas=*=mkl $CORE_DEP
           else
             conda install nomkl $CORE_DEP
+          fi
+
+          # Install these before pip resolves the wheel's optional dependencies.
+          if [[ "${{ matrix.conda-pre-pkgs }}" ]]; then
+            conda install -y -c conda-forge ${{ matrix.conda-pre-pkgs }} $CORE_DEP
           fi
 
           cp "${{ github.workspace }}"/qutip*.whl .
