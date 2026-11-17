@@ -123,8 +123,10 @@ class TestSuperopReps:
         )
         # isometric embedding of one qubit into two qubits
         embedding = tensor(qeye(2), basis(2, 0))
+        # same total size on both sides, but different tensor structure
+        reshape = Qobj(np.eye(4), dims=[[2, 2], [4]])
 
-        for channel in [partial_trace, embedding]:
+        for channel in [partial_trace, embedding, reshape]:
             with pytest.raises(ValueError, match="same dimension"):
                 to_chi(channel)
             with pytest.raises(ValueError, match="same dimension"):
