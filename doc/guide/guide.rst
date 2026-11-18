@@ -12,6 +12,7 @@ Users Guide
    guide-states.rst
    guide-tensor.rst
    guide-super.rst
+   guide-subsystem.rst
    guide-dynamics.rst
    guide-environments.rst
    guide-heom.rst

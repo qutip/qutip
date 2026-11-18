@@ -5,6 +5,9 @@ Einstein summation convention for Qobj.
 from collections import Counter
 import numpy as np
 from qutip.core.data import einsum as _data_einsum, extract
+from .dimensions import dims_to_tensor_shape, dims_to_tensor_perm
+
+
 __all__ = ["einsum"]
 
 
@@ -139,8 +142,6 @@ def einsum(subscripts, *operands, out_dims=None):
         Result of einsum as a Qobj, or a complex scalar if the operation
         contracts all indices.
     """
-    from qutip.core.dimensions import dims_to_tensor_shape, dims_to_tensor_perm
-
     for op in operands:
         op._dims._require_pure_dims("einsum")
 

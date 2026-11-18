@@ -2,116 +2,242 @@ import pytest
 import numpy as np
 import scipy.linalg
 import scipy.sparse
-
 import qutip
+
+if not qutip.settings.has_mkl:
+    pytest.skip(
+        "MKL extensions not found.",
+        allow_module_level=True,
+    )
+
 if qutip.settings.has_mkl:
-    from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
+    from qutip._mkl.spsolve import (
+        _mkl_matrix_type,
+        _prepare_pydiso_args,
+        mkl_splu,
+        mkl_spsolve,
+    )
 
-pytestmark = [
-    pytest.mark.skipif(not qutip.settings.has_mkl,
-                       reason='MKL extensions not found.'),
-]
+
+@pytest.fixture(
+    params=[
+        pytest.param((False, None), id="rhs-dense-vector"),
+        pytest.param((False, 1), id="rhs-dense-column"),
+        pytest.param((False, 4), id="rhs-dense-multiple"),
+        pytest.param((True, 1), id="rhs-sparse-column"),
+        pytest.param((True, 4), id="rhs-sparse-multiple"),
+    ]
+)
+def rhs(request):
+    """Return a complex RHS in dense or sparse vector and matrix formats."""
+    is_sparse, columns = request.param
+
+    b = np.array(
+        [
+            [3 + 1j, 0, 1, 0],
+            [0, 2, 0, 0],
+            [1, 0, 2 - 2j, 0],
+        ],
+        dtype=np.complex128,
+    )
+    b = b[:, 0] if columns is None else b[:, :columns]
+    return scipy.sparse.csr_array(b) if is_sparse else b
 
 
-class Test_spsolve:
-    def test_single_rhs_vector_real(self, random_generator):
-        Adense = np.array([[0, 1, 1],
-                           [1, 0, 1],
-                           [0, 0, 1]])
-        As = scipy.sparse.csr_matrix(Adense)
-        x = random_generator.standard_normal(3)
-        b = As * x
-        x2 = mkl_spsolve(As, b, verbose=True)
-        np.testing.assert_allclose(x, x2)
+@pytest.fixture(
+    params=[
+        pytest.param(True, id="positive-definite"),
+        pytest.param(False, id="indefinite"),
+    ]
+)
+def symmetric_matrix(request):
+    """Return a sparse Hermitian CSR matrix and its solver flags."""
+    return _symmetric_matrix(request.param)
 
-    def test_single_rhs_vector_complex(self, random_generator):
-        A = qutip.rand_herm(
-            10, density=0.8, dtype='csr', seed=random_generator
-        )
-        x = qutip.rand_ket(10, seed=random_generator).full()
-        b = A.full() @ x
-        y = mkl_spsolve(A.data.as_scipy(), b, verbose=True)
-        np.testing.assert_allclose(x, y)
 
-    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_multi_rhs_vector(self, dtype):
-        M = np.array([
+def _symmetric_matrix(posdef):
+    hermitian = True
+    diagonal = [4.0, 4.0, 3.0] if posdef else [2.0, -2.0, 3.0]
+    upper = [1.0 + 1.0j, 1.0j]
+    A = (
+        np.diag(np.array(diagonal, dtype=np.complex128))
+        + np.diag(upper, k=1)
+        + np.diag(np.conjugate(upper), k=-1)
+    )
+    eigenvalues = np.linalg.eigvalsh(A)
+    if posdef:
+        assert eigenvalues.min() > 0
+    else:
+        assert eigenvalues.min() < 0 < eigenvalues.max()
+    return scipy.sparse.csr_array(A), hermitian, posdef
+
+
+@pytest.fixture
+def nonsymmetric_matrix():
+    """Return a nonsymmetric CSR matrix and its solver flags."""
+    return _nonsymmetric_matrix()
+
+
+def _nonsymmetric_matrix():
+    hermitian = False
+    posdef = False
+
+    A = np.array(
+        [
             [1, 0, 2],
             [0, 0, 3],
             [-4, 5, 6],
-        ], dtype=dtype)
-        sM = scipy.sparse.csr_matrix(M)
-        N = np.array([
+        ],
+        dtype=np.complex128,
+    )
+    assert not np.allclose(A, A.conj().T)
+    return scipy.sparse.csr_array(A), hermitian, posdef
+
+
+@pytest.fixture(
+    params=[
+        pytest.param((hermitian, posdef), id=kind)
+        for hermitian, posdef, kind in [
+            (False, False, "nonsymmetric"),
+            (True, True, "symmetric-posdef"),
+            (True, False, "symmetric-indef"),
+        ]
+    ]
+)
+def solver_matrix(request):
+    hermitian, posdef = request.param
+    if hermitian:
+        return _symmetric_matrix(posdef)
+    return _nonsymmetric_matrix()
+
+
+@pytest.mark.parametrize("use_perm", [False, True], ids=["default", "permutation"])
+def test_spsolve(solver_matrix, rhs, random_generator, use_perm):
+    """Solve with different matrices and RHS formats, with and without a permutation."""
+    A, hermitian, posdef = solver_matrix
+    b = rhs
+    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+    options = {}
+    if use_perm:
+        options["perm"] = random_generator.permutation(A.shape[0])
+    x = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef, **options)
+    assert x.shape == b.shape
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
+
+
+def test_spsolve_non_csr_input(nonsymmetric_matrix):
+    """Solve with a non-CSR sparse coefficient matrix."""
+    A, hermitian, posdef = nonsymmetric_matrix
+    A = scipy.sparse.dia_array(A)
+    expected = np.array([1, -2, 3], dtype=A.dtype)
+    b = A @ expected
+
+    actual = mkl_spsolve(A, b, hermitian=hermitian, posdef=posdef)
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-10, atol=1e-12)
+
+
+@pytest.mark.parametrize("hermitian", [False, True])
+@pytest.mark.parametrize("scaling_vectors", [False, True])
+@pytest.mark.parametrize("weighted_matching", [False, True])
+def test_solver_options(hermitian, scaling_vectors, weighted_matching):
+    """Check QuTiP's mapping of scaling and matching options to pydiso."""
+    options = _prepare_pydiso_args(
+        max_iter_refine=10,
+        hermitian=hermitian,
+        scaling_vectors=scaling_vectors,
+        weighted_matching=weighted_matching,
+    )
+
+    if hermitian:
+        # Leave these settings to pydiso's defaults for Hermitian matrices
+        assert "scaling" not in options
+        assert "weighted_matching" not in options
+    else:
+        assert options["scaling"] == scaling_vectors
+        assert options["weighted_matching"] == weighted_matching
+
+
+@pytest.mark.parametrize("max_iter_refine", [0, 1, 10])
+def test_max_iter_refine(max_iter_refine):
+    """Check that QuTiP forwards the iterative refinement limit to pydiso."""
+    options = _prepare_pydiso_args(max_iter_refine=max_iter_refine)
+
+    assert options["max_iterative_refinement_steps"] == max_iter_refine
+
+
+@pytest.mark.parametrize(
+    "hermitian, posdef, expected_real, expected_complex",
+    [
+        (False, False, 11, 13),
+        (False, True, 11, 13),
+        (True, False, -2, -4),
+        (True, True, 2, 4),
+    ],
+)
+@pytest.mark.parametrize("is_complex", [False, True], ids=["real", "complex"])
+def test_matrix_type_correct(
+    hermitian, posdef, expected_real, expected_complex, is_complex
+):
+    """Check QuTiP's mapping of dtype and matrix flags to PARDISO types."""
+    dtype = np.dtype(np.complex128 if is_complex else np.float64)
+    expected = expected_complex if is_complex else expected_real
+
+    assert _mkl_matrix_type(dtype, hermitian, posdef) == expected
+
+
+def test_spsolve_posdef_matrix_with_default_posdef(rhs):
+    """Solve a positive-definite matrix with the default posdef flag."""
+    A, _, _ = _symmetric_matrix(True)
+    b = rhs
+    b_dense = b.toarray() if scipy.sparse.issparse(b) else b
+    x = mkl_spsolve(A, b, hermitian=True)
+    assert x.shape == b.shape
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    np.testing.assert_allclose(A @ actual, b_dense, rtol=1e-10, atol=1e-12)
+
+
+def test_spsolve_posdef_ignored_for_nonhermitian_input(
+    nonsymmetric_matrix, rhs
+):
+    """Check that non-Hermitian solves succeed with posdef=True."""
+    A, _, _ = nonsymmetric_matrix
+    b_dense = rhs.toarray() if scipy.sparse.issparse(rhs) else rhs
+
+    x = mkl_spsolve(A, rhs, hermitian=False, posdef=True)
+
+    actual = x.toarray() if scipy.sparse.issparse(x) else x
+    np.testing.assert_allclose(
+        A @ actual, b_dense, rtol=1e-10, atol=1e-12
+    )
+
+
+def test_splu_nonsymmetric_repeated_vector_rhs(nonsymmetric_matrix):
+    """Tests reusing a factorisation of a non-symmetric matrix
+    for repeated solves of vector RHS."""
+    A, hermitian, posdef = nonsymmetric_matrix
+    N = np.array(
+        [
             [3, 0, 1],
             [0, 2, 0],
             [0, 0, 0],
-        ], dtype=dtype)
-        sX = mkl_spsolve(sM, N, verbose=True)
-        X = scipy.linalg.solve(M, N)
-        np.testing.assert_allclose(X, sX)
-
-    def test_rhs_shape_is_maintained(self):
-        A = scipy.sparse.csr_matrix(np.array([
-            [1, 0, 2],
-            [0, 0, 3],
-            [-4, 5, 6],
-        ], dtype=np.complex128))
-        b = np.array([0, 2, 0], dtype=np.complex128)
-        out = mkl_spsolve(A, b, verbose=True)
-        assert b.shape == out.shape
-
-        b = np.array([0, 2, 0], dtype=np.complex128).reshape((3, 1))
-        out = mkl_spsolve(A, b, verbose=True)
-        assert b.shape == out.shape
-
-    def test_sparse_rhs(self):
-        A = scipy.sparse.csr_matrix([
-            [1, 2, 0],
-            [0, 3, 0],
-            [0, 0, 5],
-        ])
-        b = scipy.sparse.csr_matrix([
-            [0, 1],
-            [1, 0],
-            [0, 0],
-        ])
-        x = mkl_spsolve(A, b, verbose=True)
-        ans = np.array([[-0.66666667, 1],
-                        [0.33333333, 0],
-                        [0, 0]])
-        np.testing.assert_allclose(x.toarray(), ans)
-
-    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_symmetric_solver(self, dtype):
-        A = qutip.rand_herm(10, distribution="eigen",
-                            eigenvalues=np.arange(1, 11),
-                            dtype='csr').data.as_scipy()
-        if dtype == np.float64:
-            A = A.real
-        x = np.ones(10, dtype=dtype)
-        b = A.dot(x)
-        y = mkl_spsolve(A, b, hermitian=1, verbose=True)
-        np.testing.assert_allclose(x, y)
+        ],
+        dtype=A.dtype,
+    )
+    test_X = np.zeros((3, 3), dtype=A.dtype)
+    lu = mkl_splu(A, hermitian=hermitian, posdef=posdef, verbose=False)
+    for k in range(3):
+        x = lu.solve(N[:, k])
+        assert x.dtype == A.dtype
+        test_X[:, k] = x
+    expected_X = scipy.linalg.solve(A.toarray(), N)
+    np.testing.assert_allclose(test_X, expected_X)
 
 
-class Test_splu:
-    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
-    def test_repeated_rhs_solve(self, dtype):
-        M = np.array([
-            [1, 0, 2],
-            [0, 0, 3],
-            [-4, 5, 6],
-        ], dtype=dtype)
-        sM = scipy.sparse.csr_matrix(M)
-        N = np.array([
-            [3, 0, 1],
-            [0, 2, 0],
-            [0, 0, 0],
-        ], dtype=dtype)
-        test_X = np.zeros((3, 3), dtype=dtype)
-        lu = mkl_splu(sM, verbose=True)
-        for k in range(3):
-            test_X[:, k] = lu.solve(N[:, k])
-        lu.delete()
-        expected_X = scipy.linalg.solve(M, N)
-        np.testing.assert_allclose(test_X, expected_X)
+def test_splu_faulty_coeff_matrix_rejection():
+    """Tests input validation w.r.t. coefficient matrix."""
+    # Dense matrix
+    A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.complex128)
+    with pytest.raises(TypeError, match="sparse"):
+        mkl_splu(A)

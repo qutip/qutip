@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 import numpy as np
 import numbers
-from .einsum import einsum
 from operator import getitem
 from functools import partial
 from typing import Any, Literal
@@ -15,7 +14,7 @@ from qutip.settings import settings
 from qutip.typing import SpaceLike, DimensionLike
 
 
-__all__ = ["to_tensor_rep", "from_tensor_rep", "einsum", "Space", "Dimensions"]
+__all__ = ["to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"]
 
 
 def flatten(l):
