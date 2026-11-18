@@ -81,20 +81,16 @@ requests the ``fork`` method:
 
     qutip.settings.mp_context = None  # Follow the application default again
 
-``fork`` is unavailable on Windows. On POSIX systems, using it in a
-multithreaded process is unsafe and can cause hangs or crashes. On macOS,
-system libraries may start threads, so ``fork`` can cause subprocess crashes
-even when the application does not explicitly create threads.
-Notebook kernels and numerical libraries may start threads, so use this
-override only after considering those risks. It also does not remove the need
-to serialize tasks submitted to :func:`.parallel_map`.
-
 The setting accepts an available start-method name, a context returned by
 ``multiprocessing.get_context()``, or ``None``. It affects QuTiP's
 multiprocessing-backed parallel operations, not the ``loky`` or MPI backends.
-Setting it to ``None`` selects the application default even on older Python
-versions; it does not restore QuTiP's legacy ``fork`` selection. Set it before
-starting the parallel calculation.
+Setting it to ``None`` selects the application default.
+
+.. warning::
+On POSIX systems, ``fork`` is unsafe if the parent process has multiple threads when workers start: a child can inherit locks or library state left by threads that no longer exist in the child. Threads may be started by notebook kernels, numerical libraries, or other dependencies, even if your code does not start them explicitly. Use ``fork`` only when the parent is single-threaded at that point and the libraries and resources used by workers are known to be safe after a fork.
+On macOS, system libraries may start threads, so ``fork`` can cause subprocess crashes
+even when the application does not explicitly create threads.
+
 
 .. _monte-mpi:
 
