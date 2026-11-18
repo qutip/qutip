@@ -29,12 +29,13 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | Setting           | Read Only | Description                                              |
 +===================+===========+==========================================================+
-| `has_mkl`         | True      | Whether qutip can find mkl libraries.                    |
-|                   |           | mkl sparse linear equation solver can be used when True. |
+| ``has_mkl``       | True      | Whether the optional pydiso MKL PARDISO backend is       |
+|                   |           | available.                                               |
 +-------------------+-----------+----------------------------------------------------------+
-| `mkl_lib_location`| False     | Path of the mkl library.                                 |
+| ``mkl_version``   | True      | Version of Intel oneMKL used by pydiso, or ``None``      |
+|                   |           | when pydiso is unavailable.                              |
 +-------------------+-----------+----------------------------------------------------------+
-| `mkl_lib`         | True      | Mkl libraries loaded with ctypes.                        |
+| ``pydiso_version``| True      | Installed pydiso version, or ``None`` when unavailable.  |
 +-------------------+-----------+----------------------------------------------------------+
 | `ipython`         | True      | Whether running in IPython.                              |
 +-------------------+-----------+----------------------------------------------------------+
