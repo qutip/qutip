@@ -60,6 +60,13 @@ QuTiP selects a multiprocessing context as follows:
   default on all platforms. The application can select this default; otherwise
   Python chooses it according to the platform and Python version.
 
+``fork`` starts workers quickly and can support notebook workflows. It can be
+a good fit for numerical calculations in a controlled, single-threaded
+process, provided the conditions in the :ref:`fork safety warning
+<parallel-fork-warning>` are met. ``forkserver`` generally has more startup
+overhead but avoids directly forking the application process. It can also
+support notebook workflows when the work can be serialized.
+
 .. _parallel-context-override:
 
 Overriding the multiprocessing context
@@ -86,10 +93,18 @@ The setting accepts an available start-method name, a context returned by
 multiprocessing-backed parallel operations, not the ``loky`` or MPI backends.
 Setting it to ``None`` selects the application default.
 
+.. _parallel-fork-warning:
+
 .. warning::
-On POSIX systems, ``fork`` is unsafe if the parent process has multiple threads when workers start: a child can inherit locks or library state left by threads that no longer exist in the child. Threads may be started by notebook kernels, numerical libraries, or other dependencies, even if your code does not start them explicitly. Use ``fork`` only when the parent is single-threaded at that point and the libraries and resources used by workers are known to be safe after a fork.
-On macOS, system libraries may start threads, so ``fork`` can cause subprocess crashes
-even when the application does not explicitly create threads.
+
+   On POSIX systems, ``fork`` is unsafe if the parent process has multiple
+   threads when workers start: a child can inherit locks or library state left
+   by threads that no longer exist in the child. Threads may be started by
+   notebook kernels, numerical libraries, or other dependencies, even if your
+   code does not start them explicitly. Use ``fork`` only when the parent is
+   single-threaded at that point and the libraries and resources used by
+   workers are known to be safe after a fork. On macOS, higher-level system
+   APIs can also make ``fork`` unsafe.
 
 
 .. _monte-mpi:
