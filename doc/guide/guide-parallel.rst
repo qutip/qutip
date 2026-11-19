@@ -67,8 +67,8 @@ calculations. See each function's documentation for its supported options.
 
 Use one process-based parallelisation scheme at a time. If your application
 already distributes work across processes, use serial QuTiP maps and solver
-options. Combining schemes can oversubscribe CPUs and reduce performance, even
-with ``spawn`` or ``forkserver``. To limit numerical-library threads, set
+options. Combining schemes can oversubscribe CPUs and reduce performance.
+To limit numerical-library threads, set
 ``OPENBLAS_NUM_THREADS=1``, ``OMP_NUM_THREADS=1``, and ``MKL_NUM_THREADS=1``
 before starting Python. Combining MPI with other parallelism requires careful
 configuration.
@@ -99,6 +99,10 @@ process, provided the conditions in the :ref:`fork safety warning
 <parallel-fork-warning>` are met. ``forkserver`` generally has more startup
 overhead but avoids directly forking the application process. It can also
 support notebook workflows when the work can be serialized.
+
+The start method does not prevent CPU oversubscription: combining
+process-based parallelisation schemes can reduce performance even with
+``spawn`` or ``forkserver``.
 
 .. _parallel-context-override:
 
