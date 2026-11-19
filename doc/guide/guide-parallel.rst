@@ -54,13 +54,12 @@ data transfer costs, making it useful for small calculations or when
 parallelism is already managed elsewhere. For larger calculations on one
 machine, ``parallel`` uses Python's :ref:`multiprocessing
 <multiprocessing-context>` to use several CPU cores. ``loky`` is another option
-that can work well with functions defined in interactive sessions; it requires
-the optional `loky <https://loky.readthedocs.io/en/stable/index.html>`_
-package. ``mpi`` uses :ref:`MPI <monte-mpi>` to distribute work across
-processes, including across multiple machines in a cluster, when an MPI
-environment is available. Starting workers and transferring data have
-overhead, so parallel execution is not necessarily faster for small
-calculations. See each function's documentation for its supported options.
+that can work well with functions defined in interactive sessions (see
+:ref:`parallel-interactive-troubleshooting`); it requires the optional
+`loky <https://loky.readthedocs.io/en/stable/index.html>`_ package. ``mpi``
+uses :ref:`MPI <monte-mpi>` to distribute work across processes, including
+across multiple machines in a cluster, when an MPI environment is available.
+See each function's documentation for its supported options.
 
 Tips for parallel execution
 ===========================
@@ -94,12 +93,6 @@ When using ``qutip-jax`` or ``qutip-cuquantum``, avoid the parallel
 can fail or be inefficient with such data layers.
 Use ``"serial"`` or a parallelisation method designed for the specific
 project and backend instead.
-
-Parallel execution in interactive sessions
-------------------------------------------
-
-If a multiprocessing calculation fails in a notebook or interactive session, see
-:ref:`parallel-interactive-troubleshooting`.
 
 .. _multiprocessing-context:
 
@@ -172,7 +165,6 @@ requests the ``fork`` method:
 The setting accepts an available start-method name, a context returned by
 ``multiprocessing.get_context()``, or ``None``. It affects QuTiP's
 multiprocessing-backed parallel operations, not the ``loky`` or MPI backends.
-Setting it to ``None`` selects the application default.
 
 .. _parallel-fork-warning:
 
@@ -210,7 +202,7 @@ used by all workers. Specify the number of workers explicitly with
 Trajectory solvers
 ------------------
 
-For trajectory solvers, select MPI in the solver options:
+Select MPI in the solver options:
 
 .. code-block:: python
 
@@ -220,9 +212,6 @@ For trajectory solvers, select MPI in the solver options:
                            'map': 'mpi',
                            'num_cpus': NUM_WORKER_PROCESSES})
 
-For more on trajectory simulations and parallel execution, see the
-:ref:`Monte Carlo guide <monte-parallel>`.
-
 The same options work with :func:`.nm_mcsolve`, :func:`.smesolve`, and
 :func:`.ssesolve`.
 
@@ -231,9 +220,8 @@ The same options work with :func:`.nm_mcsolve`, :func:`.smesolve`, and
 Two-time correlations
 ---------------------
 
-For two-time correlations, given a Hamiltonian ``H``,
-initial state ``rho0``, collapse operators ``c_ops``, and operator ``a``,
-pass the map arguments directly:
+Given a Hamiltonian ``H``, initial state ``rho0``, collapse operators
+``c_ops``, and operator ``a``, pass the map arguments directly:
 
 .. code-block:: python
 
