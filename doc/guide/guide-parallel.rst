@@ -116,12 +116,16 @@ QuTiP selects a multiprocessing context as follows:
   default on all platforms. The application can select this default; otherwise
   Python chooses it according to the platform and Python version.
 
-``fork`` starts workers quickly and can support notebook workflows. It can be
-a good fit for numerical calculations in a controlled, single-threaded
-process, provided the conditions in the :ref:`fork safety warning
-<parallel-fork-warning>` are met. ``forkserver`` generally has more startup
-overhead but avoids directly forking the application process. It can also
-support notebook workflows when the work can be serialized.
+``fork`` starts workers quickly by copying the parent process and can support
+notebook workflows. It can be a good fit for numerical calculations in a
+controlled, single-threaded process, provided the conditions in the
+:ref:`fork safety warning <parallel-fork-warning>` are met. ``spawn`` starts
+each worker in a fresh Python interpreter; it has the most startup overhead,
+and workers inherit only what is sent to them. It is the default on Windows
+and macOS. ``forkserver`` generally has more startup overhead than ``fork``
+but avoids directly forking the application process. Both ``spawn`` and
+``forkserver`` can support notebook workflows when the work can be
+serialized.
 
 .. note::
 
