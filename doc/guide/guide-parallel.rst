@@ -109,9 +109,11 @@ process, provided the conditions in the :ref:`fork safety warning
 overhead but avoids directly forking the application process. It can also
 support notebook workflows when the work can be serialized.
 
-The start method does not prevent CPU oversubscription: combining
-process-based parallelisation schemes can reduce performance even with
-``spawn`` or ``forkserver``.
+.. warning::
+
+   The start method does not prevent CPU oversubscription: combining
+   process-based parallelisation schemes can reduce performance even with
+   ``spawn`` or ``forkserver``.
 
 .. _parallel-context-override:
 
