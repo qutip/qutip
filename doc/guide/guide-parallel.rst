@@ -104,9 +104,9 @@ If a multiprocessing calculation fails in a notebook or interactive session, see
 Multiprocessing contexts
 ========================
 
-The ``"parallel"`` backend uses Python's
-``multiprocessing`` module to start worker processes. The *start method*
-determines how those processes are created and what state they inherit.
+The ``"parallel"`` backend uses Python's ``multiprocessing`` module to start
+worker processes. The *start method* determines how those processes are
+created and what state they inherit.
 QuTiP selects a multiprocessing context as follows:
 
 * On **Python versions before 3.15**, QuTiP uses ``fork`` on Linux and macOS to
