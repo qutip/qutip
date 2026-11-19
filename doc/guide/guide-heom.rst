@@ -12,3 +12,4 @@ Hierarchical Equations of Motion
    heom/fermionic.rst
    heom/history.rst
    heom/references.rst
+   heom/petscbackend.rst
