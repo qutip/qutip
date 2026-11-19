@@ -65,13 +65,22 @@ environment is available. Starting workers and transferring data have
 overhead, so parallel execution is not necessarily faster for small
 calculations. See each function's documentation for its supported options.
 
-Use one process-based parallelisation scheme at a time. If your application
-already distributes work across processes, use serial QuTiP maps and solver
-options. Combining schemes can oversubscribe CPUs and reduce performance.
-To limit numerical-library threads, set
-``OPENBLAS_NUM_THREADS=1``, ``OMP_NUM_THREADS=1``, and ``MKL_NUM_THREADS=1``
-before starting Python. Combining MPI with other parallelism requires careful
-configuration.
+.. note::
+
+   Use one process-based parallelisation scheme at a time. If your application
+   already distributes work across processes, use serial QuTiP maps and solver
+   options. Combining schemes can oversubscribe CPUs and reduce performance.
+   To limit numerical-library threads, set ``OPENBLAS_NUM_THREADS=1``,
+   ``OMP_NUM_THREADS=1``, and ``MKL_NUM_THREADS=1`` before starting Python.
+   Combining MPI with other parallelism requires careful configuration.
+
+.. note::
+
+   When using ``qutip-jax`` or ``qutip-cuquantum``, avoid the parallel
+   ``map`` options: ``"parallel"``, ``"loky"``,
+   and ``"mpi"``. These options can fail or be inefficient with such backends.
+   Use ``"serial"`` or a parallelisation method designed for the specific
+   project and backend instead.
 
 If a multiprocessing calculation fails in a notebook or interactive session, see
 :ref:`parallel-interactive-troubleshooting`.
