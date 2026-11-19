@@ -127,6 +127,20 @@ but avoids directly forking the application process. Both ``spawn`` and
 ``forkserver`` can support notebook workflows when the work can be
 serialized.
 
+With ``spawn`` or ``forkserver``, workers import the script's main module.
+When running from a script, protect the code that starts parallel work with
+``if __name__ == "__main__":`` so that workers do not run it again:
+
+.. code-block:: python
+
+    import qutip
+
+    def main():
+        ...  # Set up and run the calculation using the "parallel" backend.
+
+    if __name__ == "__main__":
+        main()
+
 .. note::
 
    The start method does not prevent CPU oversubscription: combining
@@ -301,8 +315,7 @@ following options:
   two-time correlation function. The objects used by the calculation must
   still be serializable.
 * Move worker functions and any required state into an importable Python
-  module. When running from a script with ``spawn`` or ``forkserver``, protect
-  the code that starts parallel work with ``if __name__ == "__main__":``.
+  module.
 * Use ``"serial"`` if the calculation does not need to run in parallel.
 
 
