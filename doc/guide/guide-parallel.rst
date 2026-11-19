@@ -65,6 +65,8 @@ calculations. See each function's documentation for its supported options.
 Tips for parallel execution
 ===========================
 
+.. _parallel-combining-schemes:
+
 Combining parallelisation schemes
 ---------------------------------
 
@@ -143,9 +145,8 @@ When running from a script, protect the code that starts parallel work with
 
 .. note::
 
-   The start method does not prevent CPU oversubscription: combining
-   process-based parallelisation schemes can reduce performance even with
-   ``spawn`` or ``forkserver``.
+   Choosing ``spawn`` or ``forkserver`` does not prevent CPU
+   oversubscription; see :ref:`parallel-combining-schemes`.
 
 .. _parallel-context-override:
 
