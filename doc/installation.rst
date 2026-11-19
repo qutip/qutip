@@ -36,9 +36,9 @@ The following packages are currently required:
 +----------------+--------------+
 | Package        | Version      |
 +================+==============+
-| **Python**     | 3.11+        |
+| **Python**     | 3.12+        |
 +----------------+--------------+
-| **NumPy**      | 1.23.2+      |
+| **NumPy**      | 1.26.0+      |
 +----------------+--------------+
 | **SciPy**      | 1.13+        |
 +----------------+--------------+
@@ -59,7 +59,11 @@ In addition, there are several optional packages that provide additional functio
 | ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``cvxpy``                | 1.3+         | Needed to calculate diamond norms.                  |
+| ``cython``               | 0.29.37+     | Needed for compiling some time-dependent            |
+| ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
+| ``filelock``             |              |                                                     |
++--------------------------+--------------+-----------------------------------------------------+
+| ``cvxpy``                | 1.4+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``pytest``,              | 7.2+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
