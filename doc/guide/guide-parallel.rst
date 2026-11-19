@@ -4,7 +4,7 @@
 Parallelization
 ***************
 
-QuTiP provides several ways to run independent calculations concurrently.
+QuTiP provides several ways to run parts of a calculation concurrently.
 Choose an interface based on the work you want to distribute:
 
 .. list-table::
@@ -20,9 +20,6 @@ Choose an interface based on the work you want to distribute:
    * - Two-time correlations
      - ``map`` and ``map_kw`` arguments
      - :ref:`Correlation guide <correlation>`; :ref:`MPI example <mpi-correlations>`
-   * - Independent calculations
-     - :func:`.parallel_map`, :func:`.loky_pmap`, :func:`.mpi_pmap`, or :func:`.serial_map`
-     - :ref:`MPI parameter sweep <mpi-independent>`
    * - Laguerre-method Wigner calculation
      - :func:`.wigner` with ``method="laguerre"`` and ``parfor=True``
      - :func:`.wigner` API documentation
@@ -30,12 +27,44 @@ Choose an interface based on the work you want to distribute:
 Choosing a backend
 ==================
 
+For each of these workloads, there are multiple ways to split the work. For
+example, a trajectory solver can run trajectories one after another in the
+current process, or send them to worker processes to run concurrently. A
+*backend* is the mechanism that runs these individual tasks and collects their
+results. In the examples below, ``backend`` is a string such as ``"serial"``,
+``"parallel"``, ``"loky"``, or ``"mpi"``. Choose a value supported by the
+interface and assign it to ``backend`` before running the calculation.
+
+For trajectory solvers, select the backend with the ``map`` solver option:
+
+.. code-block:: python
+
+    result = qutip.mcsolve(H, psi0, times, c_ops, ntraj=100,
+                           options={"map": backend})
+
+For two-time correlation functions, pass it as an argument:
+
+.. code-block:: python
+
+    corr = qutip.correlation_2op_2t(
+        H, rho0, tlist, taulist, c_ops, a.dag(), a, map=backend
+    )
+
+Choose a backend based on the size of the calculation and the computing
+resources available.
+Serial execution is simple and avoids worker startup costs, making it useful
+for small calculations or when parallelism is already managed elsewhere.
+For larger calculations on one machine, multiprocessing can use several CPU
+cores; ``loky`` is another option that can work well with functions defined
+in interactive sessions. MPI is suited to distributing work across processes,
+including across multiple machines in a cluster, when an MPI environment is
+available.
+
 The available backends depend on the interface. ``serial`` runs tasks in the
 current process; ``parallel`` uses Python's :ref:`multiprocessing
 <multiprocessing-context>`; ``loky`` uses the optional `loky
 <https://loky.readthedocs.io/en/stable/index.html>`_ package; and ``mpi`` uses
-:ref:`MPI <monte-mpi>` for distributed calculations. For direct mapping,
-choose the corresponding mapping function instead. See each function's
+:ref:`MPI <monte-mpi>` for distributed calculations. See each function's
 documentation for its supported options.
 Starting workers and transferring data have overhead, so parallel execution
 is not necessarily faster for small calculations.
@@ -123,10 +152,9 @@ Distributed calculations using MPI
 ..
     adapted from the `nm_mcsolve` tutorial notebook
 
-MPI distributes independent tasks across worker processes, potentially on
-multiple nodes. Trajectory solvers distribute trajectories, two-time
-correlation functions distribute work over ``tlist``, and :func:`.mpi_pmap`
-distributes calls to a user-defined function. A single :func:`.mesolve`
+MPI distributes tasks across worker processes, potentially on
+multiple nodes. Trajectory solvers distribute trajectories, and two-time
+correlation functions distribute work over ``tlist``. A single :func:`.mesolve`
 integration, for example, is not itself distributed across MPI processes.
 
 Install ``mpi4py`` and a compatible MPI implementation in the environment
@@ -170,47 +198,11 @@ pass the map arguments directly:
         map="mpi", map_kw={"num_cpus": 4},
     )
 
-.. _mpi-independent:
-
-Independent calculations
-------------------------
-
-Use :func:`.mpi_pmap` to distribute independent calculations. The following
-parameter sweep calculates the final population for several damping rates:
-
-.. code-block:: python
-
-    import numpy as np
-    import qutip as qt
-
-    def simulate(gamma):
-        a = qt.destroy(2)
-        rho0 = qt.basis(2, 1).proj()
-        result = qt.mesolve(
-            0.5 * qt.sigmaz(), rho0, np.linspace(0, 5, 101),
-            c_ops=[np.sqrt(gamma) * a], e_ops=[a.dag() * a],
-        )
-        return result.expect[0][-1]
-
-    if __name__ == "__main__":
-        rates = [0.1, 0.2, 0.5, 1.0]
-        populations = qt.mpi_pmap(simulate, rates, map_kw={"num_cpus": 2})
-        print(list(zip(rates, populations)))
-
-Run this as a Python script if your MPI installation supports dynamic worker
-spawning. The main guard prevents workers from starting another pool. Tasks and
-their results must be serializable. See the mpi4py documentation linked below
-for launcher examples.
-
 MPI configuration and cluster execution
 ---------------------------------------
 
 For trajectory solvers, ``mpi_options`` can pass additional keyword arguments
-to ``MPIPoolExecutor``. For correlations and :func:`.mpi_pmap`, use
-``map_kw``. If a worker count is not supplied to :func:`.mpi_pmap`, QuTiP
-uses ``QUTIP_NUM_PROCESSES`` when set to a nonzero value; otherwise, it
-detects a default process count. Set the environment variable before starting
-Python.
+to ``MPIPoolExecutor``. For correlations, use ``map_kw``.
 
 To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
 For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
