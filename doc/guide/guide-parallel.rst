@@ -244,13 +244,16 @@ pass the map arguments directly:
 MPI configuration and cluster execution
 ---------------------------------------
 
-For trajectory solvers, ``mpi_options`` can pass additional keyword arguments
-to ``MPIPoolExecutor``. For correlations, use ``map_kw``.
+QuTiP runs MPI calculations through the ``MPIPoolExecutor`` class from the
+`mpi4py <https://mpi4py.github.io/>`_ package. To set up an environment in
+which an ``MPIPoolExecutor`` can be created and can communicate across nodes,
+see the `mpi4py.futures documentation
+<https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_.
 
-To invoke the MPI API, QuTiP relies on the ``MPIPoolExecutor`` class from the `mpi4py <https://mpi4py.github.io/>`_ module.
-For instructions on how to set up an environment in which an ``MPIPoolExecutor`` can successfully
-be created and communicate across nodes, see the
-`documentation of mpi4py <https://mpi4py.readthedocs.io/en/stable/mpi4py.futures.html>`_.
+QuTiP passes ``num_cpus`` to ``MPIPoolExecutor`` as its ``max_workers``
+argument. To pass other keyword arguments to ``MPIPoolExecutor``, use the
+``mpi_options`` solver option for trajectory solvers, or add them to
+``map_kw`` for two-time correlation functions.
 
 Direct script execution normally starts workers dynamically. The cluster
 example below instead launches ``mpi4py.futures`` with a fixed set of MPI
