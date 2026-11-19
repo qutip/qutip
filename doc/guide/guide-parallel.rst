@@ -52,22 +52,18 @@ For two-time correlation functions, pass it as an argument:
 
 Choose a backend based on the size of the calculation and the computing
 resources available.
-Serial execution is simple and avoids worker startup costs, making it useful
-for small calculations or when parallelism is already managed elsewhere.
-For larger calculations on one machine, multiprocessing can use several CPU
-cores; ``loky`` is another option that can work well with functions defined
-in interactive sessions. MPI is suited to distributing work across processes,
-including across multiple machines in a cluster, when an MPI environment is
-available.
-
-The available backends depend on the interface. ``serial`` runs tasks in the
-current process; ``parallel`` uses Python's :ref:`multiprocessing
-<multiprocessing-context>`; ``loky`` uses the optional `loky
-<https://loky.readthedocs.io/en/stable/index.html>`_ package; and ``mpi`` uses
-:ref:`MPI <monte-mpi>` for distributed calculations. See each function's
-documentation for its supported options.
-Starting workers and transferring data have overhead, so parallel execution
-is not necessarily faster for small calculations.
+``serial`` runs tasks in the current process and avoids worker startup and
+data transfer costs, making it useful for small calculations or when
+parallelism is already managed elsewhere. For larger calculations on one
+machine, ``parallel`` uses Python's :ref:`multiprocessing
+<multiprocessing-context>` to use several CPU cores. ``loky`` is another option
+that can work well with functions defined in interactive sessions; it requires
+the optional `loky <https://loky.readthedocs.io/en/stable/index.html>`_
+package. ``mpi`` uses :ref:`MPI <monte-mpi>` to distribute work across
+processes, including across multiple machines in a cluster, when an MPI
+environment is available. Starting workers and transferring data have
+overhead, so parallel execution is not necessarily faster for small
+calculations. See each function's documentation for its supported options.
 
 Use one process-based parallelisation scheme at a time. If your application
 already distributes work across processes, use serial QuTiP maps and solver
