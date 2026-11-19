@@ -20,9 +20,6 @@ Choose an interface based on the work you want to distribute:
    * - Two-time correlations
      - ``map`` and ``map_kw`` arguments
      - :ref:`Correlation guide <correlation>`; :ref:`MPI example <mpi-correlations>`
-   * - Laguerre-method Wigner calculation
-     - :func:`.wigner` with ``method="laguerre"`` and ``parfor=True``
-     - :func:`.wigner` API documentation
 
 Choosing a backend
 ==================
@@ -92,7 +89,7 @@ QuTiP family projects
 
 When using ``qutip-jax`` or ``qutip-cuquantum``, avoid the parallel
 ``map`` options: ``"parallel"``, ``"loky"``, and ``"mpi"``. These options
-can fail or be inefficient with such backends.
+can fail or be inefficient with such data layers.
 Use ``"serial"`` or a parallelisation method designed for the specific
 project and backend instead.
 
