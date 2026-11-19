@@ -63,10 +63,10 @@ overhead, so parallel execution is not necessarily faster for small
 calculations. See each function's documentation for its supported options.
 
 Tips for parallel execution
----------------------------
+===========================
 
 Combining parallelisation schemes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 Use one process-based parallelisation scheme at a time. If your application
 already distributes work across processes, use serial QuTiP maps and solver
@@ -76,7 +76,7 @@ To limit numerical-library threads, set ``OPENBLAS_NUM_THREADS=1``,
 Combining MPI with other parallelism requires careful configuration.
 
 Side effects in functions
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Keep coefficient functions and callables passed through ``e_ops`` free of side
 effects where possible. Avoid writing to files or databases, or modifying
@@ -85,7 +85,7 @@ concurrently or in separate processes, leading to conflicts or unexpected
 results.
 
 QuTiP family projects
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 When using ``qutip-jax`` or ``qutip-cuquantum``, avoid the parallel
 ``map`` options: ``"parallel"``, ``"loky"``, and ``"mpi"``. These options
@@ -94,7 +94,7 @@ Use ``"serial"`` or a parallelisation method designed for the specific
 project and backend instead.
 
 Parallel execution in interactive sessions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 If a multiprocessing calculation fails in a notebook or interactive session, see
 :ref:`parallel-interactive-troubleshooting`.
