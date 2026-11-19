@@ -76,6 +76,20 @@ Bloch-Redfield Master Equation
     :show-inheritance:
     :exclude-members: add_integrator
 
+
+Universal Lindblad Master Equation
+----------------------------------
+
+.. automodule:: qutip.solver.ulmesolve
+    :members: ulmesolve, UL_transform
+
+.. autoclass:: qutip.solver.ulmesolve.ULMESolver
+    :members:
+    :inherited-members:
+    :show-inheritance:
+    :exclude-members: add_integrator
+
+
 Floquet States and Floquet-Markov Master Equation
 =================================================
 

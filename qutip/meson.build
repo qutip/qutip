@@ -34,7 +34,7 @@ cy_modules = {
                         'project', 'properties', 'ptrace', 'reshape', 'tidyup',
                         'trace'],
   'piqs':              ['_piqs'],
-  'solver/cy':         ['dysolve', 'nm_mcsolve'],
+  'solver/cy':         ['dysolve', 'nm_mcsolve', '_ulme'],
   'solver/integrator': ['explicit_rk', '_rhs'],
   'solver/sode':       ['_sode', 'ssystem'],
 }
