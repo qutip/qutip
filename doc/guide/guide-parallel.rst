@@ -104,7 +104,7 @@ If a multiprocessing calculation fails in a notebook or interactive session, see
 Multiprocessing contexts
 ========================
 
-The ``"parallel"`` backend and :func:`.parallel_map` use Python's
+The ``"parallel"`` backend uses Python's
 ``multiprocessing`` module to start worker processes. The *start method*
 determines how those processes are created and what state they inherit.
 QuTiP selects a multiprocessing context as follows:
@@ -293,9 +293,9 @@ following options:
 
 * Try the ``"loky"`` backend, which supports many interactively defined
   functions. Install the optional ``loky`` package first, then pass
-  ``options={"map": "loky"}`` to a trajectory solver, or use
-  :func:`.loky_pmap` in place of :func:`.parallel_map`. The objects used by
-  the calculation must still be serializable.
+  ``options={"map": "loky"}`` to a trajectory solver, or ``map="loky"`` to a
+  two-time correlation function. The objects used by the calculation must
+  still be serializable.
 * Move worker functions and any required state into an importable Python
   module. When running from a script with ``spawn`` or ``forkserver``, protect
   the code that starts parallel work with ``if __name__ == "__main__":``.
