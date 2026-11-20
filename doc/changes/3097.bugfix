@@ -1,0 +1,1 @@
+Fixed lindblad_dissipator giving wrong results when b is given.
