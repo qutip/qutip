@@ -88,6 +88,7 @@ manylinux-x86_64-image = "manylinux_2_28"
 build-frontend = "build"
 
 [tool.towncrier]
+package_dir = "src"
 directory = "doc/changes"
 filename = "doc/changelog.rst"
 name = "QuTiP"
