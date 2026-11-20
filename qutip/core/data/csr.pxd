@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 from cpython cimport mem
 from libcpp.algorithm cimport sort
 from libc.math cimport fabs
@@ -125,7 +123,7 @@ cdef inline void acc_reset(Accumulator *acc) noexcept nogil:
     acc._sorted = True
     acc._cur_row += 1
 
-cdef inline void acc_free(Accumulator *acc):
+cdef inline void acc_free(Accumulator *acc) noexcept:
     mem.PyMem_Free(acc.values)
     mem.PyMem_Free(acc.modified)
     mem.PyMem_Free(acc.nonzero)
@@ -142,17 +140,17 @@ cdef class Sorter:
     cdef base.idxint **argsort
     cdef _data_col *sort
 
-    cdef void inplace(Sorter self, CSR matrix, base.idxint ptr, size_t size) nogil
+    cdef void inplace(Sorter self, CSR matrix, base.idxint ptr, size_t size) except * nogil
     cdef void copy(Sorter self,
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
-                   size_t size) nogil
+                   size_t size) except * nogil
 
 
 cpdef CSR fast_from_scipy(object sci)
 cpdef CSR copy_structure(CSR matrix)
 cpdef CSR sorted(CSR matrix)
-cpdef base.idxint nnz(CSR matrix) nogil
+cpdef base.idxint nnz(CSR matrix) noexcept nogil
 cpdef CSR empty(base.idxint rows, base.idxint cols, base.idxint size)
 cpdef CSR empty_like(CSR other)
 cpdef CSR zeros(base.idxint rows, base.idxint cols)

@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
@@ -110,7 +109,7 @@ cdef int _check_shape(Data left, Data right, Data out=None) except -1 nogil:
         )
     return 0
 
-cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
+cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right) except -1:
     """
     Produce a sensible upper-bound for the number of non-zero elements that
     will be present in a matrix multiplication between the two matrices.
@@ -120,6 +119,9 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     cdef idxint nrows=left.shape[0], ncols=right.shape[1]
     # Setup mask array
     cdef idxint *mask = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
+    if mask == NULL:
+        raise MemoryError
+
     with nogil:
         for ii in range(ncols):
             mask[ii] = -1
@@ -786,7 +788,7 @@ cpdef CSR multiply_csr(CSR left, CSR right):
                 ptr_right += 1
                 nnz += 1
             elif col_left <= col_right:
-                if left.data[ptr_left] is np.nan:
+                if left.data[ptr_left] != left.data[ptr_left]:
                     # Test for NaN since `NaN * 0 = NaN`
                     nans.append((row, col_left))
                 ptr_left += 1

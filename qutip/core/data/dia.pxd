@@ -1,5 +1,3 @@
-#cython: language_level=3
-
 # from cpython cimport mem
 # from libcpp.algorithm cimport sort
 # from libc.math cimport fabs
@@ -26,7 +24,7 @@ cdef class Dia(base.Data):
     cpdef Dia adjoint(Dia self)
     cpdef Dia conj(Dia self)
     cpdef Dia transpose(Dia self)
-    cdef bint _is_sorted(Dia self)
+    cdef bint _is_sorted(Dia self) noexcept nogil
 
 cpdef Dia fast_from_scipy(object sci)
 cpdef Dia empty(base.idxint rows, base.idxint cols, base.idxint num_diag)

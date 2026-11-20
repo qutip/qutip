@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memcpy
@@ -227,14 +226,14 @@ cpdef Dense block_overwrite_dense(Data data, Data block,
 
 cdef void _memcpy_idxs(base.idxint* target, base.idxint target_start,
                        base.idxint* source, base.idxint source_start,
-                       base.idxint length):
+                       base.idxint length) noexcept nogil:
     memcpy(&target[target_start], &source[source_start],
            length * sizeof(base.idxint))
 
 
 cdef void _memcpy_data(double complex* target, base.idxint target_start,
                        double complex* source, base.idxint source_start,
-                       base.idxint length):
+                       base.idxint length) noexcept nogil:
     memcpy(&target[target_start], &source[source_start],
            length * sizeof(double complex))
 

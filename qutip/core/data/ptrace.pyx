@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
 import numbers
@@ -71,15 +70,15 @@ cdef idxint _populate_tensor_table(dims, sel, idxint[:, ::1] tensor_table) excep
     return factor_keep
 
 
-cdef bint _in(idxint val, idxint[::1] vec):
-    cdef int ii
+cdef bint _in(idxint val, idxint[::1] vec) noexcept nogil:
+    cdef size_t ii
     for ii in range(vec.shape[0]):
         if val == vec[ii]:
             return True
     return False
 
 
-cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]):
+cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]) noexcept nogil:
     # indices determining function for ptrace
     cdef size_t ii
     cdef idxint t1, t2
