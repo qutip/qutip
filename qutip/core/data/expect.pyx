@@ -371,7 +371,8 @@ def expect_data(Data op, Data state):
     """
     if state.shape[1] == 1:
         _check_shape_ket(op, state)
-        return inner(state, matmul(op, state))
+        # `state` is a ket here, so a 1x1 `state` must also be conjugated.
+        return inner(state, matmul(op, state), True)
     _check_shape_dm(op, state)
     return trace(matmul(op, state))
 

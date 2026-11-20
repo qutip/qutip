@@ -1,0 +1,1 @@
+Fix ``expect`` returning a wrong value for a 1x1 ket when the operator and the state use different data layers.
