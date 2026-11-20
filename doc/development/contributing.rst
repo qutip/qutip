@@ -167,7 +167,7 @@ The base way to run every test is:
 
 .. code-block:: bash
 
-   pytest /path/to/repo/qutip/tests
+   pytest /path/to/repo/src/qutip/tests
 
 This will take around 10 to 30 minutes, depending on your computer and how many of the optional requirements you have installed.
 It is normal for some tests to be marked as "skip" or "xfail" in yellow; these are not problems.
@@ -177,7 +177,7 @@ While prototyping and making changes, you might want to use some of the filterin
 Instead of passing the whole ``tests`` directory to the ``pytest`` command, you can also pass a list of files.
 You can also use the ``-k`` selector to only run tests whose names include a particular pattern, for example ::
 
-   pytest qutip/tests/test_qobj.py -k "expm"
+   pytest src/qutip/tests/core/test_qobj.py -k "expm"
 
 to run the tests of :meth:`Qobj.expm`.
 

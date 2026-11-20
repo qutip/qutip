@@ -3,9 +3,10 @@ include LICENSE.txt
 include VERSION
 include CITATION.bib
 include pyproject.toml
-recursive-include qutip *.pyx
-recursive-include qutip *.pxd
-recursive-include qutip *.hpp
-recursive-include qutip *.cpp
-recursive-include qutip *.ini
-recursive-include qutip *.h
+recursive-include src/qutip *.pyx
+recursive-include src/qutip *.pxd
+recursive-include src/qutip *.pyi
+recursive-include src/qutip *.hpp
+recursive-include src/qutip *.cpp
+recursive-include src/qutip *.ini
+recursive-include src/qutip *.h
