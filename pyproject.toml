@@ -140,7 +140,7 @@ parallel = true
 
 [tool.coverage.paths]
 qutip = [
-    "qutip/",
+    "src/qutip/",
     "*/site-packages/qutip/",        # posix installs
     "*\\site-packages\\qutip\\",     # windows installs
 ]
