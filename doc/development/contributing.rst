@@ -177,7 +177,7 @@ While prototyping and making changes, you might want to use some of the filterin
 Instead of passing the whole ``tests`` directory to the ``pytest`` command, you can also pass a list of files.
 You can also use the ``-k`` selector to only run tests whose names include a particular pattern, for example ::
 
-   pytest src/qutip/tests/test_qobj.py -k "expm"
+   pytest src/qutip/tests/core/test_qobj.py -k "expm"
 
 to run the tests of :meth:`Qobj.expm`.
 
