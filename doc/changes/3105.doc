@@ -1,0 +1,1 @@
+Add a class docstring to ``HEOMResult``, and fix the HEOM documentation that used the obsolete ``ado_return`` option and ``ado_init`` argument.

@@ -49,7 +49,7 @@ __all__ = [
 
 class HierarchyADOs:
     """
-    A description of ADOs (auxilliary density operators) with the
+    A description of ADOs (auxiliary density operators) with the
     hierarchical equations of motion.
 
     The list of ADOs is constructed from a list of bath exponents
@@ -387,6 +387,26 @@ class HierarchyADOsState:
 
 
 class HEOMResult(Result):
+    """
+    Class for storing the results of :func:`.heomsolve` and
+    :meth:`.HEOMSolver.run`.
+
+    ``states`` and ``final_state`` hold the system density matrix. See
+    :class:`.Result` for the attributes shared with the other solvers.
+
+    Attributes
+    ----------
+    ado_states : list of :class:`.HierarchyADOsState`
+        The full ADO state at each time ``t``. Only stored when the solver
+        option ``store_ados`` is ``True`` and the states are recorded,
+        otherwise empty.
+
+    final_ado_state : :class:`.HierarchyADOsState` or None
+        The full ADO state at the final time.
+
+    store_ados : bool
+        The value of the solver option ``store_ados``.
+    """
     def _post_init(self):
         super()._post_init()
 
@@ -419,6 +439,11 @@ class HEOMResult(Result):
 
     @property
     def final_ado_state(self):
+        """
+        The full ADO state at the final time, or ``None`` if the solver
+        option ``store_ados`` is not ``True`` or neither the states nor the
+        final state are recorded.
+        """
         if self._final_ado_state is not None:
             return self._final_ado_state
         if self.ado_states:
@@ -545,7 +570,7 @@ def heomsolve(
           ``store_states`` was set to ``True``).
 
         * ``ado_states``: the full ADO state at each time (only available
-          if the results option ``ado_return`` was set to ``True``).
+          if the solver option ``store_ados`` was set to ``True``).
           Each element is an instance of :class:`.HierarchyADOsState`.
           The state of a particular ADO may be extracted from
           ``result.ado_states[i]`` by calling
@@ -1109,7 +1134,7 @@ class HEOMSolver(Solver):
               ``store_states`` was set to ``True``).
 
             * ``ado_states``: the full ADO state at each time (only available
-              if the results option ``ado_return`` was set to ``True``).
+              if the solver option ``store_ados`` was set to ``True``).
               Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
               ``result.ado_states[i]`` by calling :meth:`extract`.

@@ -160,13 +160,13 @@ The ``result`` is a standard QuTiP results object with the attributes:
 - ``e_data``: A dictionary with the values of each expectation operator at each time.
 - ``ado_states``: See below (a list of instances of :class:`~qutip.solver.heom.HierarchyADOsState`).
 
-If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
+If the solver option ``store_ados`` is set to ``True``, the full set of auxiliary
 density operators (ADOs) that make up the hierarchy at each time will be
 returned as ``result.ado_states``. We will describe how to use these to determine
 other properties, such as system-bath currents, later in the :ref:`fermionic guide <heom-determining-currents>`.
 If one has a full set of ADOs from a previous call of ``.run(...)``, one may
 supply it as the initial state of the solver by calling
-``.run(result.ado_states[-1], tlist, ado_init=True)``.
+``.run(result.ado_states[-1], tlist)``.
 
 As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
