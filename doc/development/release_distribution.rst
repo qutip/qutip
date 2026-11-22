@@ -7,7 +7,7 @@ Release and Distribution
 ************************
 
 Preamble
-++++++++
+========
 
 This document covers the process for managing updates to the current minor release and making new releases.
 Within this document, the git remote ``upstream`` refers to the main QuTiP organsiation repository, and ``origin`` refers to your personal fork.
@@ -25,7 +25,7 @@ In short, the steps you need to take are:
 .. _git:
 
 Setting Up The Release Branch
-+++++++++++++++++++++++++++++
+=============================
 
 In this step you will prepare a git branch on the main QuTiP repository that has the state of the code that is going to be released.
 This procedure is quite different if you are releasing a new minor or major version compared to if you are making a bugfix patch release.
@@ -179,7 +179,7 @@ Go to deploy_.
 .. _deploy:
 
 Build Release Distribution and Deploy
-+++++++++++++++++++++++++++++++++++++
+=====================================
 
 This step builds the source (sdist) and binary (wheel) distributions, and uploads them to PyPI (pip).
 You will also be able to download the built files yourself in order to upload them to the QuTiP website.
@@ -239,7 +239,7 @@ If you see "Only building wheels" but you meant to deploy the release to PyPI, y
 .. _github:
 
 Making a Release on GitHub
-++++++++++++++++++++++++++
+==========================
 
 This is all done through `the "Releases" section <https://github.com/qutip/qutip/releases>`_ of the ``qutip/qutip`` repository on GitHub.
 
@@ -260,7 +260,7 @@ Click on the "Publish release" button to finalise.
 .. _web:
 
 Website
-+++++++
+=======
 
 This assumes that qutip.github.io has already been forked and familiarity with the website updating workflow.
 The documentation need not be updated for every patch release.
@@ -288,7 +288,7 @@ HTML File Updates
 .. _cforge:
 
 Conda Forge
-+++++++++++
+===========
 
 If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock>`_.
 

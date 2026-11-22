@@ -10,9 +10,10 @@ from glob import glob
 from pathlib import Path
 import numpy as np
 import scipy
+import multiprocessing
+from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
-
 
 def _blas_info_pre_1_26():
     config = scipy.__config__
@@ -95,149 +96,112 @@ def available_cpu_count() -> int:
     return num_cpu or 1
 
 
-def _find_mkl():
-    """
-    Finds the MKL library.
-    Look into scipy's libraries, numpy's libraries, Anaconda default location
-    and Intel Python distributions's. (In that order)
-    """
-    plat = sys.platform
-
-    if plat.startswith("win"):
-        # TODO: fix the mkl handling on windows or use modules like pydiso to
-        # do it for us.
-        return ""
-    if plat == "emscripten":
-        # mkl is not supported on emscripten
-        return ""
-
-    python_dir = Path(sys.executable).parent
-    if plat in ['darwin', 'linux2', 'linux']:
-        python_dir = python_dir.parent
-
-    # Try in default Anaconda location first
-    if plat in ['darwin', 'linux2', 'linux']:
-        lib_dir_anaconda = '/lib/*'
-        lib_dir_intel_python = '/ext/lib'
-    else:
-        lib_dir_anaconda = r'\Library\bin\*'
-        lib_dir_intel_python = r'\ext\lib'
-
+def _has_pydiso() -> bool:
     try:
-        scipy_cfg = scipy.show_config("dicts")["Build Dependencies"]
-        scipy_blas = scipy_cfg["blas"]["lib directory"]
-        scipy_lapack = scipy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        scipy_blas = "unknown"
-        scipy_lapack = "unknown"
+        import pydiso.mkl_solver
+    except ImportError:
+        return False
+    return True
 
+def _mkl_versions() -> tuple[str | None, str | None]:
+    from importlib.metadata import PackageNotFoundError, version
     try:
-        numpy_cfg = np.show_config("dicts")["Build Dependencies"]
-        numpy_blas = numpy_cfg["blas"]["lib directory"]
-        numpy_lapack = numpy_cfg["lapack"]["lib directory"]
-    except (TypeError, KeyError):
-        numpy_blas = "unknown"
-        numpy_lapack = "unknown"
+        pydiso_version = version("pydiso")
+    except PackageNotFoundError:
+        pydiso_version = "unknown"
+    try:
+        from pydiso.mkl_solver import get_mkl_version
+        v = get_mkl_version()
+        mkl_version = (f"{v['MajorVersion']}.{v['MinorVersion']}.{v['UpdateVersion']}")
+    except (ImportError, KeyError) as exc:
+        mkl_version = "unknown"
 
-    paths = [
-        scipy_blas,
-        scipy_lapack,
-        numpy_blas,
-        numpy_lapack,
-        str(python_dir) + lib_dir_anaconda,
-        str(python_dir) + lib_dir_intel_python,
-    ]
-
-    if plat == 'darwin':
-        ext = ".dylib"
-    elif plat == 'win32':
-        ext = ".dll"
-    elif plat in ['linux2', 'linux']:
-        ext = ".so"
-    else:
-        raise Exception('Unknown platfrom.')
-
-    mkl_libs = []
-    for path in paths:
-        libraries = glob(path)
-        mkl_libs += [
-            lib for lib in libraries
-            if "mkl_rt." in lib and ext in lib
-        ]
-    if mkl_libs:
-        return mkl_libs[0]
-    return ""
-
+    return pydiso_version, mkl_version
 
 class Settings:
     """
     Qutip's settings and options.
     """
     def __init__(self):
-        self._mkl_lib = ""
-        self._mkl_lib_loc = ""
         try:
             self.tmproot = str(Path.home() / '.qutip')
         except OSError:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
+        if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
+            self._mp_context = multiprocessing.get_context('fork')
+        else:
+            self._mp_context = None
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
+        self._has_pydiso = None
+        self._mkl_versions = None
+
+    @property
+    def mp_context(self) -> BaseContext | None:
+        """Context for QuTiP's multiprocessing backend.
+
+        ``None`` uses the application's default when a worker pool is created.
+        Assign a start-method name or a multiprocessing context to override it.
+        """
+        return self._mp_context
+
+    @mp_context.setter
+    def mp_context(
+        self, new_context: str | BaseContext | None
+    ) -> None:
+        if new_context is None or isinstance(new_context, BaseContext):
+            self._mp_context = new_context
+        elif isinstance(new_context, str):
+            self._mp_context = multiprocessing.get_context(new_context)
+        else:
+            raise TypeError(
+                "mp_context must be None, a start-method name, "
+                "or a multiprocessing context"
+            )
 
     @property
     def has_mkl(self) -> bool:
-        """ Whether qutip found an mkl installation. """
-        return self.mkl_lib is not None
+        """ Checks whether the MKL Pardiso sparse solver is available.
+            Requires the optional ``pydiso`` package. """
+        if self._has_pydiso is None:
+            self._has_pydiso = _has_pydiso()
+        return self._has_pydiso
+
+    def _get_mkl_versions(self) -> tuple[str | None, str | None]:
+        if self._mkl_versions is None:
+            self._mkl_versions = (
+                _mkl_versions() if self.has_mkl else (None, None)
+            )
+        return self._mkl_versions
+
+    @property
+    def mkl_version(self) -> str | None:
+        """ Version of the Intel MKL library used by ``pydiso`` """
+        return self._get_mkl_versions()[1]
+    
+    @property
+    def pydiso_version(self) -> str | None:
+        """Version of ``pydiso```, which provides the MKL Pardiso solver """
+        return self._get_mkl_versions()[0]
 
     @property
     def mkl_lib_location(self) -> str | None:
-        """ Location of the mkl library file. The file is usually called:
-
-        - `libmkl_rt.so` (Linux)
-        - `libmkl_rt.dylib` (Mac)
-        - `mkl_rt.dll` (Windows)
-
-        It search for the library in the python lib path per default.
-        If the library is in other location, update this variable as needed.
-        """
-        if self._mkl_lib_loc == "":
-            _mkl_lib_loc = _find_mkl()
-            try:
-                _mkl_lib = cdll.LoadLibrary(_mkl_lib_loc)
-            except OSError:
-                _mkl_lib = None
-            if not (
-                hasattr(_mkl_lib, "pardiso")
-                and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-            ):
-                self._mkl_lib_loc = None
-                self._mkl_lib = None
-            else:
-                self._mkl_lib = _mkl_lib
-                self._mkl_lib_loc = _mkl_lib_loc
-        return self._mkl_lib_loc
+        raise AttributeError(
+            "qutip.settings.mkl_lib_location is no longer supported. "
+            "QuTiP uses pydiso for MKL PARDISO; MKL library selection is "
+            "controlled by the pydiso installation."
+        )
 
     @mkl_lib_location.setter
     def mkl_lib_location(self, new: str):
-        _mkl_lib = cdll.LoadLibrary(new)
-        if not (
-            hasattr(_mkl_lib, "pardiso")
-            and hasattr(_mkl_lib, "mkl_cspblas_zcsrgemv")
-        ):
-            raise ValueError(
-                "mkl sparse functions not available in the provided library"
-            )
-        self._mkl_lib_loc = new
-        self._mkl_lib = _mkl_lib
-
-    @property
-    def mkl_lib(self) -> CDLL | None:
-        """ Mkl library """
-        if self._mkl_lib == "":
-            self.mkl_lib_location
-        return self._mkl_lib
+        raise AttributeError(
+            "Cannot set qutip.settings.mkl_lib_location: runtime MKL library "
+            "selection is no longer supported. Configure the MKL library "
+            "through your pydiso installation instead."
+        )
 
     @property
     def ipython(self) -> bool:
@@ -341,7 +305,9 @@ class Settings:
     def __str__(self) -> str:
         lines = ["Qutip settings:"]
         for attr in self.__dir__():
-            if not attr.startswith('_') and attr not in ["core", "compile"]:
+            if not attr.startswith('_') and attr not in [
+                "core", "compile", "mkl_lib_location"
+            ]:
                 lines.append(f"    {attr}: {self.__getattribute__(attr)}")
         lines.append(f"    compile: {self.compile.__repr__(full=False)}")
         return '\n'.join(lines)

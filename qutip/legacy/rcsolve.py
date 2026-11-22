@@ -115,6 +115,6 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     # Setup the operators and the Hamiltonian and the master equation
     # and solve for time steps in tlist
     rho0 = (tensor(thermal_dm(N, nb), psi0))
-    output = mesolve(H, rho0, tlist, [L], e_ops_exp, options=options)
+    output = mesolve(H, rho0, tlist, [L], e_ops=e_ops_exp, options=options)
 
     return output

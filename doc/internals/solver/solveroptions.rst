@@ -1,7 +1,7 @@
 .. _internal_solveroptions:
 
 Solver Options Infrastructure
-#############################
+=============================
 
 The configuration of QuTiP's physical solvers and numerical integrators is
 handled via specialized dictionary objects. Rather than exposing raw Python
@@ -10,7 +10,7 @@ dictionaries directly, the framework utilizes an internal subclass,
 
 
 Motivation
-==========
+----------
 
 A simple dictionary or dataclass lacks the features needed to:
 
@@ -35,7 +35,7 @@ manual synchronization loops and protects users from configuration errors, ensur
 that options can safely change dynamically throughout a system's evolutionary life cycle.
 
 Core Features
--------------
+^^^^^^^^^^^^^
 
 The :class:`_SolverOptions` class inherits directly from Python's built-in
 ``dict``, behaving like a standard key-value map while adding four

@@ -3,7 +3,7 @@ Environments
 ************
 
 Bosonic Environments
---------------------
+====================
 
 .. autoclass:: qutip.core.BosonicEnvironment
     :members:
@@ -37,7 +37,7 @@ Bosonic Environments
 
 
 Fermionic Environments
-----------------------
+======================
 
 .. autoclass:: qutip.core.FermionicEnvironment
     :members:

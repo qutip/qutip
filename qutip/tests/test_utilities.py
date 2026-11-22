@@ -293,3 +293,13 @@ def test_clebsch_large_j_normalisation(j):
     total = sum(clebsch(j, j, j3, m1, m2, m1 + m2) ** 2
                 for j3 in range(2 * j + 1))
     assert total == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(['j1', 'j2', 'j3', 'm1', 'm2', 'm3'], [
+    pytest.param(1, 1, 3, 0, 0, 0, id="j3 too large"),
+    pytest.param(2, 1, 0, 0, 0, 0, id="j3 too small"),
+    pytest.param(1, 1, 2, 2, 0, 2, id="m1 too large"),
+    pytest.param(1, 1, 1, 1, 1, 2, id="m3 too large"),
+])
+def test_clebsch_invalid(j1, j2, j3, m1, m2, m3):
+    assert clebsch(j1, j2, j3, m1, m2, m3) == 0

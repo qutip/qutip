@@ -1,14 +1,14 @@
 .. _integrator_stochastic_internal:
 
 Stochastic Integrator Architecture
-##################################
+==================================
 
 Stochastic Differential Equations (SDEs) are used to simulate open quantum dynamics under continuous measurement.
 In QuTiP, SDE integrators inherit from :class:`SIntegrator`,
 which extends the base :class:`Integrator` interface to handle stochastic noise processes.
 
 Key Differences from Standard Integrators
-=========================================
+-----------------------------------------
 
 Stochastic Integrators have a random number generator as part of their state.
 So ``set_state``, ``get_state``, ``integrate`` take / return a triplet of (time, state, wiener).
@@ -59,10 +59,10 @@ Other SIntegrator specific attributes include:
 
 
 Helper Classes
-==============
+--------------
 
 :class:`Wiener`
----------------
+^^^^^^^^^^^^^^^
 
 The :class:`Wiener` class generates Gaussian stochastic noise increments.
 The main method called by :class:`SIntegrator` is:
@@ -81,7 +81,7 @@ Also available:
    Return the continuous Wiener process at time ``t``.
 
 Stochastic Systems
-------------------
+^^^^^^^^^^^^^^^^^^
 
 Stochastic system classes act as structured containers for the drift and diffusion.
 
@@ -118,14 +118,14 @@ Stochastic system classes act as structured containers for the drift and diffusi
 
 
 Building Custom Stochastic Evolutions
-######################################
+======================================
 
 The SDE solver in qutip are focused on solving the standard stochastic evolutions.
 For custom SDE forms not directly covered by standard solvers, QuTiP's internal SDE integrators can be used directly.
 As this is not the expected use cases, the interface may not be ideal.
 
 Explicit Methods (Derivative-Free)
-==================================
+----------------------------------
 
 Methods such as :class:`EulerSODE`, :class:`PlatenSODE`, and :class:`Explicit1_5_SODE` do not require analytical derivatives:
 
@@ -177,7 +177,7 @@ Methods such as :class:`EulerSODE`, :class:`PlatenSODE`, and :class:`Explicit1_5
 
 
 Taylor Methods (Derivative-Based)
-=================================
+---------------------------------
 
 Solvers requiring Ito-Taylor expansions (e.g., :class:`Milstein_SODE`, :class:`Taylor1_5_SODE`) require subclasses of :class:`TaylorStochasticSystem`:
 

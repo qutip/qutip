@@ -301,7 +301,7 @@ The code for calculating the expectation values for the Pauli spin operators of 
 .. _bloch-animate-decay-images:
 
 Generating Images for Animation
-++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 An example of generating images for generating an animation outside of Python is given below::
 
@@ -322,7 +322,7 @@ Generating an animation using FFmpeg (for example) is fairly simple::
 .. _bloch-animate-decay-direct:
 
 Directly Generating an Animation
-++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. important::
    Generating animations directly from Matplotlib requires installing either MEncoder or FFmpeg.

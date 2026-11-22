@@ -12,6 +12,7 @@ Users Guide
    guide-states.rst
    guide-tensor.rst
    guide-super.rst
+   guide-subsystem.rst
    guide-dynamics.rst
    guide-environments.rst
    guide-heom.rst
@@ -23,6 +24,7 @@ Users Guide
    guide-distributions.rst
    guide-saving.rst
    guide-random.rst
+   guide-parallel.rst
    guide-settings.rst
    guide-measurement.rst
    guide-family.rst

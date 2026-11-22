@@ -44,7 +44,7 @@ strengthen the absolute tolerance.
 To use these new settings we can use the keyword argument ``options`` in either
 the :func:`.mesolve` and :func:`.mcsolve` function::
 
-    >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=options)
+    >>> mesolve(H0, psi0, tlist, c_op_list, e_ops=[sigmaz()], options=options)
 
 or::
 

@@ -1,0 +1,1 @@
+Fix the `state0` parameter name in the `StochasticSolver.start` docstring.

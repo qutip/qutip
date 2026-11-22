@@ -1,12 +1,12 @@
 Type Descriptions
-#################
+=================
 
 There are currently two first-class data types defined in QuTiP, but the
 generic nature of the dispatch operations means that it is relatively
 straightforward to add new types for specific use-cases.
 
 Abstract Base: :obj:`~qutip.core.data.Data`
-===========================================
+-------------------------------------------
 
 The base :obj:`~qutip.core.data.Data` requires very little information to be
 stored---only the two-dimensional shape of the matrix.  This is common to all
@@ -14,7 +14,7 @@ data types, and readable (but not writeable) from Python.
 
 
 Compressed Sparse Row: :obj:`~qutip.core.data.CSR`
-==================================================
+--------------------------------------------------
 
 The `compressed sparse row format`_ has historically always been QuTiP's format
 of choice.  Only non-zero data entries are stored, and information is kept
@@ -43,7 +43,7 @@ initialisation from Python or C using the type's
 
 
 Access From Python
-------------------
+^^^^^^^^^^^^^^^^^^
 
 We do not expose the underlying memory buffers to the user in Python space by
 default.  This is to avoid needing to acquire the GIL every time one of our
@@ -75,7 +75,7 @@ helps with memory management.
 
 
 Memory Management
------------------
+^^^^^^^^^^^^^^^^^
 
 When constructed from Python, :obj:`~qutip.core.data.CSR` does not take
 ownership of its memory since we know we already have to be dealing with
@@ -120,7 +120,7 @@ cannot be freed from NumPy.
 
 
 Dense: :obj:`~qutip.core.data.Dense`
-====================================
+------------------------------------
 
 The :obj:`~qutip.core.data.Dense` format is the most "traditional" storage
 format for linear algebra operators and vectors.  This simply explicitly stores
@@ -140,7 +140,7 @@ optimise our data structures to support them.
 
 
 Python Access and Memory Management
------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Similarly to :obj:`~qutip.core.data.CSR`, :obj:`~qutip.core.data.Dense` provides
 the :meth:`~qutip.core.data.Dense.as_ndarray` method to view its data as a NumPy
@@ -157,7 +157,7 @@ ensure it always outlives us.
 
 
 Diagonal Matrices: :obj:`~qutip.core.data.Dia`
-==============================================
+----------------------------------------------
 
 The `Diagonal format` store a the non-zero diagonal from the matrices. It is
 well suited for qutip as many operators have a strong diagonal structure.

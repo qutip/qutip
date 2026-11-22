@@ -37,7 +37,7 @@ def run(full=False):
     #     qset.openmp_thresh = real_thresh
 
 
-def get_test_generator(entropy, test_name):
+def get_test_generator(entropy, test_name, rerun=1):
     """
     Recreate the generator used in tests as random_generator fixture from the
     test global seed and test name.
@@ -52,9 +52,13 @@ def get_test_generator(entropy, test_name):
         Name of the test with parametrisation ids:
         "test_data_binary_operator[matmul-CSR-Dense]"
         The file name is not used.
+
+    rerun: int, default: 1
+        Run number of the test, as counted by pytest-rerunfailures: 1 for the
+        first run, 2 for the first rerun of a flaky test, etc.
     """
     if "::" in test_name:
-        test_name = request.node.nodeid.split("::")[-1]
+        test_name = test_name.split("::")[-1]
     test_name = test_name.encode("utf-8")
     name_hash = int(hashlib.sha256(test_name).hexdigest()[:32], 16)
-    return np.random.default_rng( (entropy + name_hash) % 2**128 )
+    return np.random.default_rng((entropy + name_hash + rerun) % 2**128)

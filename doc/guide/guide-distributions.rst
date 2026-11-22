@@ -23,7 +23,7 @@ where :math:`m` is the mass of the particule, :math:`\omega` is the angular freq
 
     \displaystyle \hat{a} = \sqrt{\frac{m \omega}{2 \hbar}} \left(\hat{X} + \frac{i}{m \omega}\hat{P}\right)
 
-and 
+and
 
 .. math::
 
@@ -33,16 +33,16 @@ Then, the Hamiltonian can be written in terms of the ladder operators as
 
 .. math::
 
-    \displaystyle \hat{H} = \hbar \omega \left(\hat{a}^\dagger \hat{a} + \frac{1}{2}\hat{I}\right) = \hbar \omega \left(\hat{N} + \frac{1}{2}\hat{I}\right) 
+    \displaystyle \hat{H} = \hbar \omega \left(\hat{a}^\dagger \hat{a} + \frac{1}{2}\hat{I}\right) = \hbar \omega \left(\hat{N} + \frac{1}{2}\hat{I}\right)
 
 where :math:`\hat{N}` is the number operator. It can be shown that on an eigenstate :math:`|n>` of the number operator (:math:`n \geq 0`), the ladder operators accomplish
 
 .. math::
 
-    \displaystyle \hat{a} |n> = \sqrt{n}|n-1> 
+    \displaystyle \hat{a} |n> = \sqrt{n}|n-1>
 .. math::
 
-    \displaystyle \hat{a}^\dagger |n> = \sqrt{n+1}|n+1> 
+    \displaystyle \hat{a}^\dagger |n> = \sqrt{n+1}|n+1>
 
 From that, it is easy to see that energy levels of the harmonic oscillator obey the following :
 
@@ -55,7 +55,7 @@ From that, it is easy to see that energy levels of the harmonic oscillator obey 
 Finding the wave function of the ground state
 =============================================
 
-To find the wave function :math:`\psi_0(x)` of the ground state (:math:`n=0`), we have to compute :math:`<x|0>`. Knowing that :math:`\hat{a}|0> = 0`, we have 
+To find the wave function :math:`\psi_0(x)` of the ground state (:math:`n=0`), we have to compute :math:`<x|0>`. Knowing that :math:`\hat{a}|0> = 0`, we have
 
 .. math::
 
@@ -89,7 +89,7 @@ QuTiP implementation
 We can use the classes `HarmonicOscillatorWaveFunction` and `HarmonicOscillatorProbabilityFunction` from `qutip.distributions` in order to visualize what the wave function and probability distribution would look like for any state of the harmonic oscillator. Here, we would have all wave functions followed by all probability distributions from :math:`n=0` to :math:`n=7`.
 
 .. code-block:: Python
-    
+
     from qutip import fock
     from qutip.distributions import HarmonicOscillatorWaveFunction
     import matplotlib.pyplot as plt
@@ -105,7 +105,7 @@ We can use the classes `HarmonicOscillatorWaveFunction` and `HarmonicOscillatorP
         wf.visualize(fig=fig, ax=ax[M-n-1], show_ylabel=False, show_xlabel=(n == 0))
 
 .. code-block:: Python
-    
+
     from qutip import fock
     from qutip.distributions import HarmonicOscillatorProbabilityFunction
     import matplotlib.pyplot as plt

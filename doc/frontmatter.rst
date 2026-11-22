@@ -104,18 +104,18 @@ QuTiP was partially supported by
 .. _image-riken:
 
 .. figure:: figures/riken-logo.png
-	:width: 1.5in
-	:figclass: align-center
+   :width: 1.5in
+   :figclass: align-center
 
 .. _image-korea:
 
 .. figure:: figures/korea-logo.png
-	:width: 2in
-	:figclass: align-center
+   :width: 2in
+   :figclass: align-center
 
 .. figure:: figures/inst_quant_sher.png
-	:width: 2in
-	:figclass: align-center
+   :width: 2in
+   :figclass: align-center
 
 .. _about:
 

@@ -5,14 +5,19 @@ Note that single trajectories are described by regular `Result` objects from the
 """
 # Required for Sphinx to follow autodoc_type_aliases
 from __future__ import annotations
-
-from typing import TypedDict
-from ..core.numpy_backend import np
-
+from typing import TYPE_CHECKING, Any, Sequence, Literal, TypedDict
 from copy import copy
+import scipy.stats
+import warnings
 
-from .result import _BaseResult
+from ..core.numpy_backend import np
+from .result import _BaseResult, _prepare_axes, _decorate_panels
 from ..core import qzero_like
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    from matplotlib.typing import ColorType  # matplotlib >= 3.8
 
 __all__ = [
     "MultiTrajResult",
@@ -694,241 +699,277 @@ class MultiTrajResult(_BaseResult):
             lines.append("  Trajectories not saved.")
         lines.append(">")
         return "\n".join(lines)
-    
+
+    def _plot_single_expect(
+        self, ax, key, label, color,
+        n_traj_shown, show_std_band, show_average, show_error_bar,
+        percentiles, percentile_source,
+        traj_kw, band_kw, pct_kw, avg_kw, err_kw
+    ):
+        times = self.times
+        avg = np.array(self.average_e_data[key])
+        std = np.array(self.std_e_data[key])
+        traj = self.runs_e_data.get(key, None)
+
+        if show_average:
+            avg_label = f"{label} (avg)" if n_traj_shown else label
+            ax.plot(
+                times, avg, **{"color": color, **avg_kw}, label=avg_label
+            )
+            if show_error_bar and self.num_trajectories > 1:
+                # Probably only valid for equal weight... to check.
+                sem_factor = (self.num_trajectories - 1) ** -0.5
+                ax.errorbar(
+                    times, avg, std * sem_factor,
+                    **{"color": color, **err_kw},
+                )
+
+        for j in range(n_traj_shown):
+            ax.plot(
+                times, traj[j],
+                **{"color": color, **traj_kw},
+                label=f"{label} (traj)" if j == 0 else None,
+            )
+
+        if show_std_band:
+            ax.fill_between(
+                times, avg - std, avg + std, **{"color": color, **band_kw}
+            )
+
+        if percentiles:
+            label_per = f"{label} (percentiles)"
+
+            if percentile_source == "std":
+                z_scores = scipy.stats.norm.ppf(percentiles)
+                data = avg[None, :] + z_scores[:, None] * std[None, :]
+            elif percentile_source == "traj":
+                data = np.quantile(np.array(traj), percentiles, axis=0)
+            else:
+                raise ValueError(
+                    "percentile_source must be one of 'std', 'traj'"
+                )
+
+            for line in data:
+                ax.plot(
+                    times, line, **{"color": color, **pct_kw},
+                    label=label_per
+                )
+                label_per = None
+
     def plot_expect(
         self,
         *,
-        fig=None,
-        axes=None,
-        labels=None,
-        title=None,
-        xlabel="Time",
-        ylabel="Expectation value",
-        show_legend=True,
-        show_trajectories=0,
-        show_average=True,
-        trajectory_kwargs=None,
-        separate_axes=False,
+        fig: Figure | None = None,
+        axes: Axes | Sequence[Axes] | None = None,
+        which: str | int | Sequence[str | int] | None = None,
+        labels: Sequence[str] | None = None,
+        colors: Sequence[ColorType] | None = None,
+        title: str | None = None,
+        xlabel: str = "Time",
+        ylabel: str = "Expectation value",
+        show_legend: bool = True,
+        show_average: bool = True,
+        show_trajectories: int = 0,
+        show_error_bar: bool = False,
+        show_std_band: bool = False,
+        show_percentile: Sequence[float] | None = None,
+        percentile_source: Literal["std", "traj"] = "std",
+        trajectory_kwargs: dict[str, Any] | None = None,
+        percentile_kwargs: dict[str, Any] | None = None,
+        band_kwargs: dict[str, Any] | None = None,
+        separate_axes: bool = False,
         **plot_kwargs,
-    ):
+    ) -> tuple[Figure, Axes | Sequence[Axes]]:
         """
         Plot expectation values from multi-trajectory solver results.
 
-        Supports plotting the trajectory-averaged expectation values,
-        individual trajectories, or both.
+        Supports the trajectory-averaged expectation values, individual
+        trajectories, an error bar / spread band and percentile lines.
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure, optional
-            User-provided figure. If ``None`` and *axes* is also ``None``,
-            a new figure is created.
+        fig, axes : matplotlib Figure / Axes, optional
+            User-provided figure and/or axes. With ``separate_axes=True``,
+            ``axes`` must contain one Axes per plotted expectation value.
 
-        axes : matplotlib.axes.Axes, optional
-            User-provided axes. If ``None`` and *fig* is also ``None``,
-            new axes are created.
+        which : key, int or list of these, optional
+            Subset of the ``e_ops`` to plot, given by their key (for dict
+            ``e_ops``) or their position. Default: all.
 
         labels : list of str, optional
-            Labels for each expectation-value curve. When ``None``, labels
-            are taken from the *e_ops* keys (the original dictionary keys
-            when *e_ops* was passed as a ``dict``, otherwise
-            ``"e_ops[0]"``, ``"e_ops[1]"``, …).
+            Labels of the curves. Default: the ``e_ops`` keys
+            (``"e_ops[i]"`` when ``e_ops`` was not a dict).
+
+        colors : list of color, optional
+            One color per plotted expectation value. Used consistently for
+            the average, error bar, band and percentile lines. Default: the
+            matplotlib cycle (``C0``, ``C1``, ...).
 
         title : str, optional
-            Title for the plot. When ``None``, the solver name stored in
-            the result is used.
+            Default: the solver name.
 
-        xlabel : str, optional
-            Label for the *x*-axis. Default ``"Time"``.
+        xlabel, ylabel : str, optional
+            Axis labels.
 
-        ylabel : str, optional
-            Label for the *y*-axis. Default ``"Expectation value"``.
+        show_legend : bool, default: True
+            Whether to display the legend.
 
-        show_legend : bool, optional
-            Whether to display the legend. Default ``True``.
+        show_average : bool, default: True
+            Plot the average over all trajectories.
 
-        show_trajectories : int, optional
-            Number of individual trajectories to overlay on the plot.
-            Requires that the solver was run with
+        show_trajectories : int, default: 0
+            Number of individual trajectories to overlay. Requires
             ``options={"keep_runs_results": True}``.
-            Default ``0`` (none).
 
-        show_average : bool, optional
-            Whether to plot the average over all trajectories.
-            Default ``True``.
+        show_error_bar : bool, default: False
+            Error bar (standard error) of the average. Needs at least 2
+            trajectories.
+
+        show_std_band : bool, default: False
+            Shade ``average ± std`` (the trajectory-to-trajectory spread).
+
+        show_percentile : list[float], optional
+            Percentile lines (values in [0, 1]) of a normal distribution
+            with the computed mean and std, when ``percentile_source="std"``.
+            When ``percentile_source="traj"``, the percentile lines are
+            extracted from the trajectory data.
+
+        percentile_source : {"std", "traj"}, default: "std"
+            Whether to use the standard derivation or actual trajectories
+            expectation values for the percentile.
 
         trajectory_kwargs : dict, optional
-            Keyword arguments for styling trajectory lines, passed to
-            ``matplotlib.axes.Axes.plot``. Defaults to
-            ``{"alpha": 0.3, "linewidth": 0.8, "color": "gray"}``.
-            Set individual keys to override specific defaults.
+            Style of the trajectories. Default:
+            ``{"alpha": 0.3, "linewidth": 0.8}`` in the color of the curve
+            (pass ``{"color": "gray"}`` for the former gray look).
 
-        separate_axes : bool, optional
-            If ``True``, each expectation value is plotted in its own
-            subplot. Default ``False``.
+        percentile_kwargs : dict, optional
+            Style of the percentile lines. Default:
+            ``{"linewidth": 1.2, "linestyle": ":"}``.
+
+        band_kwargs : dict, optional
+            Style of the std band. Default: ``{"alpha": 0.2}``.
+
+        separate_axes : bool, default: False
+            One subplot per expectation value.
 
         **plot_kwargs
-            Additional keyword arguments forwarded to
-            ``matplotlib.axes.Axes.plot``.
+            Forwarded to ``Axes.plot`` for the average.
 
         Returns
         -------
         fig : matplotlib.figure.Figure
-            The figure containing the plot.
-
-        axes : matplotlib.axes.Axes
-            The axes containing the plot
+        axes : matplotlib.axes.Axes or array of Axes
 
         Raises
         ------
         ValueError
             If no data can be plotted.
         """
-        import warnings
+        all_keys = list(self.average_e_data.keys())
+        if which is None:
+            keys = all_keys
+        elif which in all_keys:
+            keys = [which]
+        elif isinstance(which, int):
+            keys = [all_keys[which]]
+        else:
+            keys = [
+                (item if item in all_keys else all_keys[item])
+                for item in which
+            ]
 
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError as err:
-            raise ImportError(
-                "matplotlib is required for plotting. "
-                "Install it with:  pip install matplotlib"
-            ) from err
+        if not keys:
+            raise ValueError(
+                "No expectation-value data to plot. "
+                "Ensure that e_ops were supplied to the solver."
+            )
 
         if show_trajectories > 0 and not self.trajectories:
             warnings.warn(
                 "Trajectories are not saved. "
                 "Set options={'keep_runs_results': True} to plot "
                 "individual trajectories. Showing average only.",
-                stacklevel=2,
+                stacklevel=3,
             )
             show_trajectories = 0
 
-        if not show_average and show_trajectories <= 0:
+        percentiles = []
+        if show_percentile:
+            percentiles = list(show_percentile)
+            if not all(0 <= p <= 1 for p in percentiles):
+                raise ValueError(
+                    "percentile values must be between 0 and 1."
+                )
+            if percentile_source == "traj" and not self.trajectories:
+                raise ValueError(
+                    "Trajectories are needed for percentile based on them. "
+                    "Set options={'keep_runs_results': True}"
+                )
+
+        if (show_error_bar or show_std_band) and not show_average:
+            raise ValueError(
+                "Can't plot error bars or std band without the average"
+            )
+        if not (show_average or show_trajectories > 0 or percentiles):
             raise ValueError(
                 "Nothing to plot: set show_average=True or provide "
                 "show_trajectories > 0 with keep_runs_results=True."
             )
 
-        avg_expect = self.average_expect
-        if not avg_expect and not self.trajectories:
-            raise ValueError(
-                "No expectation-value data to plot. "
-                "Ensure that e_ops were supplied to the solver."
-            )
-
-        if title is None:
-            title = self.solver
+        n_curves = len(keys)
 
         if labels is None:
             labels = [
-                key if isinstance(key, str) else f"e_ops[{key}]"
-                for key in self.e_data.keys()
+                k if isinstance(k, str) else f"e_ops[{k}]" for k in keys
             ]
+        if len(labels) != n_curves:
+            raise ValueError("`labels` must have one entry per curve")
+        if colors is None:
+            colors = [f"C{i % 10}" for i in range(n_curves)]
+        if len(colors) != n_curves:
+            raise ValueError("`colors` must have one entry per curve")
+        if title is None:
+            title = self.solver
 
-        n_e_ops = len(labels)
+        # Styles: defaults, then user overrides.
+        traj_kw = {"alpha": 0.3, "linewidth": 0.8, **(trajectory_kwargs or {})}
+        pct_kw = {
+            "linewidth": 1.2, "linestyle": ":",
+            **(percentile_kwargs or {})
+        }
+        band_kw = {"alpha": 0.2, **(band_kwargs or {})}
+        avg_kw = {"linewidth": 2, **plot_kwargs}
+        err_kw = {
+            **avg_kw,
+            "linewidth": avg_kw["linewidth"] / 2,
+            "linestyle": "none",
+        }
 
-        # Default trajectory styling — visually distinct from average
-        traj_kw = {"alpha": 0.3, "linewidth": 0.8, "color": "gray"}
-        if trajectory_kwargs is not None:
-            traj_kw.update(trajectory_kwargs)
-        # Styling used for average
-        plot_kw = {"linewidth": 2}
-        if plot_kwargs is not None:
-            plot_kw.update(plot_kwargs)
+        n_traj_shown = min(show_trajectories, len(self.trajectories))
 
-        if separate_axes:
-            custom_axes = True
-            if fig is None and axes is None:
-                fig, axes = plt.subplots(
-                    n_e_ops, 1, sharex=True,
-                    figsize=(6, 3 * n_e_ops),
-                    squeeze=False,
-                )
-                axes = axes.flatten()
-                custom_axes = False
-            elif axes is None:
-                axes = np.array([
-                    fig.add_subplot(n_e_ops, 1, i + 1)
-                    for i in range(n_e_ops)
-                ])
-                custom_axes = False
-            elif fig is None:
-                if not hasattr(axes, '__len__'):
-                    axes = np.array([axes])
-                fig = axes[0].get_figure()
+        fig, axes, panels, owned = _prepare_axes(
+            fig, axes, n_curves, separate_axes
+        )
 
-            # --- trajectories on each subplot ---
-            if show_trajectories > 0 and self.trajectories:
-                n_traj = min(show_trajectories, len(self.trajectories))
-                for traj_idx in range(n_traj):
-                    traj = self.trajectories[traj_idx]
-                    for ax, exp, label in zip(axes, traj.expect, labels):
-                        traj_label = (
-                            f"{label} (traj)"
-                            if traj_idx == 0 else None
-                        )
-                        ax.plot(
-                            self.times, exp, label=traj_label, **traj_kw,
-                        )
+        for key, label, color, ax in zip(keys, labels, colors, panels):
+            self._plot_single_expect(
+                ax, key, label, color,
+                n_traj_shown, show_std_band,
+                show_average, show_error_bar,
+                percentiles, percentile_source,
+                traj_kw, band_kw, pct_kw, avg_kw, err_kw
+            )
 
-            # --- average on each subplot ---
-            if show_average and avg_expect:
-                for ax, exp, label in zip(axes, avg_expect, labels):
-                    avg_label = (
-                        f"{label} (avg)"
-                        if show_trajectories > 0 else label
-                    )
-                    ax.plot(
-                        self.times, exp, label=avg_label, **plot_kw
-                    )
-                    ax.set_ylabel(ylabel)
-                    if show_legend:
-                        ax.legend()
-                    if custom_axes:
-                        ax.set_xlabel(xlabel)
-                        ax.set_title(title)
-                if not custom_axes:
-                    axes[0].set_title(title)
-                    axes[-1].set_xlabel(xlabel)
-
-        else:
-            if fig is None and axes is None:
-                fig, axes = plt.subplots()
-            elif axes is None:
-                axes = fig.add_subplot(111)
-            elif fig is None:
-                fig = axes.get_figure()
-
-            # --- individual trajectories ---
-            if show_trajectories > 0 and self.trajectories:
-                n_traj = min(show_trajectories, len(self.trajectories))
-                for traj_idx in range(n_traj):
-                    traj = self.trajectories[traj_idx]
-                    for label, exp in zip(labels, traj.expect):
-                        traj_label = (
-                            f"{label} (traj)"
-                            if traj_idx == 0 else None
-                        )
-                        axes.plot(
-                            self.times, exp, label=traj_label, **traj_kw,
-                        )
-
-            # --- average ---
-            if show_average and avg_expect:
-                for label, exp in zip(labels, avg_expect):
-                    avg_label = (
-                        f"{label} (avg)"
-                        if show_trajectories > 0 else label
-                    )
-                    axes.plot(
-                        self.times, exp, label=avg_label, **plot_kw,
-                    )
-
-            axes.set_xlabel(xlabel)
-            axes.set_ylabel(ylabel)
-            axes.set_title(title)
-
-            if show_legend:
-                axes.legend()
+        _decorate_panels(
+            panels,
+            owned,
+            separate_axes,
+            title=title,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            show_legend=show_legend
+        )
 
         return fig, axes
 
@@ -1349,20 +1390,31 @@ class McResult(_McBaseResult):
     def plot_photocurrent(
         self,
         *,
-        fig=None,
-        axes=None,
-        title=None,
-        xlabel="Time",
-        ylabel="Photocurrent",
-        show_legend=True,
-        separate_axes=False,
-        **plot_kwargs,
-    ):
+        fig: Figure | None = None,
+        axes: Axes | Sequence[Axes] | None = None,
+        which: int | Sequence[int] | None = None,
+        labels: Sequence[str] | None = None,
+        colors: Sequence[ColorType] | None = None,
+        title: str | None = None,
+        xlabel: str = "Time",
+        ylabel: str = "Photocurrent",
+        show_trajectories: int = 0,
+        shift_size: float = 0.02,
+        show_violin: bool = False,
+        show_error_bar: bool = False,
+        show_legend: bool = True,
+        separate_axes: bool = False,
+        trajectory_kwargs: dict[str, Any] | None = None,
+        violin_kwargs: dict[str, Any] | None = None,
+        **plot_kwargs: Any,
+    ) -> tuple[Figure, Axes | Sequence[Axes]]:
         """
         Plot the photocurrent from Monte-Carlo solver results.
 
         The photocurrent is computed from collapse event histograms
-        (one curve per collapse operator).
+        (one curve per collapse operator). Individual trajectories are
+        available without ``keep_runs_results``, since the collapse times of
+        every run are always stored.
 
         Parameters
         ----------
@@ -1370,9 +1422,20 @@ class McResult(_McBaseResult):
             User-provided figure. If ``None`` and *axes* is also ``None``,
             a new figure is created.
 
-        axes : matplotlib.axes.Axes, optional
+        axes : matplotlib.axes.Axes or sequence of Axes, optional
             User-provided axes. If ``None`` and *fig* is also ``None``,
-            new axes are created.
+            new axes are created. With ``separate_axes=True``, one Axes per
+            plotted collapse operator is required.
+
+        which : int or sequence of int, optional
+            Indices of the collapse operators to plot. Default: all.
+
+        labels : sequence of str, optional
+            One label per plotted curve. Default: ``"c_ops[i]"``.
+
+        colors : sequence of color, optional
+            One color per plotted curve, shared by the average, trajectories
+            and error bar. Default: the matplotlib cycle (``C0``, ``C1``...).
 
         title : str, optional
             Title for the plot. When ``None``, the solver name is used.
@@ -1383,16 +1446,41 @@ class McResult(_McBaseResult):
         ylabel : str, optional
             Label for the *y*-axis. Default ``"Photocurrent"``.
 
-        show_legend : bool, optional
-            Whether to display the legend. Default ``True``.
+        show_trajectories : int, default: 0
+            Number of individual trajectories to overlay.
 
-        separate_axes : bool, optional
+        shift_size : float: default=0.02
+            Size of the shift to add to the trajectories markers location.
+            Avoid marker stacking on each others.
+
+        show_violin : bool: default: False
+            Show the distribution of photocurrent as violin plot.
+
+        show_error_bar : bool, default: False
+            Show the standard error of the average photocurrent, estimated
+            from the spread over trajectories. Needs at least 2
+            trajectories.
+
+        show_legend : bool, default: True
+            Whether to display the legend.
+
+        separate_axes : bool, default: False
             If ``True``, each photocurrent is plotted in its own
-            subplot. Default ``False``.
+            subplot.
+
+        trajectory_kwargs : dict, optional
+            Style of the trajectories, passed to ``Axes.plot``. Default:
+            ``{"alpha": 0.3, "linewidth": 0.5, "linestyle":"none", "marker":"+",}``
+            in the color of the curve.
+
+        violin_kwargs: dict: optional
+            Style of the violin, passed to ``Axes.violinplot``. Default:
+            ``{"showextrema": False}`` in the color of the curve.
 
         **plot_kwargs
             Additional keyword arguments forwarded to
-            ``matplotlib.axes.Axes.plot``.
+            ``matplotlib.axes.Axes.plot`` for the average (and, minus
+            the line style, to ``Axes.errorbar``).
 
         Returns
         -------
@@ -1405,80 +1493,113 @@ class McResult(_McBaseResult):
         Raises
         ------
         ValueError
-            If no photocurrent data is available.
+            If no photocurrent data is available, or if ``labels`` /
+            ``colors`` / ``which`` do not match the collapse operators.
         """
-        try:
-            import matplotlib.pyplot as plt
-        except ImportError as err:
-            raise ImportError(
-                "matplotlib is required for plotting. "
-                "Install it with:  pip install matplotlib"
-            ) from err
-
         photocurrent = self.photocurrent
         if not photocurrent:
             raise ValueError("No photocurrent data available.")
 
-        n_c_ops = len(photocurrent)
-        times = self.times[:-1]
+        n_total = len(photocurrent)
+        if which is None:
+            selected = list(range(n_total))
+        else:
+            selected = [which] if isinstance(which, int) else list(which)
+            if not all(0 <= k < n_total for k in selected):
+                raise ValueError(
+                    f"`which` must be indices in [0, {n_total - 1}]"
+                )
+        n_curves = len(selected)
+
+        if labels is None:
+            labels = [f"c_ops[{k}]" for k in range(n_curves)]
+        if len(labels) != n_curves:
+            raise ValueError(
+                "`labels` must have one entry per collapse operator"
+            )
+        if colors is None:
+            colors = [f"C{i % 10}" for i in range(n_curves)]
+        if len(colors) != n_curves:
+            raise ValueError("`colors` must have one entry per curve")
+
+        if show_error_bar and self.num_trajectories < 2:
+            warnings.warn(
+                "At least 2 trajectories are needed to compute an error bar.",
+                stacklevel=2,
+            )
+            show_error_bar = False
+
+        n_traj_shown = min(show_trajectories, self.num_trajectories)
+        times = (np.array(self.times)[:-1] + np.array(self.times[1:])) / 2
+
+        if n_traj_shown or show_error_bar or show_violin:
+            runs = np.asarray(self.runs_photocurrent)
+            dts = np.diff(self.times)
+            if show_error_bar:
+                # Check weight scaling with no jump run
+                weights = len(runs) * np.asarray(self.runs_weights)
+                error = scipy.stats.sem(runs * weights[:, None, None], axis=0)
+            if n_traj_shown == 1 or shift_size == 0:
+                shifts_x = [0] * n_traj_shown
+                shifts_y = [0] * n_traj_shown
+            elif n_traj_shown:
+                # Individual photocurrent comes integers multiple of 1/dt.
+                # Add a shift to show individual trajectories counts
+                shifts_x = np.linspace(-shift_size, shift_size, n_traj_shown)
+                shifts_y = (
+                    np.linspace(0, 100 * shift_size, n_traj_shown)
+                    % (2 * shift_size) - shift_size
+                )
+
+        traj_kw = {
+            "alpha": 0.3, "linewidth": 0.5,
+            "linestyle":"none", "marker":"+",
+            **(trajectory_kwargs or {})
+        }
+        err_kw = {**plot_kwargs, "linewidth": 0.5, "linestyle": "none"}
+        violin_kw = {"showextrema": False, **(violin_kwargs or {})}
+
+        fig, axes, panels, owned = _prepare_axes(
+            fig, axes, len(photocurrent), separate_axes
+        )
+
+        for i, ax, color, label in zip(selected, panels, colors, labels):
+            ax.plot(
+                times, self.photocurrent[i], label=label,
+                **{"color":color, **plot_kwargs}
+            )
+            for j in range(n_traj_shown):
+                ax.plot(
+                    times + shifts_x[j] * dts,
+                    runs[j, i] + shifts_y[j] / dts,
+                    **{"color": color, **traj_kw},
+                    label=f"{label} (traj)" if j == 0 else None,
+                )
+            if show_error_bar:
+                ax.errorbar(
+                    times, self.photocurrent[i], error[i],
+                    **{"color": color, **err_kw}
+                )
+            if show_violin:
+                parts = ax.violinplot(
+                    runs[:, i, :], times, **{"widths": dts * 0.8, **violin_kw}
+                )
+                for pc in parts["bodies"]:
+                    # settings colors in violinplot only available from 3.11
+                    pc.set_facecolor(color)
 
         if title is None:
             title = self.solver
 
-        if separate_axes:
-            custom_axes = True
-            if fig is None and axes is None:
-                fig, axes = plt.subplots(
-                    n_c_ops, 1, sharex=True,
-                    figsize=(6, 3 * n_c_ops),
-                    squeeze=False,
-                )
-                axes = axes.flatten()
-                custom_axes = False
-            elif axes is None:
-                axes = np.array([
-                    fig.add_subplot(n_c_ops, 1, i + 1)
-                    for i in range(n_c_ops)
-                ])
-                custom_axes = False
-            elif fig is None:
-                if not hasattr(axes, '__len__'):
-                    axes = np.array([axes])
-                fig = axes[0].get_figure()
-
-            for i, (ax, pc) in enumerate(zip(axes, photocurrent)):
-                ax.plot(
-                    times, pc, label=f"c_ops[{i}]", **plot_kwargs
-                )
-                ax.set_ylabel(ylabel)
-                if show_legend:
-                    ax.legend()
-                if custom_axes:
-                    ax.set_xlabel(xlabel)
-                    ax.set_title(title)
-            if not custom_axes:
-                axes[0].set_title(title)
-                axes[-1].set_xlabel(xlabel)
-
-        else:
-            if fig is None and axes is None:
-                fig, axes = plt.subplots()
-            elif axes is None:
-                axes = fig.add_subplot(111)
-            elif fig is None:
-                fig = axes.get_figure()
-
-            for i, pc in enumerate(photocurrent):
-                axes.plot(
-                    times, pc, label=f"c_ops[{i}]", **plot_kwargs
-                )
-
-            axes.set_xlabel(xlabel)
-            axes.set_ylabel(ylabel)
-            axes.set_title(title)
-
-            if show_legend:
-                axes.legend()
+        _decorate_panels(
+            panels,
+            owned,
+            separate_axes,
+            title=title,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            show_legend=show_legend,
+        )
 
         return fig, axes
 

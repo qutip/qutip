@@ -1,0 +1,1 @@
+Raise a clear ``ValueError`` in ``to_chi`` and ``to_superpauli`` for maps whose input and output dimensions differ.

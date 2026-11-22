@@ -1,0 +1,2 @@
+Fix ``krylovsolve`` overwriting a user-set ``options["algorithm"]`` with the
+``algorithm`` argument. The option now takes precedence.

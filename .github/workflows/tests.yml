@@ -32,7 +32,7 @@ jobs:
         os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.14"]
+        python-version: ["3.15"]
         case-name: ["Latest"]
         numpy-build: [""]
         scipy-build: [""]
@@ -40,12 +40,12 @@ jobs:
         numpy-run: [""]
         scipy-run: [""]
         # Skip semidefinite: CVXOPT fail to converge, reason unknown...
-        qutip-optional: ["[graphics,runtime_compilation,ipython,extras]"]
-        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"]
+        qutip-optional: ["[graphics,runtime_compilation,ipython,extras,mkl]"]
+        pytest-extra-options: ["-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""]
         # coveralls: [1]  # Why didn't we try to upload them all?
 
         # Extra special cases.  In these, the new variable defined should always
-        # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
+        # be a truth-y value (for example, 'pypi: 1'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
@@ -70,6 +70,7 @@ jobs:
             numpy-run: "==2.3.*"
             scipy-run: "==1.16.*"
             qutip-optional: "[full]"
+            no-conda: 1
             pypi: 1
 
           - case-name: version-3
@@ -80,102 +81,111 @@ jobs:
             qutip-optional: "[graphics]"
             pypi: 1
 
-          - case-name: mkl, version-4
+          - case-name: version-4
             os: ubuntu-latest
-            python-version: "3.12"
+            python-version: "3.13"
             numpy-run: "==2.1.*"
             scipy-run: "==1.14.*"
-            qutip-optional: "[graphics]"
-
-          - case-name: version-5
-            os: ubuntu-latest
-            python-version: "3.11"
-            numpy-run: "==2.0.*"
-            scipy-run: "==1.13.*"
-            nomkl: 1
-            qutip-optional: "[semidefinite]"
-            pypi-extra-pkgs: "matplotlib==3.10.*"
+            qutip-optional: "[graphics,mkl]"
 
           - case-name: numpy fallback, nomkl
             os: ubuntu-latest
             python-version: "3.12"
             numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
-            nomkl: 1
-            qutip-optional: "[runtime_compilation,ipython,extras]"
+            qutip-optional: "[runtime_compilation,ipython,extras,mkl]"
             pypi-extra-pkgs: "matplotlib==3.10.*"
 
           - case-name: Oldest officially supported
             os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             scipy-build: "==1.13.*"
             cython-build: "==3.0.*"
-            numpy-run: "==1.23.*"
+            numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
             qutip-optional: ""
-            pypi-extra-pkgs: "cython==0.29.34 setuptools filelock matplotlib==3.9.*"
+            pypi-extra-pkgs: "cython==0.29.37 setuptools filelock matplotlib==3.9.*"
             pypi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
           # Mac
-          # Mac has issues with MKL since september 2022.
+          # MKL on Intel macOS requires conda-forge packaging.
           - case-name: macos - latest
             os: macos-latest
-            python-version: "3.14"
+            python-version: "3.15"
             nomkl: 1
             qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
+
+          - case-name: macos - Python 3.14
+            os: macos-latest
+            python-version: "3.14"
+            qutip-optional: "[graphics,runtime_compilation,ipython,extras]"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
           - case-name: macos - old setup
             os: macos-15-intel  # Test on intel cpus
-            python-version: "3.11"
+            conda-extra-pkgs: '"pydiso>=0.3.1"'
+            python-version: "3.12"
             numpy-build: "==2.0.*"
-            numpy-run: "==1.25.*"
+            numpy-run: "==1.26.*"
             scipy-run: "==1.16.*"
-            nomkl: 1
             qutip-optional: "[ipython,extras]"
             pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
             pypi-extra-pkgs: "matplotlib==3.9.*"
 
           # Windows
-          # Test 1 recent and one old
-          - case-name: Windows - latest - minimal install
+          # x64 pip environment with runtime compilation dependencies
+          - case-name: Windows - latest - runtime compilation
+            os: windows-latest
+            python-version: "3.15"
+            qutip-optional: "[runtime_compilation]"
+            no-conda: 1
+            pypi: 1
+            # matplotlib not installed
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
+
+          # ARM pip environment
+          - case-name: Windows ARM - latest - minimal install
             os: windows-11-arm
-            python-version: "3.14"
+            python-version: "3.15"
+            no-conda: 1
             pypi: 1
             qutip-optional: ""
             # matplotlib not installed
-            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning"
+            pytest-extra-options: "-W ignore:Matrix:scipy.linalg._misc.LinAlgWarning -W ignore:matplotlib:UserWarning -W \"ignore:This process (pid=:DeprecationWarning:multiprocessing.popen_fork\""
 
+          # Conda: build against NumPy 2 and test against NumPy 1.26
           - case-name: Windows - numpy fallback
             os: windows-latest
-            python-version: "3.11"
+            python-version: "3.12"
             numpy-build: "==2.0.*"
             numpy-run: "==1.26.*"
             scipy-run: "==1.17.*"
             qutip-optional: "[ipython,extras]"
+            conda-extra-pkgs: '"pydiso>=0.3.1" "libblas=*=*mkl"'
             pypi-extra-pkgs: "matplotlib==3.9.*"
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore::pyparsing.warnings.PyparsingDeprecationWarning -W \"ignore:The 'renderer' parameter of do_3d_projection\""
 
     steps:
       - uses: actions/checkout@v7
       - uses: conda-incubator/setup-miniconda@v4
-        if: matrix.os != 'windows-11-arm'
-        # Currently miniconda doesn't support window-11 arms
+        if: ${{ !matrix.no-conda }}
+        # Currently miniconda doesn't support Windows 11 ARM
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: conda-forge
 
       - name: Install pip
-        if: matrix.os != 'windows-11-arm'
+        if: ${{ !matrix.no-conda }}
         shell: bash -l {0}
         run: conda install pip -y -n test
 
-      # TODO remove this once conda supports windows arm
+      # Miniconda/Miniforge do not yet provide a native Windows ARM installer.
       - uses: actions/setup-python@v7
-        if: matrix.os == 'windows-11-arm'
+        if: matrix.no-conda
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -223,6 +233,8 @@ jobs:
 
       - name: Install QuTiP and dependencies
         working-directory: ${{ runner.temp }}
+        env: # Use env var to avoid issue with embedded quotes
+          CONDA_EXTRA_PKGS: ${{ matrix.conda-extra-pkgs }}
         run: |
           # Install the extra requirement
           python -m pip install pytest pytest-rerunfailures
@@ -238,10 +250,8 @@ jobs:
           CORE_DEP="numpy${{ matrix.numpy-run }} scipy${{ matrix.scipy-run }}"
           if [[ "${{ matrix.pypi }}" ]]; then
             pip install $CORE_DEP
-          elif [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl $CORE_DEP
           else
-            conda install nomkl $CORE_DEP
+            conda install $CORE_DEP
           fi
 
           cp "${{ github.workspace }}"/qutip*.whl .
@@ -254,20 +264,19 @@ jobs:
             python -m pip install ${{ matrix.pypi-extra-pkgs }} $CORE_DEP
           fi
 
-          if [[ "${{ matrix.conda-extra-pkgs }}" ]]; then
+          if [[ -n "$CONDA_EXTRA_PKGS" ]]; then
             conda install ${{ matrix.conda-extra-pkgs }} $CORE_DEP
           fi
 
       - name: Package information
         working-directory: ${{ runner.temp }}
         run: |
-          if [[ "${{ matrix.os }}" == "windows-11-arm" ]]; then
+          if [[ "${{ matrix.no-conda }}" ]]; then
             pip list
           else
             conda list
           fi
           python -c "import qutip; qutip.about()"
-          python -c "import qutip; print(qutip.settings)"
 
       - name: Run tests
         working-directory: ${{ runner.temp }}
@@ -301,8 +310,8 @@ jobs:
           #  --strict-markers
           #     error out if a marker is used but not defined in the
           #     configuration file
-          #  --timeout=300
-          #     error any individual test that goes longer than the given time
+          #  --fail-slow=300
+          #     fail tests whose completed duration exceeds 300 seconds
           #  --durations=0 --durations-min=1.0
           #     at the end, show a list of all the tests that took longer than a
           #     second to run
@@ -323,6 +332,23 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
+
+  pyodide:
+    name: Pyodide, ${{ matrix.build }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [cp313, cp314]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pypa/cibuildwheel@v4.3.5
+        env:
+          CIBW_PLATFORM: pyodide
+          CIBW_BUILD: ${{ matrix.build }}-*
+          CIBW_TEST_GROUPS: tests
+          CIBW_TEST_COMMAND: python -m pytest --color=yes --pyargs qutip
 
   towncrier-check:
     name: Verify Towncrier entry added

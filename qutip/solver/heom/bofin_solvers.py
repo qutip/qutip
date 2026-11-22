@@ -49,7 +49,7 @@ __all__ = [
 
 class HierarchyADOs:
     """
-    A description of ADOs (auxilliary density operators) with the
+    A description of ADOs (auxiliary density operators) with the
     hierarchical equations of motion.
 
     The list of ADOs is constructed from a list of bath exponents
@@ -387,6 +387,26 @@ class HierarchyADOsState:
 
 
 class HEOMResult(Result):
+    """
+    Class for storing the results of :func:`.heomsolve` and
+    :meth:`.HEOMSolver.run`.
+
+    ``states`` and ``final_state`` hold the system density matrix. See
+    :class:`.Result` for the attributes shared with the other solvers.
+
+    Attributes
+    ----------
+    ado_states : list of :class:`.HierarchyADOsState`
+        The full ADO state at each time ``t``. Only stored when the solver
+        option ``store_ados`` is ``True`` and the states are recorded,
+        otherwise empty.
+
+    final_ado_state : :class:`.HierarchyADOsState` or None
+        The full ADO state at the final time.
+
+    store_ados : bool
+        The value of the solver option ``store_ados``.
+    """
     def _post_init(self):
         super()._post_init()
 
@@ -419,6 +439,11 @@ class HEOMResult(Result):
 
     @property
     def final_ado_state(self):
+        """
+        The full ADO state at the final time, or ``None`` if the solver
+        option ``store_ados`` is not ``True`` or neither the states nor the
+        final state are recorded.
+        """
         if self._final_ado_state is not None:
             return self._final_ado_state
         if self.ado_states:
@@ -545,7 +570,7 @@ def heomsolve(
           ``store_states`` was set to ``True``).
 
         * ``ado_states``: the full ADO state at each time (only available
-          if the results option ``ado_return`` was set to ``True``).
+          if the solver option ``store_ados`` was set to ``True``).
           Each element is an instance of :class:`.HierarchyADOsState`.
           The state of a particular ADO may be extracted from
           ``result.ado_states[i]`` by calling
@@ -959,7 +984,8 @@ class HEOMSolver(Solver):
 
     def steady_state(
         self,
-        use_mkl=True, mkl_max_iter_refine=100, mkl_weighted_matching=False
+        use_mkl=True, mkl_max_iter_refine=100, mkl_perm=None, mkl_verbose=False,
+        mkl_scaling_vectors=True, mkl_weighted_matching=False
     ):
         """
         Compute the steady state of the system.
@@ -974,16 +1000,34 @@ class HEOMSolver(Solver):
             Specifies the the maximum number of iterative refinement steps that
             the MKL PARDISO solver performs.
 
-            For a complete description, see iparm(7) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[7]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
-        mkl_weighted_matching : bool
+        mkl_perm : array_like
+            Fill-in reducing permutation.
+
+            For a complete description, see ``iparm[4]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
+
+        mkl_verbose : bool, default=False
+            Enable logging for MKL solver.
+
+        mkl_scaling_vectors : bool, default=True
+            Enable scaling. Default for nonsymmetric matrices.
+            For a complete description, see ``iparm[10]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
+
+        mkl_weighted_matching : bool, default=False
             MKL PARDISO can use a maximum weighted matching algorithm to
             permute large elements close the diagonal. This strategy adds an
             additional level of reliability to the factorization methods.
 
-            For a complete description, see iparm(12) in
-            https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso-iparm-parameter.html
+            For a complete description, see ``iparm[12]`` in the
+            "PARDISO iparm Parameter" section of the Intel oneMKL
+            Developer Reference for C.
 
         Returns
         -------
@@ -1009,35 +1053,21 @@ class HEOMSolver(Solver):
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
-        L += sp.csr_matrix((
+        L += sp.csr_array((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
         ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
-            # Currently, the way qutip interfaces MKL Pardiso
-            # requires a scipy csr_matrix with 32-bit indices.
-            # After migration to sparse array (PR 2938) in qutip, CSR.as_scipy
-            # returns csr_array representation, which may have indices
-            # of type int64.
-            # Since qutip/_mkl/spsolve.py is not compatible with this index
-            # resolution, we recreate a csr_matrix with 32-bit indices explicitly
-            # before it is passed to mkl_spsolve
-            L = sp.csr_matrix(
-                (L.data,
-                 L.indices.astype(np.int32, copy=False),
-                 L.indptr.astype(np.int32, copy=False)),
-                shape=L.shape,
-            )
             L.sort_indices()
             solution = mkl_spsolve(
                 L,
                 b_mat,
-                perm=None,
-                verbose=False,
+                perm=mkl_perm,
+                verbose=mkl_verbose,
                 max_iter_refine=mkl_max_iter_refine,
-                scaling_vectors=True,
-                weighted_matching=mkl_weighted_matching,
+                scaling_vectors=mkl_scaling_vectors,
+                weighted_matching=mkl_weighted_matching
             )
         else:
             L = L.tocsc()
@@ -1104,7 +1134,7 @@ class HEOMSolver(Solver):
               ``store_states`` was set to ``True``).
 
             * ``ado_states``: the full ADO state at each time (only available
-              if the results option ``ado_return`` was set to ``True``).
+              if the solver option ``store_ados`` was set to ``True``).
               Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
               ``result.ado_states[i]`` by calling :meth:`extract`.

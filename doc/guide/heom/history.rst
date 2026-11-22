@@ -1,13 +1,13 @@
-########################
+************************
 Previous implementations
-########################
+************************
 
 The current HEOM implementation in QuTiP is the latest in a succession of HEOM
 implementations by various contributors:
 
 
 HSolverDL
----------
+=========
 
 The original HEOM solver was implemented by Neill Lambert, Anubhav Vardhan,
 and Alexander Pitchford. In QuTiP 4.7 it was still available as
@@ -22,7 +22,7 @@ under the same name in :class:`qutip.solver.heom.HSolverDL`.
 
 
 BoFiN-HEOM
-----------
+==========
 
 BoFiN-HEOM (the bosonic and fermionic HEOM solver) was a much more
 flexible re-write of the original QuTiP ``HSolverDL`` that added support for
@@ -44,7 +44,7 @@ at https://github.com/tehruhn/bofin/tree/main/examples.
 
 
 Current implementation
-----------------------
+======================
 
 The current implementation is a rewrite of BoFiN in pure Python. It's right-hand
 side construction has similar speed to BoFiN-fast, but is written in pure

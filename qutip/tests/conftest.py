@@ -1,6 +1,7 @@
 import pytest
 import functools
 import os
+import sys
 import tempfile
 import numpy as np
 import hashlib
@@ -39,6 +40,9 @@ def pytest_generate_tests(metafunc):
 
 def pytest_runtest_setup(item):
     _skip_cython_tests_if_unavailable(item)
+    if (sys.platform == "emscripten"
+            and item.get_closest_marker("requires_multiprocessing")):
+        pytest.skip("multiprocessing is not available on emscripten")
 
 
 @pytest.fixture

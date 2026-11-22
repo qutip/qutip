@@ -1,11 +1,51 @@
-import numpy as np
+import importlib
+import multiprocessing
 import time
-import pytest
 import threading
+
+import numpy as np
+import pytest
 
 from qutip.solver.parallel import (
     parallel_map, serial_map, loky_pmap, mpi_pmap, MapExceptions
 )
+
+settings_module = importlib.import_module("qutip.settings")
+
+
+@pytest.mark.parametrize(
+    ("version", "platform", "expected"),
+    [
+        ((3, 12), "linux", "fork"),
+        ((3, 14), "linux", "fork"),
+        ((3, 14), "darwin", "fork"),
+        ((3, 14), "win32", None),
+        ((3, 15), "linux", None),
+        ((3, 15), "darwin", None),
+        ((3, 15), "win32", None),
+    ],
+)
+def test_initial_mp_context(monkeypatch, version, platform, expected):
+    monkeypatch.setattr(settings_module.sys, "version_info", version)
+    monkeypatch.setattr(settings_module.sys, "platform", platform)
+    monkeypatch.setattr(settings_module.multiprocessing, "get_context", lambda name: name)
+    assert settings_module.Settings().mp_context == expected
+
+
+def test_mp_context_override():
+    settings = settings_module.Settings()
+    context = multiprocessing.get_context("spawn")
+    settings.mp_context = context
+    assert settings.mp_context is context
+    settings.mp_context = "spawn"
+    assert settings.mp_context.get_start_method() == "spawn"
+    settings.mp_context = None
+    assert settings.mp_context is None
+    with pytest.raises(ValueError):
+        settings.mp_context = "invalid"
+    with pytest.raises(TypeError):
+        settings.mp_context = 42
+    assert settings.mp_context is None
 
 
 def _func1(x):
@@ -20,7 +60,8 @@ def _func2(x, a, b, c, d=0, e=0, f=0):
     return x**2
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -49,7 +90,8 @@ def test_map(map, num_cpus, with_seeded_random):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -89,7 +131,8 @@ def func(i):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -109,7 +152,8 @@ def test_map_pass_error(map):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),
@@ -139,7 +183,8 @@ def test_map_store_error(map):
 
 
 @pytest.mark.parametrize('map', [
-    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(parallel_map, id='parallel_map',
+                 marks=pytest.mark.requires_multiprocessing),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(mpi_pmap, id='mpi_pmap'),
     pytest.param(serial_map, id='serial_map'),

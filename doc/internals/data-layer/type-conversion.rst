@@ -1,5 +1,5 @@
 Converting Between Types: :obj:`~qutip.core.data.to`
-####################################################
+====================================================
 
 The backbone of the data layer is the ability to freely convert between two
 given types.  As long as we have this, we know we can always change our inputs
@@ -50,7 +50,7 @@ Some examples of usage:
 
 
 Basic Usage
-===========
+-----------
 
 Convert data into a different type.  This object is the knowledge source for
 every allowable data-layer type in QuTiP, and provides the conversions between
@@ -90,7 +90,7 @@ For example, $to["dense"]$ is the same as $to[Dense]$.
 
 
 Adding New Types
-================
+----------------
 
 You can add new data-layer types by calling the
 :obj:`~qutip.core.data._to.add_conversions` method of this object, which will
@@ -104,7 +104,7 @@ to add an object to QuTiP.
 
 
 How It Works
-============
+------------
 
 At its simplest, the problem is how to convert from every type to every other
 type without requiring the developer to write a function for every possible
@@ -135,7 +135,7 @@ vertices should be relatively small, so any of these would be suitable.
 
 
 Implementation
-==============
+--------------
 
 The function :obj:`to` is a singleton instance of the class
 :obj:`qutip.core.data.convert._to`.  Its state is effectively global state of
@@ -155,7 +155,7 @@ can be updated when new data types are added.
 
 
 Efficiency Notes
-================
+----------------
 
 We generally prefer to use more memory to make speed gains in the conversion
 (and dispatching) operations.  The amount of additional memory used is trivial
@@ -181,7 +181,7 @@ operations in a tight loop.
 
 
 Data layer groups
-=================
+-----------------
 
 Multiple types can be grouped together into a "group". These group share a
 common alias and are used to ensure types that work well together can be set as

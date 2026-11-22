@@ -1,0 +1,1 @@
+Fix the ``measurement`` docstring of ``StochasticResult``, which was not a raw string, so its LaTeX raised a ``SyntaxWarning`` and rendered incorrectly.

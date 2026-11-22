@@ -1,5 +1,5 @@
 Quantum Objects
-###############
+===============
 
 The primary user-facing type is :obj:`~qutip.Qobj`, which all users will have
 interacted with as it represents any quantum object in QuTiP.
@@ -13,7 +13,7 @@ layer.
 
 
 Data Store
-==========
+----------
 
 The data is actually stored in the :attr:`~qutip.Qobj.data` attribute of a
 :obj:`~qutip.Qobj`.  This is always a "data-layer type", which will be covered
@@ -44,7 +44,7 @@ the data represents, or anything else.  This is all managed by
 
 
 Auxiliary Information
-=====================
+---------------------
 
 :obj:`~qutip.Qobj` contains several pieces of auxiliary information about the
 object being represented.  The major parts are:
@@ -72,7 +72,7 @@ object being represented.  The major parts are:
 
 
 Methods
-=======
+-------
 
 As :obj:`~qutip.Qobj` is the primary Python user-facing type, it provides all
 the Python niceties and "magic" methods, such as :meth:`~qutip.Qobj.__add__`,
@@ -96,7 +96,7 @@ to better format the output.
 
 
 Derived and Related Types
-=========================
+-------------------------
 
 :obj:`~qutip.Qobj` is not the only type representing quantum objects in QuTiP,
 but it is by far the most common from the user's perspective.  Sometimes, for
@@ -106,7 +106,7 @@ parts of the code base.
 
 
 QobjEvo
--------
+^^^^^^^
 
 The most wide-spread of these related types is :obj:`~qutip.QobjEvo`, which
 represents a time-dependent quantum objects.  Essentially, it represents an

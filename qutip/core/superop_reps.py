@@ -75,6 +75,11 @@ def _is_power_of_two(x):
 
 
 def _nq(dims):
+    if dims[0][0] != dims[0][1]:
+        raise ValueError(
+            "The chi representation is only defined for maps whose input "
+            "and output spaces have the same dimensions."
+        )
     dim = np.prod(dims[0][0])
     nq = _int_log_two(dim)
     if 2 ** nq != dim:
@@ -122,6 +127,11 @@ def to_superpauli(q_oper):
     """
     # Ensure we start with a column-stacking-basis superoperator.
     sqobj = to_super(q_oper)
+    if sqobj.dims[0] != sqobj.dims[1]:
+        raise ValueError(
+            "Pauli basis is only defined for maps whose input and output "
+            "spaces have the same dimensions."
+        )
     if not isqubitdims(sqobj._dims):
         raise ValueError("Pauli basis is only defined for qubits.")
     nq = _int_log_two(sqobj.shape[0]) // 2
@@ -217,10 +227,13 @@ def kraus_to_choi(kraus_ops: list[Qobj]) -> Qobj:
     """
     len_op = np.prod(kraus_ops[0].shape)
     # If Kraus ops have dims [M, N] in qutip notation (act on [N, N] density
-    # matrix and produce [M, M] d.m.), Choi matrix Hilbert space will
-    # be [[M, N], [M, N]] because Choi Hilbert space
-    # is (output space) x (input space).
-    choi_dims = [SuperSpace(kraus_ops[0]._dims, rep="choi")] * 2
+    # matrix and produce [M, M] d.m.), the Choi matrix is built from the
+    # transposed dims [N, M], the same convention ``to_choi`` uses, so that
+    # converting it back with ``to_super`` maps [N, N] to [M, M] operators.
+    kraus_dims = kraus_ops[0]._dims
+    choi_dims = [
+        SuperSpace(Dimensions(kraus_dims[0], kraus_dims[1]), rep="choi")
+    ] * 2
     # transform a list of Qobj matrices list[sum_ij k_ij |i><j|]
     # into an array of array vectors sum_ij k_ij |i, j>> = sum_I k_I |I>>
     kraus_vectors = np.asarray([
@@ -315,7 +328,7 @@ def _chi_to_choi(q_oper):
                 copy=False)
 
 
-def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
+def _svd_u_to_kraus(U, S, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values
     S obtained from a SVD, produces the Kraus operators represented by U.
@@ -327,7 +340,12 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    data = np.array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))
+    # Each column of U is a column-stacked Kraus operator of shape
+    # (output size, input size), which need not be square.
+    shape = (outdims.size, indims.size)
+    data = (
+        np.array(U * S).reshape(shape + (dK,), order='F').transpose((2, 0, 1))
+    )
     return [
         Qobj(x,
              dims=[outdims, indims],
@@ -347,10 +365,9 @@ def _generalized_kraus(q_oper, threshold=1e-10):
             " (superrep ", repr(q_oper.superrep), ")."
         ]))
 
-    # Remember the shape of the underlying space,
-    # as we'll need this to make Kraus operators later.
-    dL, dR = int(np.sqrt(q_oper.shape[0])), int(np.sqrt(q_oper.shape[1]))
-    # Also remember the dims breakout.
+    # Remember the dims breakout, as we'll need it to make Kraus operators
+    # later. The left factor is the input space of the channel and the right
+    # factor is the output space.
     out_dims, in_dims = q_oper._dims
     out_left, out_right = out_dims.oper
     in_left, in_right = in_dims.oper
@@ -372,9 +389,8 @@ def _generalized_kraus(q_oper, threshold=1e-10):
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
-    # FIXME: does not preserve dims!
-    kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
-    kV = _svd_u_to_kraus(V, S, dL, dK, in_right, in_left)
+    kU = _svd_u_to_kraus(U, S, dK, out_left, out_right)
+    kV = _svd_u_to_kraus(V, S, dK, in_left, in_right)
 
     return kU, kV
 
@@ -385,22 +401,21 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
 
     assert len(kU) == len(kV)
     dK = len(kU)
-    dL = kU[0].shape[0]
-    dR = kV[0].shape[1]
-    # Also remember the dims breakout.
+    # Kraus operators map the input (left) space to the output (right) space,
+    # so they need not be square.
     out_dims, in_dims = q_oper._dims
     out_left, out_right = out_dims.oper
     in_left, in_right = in_dims.oper
 
     A = Qobj(
-        _data.zeros(dK * dL, dL),
-        dims=[Compound(out_left, Space(dK)), Compound(out_right, Field())],
+        _data.zeros(dK * out_right.size, out_left.size),
+        dims=[Compound(out_right, Space(dK)), Compound(out_left, Field())],
         isherm=True,
         isunitary=False,
         copy=False)
     B = Qobj(
-        _data.zeros(dK * dR, dR),
-        dims=[Compound(in_left, Space(dK)), Compound(in_right, Field())],
+        _data.zeros(dK * in_right.size, in_left.size),
+        dims=[Compound(in_right, Space(dK)), Compound(in_left, Field())],
         isherm=True,
         isunitary=False,
         copy=False)
@@ -410,8 +425,8 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
         B += tensor(KR, basis(dK, idx_kraus))
 
     # There is no input (right) Kraus index, so strip that off.
-    A.dims = [Compound(out_left, Space(dK)), out_right]
-    B.dims = [Compound(in_left, Space(dK)), in_right]
+    A.dims = [Compound(out_right, Space(dK)), out_left]
+    B.dims = [Compound(in_right, Space(dK)), in_left]
 
     return A, B
 
@@ -483,6 +498,9 @@ def to_chi(q_oper: Qobj) -> Qobj:
     TypeError:
         If the given quantum object is not a map, or cannot be converted
         to Chi representation.
+    ValueError:
+        If the input and output spaces of the map have different
+        dimensions, or are not composed of qubits.
     """
     if q_oper.type == 'super':
         if q_oper.superrep == 'chi':

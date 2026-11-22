@@ -211,7 +211,7 @@ def get_error_order_integrator(
     # averaging 3 runs... Setting it to 0.95 lower the failure rate to >0.01%
     # While at 1., it's at about 1/5000.
     pytest.param("milstein", 0.95, id="Milstein"),
-    pytest.param("milstein_imp", 1.0, id="Milstein implicit"),
+    pytest.param("milstein_imp", 0.95, id="Milstein implicit"),
     pytest.param("platen", 1.0, id="Platen"),
     pytest.param("pred_corr", 1.0, id="PredCorr"),
     pytest.param("explicit1.5", 1.5, id="Explicit15"),

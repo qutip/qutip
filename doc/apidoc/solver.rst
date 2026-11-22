@@ -3,7 +3,7 @@ Dynamics and Time-Evolution
 ***************************
 
 Schrödinger Equation
---------------------
+====================
 
 .. automodule:: qutip.solver.sesolve
     :members: sesolve
@@ -18,7 +18,7 @@ Schrödinger Equation
     :exclude-members: add_integrator
 
 Master Equation
----------------
+===============
 
 .. automodule:: qutip.solver.mesolve
     :members: mesolve
@@ -35,7 +35,7 @@ Master Equation
     :exclude-members: add_processor, add
 
 Monte Carlo Evolution
----------------------
+=====================
 
 .. automodule:: qutip.solver.mcsolve
     :members: mcsolve
@@ -65,7 +65,7 @@ Monte Carlo Evolution
 
 
 Bloch-Redfield Master Equation
-------------------------------
+==============================
 
 .. automodule:: qutip.solver.brmesolve
     :members: brmesolve
@@ -77,7 +77,7 @@ Bloch-Redfield Master Equation
     :exclude-members: add_integrator
 
 Floquet States and Floquet-Markov Master Equation
--------------------------------------------------
+=================================================
 
 .. automodule:: qutip.solver.floquet
     :members: fmmesolve, fsesolve, floquet_tensor
@@ -92,7 +92,7 @@ Floquet States and Floquet-Markov Master Equation
     :members:
 
 Stochastic Schrödinger Equation and Master Equation
----------------------------------------------------
+===================================================
 
 .. automodule:: qutip.solver.stochastic
     :members: ssesolve, smesolve
@@ -107,13 +107,14 @@ Stochastic Schrödinger Equation and Master Equation
     :inherited-members:
     :exclude-members: add_integrator
 
-.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
-    :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+.. autoclass:: qutip.solver.stochastic.StochasticResult
+    :members: steady_state, merge, plot_expect, measurement, signal, dW, wiener_process
+
+.. autoclass:: qutip.solver.stochastic.StochasticTrajResult
+    :members: plot_expect, measurement, signal, dW, wiener_process
 
 Non-Markovian Solvers
----------------------
+=====================
 
 .. automodule:: qutip.solver.nonmarkov.transfertensor
     :members: ttmsolve
@@ -122,7 +123,7 @@ Non-Markovian Solvers
 .. _api-ode:
 
 Integrator
-----------
+==========
 Different ODE solver from many sources (scipy, diffrax, home made, etc.) used
 by qutip solvers. Their options are added to the solver options:
 
@@ -157,7 +158,7 @@ by qutip solvers. Their options are added to the solver options:
 .. _classes-sode:
 
 Stochastic Integrator
----------------------
+=====================
 
 .. autoclass:: qutip.solver.sode.rouchon.RouchonSODE
     :members: options
@@ -187,7 +188,10 @@ Stochastic Integrator
     :members: options
 
 Parallelization
----------------
+===============
+
+For backend choices, multiprocessing context selection, and interactive use,
+see :ref:`guide-parallel`.
 
 .. automodule:: qutip.solver.parallel
     :members: parallel_map, serial_map, loky_pmap, mpi_pmap
@@ -207,7 +211,7 @@ Propagators
     :special-members: __call__
 
 Dysolve
--------
+=======
 
 .. automodule:: qutip.solver.dysolve
     :members: dysolve, dysolve_propagator, Dysolve
@@ -219,7 +223,7 @@ Other dynamics functions
 
 
 Correlation Functions
----------------------
+=====================
 
 .. automodule:: qutip.solver.correlation
     :members: correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_3op, coherence_function_g1, coherence_function_g2
@@ -229,7 +233,7 @@ Correlation Functions
 
 
 Steady-state Solvers
---------------------
+====================
 
 .. automodule:: qutip.solver.steadystate
     :members: steadystate, pseudo_inverse, steadystate_fourier, steadystate_floquet
@@ -237,7 +241,7 @@ Steady-state Solvers
 
 
 Scattering in Quantum Optical Systems
--------------------------------------
+=====================================
 
 .. automodule:: qutip.solver.scattering
     :members: temporal_basis_vector, temporal_scattered_state, scattering_probability

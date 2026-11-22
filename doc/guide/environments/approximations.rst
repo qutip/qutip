@@ -1,7 +1,7 @@
 .. _environment approximations guide:
 
 Approximations
---------------
+==============
 
 .. admonition:: Fermionic Environments
 
@@ -13,7 +13,7 @@ Approximations
     The aforementioned methods will then be replaced by a single ``approximate`` method as in the bosonic case.
 
 Approximating Bosonic Environments
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 QuTiP contains various methods for approximating the correlation functions of environments with multi-exponential functions.
 All of these methods are available through the :meth:`approximate<.BosonicEnvironment.approximate>`
@@ -24,11 +24,11 @@ The following table shows which methods are available for which type of environm
 Below, we then explain the fitting methods in more detail,
 and we document the parameters for the :meth:`approximate<.BosonicEnvironment.approximate>` function.
 
-.. list-table:: 
+.. list-table::
    :header-rows: 1
    :widths: auto
 
-   * - 
+   * -
      - Matsubara
      - Pade
      - Fitting
@@ -54,7 +54,7 @@ and we document the parameters for the :meth:`approximate<.BosonicEnvironment.ap
     Columns: Matsubara, Pade, Fitting
 
 Fitting Methods
-~~~~~~~~~~~~~~~
+---------------
 
 The fitting methods available in QuTiP can be roughly put into three categories:
 
@@ -73,54 +73,54 @@ The fitting methods available in QuTiP can be roughly put into three categories:
 
 The different categories have different weaknesses and strengths. For example
 in the case of non-linear squares, the parameters are found via an optimization
-process. Unfortunately, in many cases, the optimization returns mediocre 
+process. Unfortunately, in many cases, the optimization returns mediocre
 approximations. This can be improved by specifying information to the optimization
 such as guesses as to where the optimal parameters may be, lower and upper bounds
 on the parameters, degrees of uncertainty etc. The requirement for these extra
-bits of information is a weakness, but the fact that it allows for constraints 
-is a strength, because approximations with similar accuracy on the fitted curve may 
+bits of information is a weakness, but the fact that it allows for constraints
+is a strength, because approximations with similar accuracy on the fitted curve may
 have different performances on solvers.
 
 ..
-    Here I wanted to express the idea that a big positive ck and a big negative 
+    Here I wanted to express the idea that a big positive ck and a big negative
     ck that sort of cancel each other reproduces the fitted curve nicely
-    but it's problematic for the HEOM solver. This typically doesn't happen 
+    but it's problematic for the HEOM solver. This typically doesn't happen
     on the other methods though
 
-Methods based on the Prony polynomial only require the set of points on which 
-to perform the fit. They are typically really accurate; the difference between 
+Methods based on the Prony polynomial only require the set of points on which
+to perform the fit. They are typically really accurate; the difference between
 then from a practical point of view is whether or not they are resilient to noise
-in the signal to be fit, and the number of exponents one requires to reach a 
+in the signal to be fit, and the number of exponents one requires to reach a
 certain accuracy.
 
 Methods based on rational approximations also only require the set of points
-on which to perform the fit. The AAA method typically generates more exponents than Prony-like 
-methods, but reproduces the power spectrum better. This is important because 
-:math:`\frac{S(\omega)}{S(-\omega)}=e^{\beta \omega}` is highly influential 
+on which to perform the fit. The AAA method typically generates more exponents than Prony-like
+methods, but reproduces the power spectrum better. This is important because
+:math:`\frac{S(\omega)}{S(-\omega)}=e^{\beta \omega}` is highly influential
 on the steady state.
 
 While all methods apply in all situations when done with enough care, we recommend:
 
-- Non-Linear least squares 
-    when you have intuition about the number of exponents that 
+- Non-Linear least squares
+    when you have intuition about the number of exponents that
     are needed, some clue as to what they might be. For example, for underdamped
     environments at zero temperature, one knows that only one exponent is required
     for the imaginary part of the correlation function.
-- AAA and ESPIRA 
-    when looking for accuracy on the steady state. ESPIRA is also 
+- AAA and ESPIRA
+    when looking for accuracy on the steady state. ESPIRA is also
     a good first choice in most cases.
-- Prony methods 
+- Prony methods
     when you don't have intuition about the correlation function.
     Prony methods are good in general; ESPRIT is often a good choice.
 
 The following table highlights the strengths and weaknesses of each fitting method.
 
 
-.. list-table:: 
+.. list-table::
    :header-rows: 1
    :widths: auto
 
-   * - 
+   * -
      - NL Least Squares
      - Prony Polynomial
      - Rational Approximations
@@ -145,21 +145,21 @@ The following table highlights the strengths and weaknesses of each fitting meth
      - Partially
      - Yes
 
-In the table "Requires Extra Information" refers to whether we need to input 
-more than the function and the sampling points for the fitting method to work, 
+In the table "Requires Extra Information" refers to whether we need to input
+more than the function and the sampling points for the fitting method to work,
 "Fast" refers to the typical computation time of the approach
 with a moderate number of exponents, "Resilient to Noise" refers to whether the
 fitting approach is affected by noise in the function, "Allows Constraints"
-refers to whether we can bound the fit parameters to be in a range, "Stable" 
-refers whether it returns similar results for slightly different sampling 
-points. The answer "partially" means that it is 
+refers to whether we can bound the fit parameters to be in a range, "Stable"
+refers whether it returns similar results for slightly different sampling
+points. The answer "partially" means that it is
 true for some methods in the group but not for others.
 
 .. _environment approximations api:
 
 
 API Documentation
-~~~~~~~~~~~~~~~~~
+-----------------
 
 .. contents:: Full List of Approximation Methods:
   :local:
@@ -172,7 +172,7 @@ API Documentation
 .. _matsubara approximations api:
 
 ``"matsubara"`` | ``"pade"`` Analytical Expansions
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("matsubara" | "pade", Nk: int, combine: bool = True, compute_delta: Literal[False] = False, tag: Any = None) -> ExponentialBosonicEnvironment
     :no-index:
@@ -219,7 +219,7 @@ API Documentation
             Note that for underdamped environments, ``delta`` is negative.
 
 ``"cf"`` Fit Correlation Function with Exponentials
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("cf", tlist: ArrayLike, target_rmse: float = 2e-5, Nr_max: int = 10, Ni_max: int = 10, guess: list[float] = None, lower: list[float] = None, upper: list[float] = None, sigma: float | ArrayLike = None, maxfev: int = None, full_ansatz: bool = False, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
     :no-index:
@@ -369,7 +369,7 @@ API Documentation
 
 
 ``"ps"`` Fit Power Spectrum with Lorentzians
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("ps", wlist: ArrayLike, target_rmse: float = 5e-6, Nmax: int = 5, guess: list[float] = None, lower: list[float] = None, upper: list[float] = None, sigma: float | ArrayLike = None, maxfev: int = None, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
     :no-index:
@@ -458,7 +458,7 @@ API Documentation
 
 
 ``"sd"`` Fit Spectral Density with Underdamped SDs
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("sd", wlist: ArrayLike, Nk: int = 1, target_rmse: float = 5e-6, Nmax: int = 10, guess: list[float] = None, lower: list[float] = None, upper: list[float] = None, sigma: float | ArrayLike = None, maxfev: int = None, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
     :no-index:
@@ -560,7 +560,7 @@ API Documentation
 
 
 ``"aaa"`` Fit Power Spectrum using AAA Algorithm
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("aaa", wlist: ArrayLike, tol: float = 1e-13, N_max: int = 10, combine: bool = True, tag: Any = None) -> tuple[ExponentialBosonicEnvironment, dict[str, Any]]
     :no-index:
@@ -579,7 +579,7 @@ API Documentation
     if many poles are around the origin, it might require the sample points
     to be used for the fit to be a large dense range which makes this
     algorithm consume a lot of RAM (it will also be slow if asking for many
-    exponents). It is recommended that the sample points provided are a 
+    exponents). It is recommended that the sample points provided are a
     logarithmicly scaled range. For more informatio about the method see [AAA]_
 
     :Parameters:
@@ -619,7 +619,7 @@ API Documentation
             "fit_time"
                 The time the fit of the power spectrum took in seconds.
             "rmse"
-                Normalized mean squared error obtained in the fit of the 
+                Normalized mean squared error obtained in the fit of the
                 power spectrum.
             "params"
                 The fitted parameters (array of shape  Nx4) for the power
@@ -629,7 +629,7 @@ API Documentation
 
 
 ``"prony"``  | ``"esprit"`` | ``"espira-I"`` | ``"espira-II"`` Prony-Based and ESPIRA
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. method:: approximate("prony"  | "esprit" | "espira-I" | "espira-II", tlist: ArrayLike, separate: bool = False, Nr: int = 3, Ni: int = 3, combine: bool = True, tag: Any = None) -> ExponentialBosonicEnvironment
     :no-index:
@@ -646,11 +646,11 @@ API Documentation
     - ``"espira-II"``  For the modified ESPIRA method based on matrix pencils for Loewner matrices
 
 
-    Prony fitting advantages over nonlinear least squares are that it converts 
+    Prony fitting advantages over nonlinear least squares are that it converts
     the problem into a linear system, avoiding the need for initial guesses and
-    iterative optimization. This makes it computationally efficient and as 
+    iterative optimization. This makes it computationally efficient and as
     opposed to non linear least squares it won't get trapped in local minima
-    and does not require anything appart from the evenly spaced sample points. 
+    and does not require anything appart from the evenly spaced sample points.
     For more information about these methods see [ESPIRAvsESPRIT]_
 
     :Parameters:
@@ -697,10 +697,10 @@ API Documentation
             "fit_time"
                 The time the fit of the correlation function took in seconds.
             "rmse"
-                Normalized mean squared error obtained in the fit of the 
+                Normalized mean squared error obtained in the fit of the
                 power spectrum.
             "params"
-                The fitted parameters (array of shape  Nx4) for the 
+                The fitted parameters (array of shape  Nx4) for the
                 correlation function
             "summary"
                 A string that summarizes the information about the fit.

@@ -1,0 +1,1 @@
+Fix a ``TypeError`` in three ``mesolve`` documentation examples, which still passed ``e_ops`` as a positional argument.

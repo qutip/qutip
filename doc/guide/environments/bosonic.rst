@@ -1,10 +1,10 @@
 .. _bosonic environments guide:
 
 Bosonic Environments
---------------------
+====================
 
 Theory
-~~~~~~
+------
 
 A bosonic environment is described by a continuum of harmonic oscillators.
 The open quantum system and its environment are thus described by the Hamiltonian
@@ -27,7 +27,7 @@ Equivalently, a bosonic environment can be described by its auto-correlation fun
 .. math::
 
     C(t) = \langle X(t) X \rangle = \sum_{k} g_{k}^{2} \Big( \cos(\omega_{k} t)
-     \underbrace{( 2 n_{k}+1)}_{\coth(\frac{\beta \omega_{k}}{2})} 
+     \underbrace{( 2 n_{k}+1)}_{\coth(\frac{\beta \omega_{k}}{2})}
      - i \sin(\omega_{k} t) \Big)
 
 (where :math:`X(t)` is the interaction picture operator) or its power spectrum
@@ -39,8 +39,8 @@ Equivalently, a bosonic environment can be described by its auto-correlation fun
 which is the inverse Fourier transform of the correlation function.
 The correlation function satisfies the symmetry relation :math:`C(-t) = C(t)^\ast`.
 
-Assuming that the initial state is thermal with inverse temperature 
-:math:`\beta`,  in the continuum limit the correlation function and the power 
+Assuming that the initial state is thermal with inverse temperature
+:math:`\beta`,  in the continuum limit the correlation function and the power
 spectrum can be calculated from the spectral density via
 
 .. math::
@@ -83,7 +83,7 @@ In the strong coupling case, QuTiP provides exact integration methods based on m
 
 
 Pre-defined Environments
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 Ohmic Environment
 ^^^^^^^^^^^^^^^^^
@@ -112,7 +112,7 @@ Ohmic environments are usually classified according to this parameter as
     This pre-defined Ohmic environment class is restricted to an exponential cutoff function, which is one of the most commonly used in the literature.
     Other cutoff functions can be used in QuTiP with user-defined environments as explained below.
 
-Substituting the Ohmic spectral density :eq:`ohmicf` into :eq:`cfandps`, the correlation function can be computed analytically: 
+Substituting the Ohmic spectral density :eq:`ohmicf` into :eq:`cfandps`, the correlation function can be computed analytically:
 
 .. math::
     C(t)= \frac{\alpha}{\pi} w_{c}^{1-s} \beta^{-(s+1)} \Gamma(s+1)
@@ -121,12 +121,12 @@ Substituting the Ohmic spectral density :eq:`ohmicf` into :eq:`cfandps`, the cor
     \right] ,
 
 where :math:`\beta` is the inverse temperature, :math:`\Gamma` the Gamma function, and :math:`\zeta` the Hurwitz zeta function.
-The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`, which results in 
+The zero temperature case can be obtained by taking the limit :math:`\beta \to \infty`, which results in
 
 .. math::
     C(t) = \frac{\alpha}{\pi} \omega_c^2\, \Gamma(s+1) (1+ i \omega_{c} t)^{-(s+1)} .
 
-The evaluation of the zeta function for complex arguments requires `mpmath`, so certain features of the Ohmic enviroment are 
+The evaluation of the zeta function for complex arguments requires `mpmath`, so certain features of the Ohmic enviroment are
 only available if `mpmath` is installed.
 
 Multi-exponential approximations to Ohmic environments can be obtained through
@@ -241,7 +241,7 @@ for the Matsubara contribution as described in [Lambert19]_.
 
 
 User-Defined Environments
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 As stated in the introduction, a bosonic environment is fully characterized
 by its temperature and spectral density (SD), or alternatively by its correlation function (CF)
@@ -290,7 +290,7 @@ The slow convergence of the Matsubara expansion is visible around :math:`t=0`.
 
 
 Multi-Exponential Approximations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 Many approaches to simulating the dynamics of an open quantum system strongly coupled to an environment
 assume that the environment correlation function can be approximated by a multi-exponential expansion like

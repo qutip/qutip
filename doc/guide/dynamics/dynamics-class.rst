@@ -13,7 +13,7 @@ many details of how the solver is run.
 Examples of some of the solver class features are given below.
 
 Reusing Hamiltonian Data
-------------------------
+========================
 
 There are many cases where one would like to study multiple evolutions of
 the same quantum system, whether by changing the initial state or other parameters.
@@ -87,7 +87,7 @@ operators, can be updated at the start of a run:
 
 
 Stepping through the run
-------------------------
+========================
 
 The solver class also allows to run through a simulation one step at a time, updating
 args at each step:
@@ -128,7 +128,7 @@ args at each step:
 
 
 Feedback: Accessing the solver state from evolution operators
-=============================================================
+-------------------------------------------------------------
 
 The state of the system during the evolution is accessible via properties of the solver classes.
 

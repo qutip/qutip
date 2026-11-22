@@ -111,6 +111,29 @@ class TestSuperopReps:
         with pytest.raises(ValueError, match="must be a square."):
             superpauli_to_super(non_square)
 
+    def test_non_square_map_raises_ValueError(self):
+        """
+        Superoperator: Ensure to_chi and to_superpauli raise a clear
+        ValueError for maps whose input and output dimensions differ, e.g.
+        the partial trace over the second qubit of a two-qubit system.
+        """
+        bra0, bra1 = basis(2, 0).dag(), basis(2, 1).dag()
+        partial_trace = kraus_to_super(
+            [tensor(qeye(2), bra0), tensor(qeye(2), bra1)]
+        )
+        # isometric embedding of one qubit into two qubits
+        embedding = tensor(qeye(2), basis(2, 0))
+        # same total size on both sides, but different tensor structure
+        reshape = Qobj(np.eye(4), dims=[[2, 2], [4]])
+
+        for channel in [partial_trace, embedding, reshape]:
+            with pytest.raises(ValueError, match="same dimension"):
+                to_chi(channel)
+            with pytest.raises(ValueError, match="same dimension"):
+                to_chi(to_choi(channel))
+            with pytest.raises(ValueError, match="same dimension"):
+                to_superpauli(channel)
+
     def test_to_choi_to_chi_unsupported_type_raises_TypeError(self):
         """
         Superoperator: Ensure to_choi and to_chi raise TypeError (not
@@ -206,6 +229,35 @@ class TestSuperopReps:
         assert_kraus_equivalence(op1[0], kraus, tol=1e-8)
         assert_kraus_equivalence(op2[0], kraus, tol=1e-8)
         assert abs((op3 - super).norm()) < 1e-8
+
+    @pytest.mark.parametrize('sparse', [True, False])
+    @pytest.mark.parametrize('kraus', [
+        pytest.param(
+            [Qobj(np.array([[1, 0], [0, 1], [0, 0]]), dims=[[3], [2]])],
+            id="qubit_to_qutrit_isometry",
+        ),
+        pytest.param(
+            [tensor(basis(2, i).dag(), qeye(2)) for i in range(2)],
+            id="partial_trace",
+        ),
+    ])
+    def test_NonSquareKrausToChoiAndSuper(self, kraus, sparse):
+        """
+        Superoperator: kraus_to_choi and kraus_to_super keep the input and
+        output dimensions of non-square Kraus operators.
+        """
+        expected_super = sum(sprepost(k, k.dag()) for k in kraus)
+        expected_choi = to_choi(expected_super)
+
+        choi = kraus_to_choi(kraus)
+        assert choi.dims == expected_choi.dims
+        assert (choi - expected_choi).norm() < tol
+        assert choi.iscptp
+
+        test_super = kraus_to_super(kraus, sparse=sparse)
+        assert test_super.dims == expected_super.dims
+        assert (test_super - expected_super).norm() < tol
+        assert test_super.iscptp
 
     def test_NeglectSmallKraus(self):
         """
@@ -346,6 +398,33 @@ class TestSuperopReps:
         A, B = to_stinespring(chan)
         assert A.dims == [[2, dimension, 1], [2, dimension]]
         assert B.dims == [[2, dimension, 1], [2, dimension]]
+
+    @pytest.mark.parametrize('kraus', [
+        pytest.param(
+            [Qobj(np.array([[1, 0], [0, 1], [0, 0]]), dims=[[3], [2]])],
+            id="qubit_to_qutrit_isometry",
+        ),
+        pytest.param(
+            [tensor(basis(2, i).dag(), qeye(2)) for i in range(2)],
+            id="partial_trace",
+        ),
+    ])
+    def test_stinespring_non_square(self, kraus):
+        """
+        Stinespring: channels whose input and output dimensions differ.
+        """
+        chan = sum(to_super(k) for k in kraus)
+        out_dims, in_dims = chan.dims[0][0], chan.dims[1][0]
+        A, B = to_stinespring(chan)
+
+        assert A.dims == [out_dims + [len(kraus)], in_dims]
+        assert B.dims == [out_dims + [len(kraus)], in_dims]
+        assert (A - B).norm() < tol
+
+        state = rand_dm(in_dims, seed=1)
+        expected = chan(state)
+        result = (A * state * B.dag()).ptrace(list(range(len(out_dims))))
+        assert (result - expected).norm('tr') <= tol
 
     @pytest.mark.parametrize('dimension', [2, 4, 8])
     def test_chi_choi_roundtrip(self, dimension, random_generator):
