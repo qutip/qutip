@@ -827,7 +827,7 @@ cdef CSR diags_(
     cdef size_t n_diagonals = len(diagonals)
     if n_diagonals == 0:
         return zeros(n_rows, n_cols)
-    cdef base.idxint k, row, start_row, offset, nnz=0,
+    cdef base.idxint k, row, start_row, offset, nnz=0
     cdef base.idxint min_k=n_diagonals, max_k=n_diagonals
     cdef double complex value
     for k in range(n_diagonals):

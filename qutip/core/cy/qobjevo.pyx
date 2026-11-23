@@ -365,14 +365,14 @@ cdef class QobjEvo:
             return sum(element.qobj(t_obj) for element in self.elements)
 
         cdef _BaseElement part = self.elements[0]
-        cdef double complex coeff = part._coeff_c(t)
+        cdef double complex coeff = part._coeff_c(t_obj)
         obj = part.qobj(t_obj)
         cdef Data out = _data.mul(obj.data, coeff)
         cdef bint isherm = <bint> obj._isherm and coeff.imag == 0
         
         for element in self.elements[1:]:
             part = <_BaseElement> element
-            coeff = part._coeff_c(t)
+            coeff = part._coeff_c(t_obj)
             obj = part.qobj(t_obj)
             isherm &= <bint> obj._isherm and coeff.imag == 0
             out = _data.add(out, obj.data, coeff)
@@ -386,16 +386,16 @@ cdef class QobjEvo:
         cdef Data part_data = part.data(t_obj)
         cdef Data out
         if type(part_data) is Dense:
-            out = mul_dense(<Dense> part_data, part._coeff_c(t))
+            out = mul_dense(<Dense> part_data, part._coeff_c(t_obj))
         else:
-            out = _data.mul(part_data, part._coeff_c(t))
+            out = _data.mul(part_data, part._coeff_c(t_obj))
         for i in range(1, len(self.elements)):
             part = <_BaseElement> self.elements[i]
             part_data = part.data(t_obj)
             if type(out) is Dense and type(part_data) is Dense:
-                iadd_dense(<Dense> out, <Dense> part_data, part._coeff_c(t))
+                iadd_dense(<Dense> out, <Dense> part_data, part._coeff_c(t_obj))
             else:
-                out = _data.add(out, part_data, part._coeff_c(t))
+                out = _data.add(out, part_data, part._coeff_c(t_obj))
         return out
 
     cdef void _prepare(QobjEvo self, object t, Data state) except *:
@@ -1113,7 +1113,7 @@ cdef class QobjEvo:
             try:
                 for element in self.elements:
                     part = (<_BaseElement> element)
-                    coeff = part._coeff_c(t)
+                    coeff = part._coeff_c(t_obj)
                     part_data = part.data(t_obj)
                     out += coeff * expect_super_data_dense(part_data, state)
             finally:
@@ -1123,7 +1123,7 @@ cdef class QobjEvo:
         else:
             for element in self.elements:
                 part = (<_BaseElement> element)
-                coeff = part._coeff_c(t)
+                coeff = part._coeff_c(t_obj)
                 part_data = part.data(t_obj)
                 out += coeff * expect_data_dense(part_data, state)
         return out

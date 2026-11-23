@@ -240,7 +240,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
 
     cpdef double _compute_spectrum(self, double t) except *:
         "Compute the skew, spectrum and dw_min"
-        cdef double[:] ev = self.H.eigenvalues(t)
+        cdef double[:] eigvals = self.H.eigenvalues(t)
         cdef double dw, dw_min = np.inf, s0
         cdef size_t row, col
         cdef Coefficient spectra = self.spectra
@@ -253,7 +253,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             self.skew[col, col] = 0.
             self.spectrum[col, col] = s0
             for row in range(col, self.nrows):
-                dw = ev[row] - ev[col]
+                dw = eigvals[row] - eigvals[col]
                 self.skew[row, col] = dw
                 self.skew[col, row] = -dw
                 if dw != 0:

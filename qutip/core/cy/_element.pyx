@@ -4,7 +4,6 @@
 #cython: cdvision=True
 
 from .. import data as _data
-from cpython.float cimport PyFloat_Check
 from qutip.core.cy.coefficient import coefficient_function_parameters
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.matmul cimport *
@@ -114,7 +113,7 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .coeff(t)."
         )
 
-    cdef double complex _coeff_c(self, double t) except *:
+    cdef double complex _coeff_c(self, t) except *:
         """To reduce overheading in coefficient calling in the derived classes"""
         return <double complex>self.coeff(t)
 
@@ -169,13 +168,7 @@ cdef class _BaseElement:
           this method should be updated to use the new support.
         """
         cdef Data data_t = self.data(t)
-        cdef double complex coeff_val
-        if PyFloat_Check(t):
-            coeff_val = self._coeff_c(<double> t)
-        else:
-            coeff_val = <double complex> self.coeff(t)
-
-        cdef double complex total_scale = scale * coeff_val
+        cdef double complex total_scale = scale * self._coeff_c(t)
         if out is None:
             return _data.matmul[type(data_t), type(state), type(state)](
                 data_t, state, total_scale
@@ -225,13 +218,7 @@ cdef class _BaseElement:
           The result of ``scale * state @ dag(self.coeff(t) * self.qobj(t)) + out``, with
           the addition possibly having been performed in-place on ``out``.
         """
-        cdef double complex coeff_val
-        if PyFloat_Check(t):
-            coeff_val = self._coeff_c(<double> t)
-        else:
-            coeff_val = <double complex> self.coeff(t)
-
-        cdef double complex total_scale = scale * conj(coeff_val)
+        cdef double complex total_scale = scale * conj(self._coeff_c(t))
         cdef Data data_t
         cdef Data data_adj
 
@@ -386,7 +373,7 @@ cdef class _ConstantElement(_BaseElement):
     cpdef object coeff(self, t):
         return 1.
 
-    cdef double complex _coeff_c(self, double t) except *:
+    cdef double complex _coeff_c(self, t) except *:
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -447,7 +434,7 @@ cdef class _EvoElement(_BaseElement):
     cpdef object coeff(self, t):
         return self._coefficient(t)
 
-    cdef double complex _coeff_c(self, double t) except *:
+    cdef double complex _coeff_c(self, t) except *:
         return self._coefficient._call(t)
 
     def linear_map(self, f, anti=False):
@@ -642,7 +629,7 @@ cdef class _MapElement(_BaseElement):
     cpdef object coeff(self, t):
         return self._coeff
 
-    cdef double complex _coeff_c(self, double t) except *:
+    cdef double complex _coeff_c(self, t) except *:
         return self._coeff
 
     def linear_map(self, f, anti=False):
@@ -700,43 +687,26 @@ cdef class _ProdElement(_BaseElement):
         return out
 
     cpdef object coeff(self, t):
-        cdef double complex out
-        if PyFloat_Check(t):
-            out = self._left._coeff_c(<double> t) * self._right._coeff_c(<double> t)
-        else:
-            out = <double complex> (self._left.coeff(t) * self._right.coeff(t))
+        cdef double complex out = self._left.coeff(t) * self._right.coeff(t)
         return conj(out) if self._conj else out
 
-    cdef double complex _coeff_c(self, double t) except *:
+    cdef double complex _coeff_c(self, t) except *:
         cdef double complex out = self._left._coeff_c(t) * self._right._coeff_c(t)
         return conj(out) if self._conj else out
 
     cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None, double complex scale=1):
         cdef Data temp
-        cdef double complex coeff_val
         if not self._transform:
             temp = self._right.matmul_data_t(t, state)
             out = self._left.matmul_data_t(t, temp, out, scale)
             return out
-
         elif type(state) is Dense and type(out) is Dense:
-            if PyFloat_Check(t):
-                coeff_val = self._coeff_c(<double> t)
-            else:
-                coeff_val = <double complex> self.coeff(t)
-
-            imatmul_data_dense(self.data(t), state, scale * coeff_val, out)
+            imatmul_data_dense(self.data(t), state, scale * self._coeff_c(t), out)
             return out
-
         else:
-            if PyFloat_Check(t):
-                coeff_val = self._coeff_c(<double> t)
-            else:
-                coeff_val = <double complex> self.coeff(t)
-
             return _data.add(
                 out,
-                _data.matmul(self.data(t), state, scale * coeff_val)
+                _data.matmul(self.data(t), state, scale * self._coeff_c(t))
             )
 
     def linear_map(self, f, anti=False):
