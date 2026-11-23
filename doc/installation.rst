@@ -36,15 +36,17 @@ The following packages are currently required:
 +----------------+--------------+
 | Package        | Version      |
 +================+==============+
-| **Python**     | 3.11+        |
+| **Python**     | 3.12+        |
 +----------------+--------------+
-| **NumPy**      | 1.23.2+      |
+| **NumPy**      | 1.26.0+      |
 +----------------+--------------+
 | **SciPy**      | 1.13+        |
 +----------------+--------------+
 
 
 In addition, there are several optional packages that provide additional functionality:
+
+.. _install-optional:
 
 .. cssclass:: table-striped
 
@@ -57,7 +59,11 @@ In addition, there are several optional packages that provide additional functio
 | ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| ``cvxpy``                | 1.3+         | Needed to calculate diamond norms.                  |
+| ``cython``               | 0.29.37+     | Needed for compiling some time-dependent            |
+| ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
+| ``filelock``             |              |                                                     |
++--------------------------+--------------+-----------------------------------------------------+
+| ``cvxpy``                | 1.4+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``pytest``,              | 7.2+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
@@ -66,6 +72,13 @@ In addition, there are several optional packages that provide additional functio
 +--------------------------+--------------+-----------------------------------------------------+
 | ``tqdm``                 |              | Extra progress bars back-end.                       |
 +--------------------------+--------------+-----------------------------------------------------+
+| ``pydiso``               |              | Intel oneMKL PARDISO sparse direct solver           |
+|                          |              | for supported x86-64 platforms. See the             |
+|                          |              | `pydiso installation documentation`_ and            |
+|                          |              | :ref:`steady-mkl` for availability and usage.       |
++--------------------------+--------------+-----------------------------------------------------+
+
+.. _pydiso installation documentation: https://github.com/simpeg/pydiso#installation
 
 In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
 `IPython <https://ipython.org/>`_ provides an improved text-based Python interpreter that is far more full-featured that the default interpreter, and runs in a terminal.

@@ -2,10 +2,10 @@ import operator
 
 import pytest
 from qutip import (
-    Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz, num, destroy, rand_stochastic,
-    rand_herm, rand_ket, liouvillian, basis, spre, spost, to_choi, expect,
-    rand_ket, rand_dm, operator_to_vector, SESolver, MESolver, MCSolver,
-    CoreOptions
+    Qobj, QobjEvo, coefficient, Coefficient, qeye, sigmax, sigmaz, num,
+    destroy, rand_stochastic, rand_herm, rand_ket, liouvillian, basis, spre,
+    spost, to_choi, expect, rand_ket, rand_dm, operator_to_vector, SESolver,
+    MESolver, MCSolver, CoreOptions
 )
 import qutip.core.data as _data
 from qutip.solver._feedback import _DataFeedback, _QobjFeedback
@@ -629,6 +629,50 @@ def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
     assert len(as_list) == 2
     restored = QobjEvo(as_list)
     _assert_qobjevo_equivalent(qevo, restored)
+
+
+def test_QobjEvo_to_list_ordered():
+    func = lambda t: sigmax()
+    coeff = lambda t: t
+    qevo = QobjEvo(
+        [func, [sigmaz(), coeff], num(2), [sigmax(), coeff], func],
+        compress=False
+    )
+    as_list = qevo.to_list(sort=False, always_include_cte=True)
+    assert len(as_list) == 5
+    assert as_list[0][0] is func
+    assert isinstance(as_list[2], Qobj)
+
+    as_list_compressed = qevo.to_list(compress=True)
+    assert len(as_list_compressed) == 4
+    assert isinstance(as_list_compressed[0], Qobj)
+    assert isinstance(as_list_compressed[1][1], Coefficient)
+    assert as_list_compressed[2][0] is func
+    assert as_list_compressed[3][0] is func
+
+    as_list_sorted = qevo.to_list()  # Default is to sort
+    assert isinstance(as_list_sorted[0], Qobj)
+    assert isinstance(as_list_sorted[1][1], Coefficient)
+    assert isinstance(as_list_sorted[2][1], Coefficient)
+    assert as_list_sorted[3][0] is func
+    assert as_list_sorted[4][0] is func
+
+    # Last to_list call did not modify the object
+    as_list = qevo.to_list(sort=False)
+    assert len(as_list) == 5
+    assert as_list[0][0] is func
+
+
+def test_QobjEvo_to_list_add_qzero():
+    coeff = lambda t: t
+    qevo = QobjEvo([sigmax(), coeff])
+
+    as_list = qevo.to_list(always_include_cte=True)
+    assert len(as_list) == 2
+    assert as_list[0] == sigmax() * 0
+
+    as_list = qevo.to_list(always_include_cte=False)
+    assert len(as_list) == 1
 
 
 class Feedback_Checker_Coefficient:

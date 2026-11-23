@@ -1,0 +1,1 @@
+Redefines the multiprocessing context management policy in qutip: keeps the old way of choosing contexts when running qutip with Python <= 3.14 and lets the application's default context be used for Python >= 3.15 with a possibility to override it. Adds a possibility to override multiprocessing contexts via a new property ``mp_context`` in ``qutip.settings``.

@@ -1,0 +1,1 @@
+Adds a centralised guide on parallelisation in QuTiP. Describes ways to run computations concurrently, with examples, practical tips, and common pitfalls. Describes the updated multiprocessing context/start method management policy in QuTiP and gives practical guidance on adapting existing parallelisation workflows when upgrading to qutip >= 5.4 and using Python >= 3.15.

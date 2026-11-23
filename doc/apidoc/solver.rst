@@ -107,10 +107,11 @@ Stochastic Schrödinger Equation and Master Equation
     :inherited-members:
     :exclude-members: add_integrator
 
-.. autoclass:: qutip.solver.multitrajresult.MultiTrajResult
-    :members:
-    :inherited-members:
-    :exclude-members: add_processor, add, add_end_condition
+.. autoclass:: qutip.solver.stochastic.StochasticResult
+    :members: steady_state, merge, plot_expect, measurement, signal, dW, wiener_process
+
+.. autoclass:: qutip.solver.stochastic.StochasticTrajResult
+    :members: plot_expect, measurement, signal, dW, wiener_process
 
 Non-Markovian Solvers
 =====================
@@ -188,6 +189,9 @@ Stochastic Integrator
 
 Parallelization
 ===============
+
+For backend choices, multiprocessing context selection, and interactive use,
+see :ref:`guide-parallel`.
 
 .. automodule:: qutip.solver.parallel
     :members: parallel_map, serial_map, loky_pmap, mpi_pmap

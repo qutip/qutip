@@ -76,7 +76,7 @@ jobs:
           # For the sdist we should be as conservative as possible with our
           # Python version.  This should be the lowest supported version.  This
           # means that no unsupported syntax can sneak through.
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install pip build
         run: |
@@ -123,12 +123,13 @@ jobs:
     needs: deploy_test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         # Each os has two instruction set (x86, arm) that needs different build.
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-15-intel, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.11--3.14 for all OS targets.
-      CIBW_BUILD: "cp3{11,12,13,14}-*"
+      # Set up wheels matrix.  This is CPython 3.12--3.15 for all OS targets.
+      CIBW_BUILD: "cp3{12,13,14,15}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* *-manylinux_i686 *-win32"
@@ -142,13 +143,12 @@ jobs:
         name: Install Python
         with:
           # This is about the build environment, not the released wheel version.
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install cibuildwheel
         run: |
-          # cibuildwheel does the heavy lifting for us. >=3 is needed for
-          # python 3.14.
-          python -m pip install 'cibuildwheel==3.3.*'
+          # cibuildwheel>= 4.3.1 is needed for Python 3.15
+          python -m pip install 'cibuildwheel==4.3.*'
 
       - name: Build wheels
         shell: bash
@@ -174,7 +174,7 @@ jobs:
       - uses: actions/checkout@v7
       - if: env.OVERRIDE_VERSION != ''
         run: echo "$OVERRIDE_VERSION" > VERSION
-      - uses: pypa/cibuildwheel@v4.2.1
+      - uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_PLATFORM: pyodide
           CIBW_BUILD: "cp3{13,14}-*"
