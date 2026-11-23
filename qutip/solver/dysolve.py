@@ -485,6 +485,7 @@ class Dysolve:
         omegas = self.perturbations[1]
         num_ws = len(omegas)
         factors = self.perturbations[3]
+        a_tol = self.options["a_tol"]
 
         dE = energies[:, np.newaxis] - energies[np.newaxis, :]
         exp_H_0_diag = np.exp(-1j * energies * dt)
@@ -531,9 +532,10 @@ class Dysolve:
                         + dE[paths[:, i], paths[:, i + 1]]
                     )
 
-                integrals = np.array(
-                    [cy_compute_integrals(row[::-1], dt) for row in ws_matrix]
-                )
+                integrals = np.array([
+                    cy_compute_integrals(row[::-1], dt, a_tol)
+                    for row in ws_matrix
+                ])
                 start_indices = paths[:, 0]
                 end_indices = paths[:, -1]
                 np.add.at(
