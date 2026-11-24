@@ -1,4 +1,4 @@
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
+#cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 import numpy as np
 import numbers

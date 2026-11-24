@@ -1,4 +1,5 @@
 from libc.math cimport sqrt
+from libc.string cimport memcpy, memset
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
@@ -12,8 +13,16 @@ cdef double INV_SQRT3 = 1/sqrt(3.)
 
 cdef inline void _assign(Dense dst, Dense src):
     """dst[:] = src, in place."""
-    imul_dense(dst, 0.)
-    iadd_dense(dst, src, 1.)
+    cdef size_t size = dst.shape[0] * dst.shape[1] * sizeof(double complex)
+    if (
+        dst.fortran == src.fortran
+        and dst.shape[0] == src.shape[0]
+        and dst.shape[1] == src.shape[1]
+    ):
+        memcpy(dst.data, src.data, size)
+    else:
+        memset(dst.data, 0, size)
+        iadd_dense(dst, src, 1.)
 
 cdef class Euler:
     cdef BaseStochasticSystem system
@@ -126,8 +135,8 @@ cdef class Platen(Euler):
                 dW[0, i] -= expect[i].real * dt
 
         # Vt = d1 + sum_i b_i dW_i ;  Vp_i, Vm_i = d1 +/- b_i sqrt(dt)
-        imul_dense(out, 0.)
-        iadd_dense(out, d1, 0.5)
+        _assign(out, d1)
+        imul_dense(out, 0.5)
         _assign(Vt, d1)
         for i in range(num_ops):
             Vp = self._Vp[i]
