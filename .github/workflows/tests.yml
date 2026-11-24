@@ -295,13 +295,12 @@ jobs:
             export QUTIP_NUM_PROCESSES=2
           fi
 
-          # By default, the max. number of allowed worker processes in openmpi is
-          # (number of physical cpu cores) - 1.
-          # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
-          export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
-
           QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
           PYTEST_OPTIONS="-Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes"
+
+          echo "QUTIP_TESTS=$QUTIP_TESTS" >> "$GITHUB_ENV"
+          echo "PYTEST_OPTIONS=$PYTEST_OPTIONS" >> "$GITHUB_ENV"
+
           pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "not mpi"
           # Above flags are:
           #  -Werror
@@ -327,8 +326,25 @@ jobs:
           #  --color=yes
           #     force coloured output in the terminal
 
-          # run mpi test by themselves with mpirun
-          mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "mpi_pmap"
+      - name: Run MPI tests
+        working-directory: ${{ runner.temp }}
+        timeout-minutes: 5
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage
+          COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
+          # By default, the max. number of allowed worker processes in openmpi is
+          # (number of physical cpu cores) - 1.
+          # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+          PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+        run: |
+          if python -c "import mpi4py" 2>/dev/null; then
+            python -m mpi4py --mpi-lib-version
+            python -m mpi4py --mpi-config
+            which mpirun && mpirun --version
+            mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "mpi_pmap"
+          else
+            echo "mpi4py not installed; skipping MPI tests."
+          fi
 
       - name: Upload to Coveralls
         env:
