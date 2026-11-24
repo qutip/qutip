@@ -301,7 +301,8 @@ jobs:
           export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
 
           QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
+          PYTEST_OPTIONS="-Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes"
+          pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "not mpi"
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
@@ -325,6 +326,9 @@ jobs:
           #     cruft, and we're going to upload the .coverage file to Coveralls
           #  --color=yes
           #     force coloured output in the terminal
+
+          # run mpi test by themselves with mpirun
+          mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "mpi_pmap"
 
       - name: Upload to Coveralls
         env:
