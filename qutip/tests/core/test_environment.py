@@ -1525,3 +1525,29 @@ class TestExpFermionicEnv:
         assert_guarantees_f(env, check_db=False)
         ref = SingleMinusExpReference(coefficient=2, exponent=.6)
         assert_equivalent_f(env, ref, tol=1e-8)
+
+
+class TestJumpCorrelator:
+    def test_pw_round_trip(self):
+        env = OhmicEnvironment(1, 1, 1, 1)
+        jc = env.jump_correlator_function(wMin=-10, wMax=20)
+        env2 = BosonicEnvironment.from_jump_correlator(jc)
+
+        ws = np.linspace(-3, 8, 11)
+        np.testing.assert_allclose(
+            env.power_spectrum(ws),
+            env2.power_spectrum(ws),
+            atol=1e-3, rtol=1e-3,
+        )
+
+    def test_cf_round_trip(self):
+        env = OhmicEnvironment(1, 1, 1, 1)
+        jc = env.jump_correlator_function(wMin=-10, wMax=20)
+        env2 = BosonicEnvironment.from_jump_correlator(jc)
+
+        ts = np.linspace(0, 8, 11)
+        np.testing.assert_allclose(
+            env.correlation_function(ts),
+            env2.correlation_function(ts),
+            atol=1e-3, rtol=1e-3,
+        )

@@ -21,6 +21,7 @@ import enum
 from time import time
 from typing import Any, Callable, Literal, Sequence, overload, Union
 import warnings
+from functools import partial
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -385,20 +386,19 @@ class BosonicEnvironment(abc.ABC):
         Parameters
         ----------
         g : callable or array_like
-            The spectral density. Can be provided as a Python function or
+            The jump correlator. Can be provided as a Python function or
             as an array. When using a function, the signature should be
 
-            ``g(t: array_like, **args) -> array_like``
+            ``g(t: array_like) -> array_like``
 
-            where ``t`` is time and ``args`` is a dict containing the
-            other parameters of the function.
+            where ``t`` is time.
 
         tlist : optional, array_like
-            The times where the correlation function is sampled (if it is
+            The times where the jump correlator is sampled (if it is
             provided as an array).
 
         tMax : optional, float
-            Specifies that the correlation function is essentially zero outside
+            Specifies that the jump correlator is essentially zero outside
             the interval [-tMax, tMax]. Used for numerical integration
             purposes.
 
@@ -409,9 +409,6 @@ class BosonicEnvironment(abc.ABC):
 
         tag : optional, str, tuple or any other object
             An identifier (name) for this environment.
-
-        args : optional, dict
-            Extra arguments for the spectral density ``g``.
         """
         return _BosonicEnvironment_fromJC(g, tlist, tMax, T, tag, args)
 
@@ -549,10 +546,10 @@ class BosonicEnvironment(abc.ABC):
         if getattr(self, "_ps_wMax", wMax) <= wMax:
             self._ps_wMax = wMax
             fft_out = _fft(
-                self.correlation_function,
+                self.jump_correlator,
                 self._ps_wMax, tMax=tMax,
             )
-            self._ps = lambda w: np.real(fft_out(-w))**2 * (2 * np.pi)
+            self._ps = lambda w: np.real(fft_out(-w))**2
 
         result = self._ps(w)
         return result.item() if w.ndim == 0 else result
@@ -1105,7 +1102,11 @@ class _BosonicEnvironment_fromJC(BosonicEnvironment):
             tMax = max(np.abs(tlist[0]), np.abs(tlist[-1]))
 
         if callable(g):
-            self._jc = g
+            if args:
+                self._jc = partial(g, **args)
+            else:
+                self._jc = g
+
             if not hasattr(self._jc, "tMax"):
                 self._jc.tMax = tMax
             else:
@@ -1153,7 +1154,7 @@ class _BosonicEnvironment_fromJC(BosonicEnvironment):
                              'must be specified for this operation.')
         if self._cf is None:
             ts = np.linspace(-self.tMax, self.tMax, num_t+1)
-            jc = self._jc(ts)
+            jc = self.jump_correlator(ts)
             cf = np.convolve(jc, jc, "same") * self.tMax * 2 / num_t
             self._cf = _SymmetricSpline(
                 cf, ts, self.tMax, "correlator function"
