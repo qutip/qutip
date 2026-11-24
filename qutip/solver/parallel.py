@@ -482,9 +482,10 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     # shut down the resource tracker processes manually
     try:
         import loky
-        loky_resource_tracker = loky.backend.resource_tracker._resource_tracker
-        if loky_resource_tracker:
-            loky_resource_tracker._stop()
+        if hasattr(loky.backend, "resource_tracker"):
+            loky_resource_tracker = loky.backend.resource_tracker
+            if loky_resource_tracker._resource_tracker:
+                loky_resource_tracker._resource_tracker._stop()
 
         if hasattr(multiprocessing, 'resource_tracker'):
             mp_resource_tracker =\

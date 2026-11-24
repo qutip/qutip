@@ -11,7 +11,21 @@ from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     )
 
 # Ensure the latest version is tested
-clean_compiled_coefficient(True)
+@pytest.fixture(scope="module", autouse=True)
+def clean_cache(request):
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+    except ImportError:
+        comm = None
+        rank = 0
+    
+    if rank == 0:
+        clean_compiled_coefficient(True)
+
+    if comm is not None:
+        comm.Barrier()
 
 
 def f(t, w):
