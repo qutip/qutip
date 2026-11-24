@@ -327,19 +327,18 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Run MPI tests
-        working-directory: ${{ runner.temp }}
         timeout-minutes: 5
         env:
           COVERAGE_FILE: ${{ github.workspace }}/.coverage
           COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
+          QUTIP_TOOLS: ${{ github.workspace }}/tools
           # By default, the max. number of allowed worker processes in openmpi is
           # (number of physical cpu cores) - 1.
           # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
           PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         run: |
-          pwd
           if python -c "import mpi4py" 2>/dev/null; then
-            python qutip/tools/mpi_info.py
+            python $QUTIP_TOOLS/mpi_info.py
             which mpirun && mpirun --version
             mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "mpi_pmap"
           else
