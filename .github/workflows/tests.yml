@@ -337,9 +337,9 @@ jobs:
           # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
           PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         run: |
+          pwd
           if python -c "import mpi4py" 2>/dev/null; then
-            python -m mpi4py --mpi-lib-version
-            python -m mpi4py --mpi-config
+            python qutip/tools/mpi_info.py
             which mpirun && mpirun --version
             mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "mpi_pmap"
           else
