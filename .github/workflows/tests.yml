@@ -340,7 +340,7 @@ jobs:
           if python -c "import mpi4py" 2>/dev/null; then
             python $QUTIP_TOOLS/mpi_info.py
             which mpirun && mpirun --version
-            mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" --only-mpi
+            mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" --with-mpi -m mpi
           else
             echo "mpi4py not installed; skipping MPI tests."
           fi
