@@ -219,7 +219,7 @@ cpdef double complex expect_dense(Dense op, Dense state) except *:
     return _expect_dense_dense_dm(op, state)
 
 
-cpdef double complex expect_super_csr_dense(CSR op, Dense state) except *:
+cpdef double complex expect_super_csr_dense(CSR op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -235,7 +235,7 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) except *:
     return out
 
 
-cpdef double complex expect_super_dense(Dense op, Dense state) except *:
+cpdef double complex expect_super_dense(Dense op, Dense state) except * nogil:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
