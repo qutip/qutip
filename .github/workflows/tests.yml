@@ -62,7 +62,7 @@ jobs:
             # Both mpich and openmpi version 4 have caused problems in the past
             # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
             # version of mpi4py are currently only available on conda-forge:
-            conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
+            conda-extra-pkgs: '"openmpi>=5.0" mpi4py pytest-mpi'
 
           - case-name: no conda, version-2
             os: ubuntu-latest
