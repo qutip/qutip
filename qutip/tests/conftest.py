@@ -5,6 +5,29 @@ import sys
 import tempfile
 import numpy as np
 import hashlib
+import warnings
+
+
+def clean_cache():
+    try:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+    except ImportError:
+        comm = None
+        rank = 0
+
+    if rank == 0:
+        from qutip.core.coefficient import clean_compiled_coefficient
+        clean_compiled_coefficient(True)
+
+    if comm is not None:
+        comm.Barrier()
+
+
+# Ensure the latest version of string coefficient is tested
+# Ran once first since string coeficient are defined outside tests...
+clean_cache()
 
 
 def _add_repeats_if_marked(metafunc):
@@ -64,9 +87,24 @@ def in_temporary_directory():
         os.chdir(previous_dir)
 
 
+def pytest_collection_modifyitems(config, items):
+    # Check if pytest-mpi flags were passed on the command line
+    with_mpi = config.getoption("--with-mpi", default=False)
+    only_mpi = config.getoption("--only-mpi", default=False)
+
+    if with_mpi or only_mpi:
+        return
+
+    skip_mpi = pytest.mark.skip(
+        reason="MPI tests are skipped by default; pass --with-mpi or --only-mpi to run."
+    )
+    for item in items:
+        if "mpi" in item.keywords:
+            item.add_marker(skip_mpi)
+
+
 SEEDSEQ = np.random.SeedSequence()
 
-import warnings
 
 class NotReprGenerator(np.random.Generator):
     """

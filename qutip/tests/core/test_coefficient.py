@@ -6,26 +6,8 @@ import scipy.interpolate as interp
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
-                                    clean_compiled_coefficient,
                                     WARN_MISSING_MODULE,
                                     )
-
-# Ensure the latest version is tested
-@pytest.fixture(scope="module", autouse=True)
-def clean_cache(request):
-    try:
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-    except ImportError:
-        comm = None
-        rank = 0
-    
-    if rank == 0:
-        clean_compiled_coefficient(True)
-
-    if comm is not None:
-        comm.Barrier()
 
 
 def f(t, w):

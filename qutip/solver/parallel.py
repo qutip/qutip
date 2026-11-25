@@ -478,22 +478,21 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     # processes that are normally never shut down. However, using mpi4py
     # when these child processes are still alive may lead to a deadlock.
     # -- WE RECOMMEND NOT TO MIX loky_pmap AND mpi_pmap IN THE SAME PROGRAM --
-    # However, it happens in our test runs. For this reason, we here try to
-    # shut down the resource tracker processes manually
-    try:
-        import loky
-        if hasattr(loky.backend, "resource_tracker"):
-            loky_resource_tracker = loky.backend.resource_tracker
-            if loky_resource_tracker._resource_tracker:
-                loky_resource_tracker._resource_tracker._stop()
+    # Mpi tests are ran in their own step for that reason.
+    mp_active = getattr(mp_rt._resource_tracker, "_fd", None) is not None
+    loky_rt = sys.modules.get("loky.backend.resource_tracker")
+    loky_active = (
+        loky_rt is not None
+        and hastattr(loky_rt, "_resource_tracker", False)
+        and hastattr(loky_rt._resource_tracker, "_fd", False)
+    )
 
-        if hasattr(multiprocessing, 'resource_tracker'):
-            mp_resource_tracker =\
-                multiprocessing.resource_tracker._resource_tracker
-            if mp_resource_tracker:
-                mp_resource_tracker._stop()
-    except ImportError:
-        pass
+    if mp_active or loky_active:
+        raise RuntimeError(
+            "A multiprocessing/loky resource tracker process is already "
+            "running; mixing parallel_map/loky_pmap with mpi_pmap in the same "
+            "process can cause MPI deadlocks.",
+        )
 
     # If the provided num_cpus is None, we use the default value instead.
     # We thus intentionally make it impossible to call

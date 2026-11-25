@@ -55,6 +55,7 @@ jobs:
             numpy-run: "==2.4.*"
             scipy-run: "==1.17.*"
             pypi: 1
+            mpi: 1
 
             qutip-optional: "[full]"
             # Install mpi4py to test mpi_pmap
@@ -327,6 +328,7 @@ jobs:
           #     force coloured output in the terminal
 
       - name: Run MPI tests
+        if: matrix.mpi
         timeout-minutes: 5
         env:
           COVERAGE_FILE: ${{ github.workspace }}/.coverage
@@ -337,13 +339,9 @@ jobs:
           # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
           PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
         run: |
-          if python -c "import mpi4py" 2>/dev/null; then
-            python $QUTIP_TOOLS/mpi_info.py
-            which mpirun && mpirun --version
-            mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" --with-mpi -m mpi
-          else
-            echo "mpi4py not installed; skipping MPI tests."
-          fi
+          python $QUTIP_TOOLS/mpi_info.py
+          which mpirun && mpirun --version
+          mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" --with-mpi -m mpi
 
       - name: Upload to Coveralls
         env:
