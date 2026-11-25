@@ -1,0 +1,1 @@
+Fixed ``dnorm`` failing with a CVXOPT solver error on macOS (arm64). The Hermiticity constraints of the semidefinite program no longer repeat equations, so the equality constraints are independent.
