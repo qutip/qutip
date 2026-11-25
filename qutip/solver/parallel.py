@@ -6,6 +6,7 @@ execution library.
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'mpi_pmap']
 
 import multiprocessing
+import multiprocessing.resource_tracker
 import os
 import sys
 import time
