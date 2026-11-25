@@ -34,9 +34,7 @@ def _make_constraints(*rhos):
     """
     # rhos traces are 1
     constraints = [cvxpy.trace(rho.re) == 1 for rho in rhos]
-    # rhos are Hermitian. Only the upper triangle is constrained, since
-    # `rho == rho.T` repeats every equation and makes the equality constraints
-    # rank deficient, which CVXOPT can fail on.
+    # rhos are Hermitian, upper triangle only so no equation repeats
     for rho in rhos:
         upper = np.triu_indices(rho.re.shape[0], 1)
         constraints += [

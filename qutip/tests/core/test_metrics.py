@@ -519,10 +519,7 @@ class Test_dnorm:
 @pytest.mark.parametrize("dim", [2, 3, 4])
 @pytest.mark.parametrize("sparse", [True, False], ids=["sparse", "dense"])
 def test_dnorm_equality_constraints_independent(dim, sparse):
-    """
-    Redundant equality constraints can make CVXOPT fail depending on the
-    platform, so the SDP must not have any.
-    """
+    """The dnorm SDP must have no redundant equality constraints."""
     J = to_choi(rand_super_bcsz(dim, enforce_tp=False, seed=1))
     if sparse:
         problem = dnorm_sparse_problem(dim, J.to("csr").data.as_scipy())
