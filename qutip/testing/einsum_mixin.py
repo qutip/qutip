@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from qutip.core import data
+
 
 class TestEinsum:
     """
@@ -8,6 +10,16 @@ class TestEinsum:
     """
 
     specialisations = []
+
+    def make_operand(self, data_type, array):
+        """
+        Build an operand of ``data_type`` from a dense numpy array.
+
+        The default goes through the registered ``Dense`` conversion, which
+        every data type is expected to provide.  Override only for a type
+        that cannot be converted from ``Dense``.
+        """
+        return data.to(data_type, data.Dense(array))
 
     def pytest_generate_tests(self, metafunc):
         metafunc.parametrize(
@@ -94,7 +106,7 @@ class TestEinsum:
         specializations.
         """
 
-        operands = [data_type(op) for op in operands_data]
+        operands = [self.make_operand(data_type, op) for op in operands_data]
 
         result = einsum_func(
             operands[0],
