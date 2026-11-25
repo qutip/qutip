@@ -14,6 +14,7 @@ def einsum_dense(op0, /, *rest_operands, subscripts, tensor_shapes, out_shape):
         _to(Dense, op).as_ndarray().reshape(shape)
         for op, shape in zip(operands, tensor_shapes)
     ]
+    # TODO: when numpy is bumped to 2.2 add the optimize argument to np.einsum call
     result = np.einsum(subscripts, *tensors).reshape(out_shape)
 
     # With one operand, numpy may return a view of the input. Copy it so
