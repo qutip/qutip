@@ -137,6 +137,11 @@ def _migrate_coeff(newroot):
         for old in oldroot.glob("qutip_coeffs_*"):
             new = newroot / old.name
             if new.exists():
+                try:
+                    # Would become stale
+                    old.rmtree()
+                except OSError:
+                    pass
                 continue
             try:
                 shutil.move(str(old), str(new))
@@ -158,11 +163,11 @@ class Settings:
         try:
             import platformdirs
             default = platformdirs.user_data_dir("qutip")
-            _migrate_coeff(default)
         except ImportError:
             default = str(Path.home() / '.qutip')
         try:
             self.tmproot = default
+            _migrate_coeff(self.tmproot)
         except OSError:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
