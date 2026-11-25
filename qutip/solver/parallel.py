@@ -479,7 +479,9 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     # when these child processes are still alive may lead to a deadlock.
     # -- WE RECOMMEND NOT TO MIX loky_pmap AND mpi_pmap IN THE SAME PROGRAM --
     # Mpi tests are ran in their own step for that reason.
-    mp_active = getattr(mp_rt._resource_tracker, "_fd", None) is not None
+    mp_active = getattr(
+        multiprocessing.resource_tracker._resource_tracker, "_fd", None
+    ) is not None
     loky_rt = sys.modules.get("loky.backend.resource_tracker")
     loky_active = (
         loky_rt is not None
