@@ -25,6 +25,7 @@ from qutip import (
     unitarity, hilbert_dist, bures_dist, bures_angle, process_fidelity,
 )
 from qutip.core.metrics import _hilbert_space_dims
+from qutip.core.semidefinite import dnorm_problem, dnorm_sparse_problem
 
 
 @pytest.fixture(scope="function", params=[
@@ -512,6 +513,27 @@ class Test_dnorm:
         A = rand_super_bcsz(dimension, seed=random_generator)
         assert A.iscptp
         assert dnorm(A, sparse=sparse) == pytest.approx(1, abs=1e-7)
+
+
+@pytest.mark.skipif(cvxpy is None, reason="Requires cvxpy")
+@pytest.mark.parametrize("dim", [2, 3, 4])
+@pytest.mark.parametrize("sparse", [True, False], ids=["sparse", "dense"])
+def test_dnorm_equality_constraints_independent(dim, sparse):
+    """
+    Redundant equality constraints can make CVXOPT fail depending on the
+    platform, so the SDP must not have any.
+    """
+    J = to_choi(rand_super_bcsz(dim, enforce_tp=False, seed=1))
+    if sparse:
+        problem = dnorm_sparse_problem(dim, J.to("csr").data.as_scipy())
+    else:
+        problem, Jr, Ji = dnorm_problem(dim)
+        Jr.value = J.full().real
+        Ji.value = J.full().imag
+    data, _, _ = problem.get_problem_data("SCS")
+    n_equalities = data["dims"].zero
+    equalities = data["A"][:n_equalities].toarray()
+    assert np.linalg.matrix_rank(equalities) == n_equalities
 
 
 @pytest.mark.parametrize('superrep_conversion',
