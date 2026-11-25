@@ -61,15 +61,9 @@ graphics = ["matplotlib>=3.9"]
 runtime_compilation = ["cython>=0.29.37", "filelock", "setuptools"]
 semidefinite = ["cvxpy>=1.4", "cvxopt"]
 ipython = ["ipython"]
-extras = [
-  "loky",
-  "tqdm",
-  "mpmath",
-]
+extras = ["loky", "tqdm", "mpmath", "platformdirs"]
 mpi = ["mpi4py"]
-mkl = [
-    "pydiso>=0.3.1"
-]
+mkl = ["pydiso>=0.3.1"]
 full = [
   "qutip[graphics,runtime_compilation,semidefinite,ipython,extras,mkl]",
 ]

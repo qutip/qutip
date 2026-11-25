@@ -15,6 +15,7 @@ from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
 
+
 def _blas_info_pre_1_26():
     config = scipy.__config__
     if hasattr(config, 'blas_ilp64_opt_info'):
@@ -103,6 +104,7 @@ def _has_pydiso() -> bool:
         return False
     return True
 
+
 def _mkl_versions() -> tuple[str | None, str | None]:
     from importlib.metadata import PackageNotFoundError, version
     try:
@@ -118,13 +120,19 @@ def _mkl_versions() -> tuple[str | None, str | None]:
 
     return pydiso_version, mkl_version
 
+
 class Settings:
     """
     Qutip's settings and options.
     """
     def __init__(self):
         try:
-            self.tmproot = str(Path.home() / '.qutip')
+            import platformdirs
+            default = platformdirs.user_data_dir("qutip")
+        except ImportError:
+            default = str(Path.home() / '.qutip')
+        try:
+            self.tmproot = default
         except OSError:
             self._tmproot = "."
         self.core = None  # set in qutip.core.options
@@ -181,7 +189,7 @@ class Settings:
     def mkl_version(self) -> str | None:
         """ Version of the Intel MKL library used by ``pydiso`` """
         return self._get_mkl_versions()[1]
-    
+
     @property
     def pydiso_version(self) -> str | None:
         """Version of ``pydiso```, which provides the MKL Pardiso solver """
@@ -227,7 +235,8 @@ class Settings:
     def tmproot(self) -> str:
         """
         Location in which qutip place cython string coefficient folders.
-        The default is "$HOME/.qutip".
+        The default is platformdirs.user_data_dir if installed,
+        "$HOME/.qutip", otherwise.
         Can be updated.
         """
         return self._tmproot
@@ -235,7 +244,7 @@ class Settings:
     @tmproot.setter
     def tmproot(self, root: str) -> None:
         root = Path(root)
-        root.mkdir(exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         self._tmproot = str(root)
 
     @property

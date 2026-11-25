@@ -427,6 +427,9 @@ Here is a list of defined variables:
     (scipy cython interface).
 
 
+String coefficients are saved between session in :attr:`qutip.Settings.coeffroot`.
+See the :ref:`setting guide <settings-compile>` for instruction on how to overwrite the location.
+
 **Array coefficients** :
 Use the spline interpolation of an array.
 Useful when the coefficient is hard to define as a function or obtained from experimental data.
