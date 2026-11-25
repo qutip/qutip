@@ -486,8 +486,8 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     loky_rt = sys.modules.get("loky.backend.resource_tracker")
     loky_active = (
         loky_rt is not None
-        and hastattr(loky_rt, "_resource_tracker", False)
-        and hastattr(loky_rt._resource_tracker, "_fd", False)
+        and hasattr(loky_rt, "_resource_tracker", False)
+        and hasattr(loky_rt._resource_tracker, "_fd", False)
     )
 
     if mp_active or loky_active:

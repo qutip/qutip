@@ -302,7 +302,7 @@ jobs:
           echo "QUTIP_TESTS=$QUTIP_TESTS" >> "$GITHUB_ENV"
           echo "PYTEST_OPTIONS=$PYTEST_OPTIONS" >> "$GITHUB_ENV"
 
-          pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" -k "not mpi"
+          pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
