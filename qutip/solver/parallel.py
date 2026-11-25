@@ -6,7 +6,6 @@ execution library.
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'mpi_pmap']
 
 import multiprocessing
-import multiprocessing.resource_tracker
 import os
 import sys
 import time
@@ -474,6 +473,7 @@ def mpi_pmap(task, values, task_args=None, task_kwargs=None,
     """
 
     from mpi4py.futures import MPIPoolExecutor
+    import multiprocessing.resource_tracker  # Does not exist on pyodide
 
     # If loky is used (see loky_pmap), it starts two "resource tracker" child
     # processes that are normally never shut down. However, using mpi4py
