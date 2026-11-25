@@ -1,0 +1,2 @@
+Use ``platformdirs`` for default data location.
+Previously saved coefficient are now stale and can be removed.

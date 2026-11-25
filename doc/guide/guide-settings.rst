@@ -45,7 +45,7 @@ Environment settings
 |                   |           | environments SciPy's `eigh` segfaults or gives invalid   |
 |                   |           | results.                                                 |
 +-------------------+-----------+----------------------------------------------------------+
-| `tmproot`         | False     | Root dir used to create coeffroot.                       |
+| `tmproot`         | False     | Root dir used to store data and config between sessions. |
 |                   |           | Use ``platformdirs.user_data_dir`` when installed,       |
 |                   |           | or the user home otherwise.                              |
 +-------------------+-----------+----------------------------------------------------------+
@@ -132,7 +132,7 @@ The compiled files are stored in ``qutip.settings.coeffroot`` for reuse between 
 As long as the same ``coeffroot`` is set, each string will only be compiled once.
 
 The default location is ``qutip.settings.tmproot / "qutip_coeffs_X.X"``,
-where ``qutip.settings.tmproot`` is``platformdirs``'s ``user_data_dir`` when ``platformdirs`` is installed, 
+where ``qutip.settings.tmproot`` is``platformdirs``'s ``user_data_dir`` when ``platformdirs`` is installed,
 or ``~/.qutip`` in the user home otherwise.
 If the default location is not writable or not ideal, it can be changed manually:
 

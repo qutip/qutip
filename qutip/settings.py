@@ -4,6 +4,7 @@ tidyup functionality, etc.
 """
 import os
 import sys
+import shutil
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
@@ -121,6 +122,34 @@ def _mkl_versions() -> tuple[str | None, str | None]:
     return pydiso_version, mkl_version
 
 
+def _migrate_coeff(newroot):
+    """
+    Previous versions stored the compiled coefficients in ``~/.qutip``.
+    Move them to the new location so they are not left stale on disk.
+    This is a best-effort cleanup: failures are ignored since the files
+    are only a cache and will be recompiled if needed.
+    """
+    try:
+        oldroot = Path.home() / ".qutip"
+        newroot = Path(newroot)
+        if not oldroot.is_dir() or oldroot.resolve() == newroot.resolve():
+            return
+        for old in oldroot.glob("qutip_coeffs_*"):
+            new = newroot / old.name
+            if new.exists():
+                continue
+            try:
+                shutil.move(str(old), str(new))
+            except OSError:
+                continue
+        try:
+            oldroot.rmdir()
+        except OSError:
+            pass
+    except (OSError, RuntimeError):
+        pass
+
+
 class Settings:
     """
     Qutip's settings and options.
@@ -129,6 +158,7 @@ class Settings:
         try:
             import platformdirs
             default = platformdirs.user_data_dir("qutip")
+            _migrate_coeff(default)
         except ImportError:
             default = str(Path.home() / '.qutip')
         try:
