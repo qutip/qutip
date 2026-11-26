@@ -6,12 +6,8 @@ import scipy.interpolate as interp
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, const,
                                     CompilationOptions, Coefficient,
-                                    clean_compiled_coefficient,
                                     WARN_MISSING_MODULE,
                                     )
-
-# Ensure the latest version is tested
-clean_compiled_coefficient(True)
 
 
 def f(t, w):

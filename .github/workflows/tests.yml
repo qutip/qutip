@@ -55,6 +55,7 @@ jobs:
             numpy-run: "==2.4.*"
             scipy-run: "==1.17.*"
             pypi: 1
+            mpi: 1
 
             qutip-optional: "[full]"
             # Install mpi4py to test mpi_pmap
@@ -62,7 +63,7 @@ jobs:
             # Both mpich and openmpi version 4 have caused problems in the past
             # so we use openmpi version 5. Openmpi 5 and python 3.13-compatible
             # version of mpi4py are currently only available on conda-forge:
-            conda-extra-pkgs: '"openmpi>=5.0" mpi4py'
+            conda-extra-pkgs: '"openmpi>=5.0" mpi4py pytest-mpi'
 
           - case-name: no conda, version-2
             os: ubuntu-latest
@@ -295,13 +296,13 @@ jobs:
             export QUTIP_NUM_PROCESSES=2
           fi
 
-          # By default, the max. number of allowed worker processes in openmpi is
-          # (number of physical cpu cores) - 1.
-          # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
-          export PRTE_MCA_rmaps_default_mapping_policy=:oversubscribe
-
           QUTIP_TESTS=$(python -c "import pathlib, qutip; print(pathlib.Path(qutip.__file__).parent / 'tests')")
-          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
+          PYTEST_OPTIONS="-Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes"
+
+          echo "QUTIP_TESTS=$QUTIP_TESTS" >> "$GITHUB_ENV"
+          echo "PYTEST_OPTIONS=$PYTEST_OPTIONS" >> "$GITHUB_ENV"
+
+          pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS"
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
@@ -325,6 +326,22 @@ jobs:
           #     cruft, and we're going to upload the .coverage file to Coveralls
           #  --color=yes
           #     force coloured output in the terminal
+
+      - name: Run MPI tests
+        if: matrix.mpi
+        timeout-minutes: 5
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage
+          COVERAGE_RCFILE: ${{ github.workspace }}/pyproject.toml
+          QUTIP_TOOLS: ${{ github.workspace }}/tools
+          # By default, the max. number of allowed worker processes in openmpi is
+          # (number of physical cpu cores) - 1.
+          # We only have 2 physical cores, but we want to test mpi_pmap with 2 workers.
+          PRTE_MCA_rmaps_default_mapping_policy: :oversubscribe
+        run: |
+          python $QUTIP_TOOLS/mpi_info.py
+          which mpirun && mpirun --version
+          mpirun -n 2 pytest $PYTEST_OPTIONS ${{ matrix.pytest-extra-options }} "$QUTIP_TESTS" --with-mpi -m mpi
 
       - name: Upload to Coveralls
         env:
