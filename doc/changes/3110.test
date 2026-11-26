@@ -1,0 +1,1 @@
+Moves ``TestEinsum`` mixin into its own module, i.e.,``qutip.testing.einsum_mixin``. This allows reusing it for einsum tests in qutip and other family packages without relying on ``qutip.tests`` module that will be soon moved out according to the ``src`` layout.
