@@ -30,23 +30,21 @@ class TestEinsum:
         [
             "subscripts",
             "shapes",
-            "perms",
-            "out_perm",
             "out_shape",
             "operands_data",
             "expected_data",
         ],
         [
             pytest.param(
-                "ii",
-                [(2, 2)], [(0, 1)], (0,), (1, 1),
+                "ii->",
+                [(2, 2)], (1, 1),
                 [np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex)],
                 np.array([[2.0]], dtype=complex),
                 id="trace_scalar",
             ),
             pytest.param(
-                "ij,ji",
-                [(2, 2), (2, 2)], [(0, 1), (0, 1)], (0,), (1, 1),
+                "ij,ji->",
+                [(2, 2), (2, 2)], (1, 1),
                 [
                     np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex),
                     np.array([[2.0, 0.0], [0.0, 3.0]], dtype=complex),
@@ -56,7 +54,7 @@ class TestEinsum:
             ),
             pytest.param(
                 "ij,jk->ik",
-                [(2, 2), (2, 2)], [(0, 1), (0, 1)], (0, 1), (2, 2),
+                [(2, 2), (2, 2)], (2, 2),
                 [
                     np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex),
                     np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex),
@@ -66,14 +64,14 @@ class TestEinsum:
             ),
             pytest.param(
                 "ij->ji",
-                [(2, 2)], [(0, 1)], (0, 1), (2, 2),
+                [(2, 2)], (2, 2),
                 [np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex)],
                 np.array([[0.0, 1.0j], [-1.0j, 0.0]], dtype=complex),
                 id="transpose",
             ),
             pytest.param(
-                "ijkl->kjil",
-                [(3, 2, 2, 2)], [(2, 0, 1, 3)], (1, 2, 0, 3), (4, 6),
+                "jkil->ikjl",
+                [(3, 2, 2, 2)], (4, 6),
                 [np.arange(24, dtype=complex).reshape(6, 4)],
                 np.array(
                     [
@@ -95,8 +93,6 @@ class TestEinsum:
         out_type,
         subscripts,
         shapes,
-        perms,
-        out_perm,
         out_shape,
         operands_data,
         expected_data,
@@ -113,8 +109,6 @@ class TestEinsum:
             *operands[1:],
             subscripts=subscripts,
             tensor_shapes=tuple(shapes),
-            tensor_perms=tuple(perms),
-            out_perm=out_perm,
             out_shape=out_shape,
         )
 
