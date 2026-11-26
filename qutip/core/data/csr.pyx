@@ -41,6 +41,19 @@ from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.trace cimport trace_csr
 from qutip.core.data.tidyup cimport tidyup_csr
 from .base import idxint_dtype
+
+# NumPy 2's ``copy=False`` means "never copy" and raises if a dtype conversion
+# is needed, where NumPy 1's meant "copy only if needed". SciPy's index arrays
+# are always int32, so on an ``idxint_64`` build converting them to idxint
+# genuinely requires a copy. Fall back to copy-if-needed in exactly that case.
+_NUMPY_2 = np.lib.NumpyVersion(np.__version__) >= '2.0.0b1'
+
+
+cdef object _array_idxint(object arg, object copy):
+    if _NUMPY_2 and copy is False and np.asarray(arg).dtype != idxint_dtype:
+        copy = None
+    return np.array(arg, dtype=idxint_dtype, copy=copy, order='C')
+
 from qutip.settings import settings
 
 cnp.import_array()
@@ -116,8 +129,8 @@ cdef class CSR(base.Data):
             # np2 accept None which act as np1's False
             copy = builtins.bool(copy)
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
-        col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
-        row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
+        col_index = _array_idxint(arg[1], copy)
+        row_index = _array_idxint(arg[2], copy)
 
         if data.ndim != 1 or col_index.ndim != 1 or row_index.ndim != 1:
             raise TypeError("data, col_index, row_index must all be 1D arrays")

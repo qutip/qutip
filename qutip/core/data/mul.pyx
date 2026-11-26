@@ -2,6 +2,7 @@
 #cython: boundscheck=False, wrapround=False, initializedcheck=False
 
 from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data, Dia, dia
+include "_blas_int.pxi"
 from scipy.linalg.cython_blas cimport zscal
 
 __all__ = [
@@ -13,8 +14,8 @@ __all__ = [
 
 cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
-    cdef idxint l = csr.nnz(matrix)
-    cdef int ONE=1
+    cdef blas_int l = <blas_int> csr.nnz(matrix)
+    cdef blas_int ONE=1
     zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
@@ -41,8 +42,8 @@ cpdef CSR neg_csr(CSR matrix):
 
 cpdef Dia imul_dia(Dia matrix, double complex value):
     """Multiply this Dia `matrix` by a complex scalar `value`."""
-    cdef idxint l = matrix.num_diag * matrix.shape[1]
-    cdef int ONE=1
+    cdef blas_int l = <blas_int> (matrix.num_diag * matrix.shape[1])
+    cdef blas_int ONE=1
     zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
@@ -73,8 +74,8 @@ cpdef Dia neg_dia(Dia matrix):
 cpdef Dense imul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
     cdef size_t ptr
-    cdef int ONE=1
-    cdef idxint l = matrix.shape[0]*matrix.shape[1]
+    cdef blas_int ONE=1
+    cdef blas_int l = <blas_int> (matrix.shape[0]*matrix.shape[1])
     zscal(&l, &value, matrix.data, &ONE)
     return matrix
 
