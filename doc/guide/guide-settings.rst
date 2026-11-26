@@ -145,10 +145,11 @@ see `platformdirs's documentation <https://platformdirs.readthedocs.io/en/latest
 for instructions for your OS.
 
 
-To optimize the coefficient, QuTiP tries to set c types to variables of string coefficients.
+When compiling a string coefficient with Cython, QuTiP attempts to assign C types for its arguments and numeric constants.
+These types are needed to create optimised code used in the evaluations of the coefficient.
 ``qutip.settings.compile`` has multiple options for compilation.
 
-There are options are about to whether to compile.
+There are options are about to whether to compile or not.
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 
@@ -164,7 +165,7 @@ There are options are about to whether to compile.
 +--------------------------+-----------------------------------------------------------+
 
 
-Some options passed to cython and the compiler (for advanced user).
+Some options are passed to Cython and the compiler (for advanced users).
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 
@@ -185,7 +186,7 @@ Some options passed to cython and the compiler (for advanced user).
 +--------------------------+-----------------------------------------------------------+
 
 
-Lastly some options control how qutip tries to detect C types (for advanced user).
+Lastly, some options control how qutip tries to detect C types (for advanced users).
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 

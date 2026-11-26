@@ -430,6 +430,8 @@ Here is a list of defined variables:
 String coefficients are saved between sessions in :attr:`qutip.Settings.coeffroot`.
 See the :ref:`setting guide <settings-compile>` for instructions on how to overwrite the location.
 
+Cached coefficient can be removed with :func:`clean_compiled_coefficient`.
+
 **Array coefficients** :
 Use the spline interpolation of an array.
 Useful when the coefficient is hard to define as a function or obtained from experimental data.

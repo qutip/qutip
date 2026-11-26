@@ -335,21 +335,35 @@ except OSError:
     qset.coeffroot = "."
 
 
-def clean_compiled_coefficient(all=False):
+def clean_compiled_coefficient(all_version=True):
     """
-    Remove previouly compiled string Coefficient.
+    Remove cached compiled string coefficients.
 
-    Parameter:
+    Only the cache located in ``qutip.settings.tmproot`` is cleaned. If that
+    location was changed, either manually or by installing ``platformdirs``,
+    the cache at the previous location is not affected.
+
+    Parameters
     ----------
-    all: bool
-        If not `all`, it will remove only previous version.
+    all_version : bool, default: False
+        If False, only the folders of previous coefficient format versions
+        are removed, and the current one is kept.
+        If True, the current folder is removed as well, and string
+        coefficients will be recompiled when next used.
+
+    Notes
+    -----
+    Only whole folders are removed. Individual stale files, such as lock files
+    or sources (``.cpp``) files and binaries compiled for previous Python
+    versions are not cleaned without ``all_version=True``, which remove
+    everything.
     """
     import glob
     import shutil
     tmproot = qset.tmproot
     active = qset.coeffroot
     folders = glob.glob(str(Path(tmproot) / 'qutip_coeffs_') + "*")
-    if all:
+    if all_version:
         shutil.rmtree(active)
     for folder in folders:
         if folder != active:

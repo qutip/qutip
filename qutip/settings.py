@@ -139,7 +139,7 @@ def _migrate_coeff(newroot):
             if new.exists():
                 try:
                     # Would become stale
-                    old.rmtree()
+                    shutil.rmtree(old)
                 except OSError:
                     pass
                 continue
