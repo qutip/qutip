@@ -535,6 +535,10 @@ def smesolve(
     """
     Solve stochastic master equation.
 
+    See the Users Guide on
+    :ref:`the stochastic master equation section <sme-solver>` for an
+    introduction and worked examples.
+
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
@@ -679,6 +683,10 @@ def ssesolve(
 ) -> StochasticResult:
     """
     Solve stochastic Schrodinger equation.
+
+    See the Users Guide on
+    :ref:`the stochastic Schrodinger equation section <sse-solver>` for an
+    introduction and worked examples.
 
     Parameters
     ----------
@@ -1355,6 +1363,10 @@ class SMESolver(StochasticSolver):
     r"""
     Stochastic Master Equation Solver.
 
+    See the Users Guide on
+    :ref:`the stochastic master equation section <sme-solver>` for an
+    introduction and worked examples.
+
     Parameters
     ----------
     H : :obj:`.Qobj`, :obj:`.QobjEvo`, :obj:`.QobjEvo` compatible format.
@@ -1394,6 +1406,10 @@ class SMESolver(StochasticSolver):
 class SSESolver(StochasticSolver):
     r"""
     Stochastic Schrodinger Equation Solver.
+
+    See the Users Guide on
+    :ref:`the stochastic Schrodinger equation section <sse-solver>` for an
+    introduction and worked examples.
 
     Parameters
     ----------
