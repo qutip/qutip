@@ -1,4 +1,3 @@
-#cython: language_level=3
 from qutip.core.cy.coefficient cimport Coefficient
 
 

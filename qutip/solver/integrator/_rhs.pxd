@@ -1,4 +1,3 @@
-#cython: language_level=3
 from qutip.core.data cimport Data
 from qutip.core.cy.qobjevo cimport QobjEvo
 

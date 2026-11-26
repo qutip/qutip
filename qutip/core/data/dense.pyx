@@ -1,4 +1,3 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memcpy
@@ -150,7 +149,7 @@ cdef class Dense(base.Data):
         out._deallocate = True
         return out
 
-    cdef void _fix_flags(self, object array, bint make_owner=False):
+    cdef void _fix_flags(self, cnp.ndarray array, bint make_owner=False) noexcept:
         cdef int enable = cnp.NPY_ARRAY_OWNDATA if make_owner else 0
         cdef int disable = 0
         cdef cnp.npy_intp *dims = cnp.PyArray_DIMS(array)
@@ -359,7 +358,7 @@ cpdef Dense from_dia(Dia matrix):
 
 cdef inline base.idxint _diagonal_length(
     base.idxint offset, base.idxint n_rows, base.idxint n_cols,
-) nogil:
+) noexcept nogil:
     if offset > 0:
         return n_rows if offset <= n_cols - n_rows else n_cols - offset
     return n_cols if offset > n_cols - n_rows else n_rows + offset

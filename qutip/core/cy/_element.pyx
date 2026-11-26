@@ -1,8 +1,6 @@
-#cython: language_level=3
 #cython: boundscheck=False
 #cython: wraparound=False
 #cython: initializedcheck=False
-#cython: cdvision=True
 
 from .. import data as _data
 from qutip.core.cy.coefficient import coefficient_function_parameters
@@ -114,6 +112,11 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .coeff(t)."
         )
 
+    cdef double complex _coeff_c(self, t) except *:
+        """To reduce overheading in coefficient calling in the derived classes"""
+        return <double complex>self.coeff(t)
+
+
     cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=None, double complex scale=1):
         """
         Possibly in-place multiplication and addition. Multiplies a given state
@@ -164,8 +167,7 @@ cdef class _BaseElement:
           this method should be updated to use the new support.
         """
         cdef Data data_t = self.data(t)
-        cdef double complex coeff_val = <double complex>self.coeff(t)
-        cdef double complex total_scale = scale * coeff_val
+        cdef double complex total_scale = scale * self._coeff_c(t)
         if out is None:
             return _data.matmul[type(data_t), type(state), type(state)](
                 data_t, state, total_scale
@@ -215,8 +217,7 @@ cdef class _BaseElement:
           The result of ``scale * state @ dag(self.coeff(t) * self.qobj(t)) + out``, with
           the addition possibly having been performed in-place on ``out``.
         """
-        cdef double complex coeff_val = <double complex>self.coeff(t)
-        cdef double complex total_scale = scale * conj(coeff_val)
+        cdef double complex total_scale = scale * conj(self._coeff_c(t))
         cdef Data data_t
         cdef Data data_adj
 
@@ -327,8 +328,8 @@ cdef class _BaseElement:
     def __call__(self, t, args=None):
         if args:
             cache = []
-            new = self.replace_arguments(args, cache)
-            return new.qobj(t) * new.coeff(t)
+            new_ = self.replace_arguments(args, cache)
+            return new_.qobj(t) * new_.coeff(t)
         return self.qobj(t) * self.coeff(t)
 
     @property
@@ -369,6 +370,9 @@ cdef class _ConstantElement(_BaseElement):
         return self._qobj
 
     cpdef object coeff(self, t):
+        return 1.
+
+    cdef double complex _coeff_c(self, t) except *:
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -428,6 +432,9 @@ cdef class _EvoElement(_BaseElement):
 
     cpdef object coeff(self, t):
         return self._coefficient(t)
+
+    cdef double complex _coeff_c(self, t) except *:
+        return self._coefficient._call(t)
 
     def linear_map(self, f, anti=False):
         return _EvoElement(
@@ -555,18 +562,19 @@ cdef class _FuncElement(_BaseElement):
         if not args:
             return self
         if cache is not None:
-            for old, new in cache:
+            for old, new_ in cache:
                 if old is self:
-                    return new
-        new = _FuncElement(
+                    return new_
+
+        new_ = _FuncElement(
                 self._func,
                 {**self._args, **args},
                 _f_pythonic=self._f_pythonic,
                 _f_parameters=self._f_parameters,
         )
         if cache is not None:
-            cache.append((self, new))
-        return new
+            cache.append((self, new_))
+        return new_
 
 
 cdef class _MapElement(_BaseElement):
@@ -618,6 +626,9 @@ cdef class _MapElement(_BaseElement):
         return out
 
     cpdef object coeff(self, t):
+        return self._coeff
+
+    cdef double complex _coeff_c(self, t) except *:
         return self._coeff
 
     def linear_map(self, f, anti=False):
@@ -678,6 +689,10 @@ cdef class _ProdElement(_BaseElement):
         cdef double complex out = self._left.coeff(t) * self._right.coeff(t)
         return conj(out) if self._conj else out
 
+    cdef double complex _coeff_c(self, t) except *:
+        cdef double complex out = self._left._coeff_c(t) * self._right._coeff_c(t)
+        return conj(out) if self._conj else out
+
     cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None, double complex scale=1):
         cdef Data temp
         if not self._transform:
@@ -685,12 +700,12 @@ cdef class _ProdElement(_BaseElement):
             out = self._left.matmul_data_t(t, temp, out, scale)
             return out
         elif type(state) is Dense and type(out) is Dense:
-            imatmul_data_dense(self.data(t), state, scale * self.coeff(t), out)
+            imatmul_data_dense(self.data(t), state, scale * self._coeff_c(t), out)
             return out
         else:
             return _data.add(
                 out,
-                _data.matmul(self.data(t), state, scale * self.coeff(t))
+                _data.matmul(self.data(t), state, scale * self._coeff_c(t))
             )
 
     def linear_map(self, f, anti=False):

@@ -1,7 +1,5 @@
-#cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 import numpy as np
-cimport cython
 from libc.math cimport fabs as abs
 
 cdef extern from "<complex>" namespace "std" nogil:
