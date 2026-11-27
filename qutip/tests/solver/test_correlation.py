@@ -317,6 +317,39 @@ def test_G1():
     np.testing.assert_allclose(G1, expected * scale**2, rtol=2e-5)
 
 
+@pytest.mark.parametrize("solver", ["me", "es"])
+def test_G1_nonstationary(solver):
+    # Amplitude damping of |1> gives G1(tau) = exp(i*w*tau - gamma*tau/2) and
+    # n(tau) = exp(-gamma*tau), so g1(tau) = exp(i*w*tau) with |g1(tau)| = 1.
+    w = 1.0
+    gamma = 0.5
+    a = qutip.destroy(2)
+    H = w * a.dag() * a
+    psi0 = qutip.basis(2, 1)
+    taus = np.linspace(0, 2, 11)
+    c_ops = [np.sqrt(gamma) * a]
+
+    g1, G1 = qutip.coherence_function_g1(
+        H, psi0, taus, c_ops, a, solver=solver
+    )
+    expected_G1 = np.exp(1j * w * taus - 0.5 * gamma * taus)
+    expected_g1 = np.exp(1j * w * taus)
+    np.testing.assert_allclose(G1, expected_G1, atol=1e-5)
+    np.testing.assert_allclose(g1, expected_g1, atol=1e-5)
+
+
+def test_G1_steady_state():
+    a = qutip.destroy(4)
+    H = a.dag() * a
+    c_ops = [np.sqrt(0.5) * a, np.sqrt(0.1) * a.dag()]
+    taus = np.linspace(0, 2, 11)
+    rhoss = qutip.steadystate(H, c_ops)
+    n_ss = qutip.expect(a.dag() * a, rhoss)
+
+    g1, G1 = qutip.coherence_function_g1(H, None, taus, c_ops, a)
+    np.testing.assert_allclose(g1, G1 / n_ss, rtol=1e-6)
+
+
 def test_G2(random_generator):
     N = 10
     H = qutip.rand_dm(N, seed=random_generator)
