@@ -299,8 +299,8 @@ class CompilationOptions(QutipOptions):
     try:
         import cython
         import filelock
+        import platformdirs  # Import before setuptools
         import setuptools
-        import platformdirs
         _use_cython = True
     except ImportError:
         _use_cython = False

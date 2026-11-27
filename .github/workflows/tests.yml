@@ -105,7 +105,7 @@ jobs:
             numpy-run: "==1.26.*"
             scipy-run: "==1.13.*"
             qutip-optional: ""
-            pypi-extra-pkgs: "cython==0.29.37 setuptools filelock matplotlib==3.9.*"
+            pypi-extra-pkgs: "cython==0.29.37 setuptools filelock platformdirs matplotlib==3.9.*"
             pypi: 1
             pytest-extra-options: "-W ignore:dep_util:DeprecationWarning -W ignore:matplotlib:UserWarning -W ignore::DeprecationWarning:Cython.Tempita -W ignore::pyparsing.warnings.PyparsingDeprecationWarning"
 
