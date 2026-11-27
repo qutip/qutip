@@ -426,7 +426,7 @@ def coherence_function_g1(
     G1 = correlation_3op(solver, state0, [0], taulist,
                          None, a_op.dag(), a_op)[0]
 
-    g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
+    g1 = G1 / np.sqrt(n[0] * np.array(n))
     return g1, G1
 
 
