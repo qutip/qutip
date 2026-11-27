@@ -300,6 +300,7 @@ class CompilationOptions(QutipOptions):
         import cython
         import filelock
         import setuptools
+        import platformdirs
         _use_cython = True
     except ImportError:
         _use_cython = False
@@ -328,11 +329,13 @@ qset.compile = CompilationOptions()
 # Version number of the Coefficient
 COEFF_VERSION = "1.3"
 
-try:
-    root = Path(qset.tmproot) / f"qutip_coeffs_{COEFF_VERSION}"
-    qset.coeffroot = root
-except OSError:
-    qset.coeffroot = "."
+
+if qset.compile["use_cython"]:
+    try:
+        root = Path(qset.tmproot) / f"qutip_coeffs_{COEFF_VERSION}"
+        qset.coeffroot = root
+    except OSError:
+        qset.coeffroot = "."
 
 
 def clean_compiled_coefficient(all_version=True):
@@ -362,6 +365,8 @@ def clean_compiled_coefficient(all_version=True):
     import shutil
     tmproot = qset.tmproot
     active = qset.coeffroot
+    if not tmproot:
+        return
     folders = glob.glob(str(Path(tmproot) / 'qutip_coeffs_') + "*")
     if all_version:
         shutil.rmtree(active)

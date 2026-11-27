@@ -162,14 +162,12 @@ class Settings:
     def __init__(self):
         try:
             import platformdirs
-            default = platformdirs.user_data_dir("qutip")
-        except ImportError:
-            default = str(Path.home() / '.qutip')
-        try:
-            self.tmproot = default
+            self.tmproot = platformdirs.user_data_dir("qutip")
             _migrate_coeff(self.tmproot)
-        except OSError:
-            self._tmproot = "."
+        except ImportError:
+            # tmproot is presently only used for coefficient cache.
+            self._tmproot = None
+
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
         if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
@@ -181,6 +179,7 @@ class Settings:
         self._colorblind_safe = False
         self._has_pydiso = None
         self._mkl_versions = None
+        self._coeffroot = None
 
     @property
     def mp_context(self) -> BaseContext | None:
@@ -267,7 +266,7 @@ class Settings:
         )
 
     @property
-    def tmproot(self) -> str:
+    def tmproot(self) -> str | None:
         """
         Location in which qutip place cython string coefficient folders.
         The default is platformdirs.user_data_dir if installed,
@@ -278,9 +277,7 @@ class Settings:
 
     @tmproot.setter
     def tmproot(self, root: str) -> None:
-        root = Path(root)
-        root.mkdir(parents=True, exist_ok=True)
-        self._tmproot = str(root)
+        self._tmproot = str(Path(root))
 
     @property
     def coeffroot(self) -> str:
@@ -294,7 +291,7 @@ class Settings:
     @coeffroot.setter
     def coeffroot(self, root: str) -> None:
         root = Path(root)
-        root.mkdir(exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         root_str = str(root)
         if root_str not in sys.path:
             sys.path.insert(0, root_str)

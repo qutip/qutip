@@ -132,8 +132,7 @@ The compiled files are stored in ``qutip.settings.coeffroot`` for reuse between 
 As long as the same ``coeffroot`` is set, each string will only be compiled once.
 
 The default location is ``qutip.settings.tmproot / "qutip_coeffs_X.X"``,
-where ``qutip.settings.tmproot`` is``platformdirs``' ``user_data_dir`` when ``platformdirs`` is installed,
-or ``~/.qutip`` in the user home otherwise.
+where ``qutip.settings.tmproot`` is``platformdirs``' ``user_data_dir``.
 If the default location is not writable or not ideal, it can be changed manually:
 
 .. code:: python
@@ -143,7 +142,6 @@ If the default location is not writable or not ideal, it can be changed manually
 When ``platformdirs`` is installed, the default location can be controlled using environment variable,
 see `platformdirs's documentation <https://platformdirs.readthedocs.io/en/latest/howto.html#overriding-directories-with-environment-variables>`_
 for instructions for your OS.
-
 
 When compiling a string coefficient with Cython, QuTiP attempts to assign C types for its arguments and numeric constants.
 These types are needed to create optimised code used in the evaluations of the coefficient.

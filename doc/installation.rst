@@ -62,8 +62,7 @@ In addition, there are several optional packages that provide additional functio
 | ``cython``               | 0.29.37+     | Needed for compiling some time-dependent            |
 | ``setuptools``           |              | Hamiltonians. Cython will require a C++ compiler.   |
 | ``filelock``             |              |                                                     |
-+--------------------------+--------------+-----------------------------------------------------+
-| ``platformdirs``         |              | Used for the Cython coefficient default location    |
+| ``platformdirs``         |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
 | ``cvxpy``                | 1.4+         | Needed to calculate diamond norms.                  |
 +--------------------------+--------------+-----------------------------------------------------+
