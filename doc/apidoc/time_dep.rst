@@ -13,7 +13,7 @@ Coefficient
 ===========
 
 .. automodule:: qutip.core.coefficient
-    :members: coefficient
+    :members: coefficient, clean_compiled_coefficient
 
 
 CompilationOptions

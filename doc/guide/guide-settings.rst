@@ -45,6 +45,10 @@ Environment settings
 |                   |           | environments SciPy's `eigh` segfaults or gives invalid   |
 |                   |           | results.                                                 |
 +-------------------+-----------+----------------------------------------------------------+
+| `tmproot`         | False     | Root dir used to store data and config between sessions. |
+|                   |           | Use ``platformdirs.user_data_dir`` when installed,       |
+|                   |           | or the user home otherwise.                              |
++-------------------+-----------+----------------------------------------------------------+
 | `coeffroot`       | False     | Directory in which QuTiP creates cython modules for      |
 |                   |           | string coefficient.                                      |
 +-------------------+-----------+----------------------------------------------------------+
@@ -61,15 +65,6 @@ Environment settings
 +-------------------+-----------+----------------------------------------------------------+
 | `colorblind_safe` | False     | Control the default cmap in visualization functions.     |
 +-------------------+-----------+----------------------------------------------------------+
-
-
-It may be needed to update ``coeffroot`` if the default HOME is not writable. It can be done with:
-
->>> qutip.settings.coeffroot = "path/to/string/coeff/directory"
-
-In QuTiP version 5 and later, strings compiled in a session are kept for future sessions.
-As long as the same ``coeffroot`` is used, each string will only be compiled once.
-
 
 *********************************
 Modifying Internal QuTiP Settings
@@ -132,11 +127,27 @@ The settings can also be changed for a code block::
 String Coefficient Parameters
 =============================
 
-String based coefficient used for time dependent system are compiled using Cython when available.
-Speeding the simulations, it tries to set c types to passed variables.
+String-based coefficients used for time dependent system are compiled using Cython when available.
+The compiled files are stored in ``qutip.settings.coeffroot`` for reuse between sessions.
+As long as the same ``coeffroot`` is set, each string will only be compiled once.
+
+The default location is ``qutip.settings.tmproot / "qutip_coeffs_X.X"``,
+where ``qutip.settings.tmproot`` is``platformdirs``' ``user_data_dir``.
+If the default location is not writable or not ideal, it can be changed manually:
+
+.. code:: python
+
+    qutip.settings.coeffroot = "path/to/string/coeff/directory"
+
+When ``platformdirs`` is installed, the default location can be controlled using environment variable,
+see `platformdirs's documentation <https://platformdirs.readthedocs.io/en/latest/howto.html#overriding-directories-with-environment-variables>`_
+for instructions for your OS.
+
+When compiling a string coefficient with Cython, QuTiP attempts to assign C types for its arguments and numeric constants.
+These types are needed to create optimised code used in the evaluations of the coefficient.
 ``qutip.settings.compile`` has multiple options for compilation.
 
-There are options are about to whether to compile.
+There are options are about to whether to compile or not.
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 
@@ -152,7 +163,7 @@ There are options are about to whether to compile.
 +--------------------------+-----------------------------------------------------------+
 
 
-Some options passed to cython and the compiler (for advanced user).
+Some options are passed to Cython and the compiler (for advanced users).
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 
@@ -173,7 +184,7 @@ Some options passed to cython and the compiler (for advanced user).
 +--------------------------+-----------------------------------------------------------+
 
 
-Lastly some options control how qutip tries to detect C types (for advanced user).
+Lastly, some options control how qutip tries to detect C types (for advanced users).
 
 .. tabularcolumns:: | p{3cm} | p{10cm} |
 

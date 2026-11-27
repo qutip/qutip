@@ -2,8 +2,10 @@ import importlib
 import multiprocessing
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
+from qutip.settings import Settings
 
 
 settings_module = importlib.import_module("qutip.settings")
@@ -42,5 +44,3 @@ def test_mp_context_override():
     with pytest.raises(TypeError):
         settings.mp_context = 42
     assert settings.mp_context is None
-
-

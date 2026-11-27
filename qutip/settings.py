@@ -4,6 +4,7 @@ tidyup functionality, etc.
 """
 import os
 import sys
+import shutil
 from ctypes import cdll, CDLL
 import platform
 from glob import glob
@@ -14,6 +15,7 @@ import multiprocessing
 from multiprocessing.context import BaseContext
 
 __all__ = ['settings']
+
 
 def _blas_info_pre_1_26():
     config = scipy.__config__
@@ -103,6 +105,7 @@ def _has_pydiso() -> bool:
         return False
     return True
 
+
 def _mkl_versions() -> tuple[str | None, str | None]:
     from importlib.metadata import PackageNotFoundError, version
     try:
@@ -118,15 +121,53 @@ def _mkl_versions() -> tuple[str | None, str | None]:
 
     return pydiso_version, mkl_version
 
+
+def _migrate_coeff(newroot):
+    """
+    Previous versions stored the compiled coefficients in ``~/.qutip``.
+    Move them to the new location so they are not left stale on disk.
+    This is a best-effort cleanup: failures are ignored since the files
+    are only a cache and will be recompiled if needed.
+    """
+    try:
+        oldroot = Path.home() / ".qutip"
+        newroot = Path(newroot)
+        if not oldroot.is_dir() or oldroot.resolve() == newroot.resolve():
+            return
+        for old in oldroot.glob("qutip_coeffs_*"):
+            new = newroot / old.name
+            if new.exists():
+                try:
+                    # Would become stale
+                    shutil.rmtree(old)
+                except OSError:
+                    pass
+                continue
+            try:
+                shutil.move(str(old), str(new))
+            except OSError:
+                continue
+        try:
+            oldroot.rmdir()
+        except OSError:
+            pass
+    except (OSError, RuntimeError):
+        pass
+
+
 class Settings:
     """
     Qutip's settings and options.
     """
     def __init__(self):
         try:
-            self.tmproot = str(Path.home() / '.qutip')
-        except OSError:
-            self._tmproot = "."
+            import platformdirs
+            self.tmproot = platformdirs.user_data_dir("qutip")
+            _migrate_coeff(self.tmproot)
+        except ImportError:
+            # tmproot is presently only used for coefficient cache.
+            self._tmproot = None
+
         self.core = None  # set in qutip.core.options
         self.compile = None  # set in qutip.core.coefficient
         if sys.version_info < (3, 15) and sys.platform in ('darwin', 'linux'):
@@ -138,6 +179,7 @@ class Settings:
         self._colorblind_safe = False
         self._has_pydiso = None
         self._mkl_versions = None
+        self._coeffroot = None
 
     @property
     def mp_context(self) -> BaseContext | None:
@@ -181,7 +223,7 @@ class Settings:
     def mkl_version(self) -> str | None:
         """ Version of the Intel MKL library used by ``pydiso`` """
         return self._get_mkl_versions()[1]
-    
+
     @property
     def pydiso_version(self) -> str | None:
         """Version of ``pydiso```, which provides the MKL Pardiso solver """
@@ -224,19 +266,18 @@ class Settings:
         )
 
     @property
-    def tmproot(self) -> str:
+    def tmproot(self) -> str | None:
         """
         Location in which qutip place cython string coefficient folders.
-        The default is "$HOME/.qutip".
+        The default is platformdirs.user_data_dir if installed,
+        "$HOME/.qutip", otherwise.
         Can be updated.
         """
         return self._tmproot
 
     @tmproot.setter
     def tmproot(self, root: str) -> None:
-        root = Path(root)
-        root.mkdir(exist_ok=True)
-        self._tmproot = str(root)
+        self._tmproot = str(Path(root))
 
     @property
     def coeffroot(self) -> str:
@@ -250,7 +291,7 @@ class Settings:
     @coeffroot.setter
     def coeffroot(self, root: str) -> None:
         root = Path(root)
-        root.mkdir(exist_ok=True)
+        root.mkdir(parents=True, exist_ok=True)
         root_str = str(root)
         if root_str not in sys.path:
             sys.path.insert(0, root_str)
