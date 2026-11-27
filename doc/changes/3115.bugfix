@@ -1,0 +1,2 @@
+Fix ``coherence_function_g1`` normalizing by scalar ``n[0]`` instead of
+``sqrt(n(0) * n(tau))`` for non-stationary initial states.
